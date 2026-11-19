@@ -41,7 +41,7 @@ import {
   stealthWing,
   subHull,
   turret,
-} from "./maritime";
+} from "./vehicles";
 import { defineDesigns } from "./registry";
 
 type V = PixelVox;

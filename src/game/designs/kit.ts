@@ -543,8 +543,10 @@ export function ring(v: PixelVox, cx: number, cz: number, y0: number, y1: number
 export function coolingTower(v: PixelVox, cx: number, cz: number, y0: number, h: number, rBase: number, col = "concrete", band2 = "red"): void {
   for (let y = 0; y < h; y++) {
     const t = y / h;
-    const r = rBase * (0.62 + 0.38 * Math.pow(Math.abs(t - 0.68) / 0.68, 1.6));
-    ring(v, cx, cz, y0 + y, y0 + y + 1, r, Math.max(0, r - 1.3), y >= h - 2 && band2 ? band2 : col);
+    // radius quantised to half voxels so neighbouring layers share a silhouette (clean tiers, no creases);
+    // wall ≥ 2.4 thick so the shell never shows see-through gaps between layers
+    const r = Math.round(rBase * (0.62 + 0.38 * Math.pow(Math.abs(t - 0.68) / 0.68, 1.6)) * 2) / 2;
+    ring(v, cx, cz, y0 + y, y0 + y + 1, r, Math.max(0, r - 2.4), y >= h - 2 && band2 ? band2 : col);
   }
 }
 

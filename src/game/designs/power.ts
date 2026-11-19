@@ -307,7 +307,7 @@ function officeBox(c: Ctx, x0: number, z0: number, x1: number, z1: number, h: nu
 function cTower(v: PixelVox, cx: number, cz: number, y0: number, h: number, rBase: number, col = "concrete", band2 = "red"): void {
   for (let y = 0; y < h; y++) {
     const t = y / h;
-    const r = rBase * (0.62 + 0.38 * Math.pow(Math.abs(t - 0.7) / 0.7, 1.7));
+    const r = Math.round(rBase * (0.62 + 0.38 * Math.pow(Math.abs(t - 0.7) / 0.7, 1.7)) * 2) / 2;
     const isBand = band2 && (y >= h - 3 || (y >= h - 7 && y < h - 6));
     ring(v, cx, cz, y0 + y, y0 + y + 1, r, Math.max(0, r - 2.4), isBand ? band2 : y < 2 ? "concreteDark" : col);
   }
