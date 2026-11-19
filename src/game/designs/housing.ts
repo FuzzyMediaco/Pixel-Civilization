@@ -1592,7 +1592,7 @@ function buildLargeHome(c: Ctx): void {
   const wt = 1 + 2 * fh;
 
   // main house placement: left part of lot, front yard toward +z
-  const bw = 22;
+  const bw = hx > 16 || lv < 2 ? 22 : 17;
   const x0 = -hx + 3;
   const x1 = x0 + bw;
   const zf = Math.min(hz - 6, 4);

@@ -2430,7 +2430,7 @@ function buildGas(c: Ctx): void {
     // diner & mart
     mart(-hx + 2, -hz + 1, 0, -4, 7);
     v.box(-hx + 2, 7, -hz + 1, -hx + 8, 10, -4, s === 0 ? "silver" : second);
-    sign(-hx + 3, -hx + 9, 10, 12, -5, "yellow", 1, main);
+    sign(v, -hx + 3, -hx + 9, 10, 12, -5, "yellow", 1, main);
     carWash(2, -hz + 1, 10, -3);
     priceSign(dx0 - 2, hz - 2, 14);
     crowd(c, -hx + 2, -3, 0, -1, 4);

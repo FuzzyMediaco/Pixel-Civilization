@@ -220,8 +220,6 @@ function buildBusStop(c: Ctx): void {
   v.box(-hx, 0, hz - 6, hx, 1, hz - 5, "white");
   if (lv >= 3) {
     for (let x = -hx + 1; x < hx - 1; x += 2) v.put(x, 0, hz - 1, "hazard");
-    textZ(v, "BUS", 0, 0, hz - 3, "hazard", 0);
-    // painted text lies flat: draw on ground plane instead
     v.box(-5, 0, hz - 4, 6, 1, hz - 3, "asphalt");
     for (let k = 0; k < 3; k++) v.box(-4 + k * 4, 0, hz - 4, -2 + k * 4, 1, hz - 3, "hazard");
   }
@@ -447,8 +445,6 @@ function buildTrainStop(c: Ctx): void {
       v.box(x, 1, z1 - 1, x + 1, shedH, z1, "steelDark");
     }
     barrelRoof(v, -hx, shedH, z0, 2, z1, "x", "glass", "steelDark");
-    // glass end-screen arch
-    v.ringZ(-hx + 0, shedH, 0, 0, 0, 0, "glass");
     // forecourt fountain & flags
     fountain(v, -hx + 8, 1, hz - 9, 3, "marble");
     for (let i = 0; i < 3; i++) flag(v, -hx + 14 + i * 4, 1, hz - 8, 10, [["red", "white", "blue"], ["teal", "white", "teal"], ["gold", "red", "gold"]][i]);

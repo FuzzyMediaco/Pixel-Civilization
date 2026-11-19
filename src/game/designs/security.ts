@@ -386,7 +386,7 @@ function buildPolicePrecinct(c: Ctx): void {
     v.box(hx - 4, 1, z0 + 5, hx - 2, 2, z0 + 6, "#8a5a3a");
     v.put(hx - 4, 2, z0 + 5, "#6b4a2a");
   } else {
-    truck(v, -hx + 6, hz - 3, "x", "white", p.carDark);
+    truck(v, -hx + 6, 1, hz - 3, "x", "white", p.carDark);
     v.put(-hx + 6, 4, hz - 3, POLICE_BLUE, 1.3);
     flag(v, -hx + 2, 1, z1 + 1, 13);
   }

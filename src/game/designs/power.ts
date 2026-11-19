@@ -40,6 +40,7 @@ import {
   waterPlane,
   windows,
   ribbonWindows,
+  curtainWall,
   barrelRoof,
   helipad,
   flowerBed,
