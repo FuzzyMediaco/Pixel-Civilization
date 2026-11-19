@@ -169,16 +169,18 @@ function giantFruit(v: V, cx: number, y: number, cz: number, r: number, col: str
     v.box(Math.floor(cx), y + Math.round(r * 2.6), Math.floor(cz), Math.floor(cx) + 1, y + Math.round(r * 2.6) + 2, Math.floor(cz) + 1, "woodDark");
     return y + r * 3;
   }
-  v.sphere(cx, y + r, cz, r, r * 0.92, r, col);
   if (kind === "melon") {
-    for (let a = 0; a < 8; a++) {
-      const ang = (a / 8) * Math.PI * 2;
-      for (let h = -r; h <= r; h++) {
-        const rr = Math.sqrt(Math.max(0, r * r - h * h));
-        v.put(cx + Math.cos(ang) * rr - 0.5, y + r + h, cz + Math.sin(ang) * rr - 0.5, "leafDark");
-      }
+    // upright watermelon SLICE facing +z: green rind, white band, red flesh, black seeds
+    const R = r * 1.5;
+    for (let x = -Math.ceil(R); x <= Math.ceil(R); x++) for (let yy = 0; yy <= Math.ceil(R); yy++) {
+      const d = Math.sqrt((x + 0.5) * (x + 0.5) + (yy - 0.5) * (yy - 0.5));
+      if (d > R) continue;
+      const col2 = d > R - 1 ? "leafDark" : d > R - 1.8 ? "#e8f5c8" : ((x * 7 + yy * 3) % 5 === 0 && d < R - 2.5) ? "black" : "#ff4d5e";
+      v.box(cx + x, y + Math.ceil(R) - yy, cz - 1, cx + x + 1, y + Math.ceil(R) - yy + 1, cz + 1, col2, col2 === "#ff4d5e" ? 0.15 : 0);
     }
+    return y + Math.ceil(R) + 1;
   }
+  v.sphere(cx, y + r, cz, r, r * 0.92, r, col);
   const top = y + Math.round(r * 1.9);
   v.box(Math.floor(cx), top, Math.floor(cz), Math.floor(cx) + 1, top + 2, Math.floor(cz) + 1, "woodDark");
   if (kind === "apple") v.box(Math.floor(cx) + 1, top + 1, Math.floor(cz), Math.floor(cx) + 3, top + 2, Math.floor(cz) + 1, "leaf");
@@ -298,15 +300,17 @@ function sidewalk(c: Ctx, z0: number, z1: number, lampCol = "iron", col = "concr
 
 /** Giant shopping-bag rooftop sign */
 function shoppingBag(v: V, cx: number, y: number, cz: number, col: string, h = 7): number {
-  v.box(cx - 3, y, cz - 2, cx + 3, y + h, cz + 2, col);
-  v.box(cx - 3, y + h - 1, cz - 2, cx + 3, y + h, cz + 2, "white");
-  for (const dx of [-2, 1]) {
-    v.box(cx + dx, y + h, cz, cx + dx + 1, y + h + 2, cz + 1, "charcoal");
-    v.box(cx + dx + 1, y + h + 2, cz, cx + dx + 2, y + h + 3, cz + 1, "charcoal");
-  }
-  v.box(cx - 1, y + h + 2, cz, cx + 2, y + h + 3, cz + 1, "charcoal");
-  v.box(cx - 1, y + 2, cz + 2, cx + 1, y + 4, cz + 3, "white", 0.8);
-  return y + h + 3;
+  const w = Math.max(3, Math.round(h * 0.6));
+  const d = Math.max(2, Math.round(h * 0.3));
+  v.box(cx - w, y, cz - d, cx + w, y + h, cz + d, col);
+  v.box(cx - w, y + h - 1, cz - d, cx + w, y + h, cz + d, "white");
+  // rope handles
+  for (const dx of [-w + 1, w - 2]) v.box(cx + dx, y + h, cz, cx + dx + 1, y + h + Math.round(h * 0.35), cz + 1, "charcoal");
+  v.box(cx - w + 1, y + h + Math.round(h * 0.35), cz, cx + w - 1, y + h + Math.round(h * 0.35) + 1, cz + 1, "charcoal");
+  // glowing logo heart/star on the front
+  v.box(cx - 1, y + Math.round(h * 0.3), cz + d, cx + 1, y + Math.round(h * 0.3) + 3, cz + d + 1, "white", 0.9);
+  v.box(cx - 2, y + Math.round(h * 0.3) + 1, cz + d, cx + 2, y + Math.round(h * 0.3) + 2, cz + d + 1, "white", 0.9);
+  return y + h + Math.round(h * 0.35) + 1;
 }
 
 /**
@@ -324,7 +328,8 @@ function buildShops(c: Ctx): void {
 
   if (lv === 1) {
     sidewalk(c, hz - 4, hz);
-    shopUnit(c, -hx + 2, hx - 2, -hz + 2, hz - 4, floorsBase, 0);
+    const t1 = shopUnit(c, -hx + 2, hx - 2, -hz + 2, hz - 4, floorsBase, 0);
+    if (s === 0 || s === 3) shoppingBag(v, 0, t1 - (s === 3 ? 3 : 0), -2, s === 3 ? "magenta" : "orange", 6);
     bench(v, -hx + 2, 1, hz - 2, "x", "woodDark");
     pot(v, hx - 3, hz - 3, 1, "leaf", "pink");
     folk(c, 2, hz - 2);
@@ -430,7 +435,8 @@ function buildShops(c: Ctx): void {
   }
   awning(v, x0, x1, 6, z1, st.awn[0][0], st.awn[0][1]);
   v.box(x0 - 0, top - 1, z0, x1, top, z1 + 1, st.trim);
-  flatRoof(c, x0, top, z0, x1, z1, st.roof, wallCol, true);
+  flatRoof(c, x0, top, z0, x1, z1, st.roof, wallCol, false);
+  for (let x = x0 + 3; x < x1 - 4; x += 9) acUnit(v, x, top + 1, z0 + 2);
   // corner rotunda / dome / signature
   const cx = x1 - 4;
   const cz = z1 - 3;
@@ -447,13 +453,13 @@ function buildShops(c: Ctx): void {
     v.cone(cx + 0.5, top + 11, top + 18, cz + 0.5, 3.5, 0.4, "tealDark");
     v.put(cx, top + 6, cz + 3, "white", 0.6);
     v.put(cx, top + 7, cz + 3, "charcoal");
-    shoppingBag(v, x0 + 6, top + 1, (z0 + z1) / 2, "orange");
+    shoppingBag(v, x0 + 8, top + 1, Math.floor((z0 + z1) / 2), "orange", 10);
   } else if (s === 3) {
-    shoppingBag(v, -0.0 | 0, top + 1, Math.floor((z0 + z1) / 2), "magenta", 8);
+    shoppingBag(v, 0, top + 1, Math.floor((z0 + z1) / 2), "magenta", 12);
     c.blink(x0 + 1, top + 2, z0 + 1, "red");
   } else {
     // Main-street dept store: giant red star + bag sign
-    shoppingBag(v, -1, top + 1, Math.floor((z0 + z1) / 2), "red", 8);
+    shoppingBag(v, -1, top + 1, Math.floor((z0 + z1) / 2), "red", 12);
     for (const fx of [x0 + 1, x1 - 2]) flag(v, fx, top + 1, z1 - 2, 6, ["red", "white", "blue"]);
   }
   // street front: taxis, shoppers with bags, lamps
@@ -524,7 +530,7 @@ function buildGrocery(c: Ctx): void {
   // Building block sizes per level
   const bigBox = lv >= 3;
   const x0 = -hx + 2;
-  const x1 = hx - 2;
+  const x1 = lv >= 4 ? hx - 11 : hx - 2;
   const z0 = -hz + 2;
   const z1 = lv === 2 ? hz - 5 : lv === 3 ? 1 : lv === 4 ? -2 : -4;
   const h = lv === 2 ? 7 : lv === 3 ? 9 : 10;
@@ -565,7 +571,9 @@ function buildGrocery(c: Ctx): void {
   const fr = byLv(c, [2.5, 3, 4, 4.5, 5]);
   const fz = Math.floor((z0 + z1) / 2);
   v.box(-2, h + 1, fz - 1, 2, h + 2, fz + 1, "steelDark");
-  giantFruit(v, -0.0, h + 1, fz, fr, fruitCol, fruit);
+  const fy = s === 2 ? h + Math.ceil((z1 - z0 + 2) / 2) - 1 : h + 1;
+  if (s === 2) v.box(-1, h, fz, 1, fy, fz + 1, "woodDark");
+  giantFruit(v, -0.0, fy, s === 2 ? fz + 1 : fz, fr, fruitCol, fruit);
 
   if (lv === 2) {
     v.box(-hx, 0, z1, hx, 1, hz, "path2");
@@ -578,7 +586,8 @@ function buildGrocery(c: Ctx): void {
   }
   // L3+: parking lot in front with carts & cars
   const pz0 = z1 + 4;
-  parking(c, -hx + 1, pz0, hx - 1, hz - 1, { cars: 0.55, asphalt: "asphalt" });
+  parking(c, -hx + 1, pz0, hx - 1, Math.min(hz - 1, pz0 + 7), { cars: 0.7, asphalt: "asphalt" });
+  if (hz - 1 - (pz0 + 7) >= 6) parking(c, -hx + 1, pz0 + 7, hx - 1, hz - 1, { cars: 0.6, asphalt: "asphalt" });
   v.box(-hx, 0, z1, hx, 1, pz0, "concrete2");
   for (let i = 0; i < 4; i++) cart(v, c.ri(-hx + 2, hx - 4), c.ri(pz0 + 1, hz - 2));
   // cart corral
@@ -591,7 +600,10 @@ function buildGrocery(c: Ctx): void {
     // side loading dock with delivery trucks
     v.box(x1 - 1, 1, z0 + 2, x1, 5, z0 + 6, "steelDark");
     v.box(x1 - 1, 1, z0 + 8, x1, 5, z0 + 12, "steelDark");
-    truck(v, x1 + 0, 1, z0 + 4, "x", "white", accent === "oak" ? "leaf" : accent);
+    v.box(x1, 0, z0, hx - 1, 1, z1 + 2, "concrete");
+    truck(v, x1 + 4, 1, z0 + 4, "x", "white", accent === "oak" ? "leaf" : accent);
+    truck(v, x1 + 4, 1, z0 + 10, "x", accent2 === "white" ? "cream" : accent2, "steelDark");
+    for (let k = 0; k < 3; k++) v.box(x1 + 1 + k * 3, 1, z1 - 3, x1 + 3 + k * 3, 3, z1 - 1, "crate");
     // rooftop: produce billboard row
     for (let x = x0 + 3; x < x1 - 3; x += 6) acUnit(v, x, h + 1, z0 + 2);
   }
@@ -1266,23 +1278,29 @@ function buildRestaurants(c: Ctx): void {
 
 /** Giant cheesesteak hoagie along x: split roll, sizzling steak, drippy cheese, peppers */
 function cheesesteak(v: V, cx: number, y: number, cz: number, L: number, w = 2): number {
-  const bun = "#d9a55b";
-  const bunTop = "#c88a3e";
-  // bottom roll
-  v.box(cx - L, y, cz - w, cx + L, y + 2, cz + w, bun);
-  v.clear(cx - L, y, cz - w, cx - L + 1, y + 1, cz + w);
-  v.clear(cx + L - 1, y, cz - w, cx + L, y + 1, cz + w);
-  // steak & onions
-  v.box(cx - L + 1, y + 2, cz - w + 1, cx + L - 1, y + 3, cz + w, "#7a4a2a");
-  for (let x = cx - L + 1; x < cx + L - 1; x += 2) v.put(x, y + 3, cz, x % 4 === 0 ? "leaf" : "#e8d7a8");
-  // cheese whiz layer with drips over the front
-  v.box(cx - L + 1, y + 3, cz - w + 1, cx + L - 1, y + 4, cz + w, "#ffc61a", 0.25);
-  for (let x = cx - L + 2; x < cx + L - 2; x += 3) v.box(x, y + 1, cz + w, x + 1, y + 4, cz + w + 1, "#ffc61a", 0.25);
-  // back half of roll hinged up
-  v.box(cx - L, y + 2, cz - w - 1, cx + L, y + 5, cz - w + 1, bunTop);
-  v.clear(cx - L, y + 4, cz - w - 1, cx - L + 1, y + 5, cz - w + 1);
-  v.clear(cx + L - 1, y + 4, cz - w - 1, cx + L, y + 5, cz - w + 1);
-  return y + 5;
+  const crust = "#c47a35";
+  const crumb = "#f3d9a0";
+  // bottom roll: crusty outside, rounded ends
+  v.box(cx - L, y, cz - w, cx + L, y + 2, cz + w + 1, crust);
+  v.clear(cx - L, y, cz - w, cx - L + 1, y + 1, cz + w + 1);
+  v.clear(cx + L - 1, y, cz - w, cx + L, y + 1, cz + w + 1);
+  v.box(cx - L + 1, y + 1, cz + w, cx + L - 1, y + 2, cz + w + 1, crumb);
+  // heaped chopped steak (dark brown), lumpy
+  v.box(cx - L + 1, y + 2, cz - w + 1, cx + L - 1, y + 4, cz + w + 1, "#5a3418");
+  for (let x = cx - L + 1; x < cx + L - 1; x++) if ((x & 1) === 0) v.put(x, y + 4, cz, "#6e4222");
+  // green peppers & onions
+  for (let x = cx - L + 2; x < cx + L - 2; x += 3) { v.put(x, y + 4, cz + w, "leaf"); v.put(x + 1, y + 3, cz + w, "#f3ead0"); }
+  // bright melted cheese ribbon draped over the front with drips
+  for (let x = cx - L + 1; x < cx + L - 1; x++) {
+    v.put(x, y + 4, cz + w - 1 + ((x >> 1) & 1), "#ffcc00", 0.35);
+    if (x % 3 === 0) v.box(x, y + 1, cz + w + 1, x + 1, y + 4, cz + w + 2, "#ffcc00", 0.35);
+  }
+  // back half of the roll hinged up behind the filling
+  v.box(cx - L, y + 2, cz - w - 1, cx + L, y + 6, cz - w + 1, crust);
+  v.box(cx - L + 1, y + 3, cz - w, cx + L - 1, y + 5, cz - w + 1, crumb);
+  v.clear(cx - L, y + 5, cz - w - 1, cx - L + 1, y + 6, cz - w + 1);
+  v.clear(cx + L - 1, y + 5, cz - w - 1, cx + L, y + 6, cz - w + 1);
+  return y + 6;
 }
 
 /**
@@ -1324,8 +1342,54 @@ function buildCheesesteak(c: Ctx): void {
       return h + 6;
     }
     flatRoof(c, x0, h, z0, x1, z1, "concreteDark", wall, false);
+    if (s === 2 && x1 - x0 >= 12) {
+      // stadium scoreboard on the roof + pennants
+      const mx = Math.floor((x0 + x1) / 2);
+      v.box(mx - 1, h + 1, z0 + 1, mx + 1, h + 4, z0 + 2, "steelDark");
+      v.box(mx - 6, h + 4, z0 + 1, mx + 6, h + 9, z0 + 2, "black");
+      for (let x = mx - 5; x < mx + 5; x++) for (let yy = h + 5; yy < h + 8; yy++) if ((x + yy) % 3) v.put(x, yy, z0 + 2, yy === h + 7 ? "yellow" : "#00a3a3", 1.0);
+      for (let x = x0; x < x1; x += 3) { v.put(x, h + 2, z1 - 1, "silver"); v.put(x, h + 3, z1 - 1, "#00a3a3"); v.put(x + 1, h + 3, z1 - 1, "#00a3a3"); }
+    }
     return h + 1;
   };
+  /** Food truck along x, serving hatch on +z; returns roof y */
+  const foodTruck = (x0: number, z: number, col: string) => {
+    v.box(x0, 1, z - 2, x0 + 10, 7, z + 2, col);
+    v.box(x0 + 10, 1, z - 2, x0 + 13, 5, z + 2, col);
+    v.box(x0 + 11, 3, z - 2, x0 + 13, 5, z + 2, "glassDark");
+    v.box(x0 + 2, 3, z + 1, x0 + 8, 6, z + 2, "warmGlow", 0.8);
+    v.box(x0 + 1, 6, z + 2, x0 + 9, 7, z + 4, "white");
+    v.box(x0 + 2, 3, z + 2, x0 + 8, 4, z + 3, "steelLight");
+    for (const wx of [x0 + 2, x0 + 10]) { v.put(wx, 0, z - 2, "rubber"); v.put(wx, 0, z + 1, "rubber"); }
+    for (let x = x0; x < x0 + 10; x += 2) v.put(x, 7, z + 1, neonB, 1.2);
+    c.smoke(x0 + 3, 8, z - 1, "smoke");
+    return 7;
+  };
+  const picnic = (x: number, z: number) => {
+    v.box(x, 1, z, x + 5, 2, z + 2, "woodLight");
+    v.box(x, 1, z - 1, x + 5, 1, z, "woodDark");
+    v.put(x + 1, 2, z, "red"); v.put(x + 3, 2, z + 1, "yellow");
+  };
+  if (s === 3 && lv >= 2 && lv <= 4) {
+    // FOOD-TRUCK YARD: trucks around a string-lit yard of picnic tables
+    const cols = ["#ffd23f", "#2ec4b6", "#ff7eb6"];
+    const n = lv - 1;
+    const tw = 14;
+    for (let i = 0; i < n; i++) {
+      const tx = -hx + 2 + i * (tw + 2);
+      if (tx + 13 > hx) break;
+      const tz = -hz + 5;
+      const t = foodTruck(tx, tz, cols[i % 3]);
+      cheesesteak(v, tx + 5, t, tz - 1, 4 + (lv >= 4 ? 1 : 0), 1);
+    }
+    for (let x = -hx + 3; x < hx - 6; x += 8) for (let z = 3; z < hz - 3; z += 5) picnic(x, z);
+    for (const px of [-hx + 1, hx - 2]) v.box(px, 1, hz - 2, px + 1, 9, hz - 1, "woodDark");
+    stringLights(v, -hx + 1, hx - 1, 9, hz - 2, ["yellow", "magenta", "cyan"]);
+    if (lv >= 3) for (const px of [-hx + 1, hx - 2]) v.box(px, 1, 0, px + 1, 9, 1, "woodDark"), stringLights(v, -hx + 1, hx - 1, 9, 0, ["yellow", "magenta", "cyan"]);
+    for (let i = 0; i < n; i++) queue(-hx + 6 + i * (tw + 2), -hz + 9, 3);
+    crowd(c, -hx + 2, 2, hx - 2, hz - 2, 3 + lv);
+    return;
+  }
 
   if (lv === 1) {
     // GRILL CART with flat-top smoking + umbrella + mini hoagie sign
@@ -1598,16 +1662,11 @@ function buildBars(c: Ctx): void {
     // NIGHTCLUB with rooftop lounge, queue + bouncer
     const z1 = hz - 6;
     const top = barHouse(-hx + 3, -hz + 2, hx - 3, z1, 3);
-    const deck = s === 2 ? top - 1 : top;
-    if (s === 2 || s === 0) {
-      // rooftop lounge: glass rail, booths, neon
-      const rx0 = -hx + 4;
-      const rx1 = hx - 4;
-      const ry = s === 2 ? top - 1 : 1 + 3 * 5;
-      if (s === 0) { /* pub roof is a gable - put lounge on a terrace box */ }
-      for (let x = rx0 + 2; x < rx1 - 2; x += 6) cafeTable(v, x, -hz + 7, neon, ry + 1);
+    if (s === 2) {
+      // rooftop lounge: booths under neon
+      const ry = top - 1;
+      for (let x = -hx + 6; x < hx - 6; x += 6) cafeTable(v, x, -hz + 7, neon, ry + 1);
       mascot(0, ry + 1, -hz + 4, 1.2);
-      void deck;
     } else {
       mascot(0, top - (s === 3 ? 6 : 3), -2, 1.5);
     }
@@ -1730,7 +1789,7 @@ function buildClothing(c: Ctx): void {
   const s = c.variant % 4;
   const wall = ["black", "concrete", "#f6c6d0", "white"][s];
   const trim = ["gold", "#ff5a1f", "#b5e48c", "#d4a373"][s];
-  const garment = ["black", "#ff5a1f", "#f4a259", "#f2f2f2"][s];
+  const garment = ["crimson", "#ff5a1f", "#f4a259", "#3a3f58"][s];
   const gAccent = ["gold", "white", "#2ec4b6", "#d4a373"][s];
   const dress = [["crimson", "white", "gold", "black"], ["lime", "orange", "sky", "magenta"], ["pink", "yellow", "teal", "lime"], ["white", "#d4a373", "silver", "charcoal"]][s];
   lot(c, ["path2", "asphalt", "grass2", "marble"][s]);
@@ -1762,7 +1821,7 @@ function buildClothing(c: Ctx): void {
     else flatRoof(c, x0, top, z0, x1, z1, s === 3 ? "white" : "concreteDark", s === 3 ? trim : wall, false);
     return s === 0 ? top + 4 : s === 2 ? top + 2 : top + 1;
   };
-  const hangerK = byLv(c, [0.6, 0.8, 1, 1.15, 1.3]);
+  const hangerK = byLv(c, [0.8, 1.0, 1.25, 1.4, 1.6]);
   const kind = s === 0 ? 0 : s === 1 ? 1 : s === 2 ? 2 : 3;
 
   if (lv <= 3) {
@@ -1819,7 +1878,7 @@ function buildClothing(c: Ctx): void {
   v.box(x1 + 1, 10, mz + 1, x1 + 2, 12, mz + 2, "black");
   // rotating hanger + garment on a plinth
   const rot = new PixelVox(9);
-  giantHanger(rot, 0, 0, 0, 1.2, garment, kind, gAccent);
+  giantHanger(rot, 0, 0, 0, 1.6, garment, kind, gAccent);
   const ry = s === 0 ? top - 2 : top + 1;
   v.box(-2, ry - 1, mz - 2, 3, ry, mz + 3, trim);
   c.addRotor({ vox: rot, pivot: [0, ry, mz], axis: "y", speed: 0.5 });
@@ -2236,9 +2295,9 @@ function buildShoes(c: Ctx): void {
     return;
   }
   // L5 THE GIANT SHOE HOUSE — the building is a colossal shoe with windows, door in the heel, garden & fence
-  const k = Math.min(2.6, (2 * hx - 6) / 13);
+  const k = Math.min(3, (2 * hx - 4) / 12.5);
   const sx = -hx + 3;
-  const sz = -2;
+  const sz = -3;
   const top = giantShoe(v, sx, 1, sz, k, s);
   // punch windows & door into the shoe's +z side
   const zSide = sz + Math.round(2.5 * k) - 1;
@@ -2849,7 +2908,8 @@ function buildMalls(c: Ctx): void {
     v.box(x0 + 2, h - 4, z1 - 1, x1 - 2, h - 1, z1, accent, 0.8);
     v.box(Math.floor((x0 + x1) / 2) - 2, 1, z1 - 1, Math.floor((x0 + x1) / 2) + 2, 5, z1, "glass", 0.6);
     v.box(Math.floor((x0 + x1) / 2) - 3, 5, z1 - 1, Math.floor((x0 + x1) / 2) + 3, 6, z1 + 2, wall2);
-    flatRoof(c, x0, h, z0, x1, z1, roof, col, true);
+    flatRoof(c, x0, h, z0, x1, z1, roof, col, false);
+    for (let x = x0 + 3; x < x1 - 4; x += 8) acUnit(v, x, h + 1, z0 + 3);
   };
   const skylight = (x0: number, z0: number, x1: number, z1: number, y: number) => {
     if (s === 1) {
@@ -2997,7 +3057,8 @@ function buildDataCenters(c: Ctx): void {
       v.box(dx - 2, 1, z1, dx + 2, 5, z1 + 1, "steelDark");
       v.box(dx - 2, 3, z1, dx + 2, 4, z1 + 1, "hazard");
       for (let x = x0 + 1; x < x1 - 1; x += 2) v.put(x, h - 1, z1 - 1, band2, 1.0);
-      for (let x = x0 + 2; x < x1 - 2; x += 4) for (let z = z0 + 1; z < z1 - 2; z += 4) { v.put(x, h + 2, z, "steelLight"); v.put(x, h + 3, z, "steelLight"); c.smoke(x, h + 4, z, "steam"); }
+      let vents = 0;
+      for (let x = x0 + 3; x < x1 - 2; x += 6) for (let z = z0 + 2; z < z1 - 2; z += 6) { v.box(x, h + 2, z, x + 2, h + 4, z + 2, "steelLight"); v.put(x, h + 4, z, "steelDark"); if (vents++ % 3 === 0) c.smoke(x, h + 5, z, "steam"); }
       return h + 1;
     }
     shell(v, x0, 1, z0, x1, h, z1, wall);

@@ -1119,7 +1119,7 @@ function buildGraveyard(c: Ctx): void {
       }
       if (c.rand() > [0.75, 0.8, 1, 0.8][s]) continue;
       if (s === 0) headstone(c, x, z, c.pick([0, 1, 1, 2, 3, 4]), c.pick(["stone", "granite", "marbleShade"]));
-      else if (s === 1) headstone(c, x, z, c.pick([0, 0, 3, 5]), c.pick(["slate", "slateLight", "granite"]));
+      else if (s === 1) headstone(c, x, z, c.pick([0, 0, 3, 5]), c.pick(["slateLight", "stone", "granite"]));
       else {
         // painted Mexican graves: coloured cross + marigolds + candle
         const col = c.pick(["pink", "teal", "yellow", "sky", "magenta", "white"]);
@@ -1915,7 +1915,8 @@ function buildSynagogue(c: Ctx): void {
       v.box(-pw - 1, 1 + H, zF, pw + 1, 2 + H, pz + 1, "marble");
       pediment(v, -pw - 1, pw + 1, 2 + H, zF, pz + 1, "marble", "marbleShade");
     }
-    starOfDavid(v, 0, H - 3, zF, "blue", 0.6);
+    if (lv >= 2) smallStar(v, 0, 4 + H, pz + 1, "gold");
+    else starOfDavid(v, 0, H - 3, zF, "blue", 0.6);
     v.box(-1, 1, zF - 1, 1, 5, zF, "woodDark");
     // tablets of the law on the ridge
     const ty = 2 + H + (lv >= 2 ? Math.ceil((2 * pw + 2) / 4) : 0);
@@ -2499,7 +2500,7 @@ function buildLdsTemple(c: Ctx): void {
     for (const lx of [-hx + 1, hx - 2]) lamp(v, lx, 1, hz - 1, 4);
   }
   if (lv >= 4) {
-    fence(v, -hx, -hz, hx, hz, 1, 3, "black", [-3, 3]);
+    fence(v, -hx, -hz, hx, hz, 1, 2, "white", [-3, 3]);
     for (let z = z0; z < z1; z += 6) {
       tree(v, -hx + 3, 1, z, "cypress", 1);
       tree(v, hx - 4, 1, z, "cypress", 1);

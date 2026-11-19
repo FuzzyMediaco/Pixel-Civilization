@@ -770,7 +770,7 @@ function buildPrison(c: Ctx): void {
   const ix1 = hx - 5;
   const iz0 = -hz + 5;
   const iz1 = hz - 7;
-  const yardZ = iz1 - Math.max(12, Math.floor((iz1 - iz0) * 0.38));
+  const yardZ = iz1 - Math.max(8, Math.floor((iz1 - iz0) * 0.38));
   // yard with oval track + court
   v.box(ix0, 0, yardZ, ix1, 1, iz1, p.yard);
   const ycx = (ix0 + Math.min(ix1, ix0 + 28)) / 2;
@@ -820,9 +820,10 @@ function buildPrison(c: Ctx): void {
   };
   if (s === 3) {
     // round cell houses (panopticons) each with a central watch tower
-    const R = 6.5;
+    const R = lv <= 2 ? 5.5 : 6.5;
+    const sp = Math.ceil(R) * 2 + 2;
     const slots: [number, number][] = [];
-    for (let z = iz0 + 7; z + 7 <= yardZ; z += 15) for (let x = ix0 + 7; x + 7 <= ix1; x += 15) slots.push([x, z]);
+    for (let z = iz0 + Math.ceil(R); z + Math.ceil(R) <= yardZ; z += sp) for (let x = ix0 + Math.ceil(R); x + Math.ceil(R) <= ix1; x += sp) slots.push([x, z]);
     for (const [px, pz] of slots.slice(0, nBlocks)) {
       ring(v, px, pz, 1, bh, R, R - 1.3, "brick");
       for (let y = 2; y < bh - 1; y += 4) ring(v, px, pz, y, y + 1, R, R - 1.3, "warmGlow", 0.3);
@@ -837,7 +838,7 @@ function buildPrison(c: Ctx): void {
   } else {
     const bw = Math.min(26, ix1 - ix0);
     let placed = 0;
-    for (let z = iz0; z + 9 <= yardZ - 1 && placed < nBlocks; z += 12) {
+    for (let z = iz0; z + 9 <= yardZ && placed < nBlocks; z += 12) {
       for (let x = ix0; x + 12 <= ix1 && placed < nBlocks; x += bw + 3) {
         const w = Math.min(bw, ix1 - x);
         if (w < 12) break;
@@ -1473,7 +1474,7 @@ function buildSubmarineBase(c: Ctx): void {
   const bx0 = -hx + 2;
   const bx1 = bx0 + penW * nPens;
   const bz0 = -hz + 2;
-  const bz1 = Math.min(hz - 6, qz + lv5(lv, [16, 18, 22, 26, 30] as const));
+  const bz1 = Math.min(hz - 12, qz + lv5(lv, [16, 18, 20, 22, 24] as const));
   const bh = lv5(lv, [10, 12, 13, 14, 16] as const);
   const wallC = ["concrete", "concrete", "#2d3e5c", "stone"][s];
   if (s === 3) {
@@ -1482,11 +1483,15 @@ function buildSubmarineBase(c: Ctx): void {
       for (let z = -hz; z < bz1; z++) {
         const d = Math.min(x - bx0 + 1, Math.min(hx, bx1 + 6) - x, z + hz, bz1 - z);
         const hgt = Math.min(bh + 10, 4 + d * 2 + Math.floor(Math.sin(x * 0.7 + z * 0.4) * 2));
-        v.box(x, 0, z, x + 1, Math.max(3, hgt), z + 1, hgt > bh + 6 ? "snow" : (x + z) % 5 === 0 ? "basalt" : "stone");
+        const ht = Math.max(3, hgt);
+        const edge = x === bx0 - 1 || z === -hz || z === bz1 - 1 || x === Math.min(hx, bx1 + 6) - 1;
+        v.box(x, edge ? 0 : Math.max(0, ht - 3), z, x + 1, ht, z + 1, hgt > bh + 6 ? "snow" : (x + z) % 5 === 0 ? "basalt" : "stone");
       }
     }
   } else {
     v.box(bx0, 0, bz0, bx1, bh, bz1, wallC);
+    v.clear(bx0 + 1, 3, bz0 + 1, bx1 - 1, bh - 1, bz1 - 1);
+    for (let k = 1; k < nPens; k++) v.box(bx0 + k * penW - 1, 0, bz0, bx0 + k * penW + 2, bh, bz1, wallC);
     v.box(bx0 - 1, bh, bz0 - 1, bx1 + 1, bh + 3, bz1 + 1, s === 2 ? "#3d5a85" : "concreteDark");
     if (s === 0) for (let x = bx0; x < bx1; x += 3) v.box(x, bh + 3, bz0, x + 1, bh + 5, bz1, "concrete");
     if (s === 1) v.box(bx0, bh - 2, bz1 - 1, bx1, bh - 1, bz1, "red");
@@ -1504,13 +1509,14 @@ function buildSubmarineBase(c: Ctx): void {
     // blast doors (partly raised, striped)
     const doorY = bh - 2 - (k % 2 === 0 ? 4 : 2);
     for (let y = doorY; y < bh - 2; y++) v.box(px0, y, bz1 - 1, px1, y + 1, bz1, y % 2 ? "hazard" : "black");
+    if (s !== 3) for (let x = px0; x < px1; x += 3) v.put(x, bh - 1, bz1, "warmGlow", 1.1);
     if (s === 3) {
       v.box(px0 - 1, bh - 2, bz1 - 1, px1 + 1, bh - 1, bz1, "warmGlow", 0.9);
       for (let z = qz; z < bz1; z += 4) v.put(px0, bh - 3, z, "warmGlow", 1);
     }
     // sub inside (nose poking out on alternating pens)
     const len = Math.min(bz1 - qz + 6, lv5(lv, [20, 24, 28, 32, 34] as const));
-    const z0 = k % 2 === 0 ? bz1 - len + 6 : qz;
+    const z0 = k % 2 === 0 ? bz1 - len + 10 : qz;
     if (cx - 3 >= px0 - 1) sub(cx, z0, Math.min(len, hz - 2 - z0), Math.min(3.5, (px1 - px0) / 2 - 0.5));
   }
   // outer pier with a sub moored outside

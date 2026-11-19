@@ -15,7 +15,6 @@ import {
   chimney,
   clamp,
   container,
-  coolingTower,
   crane,
   cyl,
   door,
@@ -304,6 +303,17 @@ function officeBox(c: Ctx, x0: number, z0: number, x1: number, z1: number, h: nu
   return 2 + h;
 }
 
+/** Smooth hyperboloid cooling tower (thicker shell than the kit version so no see-through gaps). */
+function cTower(v: PixelVox, cx: number, cz: number, y0: number, h: number, rBase: number, col = "concrete", band2 = "red"): void {
+  for (let y = 0; y < h; y++) {
+    const t = y / h;
+    const r = rBase * (0.62 + 0.38 * Math.pow(Math.abs(t - 0.7) / 0.7, 1.7));
+    const isBand = band2 && (y >= h - 3 || (y >= h - 7 && y < h - 6));
+    ring(v, cx, cz, y0 + y, y0 + y + 1, r, Math.max(0, r - 2.4), isBand ? band2 : y < 2 ? "concreteDark" : col);
+  }
+  ring(v, cx, cz, y0 + h - 1, y0 + h, rBase * 0.7, rBase * 0.7 - 2.4, "#e9edf1");
+}
+
 /** Sheep blob */
 function sheep(v: PixelVox, x: number, z: number): void {
   v.box(x, 1, z, x + 2, 3, z + 1, "white");
@@ -528,6 +538,16 @@ function buildSolarFarms(c: Ctx): void {
       }
       if (k === 0 && c.rand() < 0.5) sheep(v, xs + c.ri(1, 8), zf + 2);
     }
+  }
+  if (lv === 1) {
+    // pallets of panels still waiting to be installed + crew
+    for (let i = 0; i < 3; i++) {
+      v.box(4 + i * 4, 1, -2, 7 + i * 4, 2, 2, "woodLight");
+      v.box(4 + i * 4, 2, -2, 7 + i * 4, 3 + (i % 2), 2, "solarBlue", 0.1);
+    }
+    person(v, 6, 1, 4, "hazard", "blueDark");
+    person(v, 10, 1, 5, "orange", "blueDark");
+    v.box(3, 1, 7, 6, 4, 9, "white");
   }
   if (k === 1) {
     // cleaning robot + tumbleweeds
@@ -1579,7 +1599,7 @@ function buildCoal(c: Ctx): void {
       const tr = lv >= 5 ? 6.5 : 5.5;
       const tcx = hx - 7;
       const tcz = -hz + 7 + i * 14;
-      coolingTower(v, tcx, tcz, 1, lv >= 5 ? 26 : 20, tr, k === 1 ? "concreteDark" : "concrete", k === 1 ? "red" : k === 0 ? "brick" : "");
+      cTower(v, tcx, tcz, 1, lv >= 5 ? 26 : 20, tr, k === 1 ? "concreteDark" : "concrete", k === 1 ? "red" : k === 0 ? "brick" : "");
       c.smoke(tcx, (lv >= 5 ? 28 : 22), tcz, "steam");
     }
     // rail spur with hopper cars along the front
@@ -1839,6 +1859,7 @@ function buildTrashBurning(c: Ctx): void {
           v.put(x, y, bz1 - 1, p);
         }
       }
+      for (let z = bz0; z < bz1; z++) for (let y = 1; y <= bh; y++) v.put(bx1 - 1, y, z, pal[((F(z / 3) * 5 + F(y / 2) * 3) >>> 0) % pal.length]);
       for (let x = bx0 + 2; x < bx1 - 2; x += 4) v.put(x, 4, bz1, "gold", 0.4);
       // green roof with trees
       v.box(bx0, 1 + F(bh * 0.6), bz0, tip, 2 + F(bh * 0.6), bz1, "grass");
@@ -1858,6 +1879,7 @@ function buildTrashBurning(c: Ctx): void {
       v.box(bx0, 1 + F(bh * 0.6), bz0, tip, 2 + F(bh * 0.6), bz1, "white");
       v.box(tip, 1 + bh, bz0, bx1, 2 + bh, bz1, "white");
       v.box(bx0, 3, bz1 - 1, tip, 4, bz1, "cyan", 0.6);
+      ribbonWindows(c, tip, 1, bz0, bx1, 1 + bh, bz1, 4, "glass", 0.45, "e");
       flowerBed(c, bx0 + 1, bz1 + 1, bx0 + 8, bz1 + 2, 1, ["pink", "white", "magenta"]);
     }
   }
@@ -2155,6 +2177,12 @@ function buildGeothermal(c: Ctx): void {
     wellhead(c, x, z, vcol);
     wells.push([x, z]);
   }
+  if (lv <= 2) {
+    // little hot pool by the vent
+    v.cylinderY(fx + 3, fz + 7, 0, 1, 2.2, k === 1 ? "#5fc8c0" : "#9ad7e0", 0.3);
+    ring(v, fx + 3, fz + 7, 0, 1, 3, 2.2, k === 1 ? "orange" : k === 3 ? "white" : "ash");
+    c.smoke(fx + 3, 1, fz + 7, "steam");
+  }
   // silencer (steam muffler) at Lv1
   const sx = hx - 4;
   const sz = hz - 5;
@@ -2198,6 +2226,12 @@ function buildGeothermal(c: Ctx): void {
       c.smoke(cx, 11, cz, "steam");
     }
     tank(v, hx - 4, 2, 1, 6, 2, "silver", "steelLight", vcol);
+    // tall cyclone separator towers
+    for (let i = 0; i < lv - 2; i++) {
+      const tx = -hx + 14 + i * 5;
+      tank(v, tx, -hz + 15, 1, 14, 1.8, "silver", "steelLight", vcol);
+      c.smoke(tx, 18, -hz + 15, "steam");
+    }
   }
   if (lv >= 4) {
     // hot lagoon
@@ -2224,19 +2258,20 @@ function buildGeothermal(c: Ctx): void {
     for (let i = 0; i < 2; i++) {
       const dx = hx - 6 - i * 9;
       const dz = hz - 13;
-      v.dome(dx, 1, dz, 4, dcol, 0.4);
-      v.dome(dx, 1, dz, 3, "leaf");
-      for (let a = 0; a < TAU; a += TAU / 8) v.box(F(dx + Math.cos(a) * 3.6), 1, F(dz + Math.sin(a) * 3.6), F(dx + Math.cos(a) * 3.6) + 1, 3, F(dz + Math.sin(a) * 3.6) + 1, "white");
+      v.dome(dx, 1, dz, 4.6, dcol, 0.4);
+      v.dome(dx, 1, dz, 3.6, "leaf");
+      tree(v, dx, 1, dz, "palm", 0.7);
+      for (let a = 0; a < TAU; a += TAU / 8) v.box(F(dx + Math.cos(a) * 4.2), 1, F(dz + Math.sin(a) * 4.2), F(dx + Math.cos(a) * 4.2) + 1, 4, F(dz + Math.sin(a) * 4.2) + 1, "white");
     }
     // geyser column
     const gx = -hx + 3;
     const gz = hz - 12;
     ring(v, gx, gz, 1, 2, 2.4, 1.2, k === 1 ? "orange" : "white");
-    for (let y = 2; y < 16; y++) {
-      const r = 0.6 + (y > 10 ? (y - 10) * 0.3 : 0);
+    for (let y = 2; y < 24; y++) {
+      const r = 0.6 + (y > 16 ? (y - 16) * 0.35 : 0);
       v.cylinderY(gx, gz, y, y + 1, r, y % 3 ? "foam" : "white", 0.5);
     }
-    c.smoke(gx, 16, gz, "steam");
+    c.smoke(gx, 24, gz, "steam");
     c.smoke(gx, 12, gz, "steam");
     flag(v, 0, 1, hz - 1, 8, k === 0 ? ["blue", "white", "red"] : ["orange", "white", "orange"]);
   }
@@ -2322,19 +2357,19 @@ function buildMicroReactor(c: Ctx): void {
   if (lv >= 5) {
     // central glowing core spire with an orbiting ring
     v.cylinderY(0, 0, 4, 6, 2.6, "white");
-    v.cone(0, 6, 20, 0, 1.6, 0.6, "white");
-    v.cylinderY(0, 0, 10, 16, 1.0, glow, 1.6);
-    v.box(-1, 20, -1, 1, 22, 1, glow, 1.8);
-    c.blink(-1, 22, -1, glow === "screenGreen" ? "lime" : "cyan");
+    v.cone(0, 6, 32, 0, 2.2, 0.6, "white");
+    v.cylinderY(0, 0, 10, 26, 1.4, glow, 1.6);
+    v.box(-1, 32, -1, 1, 35, 1, glow, 1.8);
+    c.blink(-1, 35, -1, glow === "screenGreen" ? "lime" : "cyan");
     const ringV = new PixelVox(4);
     for (let a = 0; a < TAU; a += 0.06) {
-      ringV.put(F(Math.cos(a) * 5), 0, F(Math.sin(a) * 5), glow, 1.4);
-      if (Math.sin(a * 3) > 0.6) ringV.put(F(Math.cos(a) * 5), 1, F(Math.sin(a) * 5), "white");
+      ringV.put(F(Math.cos(a) * 6), 0, F(Math.sin(a) * 6), glow, 1.4);
+      if (Math.sin(a * 3) > 0.6) ringV.put(F(Math.cos(a) * 6), 1, F(Math.sin(a) * 6), "white");
     }
-    c.addRotor({ vox: ringV, pivot: [0, 14, 0], axis: "y", speed: 1.2 });
+    c.addRotor({ vox: ringV, pivot: [0, 22, 0], axis: "y", speed: 1.2 });
     const ring2 = new PixelVox(6);
     for (let a = 0; a < TAU; a += 0.08) ring2.put(F(Math.cos(a) * 3.5), F(Math.sin(a) * 3.5), 0, "white", 0.6);
-    c.addRotor({ vox: ring2, pivot: [0, 13, 0], axis: "x", speed: 0.9 });
+    c.addRotor({ vox: ring2, pivot: [0, 18, 0], axis: "x", speed: 0.9 });
   }
   if (lv <= 2) hazardSign(v, -hx + 2, hz - 2, 2);
 }
@@ -2388,7 +2423,7 @@ function buildNuclear(c: Ctx): void {
   const tz = -hz + Math.ceil(tR) + 1;
   for (let i = 0; i < nT; i++) {
     const tx = -hx + ((i + 0.5) * (2 * hx)) / nT;
-    coolingTower(v, tx, tz, 1, tH, tR, towerCol, band);
+    cTower(v, tx, tz, 1, tH, tR, towerCol, band);
     if (k === 3) v.cylinderY(tx, tz, 1, 2, tR + 0.4, "cyan", 1);
     c.smoke(F(tx), tH + 2, tz, "steam");
     c.smoke(F(tx) + 2, tH + 3, tz - 1, "steam");

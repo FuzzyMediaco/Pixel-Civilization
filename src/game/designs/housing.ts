@@ -1,6 +1,7 @@
 import {
   type Ctx,
   PixelVox,
+  bench,
   bush,
   car,
   chimney,
@@ -1854,7 +1855,11 @@ function buildApartments(c: Ctx): void {
     windows(c, x0, 1, z0, x1, top, zf, { stepV: fh, stepH: 3, h: 2, emit: 0.45, sill: "limestone", faces: "se" });
     // cornice
     v.box(x0 - 0, top, z0, x1, top + 1, zf + 1, "limestone");
-    v.box(x0, top + 1, z0, x1, top + 2, zf, wall);
+    v.box(x0 + 1, top, z0 + 1, x1 - 1, top + 1, zf - 1, "#4a4d55");
+    v.box(x0, top + 1, zf - 1, x1, top + 2, zf, wall);
+    v.box(x0, top + 1, z0, x1, top + 2, z0 + 1, wall);
+    v.box(x0, top + 1, z0, x0 + 1, top + 2, zf, wall);
+    v.box(x1 - 1, top + 1, z0, x1, top + 2, zf, wall);
     // zig-zag fire escapes
     const fx0 = Math.floor((x0 + x1) / 2) - 4;
     const fx1 = fx0 + 8;
@@ -1914,6 +1919,7 @@ function buildApartments(c: Ctx): void {
     }
     windows(c, x0, 1, z0, x1, top, zf, { faces: "e", stepV: fh, stepH: 4, w: 2, h: 2, emit: 0.45 });
     v.box(x0, top - 1, z0, x1, top, zf, acc);
+    v.box(x0 + 1, top - 1, z0 + 1, x1 - 1, top, zf - 1, "concrete");
     // stepped deco parapet + central neon fin
     v.box(-4, top, zf - 2, 4, top + 2, zf, wall);
     v.box(-2, top + 2, zf - 2, 2, top + 4, zf, wall);
@@ -1947,6 +1953,16 @@ function buildApartments(c: Ctx): void {
     v.box(x0 + 1, 1, zf, x0 + 3, 4, zf + 1, "red", 0.4);
     v.box(x0 + 3, 1, zf, x0 + 5, 4, zf + 1, "blue", 0.4);
     v.box(x0 + 1, 2, zf + 1, x0 + 5, 3, zf + 1, "white", 0.8);
+  }
+  // L5 courtyard block: carve an open-air garden court out of the middle
+  if (hz > 8 && s !== 3) {
+    const cw = ["brick", "limestone", "white"][s];
+    v.box(-7, 1, -8, 7, top, 4, cw);
+    v.clear(-6, 1, -7, 6, top + 8, 3);
+    v.box(-6, 0, -7, 6, 1, 3, "grass");
+    tree(v, -1, 1, -2, s === 2 ? "palm" : "round", 1.3, 2);
+    bench(v, -5, 1, 1);
+    for (let y = 3; y < top - 1; y += fh) for (let x = -5; x < 6; x += 3) v.put(x, y, -8, "glass", 0.45);
   }
   // ground floor shopfront at L3+
   if (shopFloor) {
@@ -2018,63 +2034,3 @@ defineDesigns({
   },
 });
 
-// =============================================================================================
-// PLACEHOLDERS (TODO: full redesigns — see docs/handoff/housing.md)
-// =============================================================================================
-
-/** Simple placeholder tower: hollow glass/concrete shaft growing with level, beacon on top. */
-function placeholderTower(c: Ctx, heights: readonly [number, number, number, number, number], wall: string, glass: string): void {
-  const { v, hx, hz } = c;
-  lot(c, "concrete2");
-  const h = byLv5(c.lv, heights);
-  const x0 = -hx + 2;
-  const x1 = hx - 2;
-  const z0 = -hz + 2;
-  const z1 = hz - 2;
-  v.hollowBox(x0, 1, z0, x1, h, z1, wall);
-  windows(c, x0, 1, z0, x1, h, z1, { col: glass, stepV: 3, stepH: 2, h: 2, emit: 0.45 });
-  flatRoof(c, x0, h, z0, x1, z1, "concreteDark", wall, true);
-  if (c.lv >= 3) {
-    v.box(-1, h + 1, -1, 0, h + 8, 0, "steelDark");
-    c.blink(-1, h + 8, -1, "red");
-  }
-}
-
-defineDesigns({
-  beach_houses: {
-    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
-    levels: ["Stilt Beach Shack", "Surf-Deck Cottage", "Boardwalk Beach House", "Dockside Beach House", "Oceanfront Beach Retreat"],
-    growth: "Gains decks, a boardwalk, a dock and a rooftop lookout.",
-    build: buildMediumHome, // TODO placeholder
-  },
-  villas: {
-    footprints: [[2, 1], [2, 2], [2, 2], [3, 2], [3, 3]],
-    levels: ["Hillside Villa", "Pergola Villa", "Poolside Villa", "Vineyard Villa", "Grand Riviera Villa"],
-    growth: "Adds a vine pergola, a pool, a tower and vineyard, then grand courtyard gardens.",
-    build: buildLargeHome, // TODO placeholder
-  },
-  mansions: {
-    footprints: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
-    levels: ["Gated Manor", "Fountain-Court Mansion", "Grand Pool Mansion", "Hedge-Maze Estate", "Billionaire's Palace"],
-    growth: "Gains grounds: gates, fountains, pools, hedges and a helipad.",
-    build: buildLargeHome, // TODO placeholder
-  },
-  apartment_buildings: {
-    footprints: [[1, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
-    levels: ["Four-Story Block", "Six-Story Slab", "Eight-Story Mid-Rise", "Ten-Story Tower Block", "Housing Estate Tower"],
-    growth: "Grows taller floor by floor.",
-    build: (c) => placeholderTower(c, [17, 25, 33, 41, 53], "concrete", "glass"),
-  },
-  condos: {
-    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
-    levels: ["Boutique Condo", "Glass Condo Tower", "Balcony Condo Tower", "Luxury Condo Tower", "Sky-Pool Condo Spire"],
-    growth: "Grows into a tall glassy tower.",
-    build: (c) => placeholderTower(c, [16, 25, 37, 49, 67], "white", "glassDark"),
-  },
-  skyscrapers: {
-    footprints: [[1, 1], [1, 1], [1, 1], [2, 2], [2, 2]],
-    levels: ["Office Tower", "High-Rise", "Skyline Tower", "Super-Tower", "Megatall Spire"],
-    growth: "Height explodes into a 2x2 supertall with beacons.",
-    build: (c) => placeholderTower(c, [50, 80, 110, 160, 220], "steelLight", "glass"),
-  },
-});

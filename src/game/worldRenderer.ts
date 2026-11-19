@@ -364,6 +364,8 @@ export class PixelWorldRenderer {
   private cachedRoadSet = new Set<string>();
   private cachedRailSet = new Set<string>();
   private cachedCarSet = new Set<string>();
+  /** Road deck height (m) per tile for bridges / overpasses so vehicles ride on top */
+  private deckHeight = new Map<string, number>();
   // Pooled smoke / steam particles & blinking beacons
   private smokeMesh: THREE.InstancedMesh | null = null;
   private smokeParts: { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; max: number; size: number; kind: number }[] = [];
@@ -1289,6 +1291,12 @@ export class PixelWorldRenderer {
     this.cachedRoadSet = getConnectedRoadCoordSet(this.gameState.elements);
     this.cachedRailSet = getConnectedRailCoordSet(this.gameState.elements);
     this.cachedCarSet = new Set<string>();
+    this.deckHeight = new Map<string, number>();
+    const DECK_VOX: Record<string, number> = { bridges: 4, stone_bridges: 5, suspension_bridges: 6, over_passes: 7 };
+    for (const e of this.gameState.elements) {
+      const dv = DECK_VOX[e.defId];
+      if (dv) this.deckHeight.set(`${e.gx},${e.gz}`, dv * VOXEL_SIZE);
+    }
     const occ = new Map<string, string>();
     for (const e of this.gameState.elements) occ.set(`${e.gx},${e.gz}`, e.defId);
     for (const k of this.cachedRoadSet) {
@@ -1608,7 +1616,14 @@ export class PixelWorldRenderer {
         ? [wx + perpX, wz + perpZ]
         : this.resolveBuildingCollision(wx + perpX, wz + perpZ, 0.35);
 
-      a.mesh.position.set(carX, VOXEL_SIZE + 0.02, carZ);
+      const deckY = a.isRail
+        ? 0
+        : THREE.MathUtils.lerp(
+            this.deckHeight.get(`${a.gx},${a.gz}`) ?? 0,
+            this.deckHeight.get(`${a.nextGx},${a.nextGz}`) ?? 0,
+            a.progress,
+          );
+      a.mesh.position.set(carX, VOXEL_SIZE + 0.02 + deckY, carZ);
       const targetAngle = Math.atan2(a.dirX, a.dirZ);
       const angleDiff = Math.atan2(
         Math.sin(targetAngle - a.facingAngle),
@@ -1657,7 +1672,12 @@ export class PixelWorldRenderer {
       const [vx, vz] = this.resolveBuildingCollision(wx + perpX, wz + perpZ, 0.36);
 
       const stride = Math.sin(elapsed * 8.5 + v.phase);
-      v.root.position.set(vx, VOXEL_SIZE + Math.abs(stride) * 0.04, vz);
+      const vDeck = THREE.MathUtils.lerp(
+        this.deckHeight.get(`${v.gx},${v.gz}`) ?? 0,
+        this.deckHeight.get(`${v.nextGx},${v.nextGz}`) ?? 0,
+        v.progress,
+      );
+      v.root.position.set(vx, VOXEL_SIZE + vDeck + Math.abs(stride) * 0.04, vz);
       const targetVAngle = Math.atan2(v.dirX, v.dirZ);
       const vDiff = Math.atan2(
         Math.sin(targetVAngle - v.facingAngle),

@@ -317,10 +317,10 @@ function signal(R: PixelVox, half: number, y0: number, state: number, lv: number
     R.put(px, y0 + 5, pz, "white");
     return;
   }
-  const top = y0 + 7;
+  const top = y0 + 6;
   R.box(px, y0, pz, px + 1, top, pz + 1, pole);
-  R.box(px + 1, top - 1, pz, -1, top, pz + 1, pole);
-  const hx = -2;
+  R.box(px + 1, top - 1, pz, px + 3, top, pz + 1, pole);
+  const hx = px + 2;
   R.box(hx, top - 4, pz, hx + 1, top - 1, pz + 1, "black");
   R.put(hx, top - 2, pz - 1, state === 0 ? "red" : "redDark", state === 0 ? 1.2 : 0);
   R.put(hx, top - 3, pz - 1, state === 1 ? "amber" : "#5a4a20", state === 1 ? 1.2 : 0);
@@ -433,7 +433,7 @@ function streetDressing(n: Net, half: number, walk: number, line: string, lv: nu
   const lampH = lv >= 4 ? 7 : 6;
   for (let q = 0; q < 4; q++) {
     // canonical NE quadrant cells; sidewalk is d in [half, walk)
-    const lampOk = lv >= 2;
+    const lampOk = lv >= 2 && (q === 0 || q === 2) && !n.junction;
     if (lampOk) {
       const placed =
         propK(n, q, half + 1, -half - 1 - (q % 2 === 0 ? 1 : 2), half, (R) => streetLamp(R, half + 1, sy, -half - 2 - (q % 2), vr, lampH, lv), 1, walk) ||
@@ -623,8 +623,10 @@ function buildPretty(c: Ctx): void {
   };
   const treeKind: TreeKind[] = ["oak", "palm", "blossom", "cypress"];
   for (let q = 0; q < 4; q++) {
-    propK(n, q, half + 1, -half - 2, half, (R) => prettyLamp(R, half + 1, -half - 2), 1, 6) ||
-      propK(n, q, half + 1, -7, half, (R) => prettyLamp(R, half + 1, -7), 1, 6);
+    if (q === 0 || q === 2) {
+      propK(n, q, half + 1, -half - 2, half, (R) => prettyLamp(R, half + 1, -half - 2), 1, 6) ||
+        propK(n, q, half + 1, -7, half, (R) => prettyLamp(R, half + 1, -7), 1, 6);
+    }
     if (lv >= 3) {
       const tz = q % 2 === 0 ? -4 : -6;
       propK(n, q, 6, tz, 6, (R) => {
@@ -985,12 +987,12 @@ function buildTrails(c: Ctx): void {
   }
   const kinds: TreeKind[] = ["pine", "birch", "autumn", "palm"];
   // forest: trees in free quadrants, more and bigger with level
-  const spots: [number, number][] = [[5, -6], [6, -3], [3, -7], [6, -1]];
+  const spots: [number, number][] = [[6, -6], [7, -2], [3, -7]];
   for (let q = 0; q < 4; q++) {
-    const cnt = Math.min(spots.length, lv >= 4 ? 3 : lv >= 2 ? 2 : 1);
+    const cnt = lv >= 3 ? 2 : 1;
     for (let s = 0; s < cnt; s++) {
       const [tx, tz] = spots[(s + q) % spots.length];
-      propK(n, q, tx, tz, 4, (R) => tree(R, tx, 1, tz, kinds[vr], (lv >= 5 && s === 0 ? 1.8 : 0.9 + lv * 0.08) + h2(tx, q) * 0.2, q + s), 1);
+      propK(n, q, tx, tz, 5, (R) => tree(R, tx, 1, tz, kinds[vr], (lv >= 5 && s === 0 && q % 2 === 0 ? 1.7 : 0.8 + lv * 0.06) + h2(tx, q) * 0.2, q + s), 1);
     }
     // ferns / mushrooms
     propK(n, q, 3, -4, 3, (R) => {
@@ -1798,8 +1800,9 @@ function buildSuspension(c: Ctx): void {
         R.box(sx - (sx < 0 ? 0 : 1), 0, 1, sx + (sx < 0 ? 2 : 1), 4, 4, "concrete");
       }
     }
-    if (n.junction || n.corner >= 0) {
+    if ((n.junction || n.corner >= 0) && lv >= 3) {
       for (let q = 0; q < 4; q++) {
+        if (n.arm[q] || n.arm[(q + 1) % 4]) continue;
         const [px, pz] = rotK(q, 7, -8);
         if (n.D[idx(px, pz)] < 7 && n.arm[q] && n.arm[(q + 1) % 4]) {
           /* corner open on both arms: still the corner cell is outside both arms */
@@ -1982,7 +1985,7 @@ function buildUnderpass(c: Ctx): void {
       }
     });
     // park details on the lid
-    if (lv >= 4) {
+    if (lv >= 4 && sepK < 0) {
       let placed = 0;
       lidRows((x, z) => {
         if (placed < 2 && h2(x, z, 41) < 0.06) {
@@ -1991,7 +1994,7 @@ function buildUnderpass(c: Ctx): void {
         } else if (h2(x, z, 42) < 0.08) v.put(x, UNDER_H + 2, z, ["pink", "yellow", "white", "purple"][vr]);
       });
     }
-    if (lv >= 3) {
+    if (lv >= 3 && sepK < 0) {
       // vents
       lidRows((x, z) => {
         if (((x + 64) % 6 === 2) && ((z + 64) % 6 === 2)) v.box(x, UNDER_H + 2, z, x + 1, UNDER_H + 3, z + 1, "steelLight");
@@ -2048,7 +2051,10 @@ function buildBoardwalk(c: Ctx): void {
       return;
     }
     // planks run across the direction of travel: alternate by the coordinate along travel
-    const alongZ = Math.abs(x + 0.5) < Math.abs(z + 0.5) ? z : x;
+    const ex = x >= 0 ? x : -1 - x;
+    const ez = z >= 0 ? z : -1 - z;
+    const ns = (n.arm[0] || n.arm[2]) && ex < 4 && (ez >= 4 || !(n.arm[1] || n.arm[3]));
+    const alongZ = ns ? z : x;
     const ax = n.D[i] === (x >= 0 ? x : -1 - x) && z !== x ? z : x;
     void ax;
     v.put(x, 1, z, ((alongZ + 64) & 1) === 0 ? "woodLight" : "wood");

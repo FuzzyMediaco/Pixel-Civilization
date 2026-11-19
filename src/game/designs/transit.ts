@@ -95,35 +95,19 @@ function bus(v: PixelVox, x: number, y: number, z: number, axis: "x" | "z", body
   B(L - 1, H - 1, -1, L, H, 1, "screenGreen", 0.8); // destination board
 }
 
-/** Taxi cab (5 long) centred at (x,z) with checker band & glowing roof sign */
+/** Taxi cab (5 long x 2 wide) centred at (x,z): yellow body, checker belt, glowing roof sign */
 function taxi(v: PixelVox, x: number, y: number, z: number, axis: "x" | "z" = "x", col = "yellow", lamp2 = "warmGlow"): void {
-  car(v, x, y, z, axis, col);
-  if (axis === "x") {
-    for (let k = -2; k < 3; k++) {
-      v.put(x + k, y, z - 1, (k & 1) ? "black" : "white");
-      v.put(x + k, y, z, (k & 1) ? "white" : "black");
-    }
-    v.box(x - 2, y, z - 1, x + 3, y + 1, z + 1, col);
-    for (let k = -2; k < 3; k++) {
-      v.put(x + k, y, z + 0, col);
-    }
-    for (let k = -2; k < 3; k++) {
-      if (k % 2 === 0) {
-        v.put(x + k, y, z - 1, "black");
-        v.put(x + k, y, z, "black");
-      }
-    }
-    v.put(x, y + 2, z - 1, lamp2, 1.1);
-    v.put(x, y + 2, z, lamp2, 1.1);
-  } else {
-    v.box(x - 1, y, z - 2, x + 1, y + 1, z + 3, col);
-    for (let k = -2; k < 3; k++) if (k % 2 === 0) {
-      v.put(x - 1, y, z + k, "black");
-      v.put(x, y, z + k, "black");
-    }
-    v.put(x - 1, y + 2, z, lamp2, 1.1);
-    v.put(x, y + 2, z, lamp2, 1.1);
-  }
+  const B = (a0: number, y0: number, b0: number, a1: number, y1: number, b1: number, cc: string, e = 0) => {
+    if (axis === "x") v.box(x + a0, y + y0, z + b0, x + a1, y + y1, z + b1, cc, e);
+    else v.box(x + b0, y + y0, z + a0, x + b1, y + y1, z + a1, cc, e);
+  };
+  B(-2, 0, -1, 3, 1, 1, col);
+  for (let k = -2; k < 3; k++) if (k & 1) B(k, 0, -1, k + 1, 1, 1, "charcoal");
+  B(-2, 1, -1, 3, 2, 1, col);
+  B(-1, 1, -1, 2, 2, 1, "glassDark", 0.15);
+  B(-1, 2, -1, 2, 3, 1, col);
+  B(0, 3, -1, 1, 4, 1, lamp2, 1.1);
+  B(2, 0, -1, 3, 1, 1, "warmGlow", 0.6);
 }
 
 /** Track along x centred at z (ballast, sleepers, two rails). Rail top at y=1. */
@@ -516,7 +500,7 @@ function buildTrainDepot(c: Ctx): void {
 
   // water tower / fuel tank / signal by level
   if (lv >= 2) {
-    const wx = hx - 5;
+    const wx = lv >= 3 ? -hx + 14 : hx - 5;
     const wz = hz - 5;
     if (s === 0 || s === 3) {
       for (const [dx, dz] of [[-2, -2], [1, -2], [-2, 1], [1, 1]]) v.box(wx + dx, 1, wz + dz, wx + dx + 1, 9, wz + dz + 1, "woodDark");
@@ -714,6 +698,14 @@ function buildBusDepot(c: Ctx): void {
   if (lv >= 5) {
     for (const [lx, lz] of [[-hx + 1, hz - 1], [hx - 2, hz - 1], [0, hz - 1]]) lamp(v, lx, 1, lz, 7);
     flag(v, hx - 3, 1, gz1 + 1, 12, [body, "white", body]);
+    // clock tower on the garage corner
+    const ctx0 = gx1 - 6;
+    const ctz0 = gz1 - 6;
+    v.box(ctx0, gh, ctz0, ctx0 + 5, gh + 14, ctz0 + 5, wall);
+    v.box(ctx0, gh + 8, ctz0, ctx0 + 5, gh + 9, ctz0 + 5, body);
+    clockFace(v, ctx0 + 2, gh + 11, ctz0 + 5, 2);
+    hip(v, ctx0 - 1, gh + 14, ctz0 - 1, ctx0 + 6, ctz0 + 6, roofC === "silver" ? "teal" : roofC);
+    c.blink(ctx0 + 2, gh + 18, ctz0 + 2, "red");
     crowd(c, gx0, gz1, gx1, gz1 + 2, 4);
   }
 }
@@ -829,9 +821,9 @@ function buildTaxiDepot(c: Ctx): void {
   }
   if (lv >= 5) {
     // GIANT taxi sculpture on the garage roof
-    const tx = mx - 4;
-    const ty = gh + 1;
-    const tz = gz0 + 3;
+    const tx = Math.floor((gx1 + hx) / 2);
+    const ty = 18;
+    const tz = -hz + 10;
     v.box(tx - 6, ty, tz - 3, tx + 7, ty + 4, tz + 3, "yellow");
     v.box(tx - 3, ty + 4, tz - 3, tx + 4, ty + 7, tz + 3, "yellow");
     v.box(tx - 2, ty + 5, tz - 3, tx + 3, ty + 6, tz + 3, "glassDark", 0.3);

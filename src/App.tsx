@@ -30,6 +30,7 @@ import {
   type SelectionFilter,
   type WeatherKind,
   checkPlacementValid,
+  getTileTerrainKind,
   planNetworkPlacement,
   createInitialGameState,
   isNightTime,
@@ -53,6 +54,32 @@ import {
 } from "./game/worldRenderer";
 
 const SAVE_PREFIX = "pixel_civ_save_v1_";
+
+/** Rotation (0..3) whose front (+z local) faces the most water tiles just beyond the footprint. */
+function bestSeaFacingRotation(gx: number, gz: number, sx: number, sz: number, fallback: number): number {
+  let best = fallback;
+  let bestScore = -1;
+  for (let rot = 0; rot < 4; rot++) {
+    const spanX = rot % 2 === 1 ? sz : sx;
+    const spanZ = rot % 2 === 1 ? sx : sz;
+    // front direction in world for this rotation: 0:+z 1:+x 2:-z 3:-x
+    const [dx, dz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][rot];
+    let score = 0;
+    for (let d = 1; d <= 3; d++) {
+      const len = dx !== 0 ? spanZ : spanX;
+      for (let k = 0; k < len; k++) {
+        const tx = dx > 0 ? gx + spanX - 1 + d : dx < 0 ? gx - d : gx + k;
+        const tz = dz > 0 ? gz + spanZ - 1 + d : dz < 0 ? gz - d : gz + k;
+        if (getTileTerrainKind(tx, tz) === "water") score += 1;
+      }
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = rot;
+    }
+  }
+  return bestScore > 0 ? best : fallback;
+}
 
 function loadModeState(mode: GameMode): GameState {
   try {
@@ -207,8 +234,13 @@ export const App: React.FC = () => {
 
       const placeLevel = cur.mode === "god" ? curBrush.level : 1;
       const [sx, sz] = getStandardFootprintForLevel(def, placeLevel);
-      const spanX = curBrush.rotation % 2 === 1 ? sz : sx;
-      const spanZ = curBrush.rotation % 2 === 1 ? sx : sz;
+      let rotation = curBrush.rotation;
+      if (def.domain === "coast_or_water" && !def.isNetwork) {
+        // Face the open water: local +z (front/water side) should point at the sea
+        rotation = bestSeaFacingRotation(gx, gz, sx, sz, curBrush.rotation);
+      }
+      const spanX = rotation % 2 === 1 ? sz : sx;
+      const spanZ = rotation % 2 === 1 ? sx : sz;
 
       if (!def.isNetwork) {
         const chk = checkPlacementValid(cur, def, gx, gz, spanX, spanZ);
@@ -243,7 +275,7 @@ export const App: React.FC = () => {
           gz,
           spanX,
           spanZ,
-          rotation: curBrush.rotation,
+          rotation,
           level: placeLevel,
           variant: chosenVariant,
           connected: false,
