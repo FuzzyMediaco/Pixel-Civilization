@@ -49,4 +49,3 @@ for (const def of ELEMENTS) {
     }
   });
 }
-

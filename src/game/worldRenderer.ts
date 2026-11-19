@@ -416,7 +416,7 @@ export class PixelWorldRenderer {
     this.renderer.setPixelRatio(this.isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.06;
+    this.renderer.toneMappingExposure = 0.97;
     this.renderer.shadowMap.enabled = !this.isSoftwareGl;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -428,7 +428,7 @@ export class PixelWorldRenderer {
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     const roomEnv = new RoomEnvironment();
     this.scene.environment = pmrem.fromScene(roomEnv, 0.04).texture;
-    this.scene.environmentIntensity = 0.45;
+    this.scene.environmentIntensity = 0.28;
     roomEnv.dispose();
     pmrem.dispose();
 

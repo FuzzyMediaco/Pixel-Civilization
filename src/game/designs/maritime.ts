@@ -1090,7 +1090,7 @@ function buildDocks(c: Ctx): void {
     lamp(v, -3, 2, hz - 3, 4, "iron");
     if (s === 1) {
       pier(v, 3, -hz, 7, -hz + 4, p.deck, p.pile);
-      v.box(3, 2, -hz, 7, 3, -hz + 4, "clay");
+      v.box(3, 2, -hz, 7, 3, -hz + 4, "terracotta");
       tree(v, 5, 3, -hz + 2, "palm", 1.1);
     }
     return;

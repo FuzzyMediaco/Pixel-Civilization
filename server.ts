@@ -40,10 +40,17 @@ const MIME_BY_EXT: Record<string, string> = {
 
 function tryServeStaticFile(req: IncomingMessage, res: ServerResponse, rootDir: string): boolean {
   if (req.method !== "GET" && req.method !== "HEAD") return false;
-  const urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
+  let urlPath: string;
+  try {
+    urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
+  } catch {
+    res.writeHead(400).end("Invalid URL");
+    return true;
+  }
   const cleanRel = urlPath === "/" ? "index.html" : urlPath.replace(/^\/+/, "");
   const resolved = path.resolve(rootDir, cleanRel);
-  if (!resolved.startsWith(path.resolve(rootDir))) {
+  const relative = path.relative(rootDir, resolved);
+  if (relative === ".." || relative.startsWith(".." + path.sep) || path.isAbsolute(relative)) {
     return false;
   }
   if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
@@ -66,7 +73,7 @@ function tryServeStaticFile(req: IncomingMessage, res: ServerResponse, rootDir: 
 
 export async function startServer(customPort?: number) {
   const listenPort = resolvePort(customPort);
-  const isProd = process.env.NODE_ENV === "production";
+  const isProd = process.env.NODE_ENV === "production" || process.argv.includes("--production");
   const distDir = path.join(__dirname, "dist");
   const publicDir = path.join(__dirname, "public");
   const useViteDev = !isProd || !fs.existsSync(path.join(distDir, "index.html"));

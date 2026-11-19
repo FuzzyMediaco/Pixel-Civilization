@@ -33,6 +33,7 @@ import {
   smokestack,
 } from "./kit";
 import { defineDesigns } from "./registry";
+import { quayFoundation } from "./vehicles";
 
 // =============================================================================================
 // Local helpers (water & utilities)
@@ -128,8 +129,8 @@ function plaza(v: PixelVox, x0: number, z0: number, x1: number, z1: number, col:
 function seaBack(c: Ctx, depth: number, quay = "concreteDark"): number {
   const v = c.v;
   const zs = -c.hz + depth;
-  v.box(-c.hx, 0, -c.hz, c.hx, 1, zs, "waterDeep", 0.06);
-  for (let x = -c.hx; x < c.hx; x++) if ((x * 7) % 5 === 0) v.put(x, 0, -c.hz + ((x * 3) & 3), "water", 0.12);
+  v.clear(-c.hx, 0, -c.hz, c.hx, 2, zs);
+  quayFoundation(v, -c.hx, zs, c.hx, c.hz, quay);
   v.box(-c.hx, 0, zs, c.hx, 2, zs + 1, quay);
   return zs;
 }
@@ -895,10 +896,17 @@ function buildPumping(c: Ctx): void {
   // intake pier & screen house
   const px = -hx + 4;
   v.box(px - 2, 1, -hz, px + 2, 2, zs, s === 3 ? "wood" : "concrete");
-  for (let z = -hz; z < zs; z += 3) v.box(px - 2, 0, z, px - 1, 1, z + 1, "woodDark");
+  for (let z = -hz; z < zs; z += 3) {
+    for (const x of [px - 2, px + 1]) v.box(x, -4, z, x + 1, 1, z + 1, "woodDark");
+  }
+  for (const x of [px - 2, px, px + 1]) v.box(x, -3, -hz, x + 1, 1, -hz + 1, "iron");
   v.box(px - 2, 2, -hz, px + 2, 5, -hz + 3, s === 2 ? "blue" : s === 3 ? "woodDark" : "steelDark");
   v.box(px - 2, 5, -hz, px + 2, 6, -hz + 3, "charcoal");
   pipe(v, "z", -hz + 3, zs + 3, 2, px - 1, s === 2 ? "blue" : s === 0 ? "iron" : "steel");
+  if (s !== 3) {
+    v.put(px, 3, zs, "steelDark");
+    v.ringZ(px + 0.5, 4.5, zs, zs + 1, 1.6, 0.7, s === 0 ? "brass" : "red");
+  }
 
   const wall = ["brick", "cream", "steelLight", "woodLight"][s];
   const roofC = ["slate", "tealDark", "blue", "#c9a85a"][s];
@@ -1324,6 +1332,8 @@ function buildDesal(c: Ctx): void {
   // intake pier w/ intake head
   const px = -hx + 5;
   v.box(px - 1, 1, -hz, px + 2, 2, zs, "concrete");
+  for (const x of [px - 2, px, px + 2]) v.box(x, -4, -hz, x + 1, 1, -hz + 2, "iron");
+  v.box(px, -4, zs - 2, px + 1, 1, zs - 1, "concreteDark");
   v.box(px - 2, 1, -hz, px + 3, 4, -hz + 2, s === 3 ? "white" : "steelDark");
   v.put(px, 4, -hz, "red", 0.8);
   c.blink(px, 5, -hz, "red");
@@ -1331,7 +1341,8 @@ function buildDesal(c: Ctx): void {
   // brine outfall
   const ox = hx - 5;
   pipe(v, "z", -hz + 1, zs + 1, 1, ox, "steelDark");
-  v.box(ox - 1, 0, -hz, ox + 3, 1, -hz + 2, "foam", 0.3);
+  v.box(ox, -3, -hz + 1, ox + 2, 2, -hz + 2, "steelDark");
+  v.box(ox, -2, -hz, ox + 2, -1, -hz + 1, "foam", 0.3);
 
   const bz0 = zs + 2;
   const hallD = Math.min(12, hz - 4);

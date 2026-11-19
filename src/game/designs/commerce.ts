@@ -3240,7 +3240,7 @@ function buildMalls(c: Ctx): void {
 function buildDataCenters(c: Ctx): void {
   const { v, lv, hx, hz } = c;
   const s = c.variant % 4;
-  const wall = ["#c5ccd6", "white", "#e8d5a8", "concreteDark"][s];
+  const wall = ["#394c61", "white", "#e8d5a8", "concreteDark"][s];
   const band2 = ["blue", "cyan", "orange", "lime"][s];
   lot(c, ["concrete2", "snow", "sand", "grass2"][s]);
   speckle(c, ["concrete", "white", "sandDark", "grass3"][s], 0.1);
@@ -3291,6 +3291,17 @@ function buildDataCenters(c: Ctx): void {
       for (let z = z0 + 7; z + 4 <= z1 - 1; z += 6) solarRow(v, x0 + 1, x1 - 1, h + 1, z, 4);
     }
     return h + 1;
+  };
+  // Corporate campus control rooms project over the service lanes between halls.
+  const controlBridge = (left: number, right: number, z: number, y: number) => {
+    if (s !== 0) return;
+    v.box(left - 2, y, z - 3, right + 2, y + 1, z + 2, "steelDark");
+    for (const side of [z - 3, z + 1]) {
+      v.box(left - 2, y + 1, side, right + 2, y + 4, side + 1, "#67adba", 0.35);
+      for (let x = left - 1; x < right + 2; x += 3) v.box(x, y + 1, side, x + 1, y + 4, side + 1, "steelLight");
+    }
+    v.box(left - 2, y + 4, z - 3, right + 2, y + 5, z + 2, "steel");
+    v.box(left, y + 4, z + 1, right, y + 5, z + 2, "cyan", 0.7);
   };
   const fiberTower = (x: number, z: number, h: number) => {
     for (let y = 1; y < h; y++) {
@@ -3344,6 +3355,7 @@ function buildDataCenters(c: Ctx): void {
     // twin halls + cooling towers + substation
     hall(-hx + 3, -hz + 3, -2, hz - 8, 11);
     hall(2, -hz + 3, hx - 12, hz - 8, 11);
+    controlBridge(-2, 2, hz - 8, 6);
     for (const [tx, tz] of [[hx - 6, -hz + 7], [hx - 6, -hz + 16]]) {
       ring(v, tx, tz, 1, 9, 3.4, 2.4, s === 1 ? "white" : "concrete");
       v.cylinderY(tx, tz, 8, 9, 2.4, "steelDark");
@@ -3364,6 +3376,7 @@ function buildDataCenters(c: Ctx): void {
     const a = -hx + 3 + i * (hw + 3);
     if (a + hw > hx - 3) break;
     hall(a, -hz + 3, a + hw, rowZ1, big ? 14 : 12);
+    if (i > 0) controlBridge(a - 3, a, rowZ1, big ? 10 : 8);
   }
   // front: cooling towers, solar field / substation, fiber towers, security fence
   const fz0 = rowZ1 + 4;
@@ -3438,7 +3451,7 @@ defineDesigns({
   data_centers: {
     footprints: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 4]],
     levels: ["Server Hut", "Colocation Hall", "Twin Data Halls", "Server Campus", "Hyperscale AI Campus"],
-    growth: "Windowless halls multiply into a fenced campus with steaming chillers, cooling towers, solar fields, substations, blinking fiber towers and a tracking satellite dish.",
+    growth: "Server halls multiply into campuses with glass control bridges, arctic intakes, desert solar fields or buried cooling ducts. Fiber towers and a tracking dish connect the largest sites.",
     build: buildDataCenters,
   },
 });

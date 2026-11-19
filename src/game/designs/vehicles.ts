@@ -459,4 +459,3 @@ export function pier(v: V, x0: number, z0: number, x1: number, z1: number, deck 
   v.box(x0, -4, z1 - 1, x0 + 1, y + 2, z1, pile);
   v.box(x1 - 1, -4, z1 - 1, x1, y + 2, z1, pile);
 }
-
