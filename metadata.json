@@ -1,0 +1,8 @@
+{
+  "name": "Pixel Civilization",
+  "description": "Simple world building sandbox game where everything is easy going and fun ",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
