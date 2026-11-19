@@ -8,10 +8,15 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 function resolvePort(customPort?: number): number {
   if (customPort) return customPort;
-  const portFlagIdx = process.argv.indexOf("--port");
-  if (portFlagIdx !== -1 && process.argv[portFlagIdx + 1]) {
-    const parsed = Number(process.argv[portFlagIdx + 1]);
-    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  for (let i = 2; i < process.argv.length; i++) {
+    const arg = process.argv[i];
+    if (arg === "--port" && process.argv[i + 1]) {
+      const parsed = Number(process.argv[i + 1]);
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    } else if (arg.startsWith("--port=")) {
+      const parsed = Number(arg.slice("--port=".length));
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
   }
   return Number(process.env.PORT) || 3000;
 }
@@ -69,21 +74,34 @@ export async function startServer(customPort?: number) {
   const httpServer = http.createServer();
 
   type ConnectMiddleware = (req: IncomingMessage, res: ServerResponse, next: () => void) => void;
+  let viteClose: (() => Promise<void>) | null = null;
   let viteMiddlewarePromise: Promise<ConnectMiddleware> | null = null;
 
   if (useViteDev) {
-    viteMiddlewarePromise = import("vite").then(async ({ createServer }) => {
-      const vite = await createServer({
-        root: __dirname,
-        server: {
-          middlewareMode: true,
-          hmr: false,
-          allowedHosts: true,
-        },
-        appType: "spa",
+    viteMiddlewarePromise = import("vite")
+      .then(async ({ createServer }) => {
+        const vite = await createServer({
+          root: __dirname,
+          server: {
+            middlewareMode: true,
+            hmr: false,
+            ws: false,
+            allowedHosts: true,
+            watch: {
+              ignored: ["**/dist/**", "**/.aistudio/**", "**/public/assets/aistudio/**"],
+            },
+          },
+          appType: "spa",
+        });
+        viteClose = () => vite.close();
+        return vite.middlewares as unknown as ConnectMiddleware;
+      })
+      .catch((err) => {
+        console.error("Failed to initialize Vite dev middleware:", err);
+        throw err;
       });
-      return vite.middlewares as unknown as ConnectMiddleware;
-    });
+    // Prevent unhandled rejection if startup fails before any HTTP request arrives
+    viteMiddlewarePromise.catch(() => {});
   }
 
   httpServer.on("request", async (req: IncomingMessage, res: ServerResponse) => {
@@ -130,26 +148,53 @@ export async function startServer(customPort?: number) {
     res.end("Not Found");
   });
 
-  await new Promise<void>((resolve) => {
+  // Ensure Vite middleware is ready before advertising the port as open
+  if (viteMiddlewarePromise) {
+    await viteMiddlewarePromise;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    httpServer.once("error", reject);
     httpServer.listen(listenPort, HOST, () => {
+      httpServer.off("error", reject);
       console.log(`Pixel Civilization server listening on http://${HOST}:${listenPort}`);
       resolve();
     });
   });
 
-  return {
-    httpServer,
-    close: () =>
-      new Promise<void>((resolve) => {
-        httpServer.close(() => resolve());
-      }),
+  const close = async () => {
+    await new Promise<void>((resolve) => {
+      httpServer.close(() => resolve());
+    });
+    if (viteClose) {
+      await viteClose().catch(() => {});
+    }
   };
+
+  const handleSignal = () => {
+    void close().finally(() => process.exit(0));
+  };
+  process.once("SIGTERM", handleSignal);
+  process.once("SIGINT", handleSignal);
+
+  return { httpServer, close };
 }
 
-const isMainModule =
-  Boolean(process.argv[1]) &&
-  path.resolve(process.argv[1]) === path.resolve(url.fileURLToPath(import.meta.url));
+function isMainEntry(): boolean {
+  if (!process.argv[1]) return false;
+  try {
+    return (
+      fs.realpathSync(path.resolve(process.argv[1])) ===
+      fs.realpathSync(path.resolve(url.fileURLToPath(import.meta.url)))
+    );
+  } catch {
+    return path.resolve(process.argv[1]) === path.resolve(url.fileURLToPath(import.meta.url));
+  }
+}
 
-if (isMainModule) {
-  void startServer();
+if (isMainEntry()) {
+  startServer().catch((err) => {
+    console.error("Server failed to start:", err);
+    process.exit(1);
+  });
 }
