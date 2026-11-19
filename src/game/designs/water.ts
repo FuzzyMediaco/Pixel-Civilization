@@ -997,7 +997,7 @@ function buildPumping(c: Ctx): void {
   if (lv >= 3) {
     // surge tower / standpipe
     const sx = hx - 4;
-    const sz = Math.min(hz - 4, bz1 + 2);
+    const sz = bz0 + 3;
     const tcol = ["brick", "cream", "white", "brick"][s];
     v.cylinderY(sx, sz, 1, 18 + lv * 2, 2.6, tcol);
     v.cylinderY(sx, sz, 18 + lv * 2, 20 + lv * 2, 3.2, s === 2 ? "blue" : "limestone");
@@ -1043,7 +1043,7 @@ function buildReservoir(c: Ctx): void {
   speckle(c, "grass3", 0.1);
   const emb = ["granite", "concrete", "grass", "marble"][s];
   const emb2 = ["stone", "concreteDark", "leaf", "marbleShade"][s];
-  const eh = [3, 4, 5, 5, 6][lv - 1];
+  const eh = [3, 4, 6, 7, 8][lv - 1];
   const front = lv >= 3 ? 8 : 4; // space at +z for the dam face/spillway
   const x0 = -hx + 2;
   const x1 = hx - 2;
@@ -1086,7 +1086,7 @@ function buildReservoir(c: Ctx): void {
   if (lv >= 3) {
     const dz0 = z1;
     const dz1 = hz - 1;
-    const sw = 3;
+    const sw = lv >= 5 ? 5 : 4;
     if (s === 1) {
       // curved concrete arch dam bulging forward
       for (let x = x0; x < x1; x++) {
@@ -1333,9 +1333,11 @@ function buildDesal(c: Ctx): void {
 
   const bz0 = zs + 2;
   const hallD = Math.min(12, hz - 4);
+  const tr = lv >= 4 ? 5 : 4;
+  const tankX = hx - tr - 1;
   const hx0 = -hx + 2;
-  const hall1 = Math.min(hx - 2, hx0 + [12, 18, 24, 28, 40][lv - 1]);
-  const fh = [5, 6, 7, 8, 9][lv - 1];
+  const hall1 = Math.min(tankX - tr - 2, hx0 + [12, 18, 24, 28, 40][lv - 1]);
+  const fh = [6, 7, 9, 10, 12][lv - 1];
 
   // membrane hall
   if (s === 0) {
@@ -1346,8 +1348,8 @@ function buildDesal(c: Ctx): void {
     for (let x = hx0 + 4; x < hall1 - 3; x += 10) v.dome(x, 2 + fh, bz0 + hallD / 2, 3, "white");
   } else if (s === 3) {
     for (let x = hx0 + 5; x < hall1 - 4; x += 11) {
-      v.dome(x, 1, bz0 + hallD / 2, Math.min(5.5, hallD / 2), "glass", 0.35);
-      v.dome(x, 1, bz0 + hallD / 2, Math.min(4.3, hallD / 2 - 1.2), "screenCyan", 0.7);
+      v.dome(x, 1, bz0 + hallD / 2, Math.min(6.5, hallD / 2), "glass", 0.35);
+      v.dome(x, 1, bz0 + hallD / 2, Math.min(5.3, hallD / 2 - 1.2), "screenCyan", 0.7);
       ring(v, x, bz0 + hallD / 2, 1, 2, Math.min(5.9, hallD / 2 + 0.4), Math.min(5, hallD / 2 - 0.5), "white");
     }
   } else {
@@ -1360,19 +1362,15 @@ function buildDesal(c: Ctx): void {
   // big sign stripe on the hall
   if (s !== 3) v.box(hx0 + 2, fh - 0, bz0 + hallD, hx0 + 8, fh + 1, bz0 + hallD + 1, "screenCyan", 0.8);
 
-  // product water tanks to the right
-  const tankN = [1, 1, 2, 3, 4][lv - 1];
-  const tr = lv >= 4 ? 5 : 4;
-  let tx = hx - tr - 1;
-  let tz = hz - tr - 1;
+  // product water tanks in a column on the right
+  const tankN = [1, 2, 2, 3, 4][lv - 1];
   for (let i = 0; i < tankN; i++) {
-    tank(v, tx, tz, 1, 6 + lv, tr, s === 3 ? "white" : "silver", "steelLight", s === 0 ? "teal" : "blue");
-    tx -= tr * 2 + 2;
-    if (tx - tr < -hx) {
-      tx = hx - tr - 1;
-      tz -= tr * 2 + 2;
-    }
+    const tz = bz0 + tr + i * (tr * 2 + 2);
+    if (tz + tr > hz) break;
+    tank(v, tankX, tz, 1, 4 + lv, tr, s === 3 ? "white" : "silver", "steelLight", s === 0 ? "teal" : "blue");
+    if (i > 0) pipe(v, "z", tz - tr - 3, tz - tr + 1, 1, tankX - 1, "blue");
   }
+  pipe(v, "x", hall1, tankX - tr + 1, 2, bz0 + 3, "blue");
 
   // RO rack yard in front
   if (lv >= 2) {
@@ -1417,6 +1415,27 @@ function buildDesal(c: Ctx): void {
     }
   }
   if (lv >= 4) {
+    // second process hall (pre-treatment / pump hall) closer to the front
+    const z0 = bz0 + hallD + 12;
+    const z1 = Math.min(hz - 6, z0 + 9);
+    const x1 = Math.min(hall1, hx0 + 22);
+    if (z1 - z0 >= 6) {
+      if (s === 3) {
+        for (let x = hx0 + 5; x < x1 - 3; x += 10) {
+          v.dome(x, 1, (z0 + z1) / 2, (z1 - z0) / 2, "glass", 0.35);
+          v.dome(x, 1, (z0 + z1) / 2, (z1 - z0) / 2 - 1.2, "screenCyan", 0.7);
+        }
+      } else {
+        const wc = s === 2 ? "steelLight" : "white";
+        v.box(hx0, 1, z0, x1, fh - 1, z1, wc);
+        v.box(hx0, fh - 3, z1 - 1, x1, fh - 2, z1, s === 0 ? "teal" : "blue");
+        windows(c, hx0, 1, z0, x1, fh - 1, z1, { w: 2, stepH: 4, emit: 0.5, faces: "se" });
+        if (s === 0) for (let x = hx0 + 3; x < x1 - 2; x += 7) v.dome(x, fh - 1, (z0 + z1) / 2, 2.5, "teal");
+        else if (s === 1) for (let z = z0; z < z1 - 2; z += 3) solarRow(v, hx0 + 1, x1 - 1, fh - 1, z, 3);
+        else flatRoof(c, hx0, fh - 1, z0, x1, z1, "steelDark", "steel", true);
+        door(v, hx0 + 3, 1, z1 - 1, "charcoal", 3, 4);
+      }
+    }
     // power substation & trucks
     v.box(-hx + 1, 0, hz - 4, -hx + 16, 1, hz - 1, "asphalt");
     truck(v, -hx + 6, 1, hz - 3, "x", "white", "teal");

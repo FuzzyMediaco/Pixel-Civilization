@@ -1669,3 +1669,613 @@ defineDesigns({
     build: buildBars,
   },
 });
+
+// =============================================================================================
+// CLOTHING STORES
+// =============================================================================================
+
+/** Giant clothes hanger holding a garment (on the +z plane, 2 deep). kind: 0 dress, 1 hoodie, 2 kaftan, 3 blazer */
+function giantHanger(v: V, cx: number, y: number, cz: number, k: number, garment: string, kind: number, accent = "white"): number {
+  const W = Math.round(6 * k);
+  const H = Math.round(9 * k);
+  const top = y + H + Math.round(3 * k);
+  // hook
+  v.box(cx, top - 1, cz, cx + 1, top + 2, cz + 1, "chrome");
+  v.box(cx + 1, top + 1, cz, cx + 2, top + 2, cz + 1, "chrome");
+  v.box(cx + 2, top, cz, cx + 3, top + 2, cz + 1, "chrome");
+  // triangle bar
+  for (let i = 0; i <= W; i++) {
+    const yy = top - 1 - Math.round((i / W) * 2 * k);
+    v.put(cx - i, yy, cz, "chrome");
+    v.put(cx + i, yy, cz, "chrome");
+  }
+  const shoulder = top - 1 - Math.round(2 * k);
+  v.box(cx - W, shoulder, cz, cx + W + 1, shoulder + 1, cz + 1, "chrome");
+  // garment
+  const gy1 = shoulder;
+  if (kind === 0 || kind === 2) {
+    // dress / kaftan: bodice then flared skirt
+    for (let yy = y; yy < gy1; yy++) {
+      const t = (gy1 - yy) / (gy1 - y);
+      const half = t < 0.4 ? Math.round(W * 0.55) : Math.round(W * (0.4 + (t - 0.4) * 1.0));
+      v.box(cx - half, yy, cz - 1, cx + half + 1, yy + 1, cz + 1, garment);
+    }
+    v.box(cx - Math.round(W * 0.45), gy1 - Math.round(4 * k), cz + 1, cx + Math.round(W * 0.45) + 1, gy1 - Math.round(3 * k), cz + 2, accent, 0.4);
+    if (kind === 2) for (let yy = y + 1; yy < gy1 - 2; yy += 2) v.put(cx, yy, cz + 1, accent, 0.4);
+  } else {
+    // hoodie / blazer: torso + sleeves
+    v.box(cx - Math.round(W * 0.6), y + Math.round(1 * k), cz - 1, cx + Math.round(W * 0.6) + 1, gy1, cz + 1, garment);
+    v.box(cx - W, y + Math.round(3 * k), cz - 1, cx - Math.round(W * 0.6), gy1, cz + 1, garment);
+    v.box(cx + Math.round(W * 0.6) + 1, y + Math.round(3 * k), cz - 1, cx + W + 1, gy1, cz + 1, garment);
+    if (kind === 1) {
+      v.box(cx - 2, gy1 - 1, cz - 1, cx + 3, gy1 + 1, cz + 1, garment); // hood
+      v.box(cx - 2, y + Math.round(2 * k), cz + 1, cx + 3, y + Math.round(4 * k), cz + 2, accent, 0.6); // pocket/logo
+    } else {
+      for (let yy = y + 2; yy < gy1; yy++) v.put(cx, yy, cz + 1, accent);
+      v.box(cx - 1, gy1 - 3, cz + 1, cx + 2, gy1, cz + 2, "white");
+      v.put(cx, gy1 - 3, cz + 2, "crimson");
+    }
+  }
+  return top + 2;
+}
+
+/**
+ * CLOTHING STORES — pop-up boutique → two-floor boutique → fashion house → glass flagship with runway → fashion tower
+ * with a giant spinning hanger. Signature: GIANT HANGER + MANNEQUIN WINDOWS.
+ *  V0 Paris Couture (black & gold, little black dress)   V1 Streetwear (raw concrete, graffiti, hoodie)
+ *  V2 Bohemian (pastel pink, plants, kaftan)              V3 Luxury Minimal (white & rose-gold glass, blazer)
+ */
+function buildClothing(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant % 4;
+  const wall = ["black", "concrete", "#f6c6d0", "white"][s];
+  const trim = ["gold", "#ff5a1f", "#b5e48c", "#d4a373"][s];
+  const garment = ["black", "#ff5a1f", "#f4a259", "#f2f2f2"][s];
+  const gAccent = ["gold", "white", "#2ec4b6", "#d4a373"][s];
+  const dress = [["crimson", "white", "gold", "black"], ["lime", "orange", "sky", "magenta"], ["pink", "yellow", "teal", "lime"], ["white", "#d4a373", "silver", "charcoal"]][s];
+  lot(c, ["path2", "asphalt", "grass2", "marble"][s]);
+  speckle(c, ["path", "asphaltDark", "grass3", "white"][s], 0.08);
+
+  const graffiti = (x0: number, x1: number, y0: number, y1: number, z: number) => {
+    if (s !== 1) return;
+    for (let x = x0; x < x1; x++) for (let y = y0; y < y1; y++) if (c.rand() < 0.35) v.put(x, y, z, c.pick(["magenta", "lime", "cyan", "yellow", "orange"]), 0.2);
+  };
+  /** shop block with mannequin windows; returns top y */
+  const store = (x0: number, z0: number, x1: number, z1: number, floors: number): number => {
+    const fh = 5;
+    const top = 1 + floors * fh;
+    shell(v, x0, 1, z0, x1, top, z1, wall);
+    for (let f = 0; f < floors; f++) {
+      const y = 1 + f * fh;
+      v.box(x0 + 1, y + 1, z1 - 1, x1 - 1, y + fh - 1, z1, "glass", 0.6);
+      for (let x = x0 + 2; x < x1 - 2; x += 3) mannequin(v, x, y + 1, z1 - 1, c.pick(dress));
+      v.box(x0, y + fh - 1, z1 - 1, x1, y + fh, z1 + 1, trim, s === 3 ? 0.3 : 0);
+      if (s !== 1) v.box(x1 - 1, y + 1, z0 + 1, x1, y + fh - 1, z1 - 1, "glass", 0.4);
+    }
+    graffiti(x0, x1 - 1, 1, top - 1, z1 - 1);
+    graffiti(x1 - 1, x1, 1, top - 1, z1 - 1);
+    door(v, Math.floor((x0 + x1) / 2) - 1, 1, z1 - 1, s === 0 ? "gold" : "glassDark");
+    if (s === 0) awning(v, x0, x1, 5, z1, "black", "white");
+    if (s === 2) { for (let x = x0; x < x1; x += 3) pot(v, x, z1 + 1, 1, "leaf", c.pick(["pink", "yellow"])); v.box(x0, 5, z1, x1, 6, z1 + 1, "woodLight"); for (let x = x0; x < x1; x += 2) v.put(x, 4, z1, "leafLight"); }
+    if (s === 0) mansard(v, x0, top, z0, x1, z1, "black", "charcoal", "gold");
+    else if (s === 2) gable(v, x0 - 1, top, z0 - 1, x1 + 1, z1 + 1, "x", "#f4a259", "white");
+    else flatRoof(c, x0, top, z0, x1, z1, s === 3 ? "white" : "concreteDark", s === 3 ? trim : wall, false);
+    return s === 0 ? top + 4 : s === 2 ? top + 2 : top + 1;
+  };
+  const hangerK = byLv(c, [0.6, 0.8, 1, 1.15, 1.3]);
+  const kind = s === 0 ? 0 : s === 1 ? 1 : s === 2 ? 2 : 3;
+
+  if (lv <= 3) {
+    const bx1 = lv === 3 ? hx - 9 : hx - 2;
+    const z1 = hz - 4;
+    const top = store(-hx + 2, -hz + 3, bx1, z1, lv);
+    const hy = s === 0 || s === 2 ? top - 3 : top;
+    giantHanger(v, Math.floor((-hx + 2 + bx1) / 2), hy, -2, hangerK, garment, kind, gAccent);
+    v.box(-hx, 0, z1, hx, 1, hz, s === 3 ? "white" : "path");
+    crowd(c, -hx + 2, z1 + 1, hx - 2, hz - 1, lv + 1);
+    if (lv === 3) {
+      // sidewalk clothing racks + shopping-bag carrying shoppers on a side plaza
+      for (let z = -hz + 3; z < z1 - 1; z += 4) {
+        v.box(bx1 + 3, 1, z, bx1 + 4, 4, z + 1, "chrome");
+        v.box(hx - 3, 1, z, hx - 2, 4, z + 1, "chrome");
+        v.box(bx1 + 3, 4, z, hx - 2, 5, z + 1, "chrome");
+        for (let x = bx1 + 4; x < hx - 3; x++) v.box(x, 2, z, x + 1, 4, z + 1, c.pick(dress));
+      }
+      flowerBed(c, bx1 + 2, z1 - 1, hx - 2, z1, 1);
+    }
+    return;
+  }
+  if (lv === 4) {
+    // FLAGSHIP: building at back + glass cube atrium at front + runway catwalk with photographers
+    const top = store(-hx + 2, -hz + 2, hx - 2, -2, 3);
+    giantHanger(v, 0, s === 0 || s === 2 ? top - 3 : top, -hz + 7, hangerK, garment, kind, gAccent);
+    // glass atrium cube
+    curtainWall(c, -hx + 3, 1, -2, -hx + 15, 11, 9, "glass", s === 3 ? "#d4a373" : s === 0 ? "gold" : "steelLight", 3, 5);
+    v.box(-hx + 3, 11, -2, -hx + 15, 12, 9, s === 3 ? "#d4a373" : "white");
+    for (let x = -hx + 5; x < -hx + 14; x += 3) mannequin(v, x, 1, 8, c.pick(dress));
+    // runway
+    v.box(-hx + 17, 0, -1, -hx + 21, 2, hz - 1, s === 0 ? "black" : "white");
+    v.box(-hx + 17, 2, -1, -hx + 21, 2, hz - 1, "white");
+    for (let z = 0; z < hz - 2; z += 4) mannequin(v, -hx + 19, 2, z, c.pick(dress));
+    for (let z = 0; z < hz - 2; z += 3) { folk(c, -hx + 16, z); folk(c, -hx + 22, z); }
+    for (let z = 2; z < hz - 2; z += 5) c.blink(-hx + 23, 3, z, "white");
+    v.box(-hx + 17, 2, -1, -hx + 21, 8, 0, trim, 0.5);
+    crowd(c, hx - 8, 2, hx - 2, hz - 1, 4);
+    return;
+  }
+  // L5 FASHION TOWER: 6 storeys of display glass, billboard of a model, spinning giant hanger crown
+  const x0 = -hx + 4;
+  const x1 = hx - 4;
+  const z0 = -hz + 4;
+  const z1 = hz - 6;
+  const top = store(x0, z0, x1, z1, 7);
+  // big fashion billboard down the +x face
+  v.box(x1, 8, z0 + 2, x1 + 1, top - 2, z1 - 2, trim, 0.4);
+  v.box(x1, 10, z0 + 4, x1 + 1, top - 4, z1 - 4, s === 0 ? "white" : s === 1 ? "#222" : s === 2 ? "#fde2e4" : "#eee", 0.6);
+  const mz = Math.floor((z0 + z1) / 2);
+  v.box(x1 + 1, 12, mz - 1, x1 + 2, 20, mz + 2, c.pick(dress), 0.6);
+  v.box(x1 + 1, 20, mz, x1 + 2, 22, mz + 1, "#f1d2b6", 0.6);
+  v.box(x1 + 1, 10, mz - 1, x1 + 2, 12, mz, "black");
+  v.box(x1 + 1, 10, mz + 1, x1 + 2, 12, mz + 2, "black");
+  // rotating hanger + garment on a plinth
+  const rot = new PixelVox(9);
+  giantHanger(rot, 0, 0, 0, 1.2, garment, kind, gAccent);
+  const ry = s === 0 ? top - 2 : top + 1;
+  v.box(-2, ry - 1, mz - 2, 3, ry, mz + 3, trim);
+  c.addRotor({ vox: rot, pivot: [0, ry, mz], axis: "y", speed: 0.5 });
+  c.blink(x0, ry, z0, "white");
+  // red carpet + paparazzi + limo
+  v.box(-hx, 0, z1, hx, 1, hz, s === 3 ? "white" : "path2");
+  v.box(-2, 1, z1, 2, 1, hz - 1, "crimson");
+  v.box(-2, 0, z1, 2, 1, hz, "crimson");
+  for (let z = z1 + 1; z < hz - 1; z += 2) { folk(c, -4, z); folk(c, 3, z); }
+  c.blink(-5, 3, z1 + 2, "white");
+  c.blink(4, 3, z1 + 3, "white");
+  v.box(hx - 12, 1, hz - 3, hx - 2, 2, hz - 1, "black");
+  v.box(hx - 10, 2, hz - 3, hx - 4, 3, hz - 1, "glassDark");
+}
+
+// =============================================================================================
+// THRIFT STORES
+// =============================================================================================
+
+/**
+ * THRIFT STORES — garage sale → thrift shop → vintage emporium → flea-market warehouse → mega flea bazaar.
+ * Signature: overflowing sidewalk clutter + a GIANT VINTAGE OBJECT on the roof.
+ *  V0 Retro '70s (orange/brown/mustard, giant vinyl record)   V1 Converted Red Barn (giant teapot)
+ *  V2 Victorian Antiques (bottle green & gold, gramophone)    V3 Shipping-Container Upcycle (stacked boxes, recycle sign)
+ */
+function buildThrift(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant % 4;
+  const wall = ["#e07a2f", "#b23a2a", "#2f5d46", "teal"][s];
+  const wall2 = ["#8a5a2b", "white", "gold", "orange"][s];
+  lot(c, ["path", "grass2", "path2", "concrete2"][s]);
+  speckle(c, ["path2", "grass3", "path", "concrete"][s], 0.15);
+  const junkCols = ["orange", "teal", "yellow", "crimson", "purple", "woodLight", "sky", "pink", "olive", "brass"];
+
+  /** a pile of random junk on top of a surface */
+  const junk = (x0: number, z0: number, x1: number, z1: number, y = 1, hmax = 2) => {
+    for (let x = x0; x < x1; x++) for (let z = z0; z < z1; z++) {
+      if (c.rand() < 0.55) {
+        const h = c.ri(1, hmax);
+        v.box(x, y, z, x + 1, y + h, z + 1, c.pick(junkCols));
+      }
+    }
+  };
+  const table = (x: number, z: number, w = 4) => {
+    v.box(x, 2, z, x + w, 3, z + 2, "woodLight");
+    v.put(x, 1, z, "woodDark"); v.put(x + w - 1, 1, z + 1, "woodDark");
+    junk(x, z, x + w, z + 2, 3, 1);
+  };
+  const rack = (x: number, z: number, w = 5) => {
+    v.box(x, 1, z, x + 1, 5, z + 1, "chrome");
+    v.box(x + w - 1, 1, z, x + w, 5, z + 1, "chrome");
+    v.box(x, 5, z, x + w, 6, z + 1, "chrome");
+    for (let i = 1; i < w - 1; i++) v.box(x + i, 2, z, x + i + 1, 5, z + 1, c.pick(junkCols));
+  };
+  /** Giant vintage object sign */
+  const icon = (cx: number, y: number, cz: number, k = 1): number => {
+    if (s === 0) {
+      // vinyl record standing upright facing +z, with red label
+      const R = 5 * k;
+      v.ringZ(cx, y + R, cz, cz + 1, R, 0, "black");
+      for (let r = 1.5; r < R; r += 1.5) v.ringZ(cx, y + R, cz + 1, cz + 2, r + 0.3, r, "charcoal");
+      v.ringZ(cx, y + R, cz + 1, cz + 2, 1.6 * k, 0, "red", 0.6);
+      v.put(cx, y + R, cz + 2, "white");
+      v.box(cx - 1, y, cz - 1, cx + 1, y + 2, cz + 1, "steelDark");
+      return y + Math.round(2 * R);
+    }
+    if (s === 1) {
+      // teapot
+      v.sphere(cx + 0.5, y + 3 * k, cz + 0.5, 3.4 * k, 3 * k, 3.4 * k, "#ffffff");
+      v.box(cx - 3 * k, y + 2.5 * k, cz, cx - 2 * k + 1, y + 3.5 * k, cz + 1, "#2b6cb0");
+      for (let i = 0; i < 4 * k; i++) v.put(cx + 3 * k + i, y + 2 * k + i * 0.8, cz, "white");
+      v.box(cx - 4 * k, y + 2 * k, cz, cx - 3 * k, y + 5 * k, cz + 1, "white");
+      v.box(cx, y + 6 * k, cz, cx + 1, y + 7 * k, cz + 1, "#2b6cb0");
+      v.ringZ(cx, y + 3 * k, cz + Math.round(3 * k), cz + Math.round(3 * k) + 1, 1.5, 0.6, "#2b6cb0");
+      return y + 7 * k;
+    }
+    if (s === 2) {
+      // gramophone: box + crank + flaring horn pointing +z/up
+      v.box(cx - 2, y, cz - 2, cx + 3, y + 3, cz + 3, "woodDark");
+      v.box(cx - 2, y + 3, cz - 2, cx + 3, y + 4, cz + 3, "black");
+      v.box(cx, y + 4, cz, cx + 1, y + 7, cz + 1, "brass");
+      for (let i = 0; i < 6 * k; i++) {
+        const r = 0.6 + i * 0.55;
+        v.ringZ(cx + 0.5, y + 7 + i * 0.7, cz + i, cz + i + 1, r, r - 0.9, "gold", 0.2);
+      }
+      return y + 7 + Math.round(6 * k * 0.7) + 4;
+    }
+    // recycle sign: three green chevrons in a triangle on a pole
+    v.box(cx, y, cz, cx + 1, y + 3, cz + 1, "steelDark");
+    const R = 4 * k;
+    for (let a = 0; a < 3; a++) {
+      const ang = (a / 3) * Math.PI * 2 + Math.PI / 2;
+      for (let t = -0.8; t <= 0.8; t += 0.12) {
+        v.put(cx + Math.cos(ang + t) * R, y + 3 + R + Math.sin(ang + t) * R, cz, "lime", 0.9);
+      }
+      v.put(cx + Math.cos(ang + 0.9) * R, y + 3 + R + Math.sin(ang + 0.9) * R, cz, "lime", 0.9);
+    }
+    return y + 3 + Math.round(2 * R);
+  };
+  /** shop body by style; returns roof top */
+  const shopHouse = (x0: number, z0: number, x1: number, z1: number, floors: number): number => {
+    const fh = 5;
+    const top = 1 + floors * fh;
+    if (s === 3) {
+      // stacked shipping containers
+      const cols = ["teal", "orange", "red", "yellow", "blue"];
+      let k = 0;
+      for (let f = 0; f < floors; f++) {
+        const y = 1 + f * 4;
+        for (let x = x0; x + 6 <= x1; x += 7) {
+          const off = f % 2 ? 2 : 0;
+          const ax = Math.min(x + off, x1 - 6);
+          v.box(ax, y, z0, ax + 6, y + 4, z1, cols[k++ % cols.length]);
+          for (let zz = z0; zz < z1; zz += 2) v.box(ax, y, zz, ax + 6, y + 4, zz + 1, "steelDark");
+          v.box(ax + 1, y + 1, z1 - 1, ax + 5, y + 3, z1, "glass", 0.55);
+        }
+      }
+      return 1 + floors * 4;
+    }
+    if (s === 1) {
+      // red barn with white trim and gambrel roof
+      shell(v, x0, 1, z0, x1, top, z1, "#b23a2a");
+      v.box(Math.floor((x0 + x1) / 2) - 3, 1, z1 - 1, Math.floor((x0 + x1) / 2) + 3, 6, z1, "white");
+      v.box(Math.floor((x0 + x1) / 2) - 2, 2, z1 - 1, Math.floor((x0 + x1) / 2) + 2, 5, z1, "warmGlow", 0.5);
+      for (const [px] of [[x0], [x1 - 1]]) v.box(px, 1, z1 - 1, px + 1, top, z1, "white");
+      // gambrel
+      const w = z1 - z0;
+      v.box(x0 - 1, top, z0 - 1, x1 + 1, top + 2, z1 + 1, "#7a2a20");
+      v.box(x0 - 1, top + 2, z0 + 1, x1 + 1, top + 3, z1 - 1, "#7a2a20");
+      v.box(x0 - 1, top + 3, z0 + 3, x1 + 1, top + 4, z1 - 3, "#7a2a20");
+      if (w > 10) v.box(x0 - 1, top + 4, z0 + 5, x1 + 1, top + 5, z1 - 5, "#7a2a20");
+      v.box(x0, top, z1 - 1, x1, top + 2, z1, "#b23a2a");
+      return top + 3;
+    }
+    if (s === 2) {
+      shell(v, x0, 1, z0, x1, top, z1, "#2f5d46");
+      shopfront(v, x0 + 1, x1 - 1, 1, z1 - 1, 5, "gold", "glass", "woodDark", 0.55);
+      displayDots(c, x0 + 2, x1 - 2, 2, 5, z1 - 1, ["brass", "gold", "crimson", "woodDark"], 0.3);
+      if (floors > 1) windows(c, x0, fh, z0, x1, top, z1, { stepV: fh, h: 3, w: 1, stepH: 3, emit: 0.5, sill: "gold" });
+      v.box(x0, 6, z1 - 1, x1, 7, z1 + 1, "gold");
+      return gable(v, x0 - 1, top, z0 - 1, x1 + 1, z1 + 1, "z", "charcoal", "gold");
+    }
+    // retro 70s: brown wood siding + orange/mustard stripes + rounded sign
+    shell(v, x0, 1, z0, x1, top, z1, "#8a5a2b");
+    for (let y = top - 3; y < top; y++) v.box(x0, y, z0, x1, y + 1, z1, ["#e07a2f", "#f2c14e", "#c0392b"][y % 3]);
+    shopfront(v, x0 + 1, x1 - 1, 1, z1 - 1, 5, "#f2c14e", "glass", "woodDark", 0.55);
+    displayDots(c, x0 + 2, x1 - 2, 2, 5, z1 - 1, junkCols, 0.3);
+    if (floors > 1) windows(c, x0, fh, z0, x1, top - 3, z1, { stepV: fh, h: 2, w: 3, stepH: 5, emit: 0.5 });
+    flatRoof(c, x0, top, z0, x1, z1, "concreteDark", "#8a5a2b", false);
+    return top + 1;
+  };
+
+  if (lv === 1) {
+    // GARAGE SALE: house garage open, tables of junk on the driveway, hand-painted sign
+    const z1 = -1;
+    shell(v, -hx + 2, 1, -hz + 2, hx - 2, 7, z1, s === 3 ? "teal" : s === 1 ? "#b23a2a" : s === 2 ? "#2f5d46" : "#e8c9a0");
+    v.box(-hx + 4, 1, z1 - 1, hx - 4, 5, z1, "charcoal");
+    junk(-hx + 4, z1 - 4, hx - 4, z1 - 1, 1, 3);
+    gable(v, -hx + 1, 7, -hz + 1, hx - 1, z1 + 1, "x", s === 1 ? "#7a2a20" : "slate", "white");
+    v.box(-hx + 2, 0, z1, hx - 2, 1, hz, "concrete");
+    table(-hx + 2, 1, 5);
+    table(1, 3, 5);
+    rack(-hx + 3, hz - 4, 5);
+    v.box(hx - 3, 1, hz - 2, hx - 2, 4, hz - 1, "woodDark");
+    v.box(hx - 6, 4, hz - 2, hx - 1, 6, hz - 1, "yellow", 0.4);
+    v.box(hx - 5, 5, hz - 1, hx - 2, 5, hz - 1, "red");
+    folk(c, 0, hz - 3); folk(c, -3, 4);
+    return;
+  }
+  if (lv === 2) {
+    const top = shopHouse(-hx + 2, -hz + 2, hx - 2, hz - 6, s === 3 ? 2 : 1);
+    icon(0, top, -2, 0.7);
+    v.box(-hx, 0, hz - 6, hx, 1, hz, "path2");
+    rack(-hx + 2, hz - 3, 5);
+    table(2, hz - 4, 4);
+    v.box(hx - 4, 1, hz - 2, hx - 2, 2, hz - 1, "crate");
+    folk(c, -1, hz - 2);
+    return;
+  }
+  if (lv === 3) {
+    // VINTAGE EMPORIUM + old camper van + sofa on the sidewalk
+    const z1 = hz - 6;
+    const top = shopHouse(-hx + 2, -hz + 2, hx - 6, z1, 2);
+    icon(Math.floor((-hx + 2 + hx - 6) / 2), top, -2, 0.9);
+    v.box(-hx, 0, z1, hx, 1, hz, "path2");
+    // VW-style camper van
+    const vx = hx - 6;
+    const vz = hz - 3;
+    v.box(vx - 4, 1, vz - 1, vx + 4, 4, vz + 2, s === 0 ? "#f2c14e" : "#7fc8a9");
+    v.box(vx - 4, 4, vz - 1, vx + 4, 5, vz + 2, "white");
+    v.box(vx + 3, 2, vz - 1, vx + 4, 4, vz + 2, "glassDark");
+    v.box(vx - 3, 3, vz + 1, vx + 2, 4, vz + 2, "glass", 0.3);
+    v.box(vx - 4, 2, vz - 1, vx + 4, 3, vz + 2, "white");
+    v.put(vx - 3, 0, vz + 1, "rubber"); v.put(vx + 2, 0, vz + 1, "rubber");
+    junk(vx - 4, vz - 1, vx + 2, vz + 2, 5, 2);
+    // sofa
+    v.box(-hx + 2, 1, z1 + 1, -hx + 7, 2, z1 + 3, "olive");
+    v.box(-hx + 2, 2, z1 + 1, -hx + 7, 3, z1 + 2, "olive");
+    rack(-hx + 9, z1 + 2, 6);
+    crowd(c, -hx + 2, z1 + 3, hx - 10, hz - 1, 4);
+    return;
+  }
+  if (lv === 4) {
+    // FLEA-MARKET WAREHOUSE: quonset hall + outdoor tents
+    const z1 = 2;
+    const x1 = hx - 2;
+    shell(v, -hx + 2, 1, -hz + 2, x1, 6, z1, wall);
+    barrelRoof(v, -hx + 2, 6, -hz + 2, x1, z1, "x", s === 3 ? "steelLight" : s === 1 ? "#7a2a20" : "steelLight", "steelDark");
+    v.box(-4, 1, z1 - 1, 4, 6, z1, "charcoal");
+    junk(-4, z1 - 3, 4, z1 - 1, 1, 3);
+    v.box(-6, 6, z1, 6, 9, z1 + 1, wall2, 0.6);
+    icon(hx - 9, 6 + Math.floor((z1 + hz - 2) / 6), -hz + 9, 1);
+    // tents
+    const tentCols = ["red", "blue", "yellow", "teal", "pink", "orange"];
+    for (let x = -hx + 2; x < hx - 6; x += 8) {
+      const col = c.pick(tentCols);
+      v.box(x, 1, 6, x + 1, 5, 7, "steelLight");
+      v.box(x + 5, 1, 6, x + 6, 5, 7, "steelLight");
+      for (let k = 0; k < 3; k++) v.box(x - 1 + k, 5 + k, 4, x + 7 - k, 6 + k, 11, col);
+      table(x + 1, 7, 4);
+    }
+    v.box(-hx, 0, z1, hx, 1, hz, "path");
+    crowd(c, -hx + 2, z1 + 1, hx - 2, hz - 1, 9);
+    truck(v, hx - 5, 1, hz - 3, "x", wall2 === "white" ? "cream" : wall2, "teal");
+    return;
+  }
+  // L5 MEGA FLEA BAZAAR: big shop building + rows of tents + junk tower sculpture + double-decker bus shop
+  const z1 = -2;
+  const top = shopHouse(-hx + 2, -hz + 2, hx - 14, z1, 3);
+  icon(Math.floor((-hx + hx - 12) / 2), top, -hz + 8, 1.3);
+  v.box(-hx, 0, z1, hx, 1, hz, "path");
+  const tentCols = ["red", "blue", "yellow", "teal", "pink", "orange", "lime"];
+  for (let x = -hx + 2; x < hx - 2; x += 7) for (let z = z1 + 3; z < hz - 4; z += 8) {
+    const col = c.pick(tentCols);
+    for (let k = 0; k < 3; k++) v.box(x - 1 + k, 5 + k, z - 1, x + 6 - k, 6 + k, z + 5, k === 2 ? "white" : col);
+    v.box(x, 1, z, x + 1, 5, z + 1, "steelLight");
+    v.box(x + 4, 1, z + 3, x + 5, 5, z + 4, "steelLight");
+    junk(x, z + 1, x + 5, z + 3, 1, 2);
+  }
+  // junk tower sculpture (stacked chairs, tv, bikes) at the back right
+  const jx = hx - 8;
+  const jz = -hz + 6;
+  let y = 1;
+  for (let i = 0; i < 8; i++) {
+    const w = 4 - (i % 3);
+    v.box(jx - w + (i % 2), y, jz - w, jx + w - (i % 2), y + 3, jz + w - 1, c.pick(junkCols));
+    y += 3;
+  }
+  v.box(jx - 1, y, jz - 1, jx + 1, y + 2, jz + 1, "brass", 0.6);
+  c.blink(jx, y + 2, jz, "yellow");
+  // double-decker bus boutique
+  const bx = hx - 6;
+  v.box(bx - 2, 1, -hz + 13, bx + 2, 8, -hz + 26 > z1 ? z1 + 0 : -hz + 26, "red");
+  windows(c, bx - 2, 1, -hz + 13, bx + 2, 8, z1, { faces: "e", stepV: 3, stepH: 2, emit: 0.5 });
+  crowd(c, -hx + 2, z1 + 1, hx - 2, hz - 1, 12);
+}
+
+// =============================================================================================
+// SHOE STORES
+// =============================================================================================
+
+/** Giant shoe, toe pointing +x. kind 0 sneaker, 1 cowboy boot, 2 stiletto, 3 clog. Scale k (~1 = 12 long). */
+function giantShoe(v: V, x: number, y: number, z: number, k: number, kind: number, emit = 0): number {
+  const B = (a: number, b: number, c0: number, d: number, e: number, f: number, col: string, em = emit) =>
+    v.box(x + Math.round(a * k), y + Math.round(b * k), z + Math.round(c0 * k), x + Math.max(Math.round(d * k), Math.round(a * k) + 1), y + Math.max(Math.round(e * k), Math.round(b * k) + 1), z + Math.max(Math.round(f * k), Math.round(c0 * k) + 1), col, em);
+  if (kind === 0) {
+    // high-top sneaker
+    B(0, 0, -2.5, 12, 1, 2.5, "white");
+    B(0, 1, -2.5, 9, 4, 2.5, "red");
+    B(9, 1, -2, 12, 3, 2, "red");
+    B(10, 1, -2.5, 12.5, 2, 2.5, "white");
+    B(0, 4, -2.5, 5, 8, 2.5, "red");
+    B(0, 8, -2.5, 5, 9, 2.5, "white");
+    B(1, 2, 2.5, 8, 3, 3, "white"); // side swoosh stripe
+    B(1, 2, -3, 8, 3, -2.5, "white");
+    for (let i = 0; i < 4; i++) B(5 + i, 4 - Math.min(i, 2) * 0.5, -1, 6 + i, 4.5, 1, "white");
+    B(0, 4, -1, 0.6, 8, 1, "white");
+    return y + Math.round(9 * k);
+  }
+  if (kind === 1) {
+    // cowboy boot: heel, pointed toe, tall shaft, stitched stars
+    B(0, 0, -2, 3, 2, 2, "woodDark");
+    B(3, 1, -2, 11, 2, 2, "woodDark");
+    B(0, 2, -2.5, 9, 4, 2.5, "#8b4a1f");
+    B(9, 2, -1.5, 12, 3, 1.5, "#8b4a1f");
+    B(12, 2, -0.5, 13, 3, 0.5, "#8b4a1f");
+    B(0, 4, -2.5, 5, 12, 2.5, "#8b4a1f");
+    B(-0.5, 11, -2.5, 5.5, 12, 2.5, "#5a2e10");
+    B(1, 6, 2.5, 4, 9, 3, "#d9a55b");
+    B(2, 7, 3, 3, 8, 3.3, "gold", 0.5);
+    return y + Math.round(12 * k);
+  }
+  if (kind === 2) {
+    // stiletto: toe platform, arched sole rising to heel, thin heel spike, ankle strap
+    B(7, 0, -2, 12, 1, 2, "magenta");
+    B(7, 1, -2.5, 12, 3, 2.5, "magenta");
+    for (let i = 0; i < 7; i++) B(i, 6 - i * 0.7, -2, i + 1, 7 - i * 0.7, 2, "magenta");
+    B(0, 0, -0.5, 1, 6, 0.5, "black");
+    B(0, 6, -2.5, 3, 8, 2.5, "magenta");
+    B(3, 6.5, 2, 4, 7.5, 2.5, "gold", 0.6);
+    B(10, 2.5, -1, 11, 3.5, 1, "pink", 0.8);
+    return y + Math.round(8 * k);
+  }
+  // Dutch clog: carved yellow wood, upturned toe, open top
+  B(0, 0, -2.5, 10, 5, 2.5, "#f2c14e");
+  B(10, 1, -2, 12, 4, 2, "#f2c14e");
+  B(12, 3, -1, 13, 5, 1, "#f2c14e");
+  B(1, 4, -1.5, 6, 5, 1.5, "woodDark");
+  B(3, 2, 2.5, 9, 3, 2.8, "red");
+  B(5, 3, 2.5, 7, 4, 2.8, "leaf");
+  return y + Math.round(5 * k);
+}
+
+/**
+ * SHOE STORES — cobbler kiosk → shoe shop → sneaker store with shoe wall → flagship → THE GIANT SHOE HOUSE
+ * (at Lv5 the building itself is a colossal shoe). Signature: a giant rooftop shoe.
+ *  V0 Sneaker Culture (red/white high-top, urban)   V1 Western Boot Barn (cowboy boot, timber, rodeo)
+ *  V2 Glam Heels (magenta stiletto, pink marble)     V3 Dutch Clog Maker (yellow clog, windmill, tulips)
+ */
+function buildShoes(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant % 4;
+  const wall = ["white", "woodLight", "#f8d0e0", "brick"][s];
+  const trim = ["red", "woodDark", "gold", "white"][s];
+  const glassCol = ["glass", "warmGlow", "pink", "glass"][s];
+  lot(c, ["asphalt", "sand", "marble", "grass2"][s]);
+  speckle(c, ["asphaltDark", "sandDark", "white", "grass3"][s], 0.1);
+  const shoeRow = (x0: number, x1: number, y: number, z: number) => {
+    const cols = s === 0 ? ["red", "white", "lime", "blue", "black"] : s === 1 ? ["#8b4a1f", "woodDark", "black", "#d9a55b"] : s === 2 ? ["magenta", "pink", "gold", "black", "crimson"] : ["#f2c14e", "red", "woodLight", "white"];
+    for (let x = x0; x < x1; x += 2) v.put(x, y, z, c.pick(cols), 0.5);
+  };
+  const tulips = (x0: number, x1: number, z: number) => {
+    if (s !== 3) return;
+    for (let x = x0; x < x1; x++) { v.put(x, 0, z, "soil"); v.put(x, 1, z, "leaf"); v.put(x, 2, z, ["red", "yellow", "pink", "orange"][x & 3]); }
+  };
+  const store = (x0: number, z0: number, x1: number, z1: number, floors: number): number => {
+    const fh = 5;
+    const top = 1 + floors * fh;
+    shell(v, x0, 1, z0, x1, top, z1, wall);
+    if (s === 0) for (let y = 2; y < top; y += 3) v.box(x0, y, z0, x0 + 1, y + 1, z1, c.pick(["magenta", "lime", "cyan"]), 0.3);
+    if (s === 1) for (let x = x0; x < x1; x += 2) v.box(x, 1, z1 - 1, x + 1, top, z1, "wood");
+    v.box(x0 + 1, 2, z1 - 1, x1 - 1, 5, z1, glassCol, 0.55);
+    for (let y = 2; y < 5; y++) shoeRow(x0 + 2, x1 - 2, y, z1 - 1);
+    for (let f = 1; f < floors; f++) {
+      v.box(x0 + 1, 2 + f * fh, z1 - 1, x1 - 1, 5 + f * fh, z1, glassCol, 0.55);
+      shoeRow(x0 + 2, x1 - 2, 3 + f * fh, z1 - 1);
+    }
+    door(v, Math.floor((x0 + x1) / 2) - 1, 1, z1 - 1, s === 2 ? "gold" : "glassDark");
+    v.box(x0, top - 1, z0, x1, top, z1 + 1, trim);
+    if (s === 1) { v.box(x0, top, z1 - 1, x1, top + 4, z1, "woodLight"); v.box(x0, top + 3, z1 - 1, x1, top + 4, z1, "woodDark"); flatRoof(c, x0, top, z0, x1, z1 - 1, "woodDark", "woodLight", false); return top + 1; }
+    if (s === 3) return gable(v, x0 - 1, top, z0 - 1, x1 + 1, z1 + 1, "z", "#d9622b", "white") - 3;
+    if (s === 2) { awning(v, x0, x1, 5, z1, "pink", "white"); }
+    if (s === 0) awning(v, x0, x1, 5, z1, "red", "white");
+    flatRoof(c, x0, top, z0, x1, z1, "concreteDark", trim, false);
+    return top + 1;
+  };
+
+  if (lv === 1) {
+    // COBBLER KIOSK: tiny booth with hammer sign, shoe-shine chair, small shoe on a pole
+    v.box(-5, 1, -4, 4, 7, 2, wall);
+    v.box(-4, 2, 1, 3, 5, 2, glassCol, 0.5);
+    shoeRow(-3, 3, 3, 1);
+    v.box(-6, 7, -5, 5, 8, 3, trim);
+    v.box(-5, 8, -4, 4, 9, 2, trim);
+    // shoe-shine chair
+    v.box(2, 1, 4, 5, 3, 6, "woodDark");
+    v.box(2, 3, 5, 5, 5, 6, "crimson");
+    folk(c, 3, 4, 3);
+    folk(c, 1, 4);
+    v.box(-hx + 3, 1, hz - 3, -hx + 4, 9, hz - 2, "steelDark");
+    giantShoe(v, -hx + 1, 9, hz - 3, 0.45, s);
+    tulips(-hx + 1, hx - 1, hz - 1);
+    if (s === 3) { tulips(-hx + 1, hx - 1, -hz + 1); }
+    return;
+  }
+  if (lv === 2) {
+    const top = store(-hx + 2, -hz + 2, hx - 2, hz - 5, 1);
+    giantShoe(v, -6, top, -2, 0.85, s, 0.05);
+    v.box(-hx, 0, hz - 5, hx, 1, hz, s === 1 ? "woodLight" : "path2");
+    tulips(-hx + 1, hx - 1, hz - 1);
+    crowd(c, -hx + 2, hz - 4, hx - 2, hz - 2, 2);
+    return;
+  }
+  if (lv === 3) {
+    const top = store(-hx + 2, -hz + 2, hx - 2, hz - 5, 2);
+    giantShoe(v, -8, top, -2, 1.3, s, 0.05);
+    v.box(-hx, 0, hz - 5, hx, 1, hz, s === 1 ? "woodLight" : "path2");
+    if (s === 1) { fence(v, -hx + 1, hz - 3, hx - 1, hz - 1, 1, 2, "woodDark", [-2, 2]); v.box(hx - 6, 1, hz - 4, hx - 4, 4, hz - 3, "#8b4a1f"); }
+    if (s === 3) tulips(-hx + 1, hx - 1, hz - 1);
+    if (s === 0) { for (let x = -hx + 2; x < -hx + 12; x += 2) folk(c, x, hz - 3); } // sneaker drop queue
+    crowd(c, -hx + 2, hz - 4, hx - 2, hz - 1, 3);
+    return;
+  }
+  if (lv === 4) {
+    // FLAGSHIP: two-storey store + glass shoe-wall tower + giant shoe crown; plaza
+    const z1 = hz - 8;
+    const top = store(-hx + 2, -hz + 2, hx - 2, z1, 3);
+    giantShoe(v, -9, top, -4, 1.6, s, 0.1);
+    v.box(-hx, 0, z1, hx, 1, hz, s === 1 ? "woodLight" : s === 2 ? "white" : "path2");
+    // display plinth with a shoe on the plaza
+    v.box(hx - 9, 1, z1 + 2, hx - 2, 3, hz - 2, trim);
+    giantShoe(v, hx - 9, 3, z1 + 4, 0.55, s);
+    if (s === 3) {
+      // little windmill
+      const wx = -hx + 4;
+      const wz = z1 + 4;
+      v.cone(wx, 1, 12, wz, 2.6, 1.6, "woodLight");
+      v.box(wx - 1, 12, wz - 1, wx + 2, 14, wz + 2, "#d9622b");
+      const rot = new PixelVox(4);
+      for (let i = -6; i <= 6; i++) { rot.put(i, 0, 0, "white"); rot.put(0, i, 0, "white"); }
+      c.addRotor({ vox: rot, pivot: [wx, 12, wz + 3], axis: "z", speed: 1, wind: true });
+    }
+    crowd(c, -hx + 2, z1 + 1, hx - 10, hz - 1, 6);
+    return;
+  }
+  // L5 THE GIANT SHOE HOUSE — the building is a colossal shoe with windows, door in the heel, garden & fence
+  const k = Math.min(2.6, (2 * hx - 6) / 13);
+  const sx = -hx + 3;
+  const sz = -2;
+  const top = giantShoe(v, sx, 1, sz, k, s);
+  // punch windows & door into the shoe's +z side
+  const zSide = sz + Math.round(2.5 * k) - 1;
+  for (let x = sx + 3; x < sx + Math.round(9 * k); x += 4) for (let y = 4; y < top - 4; y += 5) {
+    v.box(x, y, zSide, x + 2, y + 2, zSide + 1, "warmGlow", 0.7);
+  }
+  v.box(sx + Math.round(1 * k), 1, zSide, sx + Math.round(1 * k) + 2, 5, zSide + 1, "woodDark");
+  v.box(sx + Math.round(1 * k), 0, zSide + 1, sx + Math.round(1 * k) + 2, 1, hz, "path");
+  // chimney with smoke from the collar/shaft
+  chimney(v, sx + 2, top - 1, sz - 2, 4, "brickDark");
+  c.smoke(sx + 3, top + 3, sz - 1, "smoke");
+  // garden & picket fence & tour line
+  fence(v, -hx + 1, -hz + 1, hx - 1, hz - 1, 1, 2, s === 1 ? "woodDark" : "white", [-hx + 4, -hx + 10]);
+  flowerBed(c, hx - 10, hz - 4, hx - 2, hz - 2, 1);
+  tulips(-hx + 2, hx - 2, -hz + 2);
+  tree(v, hx - 4, 1, -hz + 4, s === 3 ? "round" : s === 1 ? "oak" : "blossom", 1, 2);
+  crowd(c, -hx + 3, sz + Math.round(3 * k), hx - 3, hz - 2, 6);
+  c.blink(sx + Math.round(6 * k), top + 1, sz, "white");
+}
+
+defineDesigns({
+  clothing_stores: {
+    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+    levels: ["Pop-Up Boutique", "Two-Floor Boutique", "Fashion House", "Flagship & Runway", "Fashion Tower"],
+    growth: "Mannequin windows stack up floor by floor, a glass flagship adds a catwalk with flashing cameras, and the tower is crowned by a giant spinning hanger.",
+    build: buildClothing,
+  },
+  thrift_stores: {
+    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [3, 2]],
+    levels: ["Garage Sale", "Thrift Shop", "Vintage Emporium", "Flea-Market Warehouse", "Mega Flea Bazaar"],
+    growth: "Junk spills out ever wider: garage sale → shop with racks → emporium with a camper van → warehouse with tents → a sprawling bazaar with a junk-tower sculpture.",
+    build: buildThrift,
+  },
+  shoe_stores: {
+    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+    levels: ["Cobbler's Kiosk", "Shoe Shop", "Sneaker Store", "Shoe Flagship", "The Giant Shoe House"],
+    growth: "The rooftop shoe grows bigger every level until, at Lv5, the whole building IS a colossal shoe.",
+    build: buildShoes,
+  },
+});

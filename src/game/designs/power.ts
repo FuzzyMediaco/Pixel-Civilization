@@ -1101,7 +1101,9 @@ function buildLandfill(c: Ctx): void {
       if (!active) return top ? (y % 2 ? "grass" : "grass2") : "soil";
     }
     if (!top && k !== 2 && y % 3 === 0) return k === 3 ? "sandDark" : "soil"; // daily cover layers
-    return c.pick(pal);
+    const hsh = ((F(x / 2) * 73856093) ^ (y * 19349663) ^ (F(z / 2) * 83492791)) >>> 0;
+    if (top && k !== 2 && hsh % 5 === 0) return k === 3 ? "sandDark" : "soilDark";
+    return pal[hsh % pal.length];
   }, lv === 1 ? 2 : 1);
   const topY = (x: number, z: number) => 1 + Math.round(hf(x, z)) + (lv === 1 ? 1 : 0);
   const pcx = F(cx);
@@ -1255,7 +1257,7 @@ function buildTrashCompacting(c: Ctx): void {
   const hx0 = -hx + 1;
   const hx1 = lv === 2 ? hx - 9 : hx - 2 - (lv >= 4 ? 10 : 0);
   const hz0 = -hz + 1;
-  const hz1 = lv === 2 ? hz - 3 : Math.min(hz - 9, hz0 + (lv >= 4 ? 22 : 14));
+  const hz1 = lv === 2 ? hz - 6 : Math.min(hz - 9, hz0 + (lv >= 4 ? 22 : 14));
   const hh = byLvl(lv, [6, 7, 9, 10, 11]);
   if (lv === 2) {
     // open-sided baling shed
@@ -1264,8 +1266,11 @@ function buildTrashCompacting(c: Ctx): void {
       v.box(x, 1, hz1 - 1, x + 1, hh, hz1, "steelDark");
     }
     v.box(hx0, 1, hz0, hx1, hh, hz0 + 1, wall);
-    v.box(hx0 - 1, hh, hz0 - 1, hx1 + 1, hh + 1, hz1 + 1, roof);
+    v.box(hx0, 1, hz0, hx0 + 1, hh, hz1, wall);
+    for (let d = 0; d < hz1 - hz0 + 2; d++) v.box(hx0 - 1, hh + F(d / 3), hz1 - d, hx1 + 1, hh + 1 + F(d / 3), hz1 - d + 1, d === 0 ? wall : roof);
     v.box(hx0, hh - 1, hz1 - 1, hx1, hh, hz1, wall);
+    recycleLogo(v, hx1 - 3, hh - 3, hz1, 1.6, "white");
+    bales(v, hx1 + 2, hz0 + 1, 2, 3, 3, BALE);
     // baler machine
     v.box(hx0 + 2, 1, hz0 + 3, hx0 + 6, 5, hz0 + 8, mach);
     v.box(hx0 + 3, 5, hz0 + 4, hx0 + 5, 8, hz0 + 6, "steelDark");
@@ -1295,6 +1300,8 @@ function buildTrashCompacting(c: Ctx): void {
     // conveyor from sorting yard up into the hall
     conveyor(v, hx1 + 1, 2, hz1 - 6, hx1 + 8, 2, hz1 - 6, "steelDark", "charcoal", true);
     conveyor(v, hx1 - 3, hh - 1, hz1 - 6, hx1 + 1, 2, hz1 - 6, "steelDark", "charcoal", true);
+    // tipping heap at the conveyor foot
+    heightfield(v, hx1 + 6, hz1 - 10, Math.min(hx - 1, hx1 + 14), hz1 - 3, (x, z) => 3.5 - Math.hypot(x + 0.5 - (hx1 + 10), z + 0.5 - (hz1 - 6.5)) * 0.9, () => c.pick(["blue", "leaf", "white", "red", "yellow", "charcoal", "silver"]));
     // bale yard in front
     bales(v, hx0 + 1, hz1 + 2, Math.min(5, F((hx1 - hx0) / 3)), 2, lv >= 4 ? 3 : 2, BALE);
   }
@@ -1339,7 +1346,7 @@ function buildFactories(c: Ctx): void {
   lot(c, k === 3 ? "asphaltDark" : "concrete2");
   speckle(c, k === 3 ? "charcoal" : "concreteDark", 0.07);
   const wall = ["brick", "blue", "white", "#5b4a42"][k];
-  const roofC = ["slate", "steelLight", "silver", "iron"][k];
+  const roofC = ["slate", "steelLight", "silver", "#7a4a36"][k];
   const trim = ["cream", "white", "red", "orange"][k];
   const smokeKind = k === 3 ? "dark" : k === 1 ? "steam" : "smoke";
 
@@ -1365,7 +1372,11 @@ function buildFactories(c: Ctx): void {
   } else if (k === 1) {
     flatRoof(c, x0, 1 + h, z0, x1, z1, "steelLight", "white", true);
   } else {
-    gable(v, x0 - 1, 1 + h, z0 - 1, x1 + 1, z1 + 1, "x", roofC, "rubber");
+    const rt = gable(v, x0 - 1, 1 + h, z0 - 1, x1 + 1, z1 + 1, "x", roofC, "rubber");
+    // glowing clerestory monitor along the ridge
+    const mz = F((z0 + z1) / 2);
+    v.box(x0 + 1, rt - 1, mz - 1, x1 - 1, rt + 1, mz + 1, "orange", 0.8);
+    v.box(x0 + 1, rt + 1, mz - 2, x1 - 1, rt + 2, mz + 2, "iron");
   }
   // loading door with glow for foundry
   const dx = F((x0 + x1) / 2) - 2;
@@ -1387,6 +1398,8 @@ function buildFactories(c: Ctx): void {
   }
   if (chH > 18) c.blink(chx, chH + 1, chz, "red");
   if (lv === 1) {
+    if (k === 2) car(v, x1 + 1, 1, hz - 2, "x", "red");
+    if (k === 3) { v.box(x1 + 1, 1, 0, x1 + 3, 2, 2, "iron"); v.put(x1 + 1, 2, 1, "fire", 1.2); c.smoke(x1 + 1, 3, 1, "spark"); }
     // crates, workbench & tinkerer
     for (let i = 0; i < 3; i++) v.box(x1 + 1, 1 + (i === 2 ? 2 : 0), -2 + (i % 2) * 2, x1 + 3, 3 + (i === 2 ? 2 : 0), (i % 2) * 2, "crate");
     person(v, 0, 1, hz - 2, "blue", "blueDark");
@@ -1418,10 +1431,13 @@ function buildFactories(c: Ctx): void {
   }
   if (lv >= 4) {
     // water tower + conveyor bridge + second hall/feature
-    const wx = hx - 5;
-    const wz = hz - 9;
-    for (const [ddx, ddz] of [[-2, -2], [1, -2], [-2, 1], [1, 1]]) v.box(wx + ddx, 1, wz + ddz, wx + ddx + 1, 12, wz + ddz + 1, "steelDark");
-    tank(v, wx, wz, 12, 5, 3, k === 0 ? "woodDark" : "silver", "steelDark", trim);
+    const wx = x1 - 5;
+    const wz = z0 + 4;
+    const wy = 2 + h + 3;
+    for (const [ddx, ddz] of [[-2, -2], [1, -2], [-2, 1], [1, 1]]) v.box(wx + ddx, 1 + h, wz + ddz, wx + ddx + 1, wy + 5, wz + ddz + 1, "steelDark");
+    tank(v, wx, wz, wy + 5, 5, 3, k === 0 ? "woodDark" : k === 2 ? "red" : "silver", "steelDark", trim);
+    // silos at the front right
+    if (k === 0 || k === 1) for (let i = 0; i < 3; i++) tank(v, hx - 4 - i * 5, hz - 10, 1, 10, 2.2, k === 0 ? "cream" : "silver", "steelLight", k === 0 ? "brick" : "blue");
     if (k === 2) {
       // car lot of new cars
       for (let i = 0; i < 6; i++) car(v, -hx + 3 + i * 4, 1, hz - 7, "z", ["red", "sky", "white", "yellow", "teal", "charcoal"][i]);
@@ -1437,7 +1453,7 @@ function buildFactories(c: Ctx): void {
       c.smoke(bx, 3, bz + 4, "spark");
       conveyor(v, bx - 2, 22, bz, x1 - 6, 2 + h, bz, "steelDark", "charcoal", true);
     } else {
-      conveyor(v, x1 - 2, h - 1, z0 + 4, hx - 3, 3, z0 + 4, "steelDark", k === 1 ? "orange" : "charcoal", true);
+      conveyor(v, x1 - 8, h - 1, z1 - 3, x1 - 8, 3, hz - 7, "steelDark", k === 1 ? "orange" : "charcoal", false);
     }
   }
   if (lv >= 5) {
@@ -1530,7 +1546,7 @@ function buildCoal(c: Ctx): void {
   } else {
     const n = lv <= 1 ? 1 : lv <= 3 ? (lv === 3 ? 1 : 2) : 2;
     for (let i = 0; i < n; i++) {
-      const sx = (lv === 3 ? bx1 + 3 : bx1 - 3 - i * 6) - (lv >= 4 ? -6 : 0);
+      const sx = bx1 - 3 - i * 6 - (lv >= 4 ? -6 : 0) - (lv === 3 ? 2 : 0);
       const sz = bz0 + 3 + i * 2;
       const scol = ["brickDark", "white", "concrete", "white"][k];
       const stripe = ["cream", "red", "steelDark", "red"][k];
@@ -1631,6 +1647,15 @@ function buildGas(c: Ctx): void {
       v.box(x0 + 1, 7, hz - 10, x0 + 6, 11, hz - 6, "steelLight");
       for (let z = hz - 10; z < hz - 6; z++) v.box(x0 + 1, 8, z, x0 + 6, 9, z + 1, "steel");
     }
+    if (lv === 1 && hx >= 12) {
+      // control room + gas metering skid + transformer
+      officeBox(c, hx - 10, -hz + 2, hx - 2, -hz + 8, 3, body);
+      v.box(hx - 12, 1, hz - 8, hx - 5, 2, hz - 5, "concrete");
+      for (let x = hx - 12; x < hx - 5; x += 2) v.box(x, 2, hz - 7, x + 1, 4, hz - 6, "hazard");
+      pipe(v, hx - 12, 4, hz - 7, hx - 5, hz - 6, "hazard", false);
+      v.box(-hx + 15, 1, -2, -hx + 18, 5, 1, "steelDark");
+      v.put(-hx + 15, 5, -2, "white");
+    }
   } else {
     const trains = lv === 3 ? 1 : lv === 4 ? 2 : 3;
     const h = byLvl(lv, [0, 0, 16, 18, 20]);
@@ -1654,8 +1679,6 @@ function buildGas(c: Ctx): void {
         const sx = hx - 6 - (i % 2) * 9;
         const sz = -hz + 6 + F(i / 2) * 10;
         for (const [ddx, ddz] of [[-3, 0], [2, 0], [0, -3], [0, 2]]) v.box(sx + ddx, 1, sz + ddz, sx + ddx + 1, 5, sz + ddz + 1, "steelDark");
-        v.sphere(sx, 8, sz, 4.2, 4.2, 4.2, "white");
-        v.box(sx - 4, 8, sz - 4, sx + 4, 9, sz + 4, null);
         v.sphere(sx, 8, sz, 4.2, 4.2, 4.2, "white");
         v.cylinderY(sx, sz, 8, 9, 4.3, "hazard");
       }
@@ -1682,10 +1705,11 @@ function buildGas(c: Ctx): void {
       const dh = 9;
       for (let x = dx0; x < dx1; x += 4) for (let z = dz0; z < dz1; z += 6) v.box(x, 1, z, x + 1, dh, z + 1, "steelDark");
       v.box(dx0, dh, dz0, dx1, dh + 1, dz1, k === 3 ? "sandDark" : "steelLight");
-      // A-frame roofs
-      for (let z = dz0; z < dz1; z += 6) gable(v, dx0, dh + 1, z, dx1, Math.min(dz1, z + 6), "x", k === 3 ? "#b8a278" : "steel");
+      v.box(dx0, dh - 1, dz0, dx1, dh, dz1, "steelDark");
       for (let x = dx0 + 3; x < dx1 - 2; x += 6) for (let z = dz0 + 3; z < dz1 - 2; z += 6) {
-        c.addRotor({ vox: fanRotor(2, "charcoal", 4), pivot: [x, dh + 5, z], axis: "y", speed: 3 });
+        ring(v, x, z, dh + 1, dh + 3, 2.9, 2.0, k === 3 ? "#b8a278" : "steel");
+        v.cylinderY(x, z, dh + 1, dh + 2, 2.0, "charcoal");
+        c.addRotor({ vox: fanRotor(2, "silver", 4), pivot: [x, dh + 2, z], axis: "y", speed: 3 });
       }
     }
     if (lv >= 4) {

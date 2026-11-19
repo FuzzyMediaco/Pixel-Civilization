@@ -49,6 +49,26 @@ export function vnoise(x: number, z: number, scale: number, seed: number): numbe
 }
 
 /**
+ * Natural-shoreline water body drawn in the ground layer. Returns an `inside(x,z)` test.
+ * d<0.45 → deep water, then water, then a shore ring of `shore` colour.
+ */
+export function waterBlob(c: Ctx, cx: number, cz: number, rx: number, rz: number, seed: number, shore = "sand", wobble = 0.55, deepCol = "waterDeep", col = "water"): (x: number, z: number) => boolean {
+  const v = c.v;
+  const dist = (x: number, z: number) => Math.sqrt(((x + 0.5 - cx) / rx) ** 2 + ((z + 0.5 - cz) / rz) ** 2) - (vnoise(x, z, 4, seed) - 0.5) * wobble;
+  const x0 = Math.floor(cx - rx * 1.6) - 2;
+  const x1 = Math.ceil(cx + rx * 1.6) + 2;
+  const z0 = Math.floor(cz - rz * 1.6) - 2;
+  const z1 = Math.ceil(cz + rz * 1.6) + 2;
+  for (let x = x0; x <= x1; x++) for (let z = z0; z <= z1; z++) {
+    if (x < -c.hx || x >= c.hx || z < -c.hz || z >= c.hz) continue;
+    const d = dist(x, z);
+    if (d <= 1) v.put(x, 0, z, d < 0.5 ? deepCol : col, 0.1);
+    else if (d <= 1 + 1.6 / Math.min(rx, rz) && shore) v.put(x, 0, z, shore);
+  }
+  return (x, z) => dist(x, z) <= 1;
+}
+
+/**
  * Heightfield terrain: H(x,z) = top voxel y of each column (<=0 → ground only).
  * Only the visible shell of each column is filled (cheap even for big mountains).
  * paint(x, y, z, h, top) returns the colour of a voxel (top = topmost voxel of its column).
@@ -469,7 +489,8 @@ export function crops(c: Ctx, x0: number, z0: number, x1: number, z1: number, cr
           if (ac % 4 === 3) { v.put(x, 0, z, "soilDark"); break; }
           v.put(x, 0, z, "soil");
           v.put(x, 1, z, "goldDark");
-          if (r < 0.85) v.put(x, 2, z, r < 0.45 ? "hazard" : r < 0.75 ? "yellow" : "amber");
+          if (r < 0.9) v.put(x, 2, z, r < 0.45 ? "hazard" : r < 0.75 ? "yellow" : "amber");
+          if (r < 0.12 && ac % 4 === 1) v.put(x, 3, z, "yellow");
           break;
         case "corn":
           v.put(x, 0, z, ac % 2 ? "soilDark" : "soil");
@@ -529,11 +550,13 @@ export function crops(c: Ctx, x0: number, z0: number, x1: number, z1: number, cr
           }
           break;
         case "cane":
+          if (ac % 4 === 3) { v.put(x, 0, z, "path2"); break; }
           v.put(x, 0, z, "soil");
-          if (ac % 2 === 0) {
-            const hh = 4 + Math.floor(r * 3);
-            v.box(x, 1, z, x + 1, hh, z + 1, al % 2 ? "#a7cf6a" : "lime");
-            v.put(x, hh, z, "leafLight");
+          if (ac % 4 !== 1 || r < 0.5) {
+            const hh = 4 + Math.floor(r * 4);
+            v.box(x, 1, z, x + 1, hh, z + 1, al % 3 ? "#a7cf6a" : "#8fbf55");
+            v.put(x, hh, z, r < 0.3 ? "#e8eec8" : "leafLight");
+            if (r < 0.25) v.put(x, hh - 2, z + (axis === "x" ? 1 : 0), "leaf");
           }
           break;
         case "vine":
@@ -580,10 +603,10 @@ export function fruitTree(c: Ctx, x: number, y: number, z: number, kind: string,
     }
     if (s > 1.3) { v.put(x - 1, y, z - 1, trunk); v.put(x + 2, y, z + 1, trunk); }
     const R = 1.6 * s + 0.6;
-    v.sphere(x + 0.5, y + th + R * 0.4, z + 0.5, R, R * 0.55, R, "#9db08f");
-    v.sphere(x + 0.5 + R * 0.5, y + th + R * 0.65, z + 0.5 - R * 0.3, R * 0.6, R * 0.4, R * 0.6, "#b9c8ad");
-    v.sphere(x + 0.5 - R * 0.5, y + th + R * 0.55, z + 0.5 + R * 0.35, R * 0.6, R * 0.45, R * 0.6, "#8aa07c");
-    for (let i = 0; i < 3 + s * 3; i++) {
+    v.sphere(x + 0.5, y + th + R * 0.4, z + 0.5, R, R * 0.55, R, "#a9bf98");
+    v.sphere(x + 0.5 + R * 0.5, y + th + R * 0.65, z + 0.5 - R * 0.3, R * 0.6, R * 0.4, R * 0.6, "#cad8bd");
+    v.sphere(x + 0.5 - R * 0.5, y + th + R * 0.55, z + 0.5 + R * 0.35, R * 0.6, R * 0.45, R * 0.6, "#97ad86");
+    for (let i = 0; i < 2 + s * 2; i++) {
       const a = c.rand() * Math.PI * 2;
       v.put(x + Math.round(Math.cos(a) * R * 0.95), y + th + Math.round(R * 0.3), z + Math.round(Math.sin(a) * R * 0.95), "#3d4430");
     }
@@ -755,10 +778,11 @@ function buildFarms(c: Ctx): void {
   const fd = fz1 - fz0;
   if (fw < 4) return;
   if (lv >= 4 && fw >= 24 && fd >= 24) {
-    // centre-pivot crop circle at back of the fields
-    const R = Math.floor(Math.min(fw, Math.min(fd, lv === 5 ? 30 : fd)) / 2) - 1;
-    const cx = fx0 + R + 1;
-    const cz = fz0 + R + 1;
+    // centre-pivot crop circle (back-left at Lv4, front-right at Lv5 to leave room for the elevator)
+    const R = Math.floor(Math.min(fw, fd, lv === 5 ? 30 : fd) / 2) - 1;
+    const far = lv >= 5;
+    const cx = far ? fx1 - R - 1 : fx0 + R + 1;
+    const cz = far ? fz1 - R - 1 : fz0 + R + 1;
     crops(c, cx - R, cz - R, cx + R + 1, cz + R + 1, mainCrop, "z", (x, z) => (x - cx) ** 2 + (z - cz) ** 2 <= R * R);
     for (let x = cx - R - 1; x <= cx + R + 1; x++) for (let z = cz - R - 1; z <= cz + R + 1; z++) {
       const d = (x - cx) ** 2 + (z - cz) ** 2;
@@ -766,24 +790,34 @@ function buildFarms(c: Ctx): void {
     }
     v.box(cx - 1, 0, cz - 1, cx + 2, 1, cz + 2, "concrete");
     pivotIrrigation(c, cx, cz, R - 1);
-    // remaining strips
-    const rx0 = cx + R + 3;
-    if (fx1 - rx0 >= 4) {
-      crops(c, rx0, fz0, fx1, cz, crop2, "z");
-      crops(c, rx0, cz + 1, fx1, cz + R + 1, mainCrop, "x");
-    }
-    const sz0 = cz + R + 3;
-    if (fz1 - sz0 >= 4) {
-      const mid = Math.floor((fx0 + fx1) / 2);
-      crops(c, fx0, sz0, mid, fz1, crop2, "x");
-      crops(c, mid + 2, sz0, fx1, fz1, V === 3 ? "corn" : "strawberry", "z");
-      dirtPath(v, mid, sz0, mid + 2, fz1);
-    }
-    if (lv >= 4) {
-      // greenhouses along homestead edge
-      const gz0 = Math.max(-hz + 2, sz0 - 1);
-      if (lv === 4 && fz1 - sz0 >= 8) greenhouse(v, fx0, sz0, Math.min(fx0 + 12, fx1), sz0 + 8, 3, V === 3 ? "leafDark" : "leaf");
-      void gz0;
+    if (!far) {
+      const rx0 = cx + R + 3;
+      if (fx1 - rx0 >= 4) {
+        crops(c, rx0, fz0, fx1, cz, crop2, "z");
+        crops(c, rx0, cz + 1, fx1, cz + R + 1, mainCrop, "x");
+      }
+      const sz0 = cz + R + 3;
+      if (fz1 - sz0 >= 4) {
+        const mid = Math.floor((fx0 + fx1) / 2);
+        crops(c, fx0, sz0, mid, fz1, crop2, "x");
+        crops(c, mid + 2, sz0, fx1, fz1, V === 3 ? "corn" : "strawberry", "z");
+        dirtPath(v, mid, sz0, mid + 2, fz1);
+        if (fz1 - sz0 >= 8) greenhouse(v, fx0, sz0, Math.min(fx0 + 12, fx1), sz0 + 8, 3, V === 3 ? "leafDark" : "leaf");
+      }
+    } else {
+      // left strip of the fields
+      const lx1 = cx - R - 2;
+      if (lx1 - fx0 >= 4) crops(c, fx0, cz - R, lx1, fz1, crop2, "z");
+      // back strip: works yard with the landmark building + more crops
+      const bz1 = cz - R - 2;
+      if (bz1 - fz0 >= 6) {
+        v.box(fx0, 0, fz0, fx0 + 22, 1, bz1, "concrete2");
+        crops(c, fx0 + 23, fz0, fx1, bz1, mainCrop === "wheat" ? "sunflower" : "wheat", "x");
+        if (V === 0) { grainElevator(v, fx0 + 1, fz0 + 6, 4, 24); truck(v, fx0 + 10, 1, bz1 - 3, "x", "white", "blue"); v.box(fx0 + 4, 1, bz1 - 4, fx0 + 9, 3, bz1 - 2, "chrome"); }
+        else if (V === 2) { grainElevator(v, fx0 + 1, fz0 + 6, 4, 26); truck(v, fx0 + 12, 1, bz1 - 3, "x", "hazard", "red"); }
+        else if (V === 1) { for (let i = 0; i < 3; i++) { v.cone(fx0 + 4 + i * 6, 1, 5, fz0 + 5, 0.8, 2.4, "steel"); v.cylinderY(fx0 + 4 + i * 6, fz0 + 5, 5, 13, 2.4, "silver"); v.cone(fx0 + 4 + i * 6, 13, 15, fz0 + 5, 2.6, 0.5, "chrome"); } truck(v, fx0 + 10, 1, bz1 - 3, "x", "pink", "white"); }
+        else { for (let i = 0; i < 4; i++) for (let k = 0; k < 3 - (i % 2); k++) haybale(v, fx0 + 2 + i * 5, 1 + k * 3, fz0 + 3, true); greenhouse(v, fx0 + 1, fz0 + 8, fx0 + 21, Math.min(bz1 - 1, fz0 + 16), 3, "leafDark"); }
+      }
     }
   } else {
     // simple strips
@@ -801,9 +835,7 @@ function buildFarms(c: Ctx): void {
     const gz = Math.max(-hz + 2, pz1 - 4);
     if (V === 2 || V === 0) {
       // grain elevator / feed mill landmark at the back corner beyond the barn
-      const ex = sx + 4;
-      if (ex + 10 < fx0) grainElevator(v, ex, bz0 + 3, 2, 22);
-      combine(v, fx0 + 6, 1, hz - 6, "x", 1, V === 2 ? "leaf" : "red");
+      combine(v, fx0 + 27, 1, -hz + 9, "x", 1, V === 2 ? "leaf" : "red");
     } else if (V === 3) {
       // farm stand with pumpkin pyramid + sign
       v.box(gx + 1, 1, gz - 4, gx + 9, 4, gz, "woodLight");
@@ -814,8 +846,7 @@ function buildFarms(c: Ctx): void {
       tractor(v, fx0 + 8, 1, hz - 5, "x", 1, "orange", "#e2bd55");
       person(v, gx + 5, 1, gz + 3, "orange"); person(v, gx + 8, 1, gz + 3, "purple", "blue");
     } else {
-      truck(v, fx0 + 8, 1, hz - 4, "x", "silver", "blue");
-      greenhouse(v, fx0, hz - 12, Math.min(fx0 + 14, fx1), hz - 7, 3);
+      critter(v, "pig", fx0 + 4, 1, hz - 4, "x", 1, 1);
     }
     // farmhouse in the homestead corner? keep the flag & lamp posts
     flag(v, hx1 - 1, 1, -hz + 1, 12, ["red", "white", "blue"]);
@@ -896,8 +927,8 @@ function buildFarmHouses(c: Ctx): void {
 
   // ---- barn / outbuildings ----
   const roomR = hx - 1 - (x1 + 2);
-  const bw = byLvn(lv, [5, 7, 10, 12, 13]);
-  const bd = Math.min(hz * 2 - 3, byLvn(lv, [6, 8, 10, 13, 14]));
+  const bw = byLvn(lv, [5, 8, 11, 12, 14]);
+  const bd = Math.min(hz * 2 - 3, byLvn(lv, [6, 9, 12, 13, 15]));
   let bx0 = x1 + 2;
   let bz0 = -hz + 1;
   let barnFits = roomR >= bw;
@@ -909,7 +940,17 @@ function buildFarmHouses(c: Ctx): void {
   }
   const bdd = barnFits && bx0 <= x1 ? Math.min(bd, z0 - 1 - bz0) : bd;
   if (barnFits && bdd >= 4) {
-    if (V === 0) barn(v, bx0, bz0, bx0 + bw, bz0 + bdd, lv >= 4 ? 7 : 5, "red", "slate", "white", lv >= 2);
+    if (V === 0) {
+      const bt = barn(v, bx0, bz0, bx0 + bw, bz0 + bdd, lv >= 4 ? 7 : 5, "red", "slate", "white", lv >= 3);
+      if (lv >= 5) {
+        const cx = Math.floor((2 * bx0 + bw) / 2);
+        const cz = Math.floor((2 * bz0 + bdd) / 2);
+        v.box(cx - 1, bt - 1, cz - 1, cx + 2, bt + 2, cz + 2, "white");
+        v.box(cx - 2, bt + 2, cz - 2, cx + 3, bt + 3, cz + 3, "slate");
+        v.box(cx, bt + 3, cz, cx + 1, bt + 6, cz + 1, "iron");
+        v.box(cx - 1, bt + 5, cz, cx + 2, bt + 6, cz + 1, "gold");
+      }
+    }
     else if (V === 1) {
       v.box(bx0, 1, bz0, bx0 + bw, 4, bz0 + bdd, "stone");
       v.box(bx0, 4, bz0, bx0 + bw, 8, bz0 + bdd, "wood");
@@ -934,7 +975,7 @@ function buildFarmHouses(c: Ctx): void {
   if (lv >= 2) {
     // vegetable garden / flower box
     if (V === 1) flowerBed(c, x0, hz - 2, x0 + 4, hz - 1);
-    else crops(c, -hx + 1, -hz + 1, Math.min(-hx + 7, x1), Math.max(-hz + 3, z0 - 1), "cabbage", "z");
+    else if (lv < 5) crops(c, -hx + 1, -hz + 1, Math.min(-hx + 7, x1), Math.max(-hz + 3, z0 - 1), "cabbage", "z");
   }
   if (lv >= 3) {
     if (V === 3) {
@@ -959,9 +1000,10 @@ function buildFarmHouses(c: Ctx): void {
     } else {
       // chicken coop + laundry line
       const lx = -hx + 2;
-      v.box(lx, 1, z0 - 4, lx + 1, 5, z0 - 3, "woodDark"); v.box(lx + 8, 1, z0 - 4, lx + 9, 5, z0 - 3, "woodDark");
-      for (let k = 1; k < 8; k++) v.put(lx + k, 4, z0 - 4, k % 2 ? ["white", "pink", "sky", "yellow"][k % 4] : "steelLight");
-      for (let k = 1; k < 8; k += 2) v.put(lx + k, 3, z0 - 4, ["white", "pink", "sky", "red"][k % 4]);
+      const lz = lv >= 5 ? z0 - 2 : z0 - 4;
+      v.box(lx, 1, lz, lx + 1, 5, lz + 1, "woodDark"); v.box(lx + 8, 1, lz, lx + 9, 5, lz + 1, "woodDark");
+      for (let k = 1; k < 8; k++) v.put(lx + k, 4, lz, k % 2 ? ["white", "pink", "sky", "yellow"][k % 4] : "steelLight");
+      for (let k = 1; k < 8; k += 2) v.put(lx + k, 3, lz, ["white", "pink", "sky", "red"][k % 4]);
     }
   }
   if (lv >= 4) {
@@ -975,9 +1017,23 @@ function buildFarmHouses(c: Ctx): void {
     car(v, x1 + 6, 1, hz - 7, "x", V === 3 ? "red" : "sky");
     if (V === 1) { critter(v, "cow", hx - 8, 1, hz - 3, "x", 1, 2); critter(v, "goat", hx - 3, 1, 1, "z", 1, 0); }
     if (V === 2) { crops(c, x1 + 2, hz - 8, hx - 9, hz - 1, "tulip", "z"); }
-    // fruit tree + beehives
-    beehive(v, -hx + 2, 1, z0 - 7);
-    beehive(v, -hx + 5, 1, z0 - 7);
+    // duck pond behind the house + beehives
+    if (hz >= 12) {
+      waterBlob(c, -hx + 8, -hz + 5.5, 6, 3.6, 7, "grass3");
+      critter(v, "duck", -hx + 6, 1, -hz + 5, "x", 1, 1); critter(v, "duck", -hx + 9, 1, -hz + 7, "x", -1, 2); critter(v, "duck", -hx + 11, 1, -hz + 4, "x", -1, 3);
+      for (let k = 0; k < 4; k++) v.box(-hx + 2 + k * 4, 1, -hz + 2, -hx + 3 + k * 4, 3, -hz + 3, "leafLight");
+    }
+    beehive(v, x1 - 3, 1, -hz + 2);
+    // proud front: picket fence, flower borders, mailbox, hay wagon
+    const gx = Math.floor((x0 + x1) / 2);
+    const fcol = V === 3 ? "#7d5530" : V === 1 ? "woodDark" : "white";
+    for (let x = -hx + 1; x < hx - 1; x++) if (Math.abs(x - gx) > 1) v.box(x, 1, hz - 1, x + 1, x % 2 ? 3 : 2, hz, fcol);
+    flowerBed(c, -hx + 1, hz - 3, gx - 2, hz - 2, 1, V === 1 ? ["red", "pink", "white"] : ["pink", "yellow", "red", "purple", "white"]);
+    v.box(gx + 3, 1, hz - 2, gx + 4, 3, hz - 1, "woodDark"); v.box(gx + 3, 3, hz - 2, gx + 5, 4, hz - 1, V === 0 ? "red" : "slate");
+    const wx = x1 + 3;
+    v.box(wx, 1, 2, wx + 1, 2, 3, "rubber"); v.box(wx + 5, 1, 2, wx + 6, 2, 3, "rubber");
+    v.box(wx - 1, 2, 1, wx + 7, 3, 5, "woodDark");
+    v.box(wx, 3, 1, wx + 6, 5, 5, "#e2bd55");
     lamp(v, Math.floor((x0 + x1) / 2) + 2, 1, hz - 1, 5);
   }
 }
@@ -1020,7 +1076,7 @@ function buildFields(c: Ctx): void {
       const edge = g(x + 1, z) !== h || g(x - 1, z) !== h || g(x, z + 1) !== h || g(x, z - 1) !== h || x === x0 || x === x1 - 1 || z === z0 || z === z1 - 1;
       if (edge) { v.put(x, h + 1, z, "grass"); continue; }
       v.put(x, h, z, h2(x, z, 4) < 0.5 ? "#79c3cf" : "#6ab7c8", 0.1);
-      if (x % 2 === 0 && z % 2 === 0) { v.put(x, h + 1, z, lv >= 3 ? "lime" : "leafLight"); if (lv >= 2 && h2(x, z, 9) < 0.6) v.put(x, h + 2, z, "leafLight"); }
+      if (x % 3 === 0 && z % 2 === 0) { v.put(x, h + 1, z, lv >= 3 ? "lime" : "leafLight"); if (lv >= 2 && h2(x, z, 9) < 0.4) v.put(x, h + 2, z, "leafLight"); }
     }
     // farmers with straw hats
     for (let i = 0; i < lv; i++) {
@@ -1084,11 +1140,12 @@ function buildFields(c: Ctx): void {
       windpump(c, -hx + 3, -hz + 3, 1, 14);
     }
     if (lv >= 5) {
-      combine(v, x0 + 6, 1, z0 + 8, "x", 1, "leaf");
+      combine(v, Math.floor((x0 + x1) / 2) - 18, 1, Math.floor((z0 + z1) / 2) - 8, "x", 1, "leaf");
       grainBin(v, hx - 5, hz - 5, 1, 8, 3);
       grainBin(v, hx - 12, hz - 5, 1, 6, 2.5);
     }
   } else if (V === 1) {
+    v.box(x0 + 1, 1, z1 - 1, x0 + 2, 4, z1, "woodDark"); v.box(x0, 4, z1 - 1, x0 + 4, 6, z1, "yellow", 0.3);
     if (lv >= 2) { beehive(v, x1 - 3, 1, z1 - 2); }
     if (lv >= 3) { beehive(v, x1 - 6, 1, z1 - 2); person(v, x0 + 3, 1, z1 - 2, "yellow", "blue"); }
     if (lv >= 4) {
@@ -1166,7 +1223,7 @@ function buildOrchards(c: Ctx): void {
   for (let x = -hx + 3; x < hx - 1; x += sx) {
     for (let z = -hz + 3; z < hz - front; z += sz) {
       if (bW && x > hx - bW - 3 && z < -hz + bD + 2) continue;
-      if (centerFree && Math.abs(x - cxm) < 7 && Math.abs(z - czm) < 7) continue;
+      if (centerFree && Math.abs(x - cxm) < 9 && Math.abs(z - czm) < 9) continue;
       v.put(x, 0, z, "soil");
       fruitTree(c, x, 1, z, kind, size * (0.9 + c.rand() * 0.2));
       if (lv === 1) { v.box(x + 1, 1, z, x + 2, 4, z + 1, "woodLight"); }
@@ -1223,7 +1280,8 @@ function buildOrchards(c: Ctx): void {
   if (lv >= 5) {
     // legendary mother tree in the centre, ringed by a bench circle
     v.cylinderY(cxm + 0.5, czm + 0.5, 0, 1, 6, V === 1 ? "pink" : "path");
-    const top = fruitTree(c, cxm, 1, czm, kind, 3.2);
+    const top = fruitTree(c, cxm, 1, czm, kind, 4.4);
+    v.box(cxm - 1, 1, czm - 1, cxm + 2, 6, czm + 2, "woodDark");
     for (const [dx, dz] of [[-5, 0], [5, 0], [0, -5], [0, 5]]) v.box(cxm + dx, 1, czm + dz, cxm + dx + 1, 2, czm + dz + 1, "wood");
     if (V === 1) for (const [dx, dz] of [[-6, -6], [6, 6]]) { v.box(cxm + dx, 1, czm + dz, cxm + dx + 1, 5, czm + dz + 1, "stone"); v.put(cxm + dx, 5, czm + dz, "warmGlow", 1.2); }
     if (V === 0) {
@@ -1258,7 +1316,7 @@ function buildOlives(c: Ctx): void {
     (x, z) => {
       const wob = V === 2 ? 0 : Math.round(Math.sin(x * 0.18 + V) * 1.4);
       const k = Math.floor((hz - 1 - z + wob) / stepD);
-      return Math.min(steps - 1, Math.max(0, k)) * 2;
+      return Math.min(steps - 1, Math.max(0, k)) * 3;
     },
     (x, y, z, _h, top) => (top ? (h2(x, z, 3) < 0.2 ? soil2 : soil) : h2(x, y * 7 + z, 5) < 0.5 ? wallA : wallB),
   );
@@ -1270,13 +1328,13 @@ function buildOlives(c: Ctx): void {
   const bz0 = -hz + 1;
   const bD = lv >= 3 ? 10 : 0;
   const ancient = lv >= 5;
-  const ax = -hx + 10;
-  const az = -2;
-  for (let x = -hx + 3; x < hx - 2; x += V === 2 ? 6 : 7) {
-    for (let z = -hz + 3; z < hz - 2; z += 6) {
+  const ax = -4;
+  const az = hz - 9;
+  for (let x = -hx + 3; x < hx - 2; x += V === 2 ? 7 : 8) {
+    for (let z = -hz + 3; z < hz - 2; z += 7) {
       if (bW && x >= bx0 - 3 && z < bz0 + bD + 2) continue;
       if (ancient && Math.abs(x - ax) < 8 && Math.abs(z - az) < 7) continue;
-      const xx = x + (V === 2 ? 0 : (Math.floor(z / 6) % 2) * 3);
+      const xx = x + (V === 2 ? 0 : (Math.floor(z / 7) % 2) * 4);
       if (xx >= hx - 2) continue;
       fruitTree(c, xx, g(xx, z) + 1, z, "olive", byLvn(lv, [0.8, 1.0, 1.1, 1.2, 1.25]) * (0.85 + c.rand() * 0.3));
     }
@@ -1375,7 +1433,7 @@ function buildPlantations(c: Ctx): void {
   lot(c, V === 1 ? "grass" : "grass2");
   speckle(c, "grass3", 0.06);
   // manor zone: back-left
-  const mW = byLvn(lv, [9, 12, 15, 18, 22]);
+  const mW = byLvn(lv, [9, 12, 15, 18, 20]);
   const mD = byLvn(lv, [8, 9, 11, 12, 14]);
   const mx0 = -hx + 2;
   const mz0 = -hz + 2;
@@ -1384,26 +1442,22 @@ function buildPlantations(c: Ctx): void {
   // crop area: everything else
   let g: (x: number, z: number) => number = () => 0;
   if (V === 0) {
-    // stepped tea hillside rising to the back-right
-    const steps = Math.min(2 + lv, Math.floor(hz / 3));
+    // stepped tea hillside rising to the back-right, hedges follow the contours
+    const steps = Math.min(1 + lv, Math.floor(hz / 3));
+    const contour = (x: number, z: number) => (hz - z) * 0.7 + (x + hx) * 0.35 + Math.sin(x * 0.2) * 2;
+    const inManor = (x: number, z: number) => x < mx1 + 3 && z < mz1 + 3;
     g = terrain(
       c,
-      (x, z) => {
-        if (x < mx1 + 2 && z < mz1 + 2) return 0;
-        const d = (hz - z) * 0.7 + (x + hx) * 0.35 + Math.sin(x * 0.2) * 2;
-        return Math.min(steps, Math.max(0, Math.floor(d / 6))) * 2;
-      },
+      (x, z) => (inManor(x, z) ? 0 : Math.min(steps, Math.max(0, Math.floor(contour(x, z) / 7))) * 2),
       (x, y, z, h, top) => (top ? "soil" : y >= h - 1 && h2(x, z, 2) < 0.5 ? "leafDark" : "soilDark"),
     );
     for (let x = -hx + 1; x < hx - 1; x++) for (let z = -hz + 1; z < hz - 1; z++) {
-      if (x < mx1 + 3 && z < mz1 + 3) continue;
+      if (inManor(x, z) || (x > hx - 17 && z < -hz + 13 && lv >= 4)) continue;
       const h = g(x, z);
-      const edge = g(x, z + 1) < h || g(x + 1, z) < h || g(x - 1, z) < h || g(x, z - 1) < h || (h === 0 && (z % 3 === 0));
-      const rowk = (z + x * 0.3) % 3;
-      if (edge || (rowk >= 0 && rowk < 2 && h === 0 && z % 3 !== 2)) {
+      if (Math.floor(contour(x, z)) % 3 !== 2) {
         v.put(x, h + 1, z, "leafDark");
-        v.put(x, h + 2, z, h2(x, z, 8) < 0.5 ? "leaf" : "lime");
-      }
+        v.put(x, h + 2, z, h2(x, z, 8) < 0.45 ? "leaf" : h2(x, z, 8) < 0.8 ? "#52a64a" : "lime");
+      } else v.put(x, h, z, "path2");
     }
   } else {
     const crop: Crop = (["tea", "coffee", "cane", "vine"] as const)[V];
@@ -1464,6 +1518,23 @@ function buildPlantations(c: Ctx): void {
     }
     const chy = chimney(v, mx0 + 2, top, mz0 + 2, rt - top + 2, "brickDark");
     c.smoke(mx0 + 3, chy, mz0 + 3, "smoke");
+    if (lv >= 5) {
+      // belvedere / cupola crowning the manor
+      const cx = Math.floor((mx0 + mx1) / 2);
+      const cz = Math.floor((mz0 + mz1) / 2);
+      v.box(cx - 2, rt - 1, cz - 2, cx + 3, rt + 3, cz + 3, V === 1 ? "#f2e1c0" : "white");
+      v.box(cx - 1, rt, cz - 2, cx + 2, rt + 2, cz + 3, "glass", 0.5);
+      v.box(cx - 2, rt, cz - 1, cx + 3, rt + 2, cz + 2, "glass", 0.5);
+      if (V === 3) v.cone(cx + 0.5, rt + 3, rt + 8, cz + 0.5, 3.2, 0.3, "slate");
+      else if (V === 0) { v.box(cx - 3, rt + 3, cz - 3, cx + 4, rt + 4, cz + 4, "#2f6b5c"); v.box(cx - 1, rt + 4, cz - 1, cx + 2, rt + 5, cz + 2, "#2f6b5c"); v.put(cx, rt + 5, cz, "gold"); }
+      else v.dome(cx + 0.5, rt + 3, cz + 0.5, 2.6, V === 1 ? "terracotta" : "copper");
+      // side wings
+      if (mx1 + 8 < hx) {
+        v.box(mx1, 1, mz0 + 2, mx1 + 6, 6, mz1 - 1, wall);
+        windows(c, mx1, 1, mz0 + 2, mx1 + 6, 6, mz1 - 1, { h: 2, emit: 0.55, faces: "se" });
+        hip(v, mx1 - 1, 6, mz0 + 1, mx1 + 7, mz1, V === 2 ? roofCol : V === 1 ? "terracotta" : roofCol);
+      }
+    }
   }
 
   // ---- processing / estate features ----
@@ -1564,7 +1635,7 @@ defineDesigns({
     build: buildFarms,
   },
   farm_houses: {
-    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+    footprints: [[1, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
     levels: ["Homesteader's Cabin", "Farmhouse & Barn", "Homestead with Coop", "Prosperous Farmstead", "Grand Family Farmstead"],
     growth: "The farmhouse gains a storey, then a barn, coop and corral, then windpumps, silos and tractors.",
     build: buildFarmHouses,

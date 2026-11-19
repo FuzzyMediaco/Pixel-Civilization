@@ -540,7 +540,7 @@ function buildBoat(c: Ctx): void {
   if (lv === 4) {
     // Passenger ferry: twin cabin decks with ribbon windows, sun deck with people, funnel, lifeboats
     const beam = Math.min(13, hx * 2 - 2);
-    const o: HullOpts = { z0, z1, beam, h: 5, col: p.hull, bottom: p.bottom, stripe: p.stripe, stripeY: 3, deck: p.deck, bow: 10, stern: 3, rail: p.cabin };
+    const o: HullOpts = { z0, z1, beam, h: 5, col: p.hull, bottom: p.bottom, stripe: p.stripe, stripeY: 3, deck: p.deck, bow: 10, stern: 3, rail: p.hull };
     const dy = hull(v, o);
     portholes(v, o, 2, 2);
     const hw = Math.floor(beam / 2) - 1;
@@ -565,7 +565,7 @@ function buildBoat(c: Ctx): void {
   }
   // Lv5 Cruise liner: tiered decks, balconies, pools, water-slide, twin funnels
   const beam = Math.min(24, hx * 2 - 6);
-  const o: HullOpts = { z0, z1, beam, h: 7, col: p.hull, bottom: p.bottom, stripe: p.stripe, stripeY: 5, deck: p.deck, bow: 16, stern: 3, rail: p.cabin };
+  const o: HullOpts = { z0, z1, beam, h: 7, col: p.hull, bottom: p.bottom, stripe: p.stripe, stripeY: 5, deck: p.deck, bow: 16, stern: 3, rail: p.hull };
   const dy = hull(v, o);
   portholes(v, o, 2, 2);
   portholes(v, o, 3, 2);
@@ -1216,7 +1216,7 @@ function buildCarrier(c: Ctx): void {
     wake(v, 0, z0, 4, 2, -hz);
     return;
   }
-  const beam = byLvN(lv, [9, 11, 18, 20, 22]);
+  const beam = byLvN(lv, [9, 12, 20, 24, 24]);
   const dw = byLvN(lv, [9, 14, 24, 28, 30]);
   const h = byLvN(lv, [4, 4, 5, 6, 6]);
   const o: HullOpts = { z0, z1: z1 - 2, beam, h, col: p.hull, bottom: p.bottom, deck: p.hull, bow: Math.round(beam * 1.2), rail: p.hull };
@@ -1487,9 +1487,9 @@ function buildShipBuilding(c: Ctx): void {
   v.box(-hx, 0, -hz, hx, 2, lz, land);
   v.box(-hx, 1, lz - 1, hx, 2, lz, ["stone", "stone", "hazard", "stone"][s]);
   const nSlips = byLv(c, [1, 1, 2, 2, 3] as const);
-  const slipW = Math.min(14, Math.floor((hx * 2 - 4) / nSlips));
-  const frame = ["oak", "woodDark", "#b0432c", "#9a6a3a"][s];
-  const plank = ["wood", "woodLight", "#b0432c", "#c68a4a"][s];
+  const slipW = Math.min(14, Math.floor((hx * 2 - 14) / nSlips));
+  const frame = ["#f0d9a8", "#e8cf98", "#d9dde2", "#f0d9a8"][s];
+  const plank = ["#9a5f32", "#b07a45", "#b0432c", "#c68a4a"][s];
   const scaff = ["woodLight", "wood", "steelLight", "#b8a26a"][s];
   for (let i = 0; i < nSlips; i++) {
     const cx = -hx + 2 + slipW * i + Math.floor(slipW / 2);
@@ -1551,12 +1551,16 @@ function buildShipBuilding(c: Ctx): void {
       v.box(cx, ybase, hz0 - 1, cx + 1, ybase + hh + 1, hz0, frame);
     }
     // scaffolding both sides
-    for (const sx of [cx - Math.floor(beam / 2) - 2, cx + Math.ceil(beam / 2) + 1]) {
+    {
+      const sx = cx - Math.floor(beam / 2) - 2;
       for (let z = hz0; z < hz1; z += 4) {
         const gy = Math.max(1, Math.round(3 - ((z - rz0) / (rz1 - rz0)) * 4) + 1);
-        v.box(sx, gy, z, sx + 1, ybase + hh + 2, z + 1, scaff);
+        v.box(sx, gy, z, sx + 1, ybase + hh + 1, z + 1, scaff);
+        // near-side props (shores) only, so the hull stays visible
+        v.box(cx + Math.ceil(beam / 2), gy, z, cx + Math.ceil(beam / 2) + 1, ybase + 1, z + 1, scaff);
       }
-      for (let y = ybase + 1; y < ybase + hh + 2; y += 3) v.box(sx, y, hz0, sx + 1, y + 1, hz1 - 2, s === 2 ? "hazard" : scaff);
+      v.box(sx, ybase + hh, hz0, sx + 1, ybase + hh + 1, hz1 - 2, s === 2 ? "hazard" : scaff);
+      v.box(sx, ybase + 2, hz0, sx + 1, ybase + 3, hz1 - 2, s === 2 ? "hazard" : scaff);
     }
     // finished-hull extras
     if (progress >= 0.9) {
@@ -1594,9 +1598,9 @@ function buildShipBuilding(c: Ctx): void {
   if (lv >= 2 && nSlips * slipW + 2 < hx * 2 - 10) {
     // only if room
   }
-  if (lv >= 4) {
-    const sx0 = -hx + 1;
-    const sx1 = sx0 + 10;
+  if (lv >= 2) {
+    const sx1 = hx - 2;
+    const sx0 = sx1 - 10;
     const roofCol = ["brickDark", "#c9a25a", "steelDark", "redDark"][s];
     v.box(sx0, 2, -hz + 1, sx1, 8, -hz + 6, ["woodDark", "wood", "#6c8fb3", "#c68a4a"][s]);
     if (s === 3) {
@@ -1609,17 +1613,18 @@ function buildShipBuilding(c: Ctx): void {
   }
   if (lv >= 3) {
     // crane / derrick
-    if (s === 2) crane(v, hx - 4, 2, -hz + 2, 18, 12, "blue", "x");
+    const dz = lz - 4;
+    if (s === 2) crane(v, hx - 4, 2, dz - 1, 18, 12, "blue", "x");
     else {
-      v.box(hx - 3, 2, -hz + 2, hx - 2, 18, -hz + 3, "woodDark");
-      for (let k = 0; k < 10; k++) v.put(hx - 3 - k, 17 - Math.floor(k / 2), -hz + 2, "woodDark");
-      v.box(hx - 12, 9, -hz + 2, hx - 11, 13, -hz + 3, "steelDark");
+      v.box(hx - 3, 2, dz, hx - 2, 18, dz + 1, "woodDark");
+      for (let k = 0; k < 10; k++) v.put(hx - 3 - k, 17 - Math.floor(k / 2), dz, "woodDark");
+      v.box(hx - 12, 9, dz, hx - 11, 13, dz + 1, "steelDark");
     }
   }
   // lumber / plate stacks
   for (let i = 0; i < Math.min(3, lv); i++) {
     const tx = hx - 6 - i * 0;
-    const tz = -hz + 5 + i * 3;
+    const tz = -hz + 8 + i * 3;
     if (tz + 2 >= lz - 1) break;
     v.box(tx - 4 + (i % 2), 2, tz, tx, 3 + (i % 2), tz + 2, s === 2 ? "steelLight" : s === 3 ? "#b8a26a" : "woodLight");
   }
