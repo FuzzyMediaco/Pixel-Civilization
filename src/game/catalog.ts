@@ -1,3 +1,5 @@
+import { getDesign, getLevelName } from "./designs/registry";
+
 export type GameMode = "god" | "real" | "survival";
 
 export type ElementCategory =
@@ -2557,11 +2559,21 @@ export const CRIME_UNLOCK_MIN_POP: number =
  * - Higher-stage and monumental elements start at stage-proportional footprints (up to 3x2 / 3x3).
  * - Standard elements progress smoothly with merges/upgrades and cap cleanly at 3x3 max.
  */
+export const MAX_FOOTPRINT = 4;
+
 export function getStandardFootprintForLevel(
   def: CivElementDef,
   level: number,
 ): [number, number] {
   if (def.isNetwork) return [1, 1];
+  const design = getDesign(def.id);
+  if (design) {
+    const fp = design.footprints[Math.max(0, Math.min(4, (level | 0) - 1))];
+    return [
+      Math.max(1, Math.min(MAX_FOOTPRINT, fp[0] | 0)),
+      Math.max(1, Math.min(MAX_FOOTPRINT, fp[1] | 0)),
+    ];
+  }
   const base = def.baseSpan ?? [1, 1];
   const max = def.maxSpan ?? (def.stage >= 17 ? [3, 3] : def.stage >= 10 ? [3, 2] : [2, 2]);
   const cap = (n: number) => Math.max(1, Math.min(3, n));
@@ -2592,4 +2604,13 @@ export function getStandardFootprintForLevel(
 
 export function getUpgradeCost(def: CivElementDef, currentLevel: number): number {
   return Math.round(def.cost * Math.pow(2.1, currentLevel));
+}
+
+/** Element-specific level title, e.g. "Family Farm" — falls back to a generic tier name. */
+export function getElementLevelName(def: CivElementDef, level: number): string {
+  return getLevelName(def.id, level) ?? ["Basic", "Improved", "Advanced", "Grand", "Legendary"][Math.max(0, Math.min(4, level - 1))];
+}
+
+export function getElementGrowthNote(def: CivElementDef): string | undefined {
+  return getDesign(def.id)?.growth;
 }

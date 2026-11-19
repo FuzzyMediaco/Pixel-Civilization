@@ -7,3 +7,4 @@ dist/
 .DS_Store
 .aistudio-preflight-*/
 data/
+package-lock.json

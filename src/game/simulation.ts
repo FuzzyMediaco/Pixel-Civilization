@@ -36,6 +36,8 @@ export interface PlacedElement {
   maintTimerSec: number;
   disrepair: boolean;
   onFire: boolean;
+  /** Network piece that replaced a placed river/canal/lake tile (bridge over water) */
+  overWater?: boolean;
   /** 1 -> 0 animation progress for newly placed / merged / upgraded buildings */
   animProgress: number;
   animKind: "place" | "upgrade" | "merge";
@@ -428,39 +430,67 @@ export function checkPlacementValid(
   return { valid: true };
 }
 
-export function getNetworkConnMask(elements: PlacedElement[], el: PlacedElement): number {
+/** Vertical class of a network piece: elevated decks ramp down to ground roads, sunken ones ramp up. */
+export function networkDeckClass(def: CivElementDef): "elevated" | "sunken" | "ground" {
+  if (def.archetype === "bridge_span" || def.archetype === "bridge_suspension" || def.archetype === "road_overpass") {
+    return "elevated";
+  }
+  if (def.archetype === "road_underpass") return "sunken";
+  return "ground";
+}
+
+/** True when a tile is open water (ocean/coast terrain) or holds a placed water feature. */
+export function isWaterTile(elements: PlacedElement[] | Map<string, PlacedElement>, gx: number, gz: number): boolean {
+  if (getTileTerrainKind(gx, gz) !== "land") return true;
+  const occ = elements instanceof Map ? elements : buildOccupancyMap(elements);
+  const here = occ.get(`${gx},${gz}`);
+  if (!here) return false;
+  if (here.overWater) return true;
+  const d = ELEMENT_BY_ID[here.defId];
+  return Boolean(d?.isWaterFeature);
+}
+
+export function getNetworkConnMask(
+  elements: PlacedElement[],
+  el: PlacedElement,
+  occIn?: Map<string, PlacedElement>,
+): number {
   const def = ELEMENT_BY_ID[el.defId];
   if (!def?.isNetwork) return 0;
-  const occ = buildOccupancyMap(elements);
+  const occ = occIn ?? buildOccupancyMap(elements);
   let mask = 0;
-  // Bits 0..3 (1,2,4,8) = connected road/rail/waterway neighbors
-  // Bits 4..7 (16,32,64,128) = adjacent buildings so roads render driveways right up to building edges
-  const neighbors: [number, number, number, number][] = [
-    [0, -1, 1, 16],  // N (-Z)
-    [1, 0, 2, 32],   // E (+X)
-    [0, 1, 4, 64],   // S (+Z)
-    [-1, 0, 8, 128], // W (-X)
+  // Bits 0..3 (1,2,4,8)        = connected same-network neighbours N(-Z), E(+X), S(+Z), W(-X)
+  // Bits 4..7 (16..128)        = adjacent buildings (driveways right up to building edges)
+  // Bits 8..11 (256..2048)     = neighbour road sits at a different deck height (draw ramps)
+  // Bit 12 (4096)              = this tile is over water
+  const neighbors: [number, number, number, number, number][] = [
+    [0, -1, 1, 16, 256], // N (-Z)
+    [1, 0, 2, 32, 512], // E (+X)
+    [0, 1, 4, 64, 1024], // S (+Z)
+    [-1, 0, 8, 128, 2048], // W (-X)
   ];
-  for (const [dx, dz, roadBit, bldgBit] of neighbors) {
+  const myDeck = networkDeckClass(def);
+  for (const [dx, dz, roadBit, bldgBit, rampBit] of neighbors) {
     const nb = occ.get(`${el.gx + dx},${el.gz + dz}`);
     if (!nb) continue;
     const nbDef = ELEMENT_BY_ID[nb.defId];
     if (!nbDef) continue;
-    if (
-      def.isRailNetwork &&
-      (nbDef.isRailNetwork || nbDef.archetype === "transit_stop" || nbDef.archetype === "transit_depot")
-    ) {
-      mask |= roadBit;
-    } else if (def.isWaterFeature && (nbDef.isWaterFeature || nbDef.domain !== "land")) {
-      mask |= roadBit;
+    if (def.isRailNetwork) {
+      if (nbDef.isRailNetwork || nbDef.archetype === "transit_stop" || nbDef.archetype === "transit_depot") {
+        mask |= roadBit;
+      }
+    } else if (def.isWaterFeature) {
+      if (nbDef.isWaterFeature || nbDef.domain !== "land" || nb.overWater) mask |= roadBit;
     } else if (def.isRoadNetwork) {
       if (nbDef.isRoadNetwork) {
         mask |= roadBit;
+        if (networkDeckClass(nbDef) !== myDeck) mask |= rampBit;
       } else if (!nbDef.isNetwork && !nbDef.passiveNature) {
         mask |= bldgBit;
       }
     }
   }
+  if (el.overWater || getTileTerrainKind(el.gx, el.gz) !== "land") mask |= 4096;
   return mask;
 }
 

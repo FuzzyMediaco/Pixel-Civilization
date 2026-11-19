@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { type CivElementDef, ELEMENT_BY_ID } from "./catalog";
+import { getDesign } from "./designs/registry";
+import { type SmokeKind, makeCtx } from "./designs/kit";
 import {
   PixelVox,
   VOXELS_PER_TILE,
@@ -10,14 +12,67 @@ import {
   packVoxKey,
 } from "./voxelCore";
 
+export interface BuiltRotor {
+  geo: THREE.BufferGeometry;
+  pivot: [number, number, number];
+  axis: "x" | "y" | "z";
+  speed: number;
+  wind: boolean;
+}
+
 export interface BuiltVoxelAsset {
   baseGeo: THREE.BufferGeometry;
   rotorGeo?: THREE.BufferGeometry;
   rotorPivot?: [number, number, number];
   rotorAxis?: "x" | "y" | "z";
   rotorSpeed?: number;
+  /** Additional animated parts (new design system) */
+  rotors?: BuiltRotor[];
+  /** Smoke/steam emitter points in world-local units (meters) */
+  smokePoints?: [number, number, number, SmokeKind][];
+  /** Blinking beacon lights in world-local units (meters) */
+  blinkers?: [number, number, number, string][];
   bobOnWater?: boolean;
   topY: number;
+  voxelCount?: number;
+}
+
+function buildFromDesign(
+  def: CivElementDef,
+  lv: number,
+  variant: number,
+  spanX: number,
+  spanZ: number,
+  connMask: number,
+): BuiltVoxelAsset | null {
+  const design = getDesign(def.id);
+  if (!design) return null;
+  const c = makeCtx(def.id, lv, variant, spanX, spanZ, connMask);
+  try {
+    design.build(c);
+  } catch (err) {
+    console.error(`Design build failed for ${def.id} L${lv} V${variant}`, err);
+    c.v.box(-c.hx + 2, 0, -c.hz + 2, c.hx - 2, 6, c.hz - 2, "magenta");
+  }
+  clampVoxToFootprint(c.v, c.hx, c.hz);
+  const baseGeo = buildVoxelGeometry(c.v, VOXEL_SIZE);
+  baseGeo.computeBoundingBox();
+  let topY = baseGeo.boundingBox?.max.y ?? 1;
+  const rotors: BuiltRotor[] = c.rotors.map((r) => {
+    const geo = buildVoxelGeometry(r.vox, VOXEL_SIZE);
+    geo.computeBoundingBox();
+    topY = Math.max(topY, (r.pivot[1] * VOXEL_SIZE) + (geo.boundingBox?.max.y ?? 0));
+    return { geo, pivot: r.pivot, axis: r.axis, speed: r.speed, wind: Boolean(r.wind) };
+  });
+  return {
+    baseGeo,
+    voxelCount: c.v.size + c.rotors.reduce((n, r) => n + r.vox.size, 0),
+    topY: Math.max(0.3, topY),
+    bobOnWater: c.floating || def.domain === "water",
+    rotors,
+    smokePoints: c.smokePoints.map(([x, y, z, k]) => [x * VOXEL_SIZE, y * VOXEL_SIZE, z * VOXEL_SIZE, k]),
+    blinkers: c.blinkers.map(([x, y, z, col]) => [(x + 0.5) * VOXEL_SIZE, (y + 0.5) * VOXEL_SIZE, (z + 0.5) * VOXEL_SIZE, col]),
+  };
 }
 
 const assetCache = new Map<string, BuiltVoxelAsset>();
@@ -883,6 +938,12 @@ export function getOrBuildElementAsset(
     const asset = { baseGeo: buildVoxelGeometry(fallback), topY: 2.2 };
     assetCache.set(key, asset);
     return asset;
+  }
+
+  const designed = buildFromDesign(def, clampedLv, clampedVar, spanX, spanZ, def.isNetwork ? connMask : 0);
+  if (designed) {
+    assetCache.set(key, designed);
+    return designed;
   }
 
   if (def.isNetwork) {
@@ -3419,6 +3480,23 @@ export function buildPlacedGroupFromAsset(
     group.userData.rotorAxis = asset.rotorAxis || "z";
     group.userData.rotorSpeed = asset.rotorSpeed || 1.5;
   }
+
+  if (asset.rotors && asset.rotors.length > 0) {
+    const list: { pivot: THREE.Group; axis: "x" | "y" | "z"; speed: number; wind: boolean }[] = [];
+    for (const r of asset.rotors) {
+      const piv = new THREE.Group();
+      piv.position.set(r.pivot[0] * VOXEL_SIZE, r.pivot[1] * VOXEL_SIZE, r.pivot[2] * VOXEL_SIZE);
+      const rMesh = new THREE.Mesh(r.geo, mat);
+      rMesh.castShadow = !ghost;
+      rMesh.userData.isVoxelMesh = true;
+      piv.add(rMesh);
+      group.add(piv);
+      list.push({ pivot: piv, axis: r.axis, speed: r.speed, wind: r.wind });
+    }
+    group.userData.rotorList = list;
+  }
+  group.userData.smokePoints = asset.smokePoints ?? [];
+  group.userData.blinkers = asset.blinkers ?? [];
 
   group.userData.bobOnWater = Boolean(asset.bobOnWater);
   group.userData.topY = asset.topY;
