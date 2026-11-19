@@ -38,18 +38,43 @@ async function loadCats(cats: string[]): Promise<void> {
 }
 
 function networkLayout(): [number, number, number][] {
-  // [dx, dz, connMask] — a plus-junction with four arms, plus an L-corner and a dead end
-  const W = Number(params.get("water") ?? 0) ? 4096 : 0;
-  return [
-    [0, 0, 15 | W],
-    [0, -1, 4 | 1 | W],
-    [0, -2, 4 | W],
-    [1, 0, 8 | 2 | W],
-    [2, 0, 8 | 4 | W],
-    [2, 1, 1 | W],
-    [0, 1, 1 | W],
-    [-1, 0, 2 | 64 | W],
+  // [dx, dz, connMask]. Query param `net` picks a test layout:
+  //   mix (default): 4-way, T's, corners, straights, dead ends and building driveways
+  //   bridge: elevated spans over water with ramp ends, a ramped T, and a grade-separated crossing
+  //   one: a single tile with `mask=<connMask>`
+  // Legend: R = piece, w = piece over water, G = ground road at a different deck height (not drawn,
+  // only sets connection + ramp bits), B = building (driveway bits).
+  const allWater = Number(params.get("water") ?? 0) ? 4096 : 0;
+  const net = params.get("net") ?? "mix";
+  if (net === "one") return [[0, 0, Number(params.get("mask") ?? 5) | allWater]];
+  const rows =
+    net === "bridge"
+      ? [".......", ".GwwwR.", "...G.R.", "GRRRRRG", "...G...", ".......", "......."]
+      : [".......", "..BR...", "..RRRR.", "..BRBR.", ".RRRRR.", ".R.B...", "......."];
+  const at = (x: number, z: number): string => rows[z + 3]?.[x + 3] ?? ".";
+  const isNet = (ch: string) => ch === "R" || ch === "w";
+  const out: [number, number, number][] = [];
+  const nbs: [number, number, number][] = [
+    [0, -1, 0],
+    [1, 0, 1],
+    [0, 1, 2],
+    [-1, 0, 3],
   ];
+  for (let z = -3; z <= 3; z++) {
+    for (let x = -3; x <= 3; x++) {
+      const ch = at(x, z);
+      if (!isNet(ch)) continue;
+      let mask = ch === "w" ? 4096 : allWater;
+      for (const [dx, dz, k] of nbs) {
+        const nb = at(x + dx, z + dz);
+        if (isNet(nb)) mask |= 1 << k;
+        if (nb === "G") mask |= (1 << k) | (256 << k);
+        if (nb === "B") mask |= 16 << k;
+      }
+      out.push([x, z, mask]);
+    }
+  }
+  return out;
 }
 
 async function main() {
