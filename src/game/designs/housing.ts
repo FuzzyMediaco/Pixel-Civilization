@@ -5,7 +5,11 @@ import {
   bush,
   car,
   chimney,
+  column,
+  helipad,
+  ring,
   door,
+  flag,
   fence,
   flatRoof,
   flowerBed,
@@ -2034,3 +2038,707 @@ defineDesigns({
   },
 });
 
+
+// =============================================================================================
+// BEACH HOUSES — on stilts, growing decks, boardwalks and docks
+// =============================================================================================
+
+/** Surfboard leaning upright */
+function surfboard(v: PixelVox, x: number, z: number, col: string, y = 1): void {
+  v.box(x, y, z, x + 1, y + 5, z + 1, col);
+  v.put(x, y + 2, z, "white");
+}
+
+/** Beach umbrella with a towel */
+function umbrella(v: PixelVox, x: number, z: number, col: string, y = 1): void {
+  v.box(x, y, z, x + 1, y + 4, z + 1, "white");
+  v.cylinderY(x + 0.5, z + 0.5, y + 4, y + 5, 2.4, col);
+  v.cylinderY(x + 0.5, z + 0.5, y + 5, y + 6, 1.2, col);
+  v.box(x + 1, y - 1, z + 1, x + 3, y, z + 4, "white");
+}
+
+/**
+ * One stilt beach house on [x0,x1) x [z0,z1), floor deck at y = fy. Returns roof top.
+ * st 0 Cape Cod shingle · 1 Caribbean pastel · 2 modern glass box · 3 Polynesian tiki hut
+ */
+function stiltHouse(c: Ctx, x0: number, z0: number, x1: number, z1: number, fy: number, floors: number, st: number, deck: boolean): number {
+  const v = c.v;
+  const fh = 5;
+  const wallTop = fy + 1 + floors * fh;
+  const cx = Math.floor((x0 + x1) / 2);
+  // stilts
+  for (let x = x0; x < x1; x += 4) {
+    for (const z of [z0, z1 - 1]) v.box(x, 1, z, x + 1, fy, z + 1, st === 3 ? "woodDark" : "wood");
+  }
+  for (const z of [z0, z1 - 1]) v.box(x1 - 1, 1, z, x1, fy, z + 1, st === 3 ? "woodDark" : "wood");
+  // platform & deck
+  const dz1 = deck ? z1 + 4 : z1 + 1;
+  const dx1 = deck ? x1 + 3 : x1;
+  v.box(x0 - (deck ? 2 : 0), fy, z0, dx1, fy + 1, dz1, st === 2 ? "concrete" : "woodLight");
+  if (deck) {
+    for (let x = x0 - 2; x < dx1; x++) v.put(x, fy + 1, dz1 - 1, (x & 1) ? (st === 2 ? "glass" : "white") : (st === 2 ? "glass" : "woodLight"), st === 2 ? 0.1 : 0);
+    for (let z = z0; z < dz1; z++) v.put(dx1 - 1, fy + 1, z, (z & 1) ? "white" : "woodLight");
+    for (const [px, pz] of [[x0 - 2, dz1 - 1], [dx1 - 1, dz1 - 1]]) v.box(px, 1, pz, px + 1, fy, pz + 1, "wood");
+  }
+  // stairs down to the sand on the front-left
+  for (let k = 0; k < fy - 1; k++) v.box(x0 - (deck ? 2 : 0) + 1 + 0, fy - 1 - k, dz1 + k, x0 - (deck ? 2 : 0) + 3, fy - k, dz1 + k + 1, "woodLight");
+  let top = wallTop;
+  if (st === 0) {
+    v.box(x0, fy + 1, z0, x1, wallTop, z1, "#9aa4ad");
+    for (let y = fy + 2; y < wallTop; y += 2) v.box(x0, y, z1 - 1, x1, y + 1, z1, "#8a949d");
+    for (const [px, pz] of [[x0, z0], [x1 - 1, z0], [x0, z1 - 1], [x1 - 1, z1 - 1]]) v.box(px, fy + 1, pz, px + 1, wallTop, pz + 1, "white");
+    windows(c, x0, fy + 1, z0, x1, wallTop, z1, { faces: "se", stepV: fh, stepH: 3, h: 2, emit: 0.45, sill: "white", startY: 2 });
+    top = gable(v, x0 - 1, wallTop, z0 - 1, x1 + 1, z1 + 1, "x", "slate", "white");
+    v.box(cx - 1, fy + 1, z1 - 1, cx + 1, fy + 4, z1, "#3f6fb0");
+  } else if (st === 1) {
+    v.box(x0, fy + 1, z0, x1, wallTop, z1, ["#5fd0c8", "pink", "#ffe08a"][floors % 3]);
+    for (let f = 0; f < floors; f++) {
+      for (let x = x0 + 1; x < x1 - 1; x += 4) {
+        v.box(x, fy + 2 + f * fh, z1 - 1, x + 2, fy + 5 + f * fh, z1, "glass", 0.45);
+        v.box(x - 1, fy + 2 + f * fh, z1, x, fy + 5 + f * fh, z1 + 1, "yellow");
+        v.box(x + 2, fy + 2 + f * fh, z1, x + 3, fy + 5 + f * fh, z1 + 1, "yellow");
+      }
+    }
+    windows(c, x0, fy + 1, z0, x1, wallTop, z1, { faces: "e", stepV: fh, h: 2, emit: 0.45, startY: 2 });
+    top = hip(v, x0 - 2, wallTop, z0 - 2, x1 + 2, z1 + 2, "silver", "white");
+    for (let x = x0 - 2; x < x1 + 2; x += 2) v.put(x, wallTop, z1 + 1, "steelLight");
+  } else if (st === 2) {
+    v.box(x0, fy + 1, z0, x1, wallTop, z1, "glass", 0.45);
+    v.box(x0 + 1, fy + 1, z0 + 1, x1 - 1, wallTop, z1 - 1, null);
+    for (let x = x0; x < x1; x += 4) v.box(x, fy + 1, z1 - 1, x + 1, wallTop, z1, "white");
+    v.box(x0, fy + 1, z0, x0 + 3, wallTop, z1, "white");
+    for (let f = 1; f <= floors; f++) v.box(x0 - 1, fy + f * fh, z0 - 1, x1 + 2, fy + f * fh + 1, z1 + 2, "white");
+    top = wallTop + 1;
+    v.box(x0 + 3, top, z0 + 1, x0 + 5, top + 1, z1 - 1, "white");
+  } else {
+    // bamboo walls + tall thatched roof
+    v.box(x0, fy + 1, z0, x1, wallTop, z1, "sand");
+    for (let x = x0; x < x1; x += 2) {
+      v.box(x, fy + 1, z1 - 1, x + 1, wallTop, z1, "woodLight");
+      v.box(x, fy + 1, z0, x + 1, wallTop, z0 + 1, "woodLight");
+    }
+    for (let z = z0; z < z1; z += 2) v.box(x1 - 1, fy + 1, z, x1, wallTop, z + 1, "woodLight");
+    v.box(cx - 1, fy + 1, z1 - 1, cx + 1, fy + 4, z1, "woodDark");
+    v.box(x0 + 2, fy + 2, z1 - 1, x0 + 4, fy + 4, z1, "warmGlow", 0.6);
+    v.box(x1 - 4, fy + 2, z1 - 1, x1 - 2, fy + 4, z1, "warmGlow", 0.6);
+    let k = 0;
+    for (; x0 - 2 + k < x1 + 2 - k && z0 - 2 + k < z1 + 2 - k; k++) {
+      v.box(x0 - 2 + k, wallTop + k * 2, z0 - 2 + k, x1 + 2 - k, wallTop + k * 2 + 2, z1 + 2 - k, k % 2 ? "#b8913f" : "#c9a24f");
+    }
+    top = wallTop + k * 2;
+    v.put(cx, top, Math.floor((z0 + z1) / 2), "woodDark");
+    v.put(cx, top + 1, Math.floor((z0 + z1) / 2), "woodDark");
+  }
+  return top;
+}
+
+/**
+ * BEACH HOUSE — stilt houses on the sand that grow decks, a boardwalk, a dock and a lookout.
+ *  V0 New England shingle cottage   V1 Caribbean pastel w/ tin roof & shutters
+ *  V2 modern glass beach box        V3 Polynesian tiki hut with thatch & torches
+ */
+function buildBeachHouse(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant;
+  lot(c, "sand");
+  speckle(c, "sandDark", 0.1);
+  const big = hz > 8;
+  // ocean along the front at L3+
+  const shore = big ? 2 : hz - 3;
+  if (lv >= 3 || big) {
+    v.box(-hx, 0, shore, hx, 1, hz, "water", 0.08);
+    for (let x = -hx; x < hx; x++) v.put(x, 0, shore + ((x * 7) % 3 === 0 ? 1 : 0), "foam", 0.2);
+    v.box(-hx, 0, shore - 1, hx, 1, shore, "sandDark");
+  }
+  const w = big || hx > 8 ? 16 : 11;
+  const x0 = big ? -hx + 4 : hx > 8 ? -hx + 4 : -6;
+  const x1 = x0 + w;
+  const z0 = big ? -hz + 3 : -hz + 2;
+  const z1 = z0 + (big ? 10 : 7);
+  const fy = 5;
+  const floors = lv >= 5 ? 2 : 1;
+  const top = stiltHouse(c, x0, z0, x1, z1, fy, floors, s, lv >= 2);
+  // signature life details
+  surfboard(v, x1 + (lv >= 2 ? 3 : 1), z0 + 1, ["red", "yellow", "teal", "orange"][s]);
+  surfboard(v, x1 + (lv >= 2 ? 3 : 1), z0 + 3, "sky");
+  if (s === 3) {
+    for (const tx of [x0 - 3, x1 + 1]) {
+      v.box(tx, 1, z1 + 5, tx + 1, 6, z1 + 6, "woodDark");
+      v.put(tx, 6, z1 + 5, "fire", 1.5);
+      c.smoke(tx, 7, z1 + 5, "spark");
+    }
+  }
+  if (lv === 1) tree(v, hx - 3, 1, hz - 3, "palm", 1.0, 1);
+  if (lv >= 2) {
+    // deck life: loungers, umbrella, outdoor shower
+    lawnChair(v, x0, fy + 1, ["white", "sky", "white", "orange"][s]);
+    v.box(x0 - 1, 1, z0, x0, 6, z0 + 1, "silver");
+    v.put(x0 - 1, 6, z0 + 1, "silver");
+    umbrella(v, big ? hx - 8 : hx - 4, big ? shore - 6 : hz - 4, ["red", "teal", "white", "yellow"][s]);
+  }
+  if (lv >= 3) {
+    // boardwalk over the dunes to the water, hammock between palms
+    const bx = x0 + 1;
+    v.box(bx, 1, z1 + 4, bx + 3, 2, hz, "woodLight");
+    for (let z = z1 + 4; z < hz; z += 3) v.box(bx, 1, z, bx + 3, 2, z + 1, "wood");
+    for (let z = z1 + 5; z < shore - 1; z += 2) v.put(bx + 4, 1, z, "#c7c48a");
+    const p1 = hx - 3;
+    tree(v, p1, 1, z0 + 1, "palm", 1.3, 1);
+    tree(v, p1, 1, z0 + 8, "palm", 1.2, 2);
+    for (let z = z0 + 2; z < z0 + 8; z++) v.put(p1, 3 - (z === z0 + 4 || z === z0 + 5 ? 1 : 0), z, ["red", "white", "orange"][z % 3]);
+  }
+  if (lv >= 4 && big) {
+    // dock into the sea with a sailboat and kayaks
+    const dx = 4;
+    v.box(dx, 1, shore - 2, dx + 4, 2, hz - 1, "wood");
+    for (let z = shore; z < hz; z += 4) {
+      v.box(dx - 1, 0, z, dx, 3, z + 1, "woodDark");
+      v.box(dx + 4, 0, z, dx + 5, 3, z + 1, "woodDark");
+    }
+    // sailboat
+    const sx = dx + 8;
+    const sz = hz - 6;
+    v.box(sx - 1, 1, sz - 1, sx + 6, 2, sz + 2, "white");
+    v.box(sx, 1, sz - 2, sx + 5, 2, sz + 3, "white");
+    v.box(sx + 2, 2, sz, sx + 3, 14, sz + 1, "silver");
+    for (let y = 3; y < 13; y++) v.box(sx + 3, y, sz, sx + 3 + Math.floor((13 - y) / 2), y + 1, sz + 1, "white");
+    v.put(sx - 1, 1, sz, "blue");
+    // kayaks on the sand
+    v.box(-hx + 2, 1, shore - 3, -hx + 8, 2, shore - 2, "orange");
+    v.box(-hx + 3, 1, shore - 5, -hx + 9, 2, shore - 4, "yellow");
+  }
+  if (lv >= 5) {
+    // rooftop lookout / widow's walk + hot tub + lifeguard tower + jet ski
+    const lx = x1 - 6;
+    if (s === 2) {
+      v.box(x0 + 6, top, z0 + 1, x1 - 1, top + 1, z1 - 1, "woodLight");
+      for (let x = x0 + 6; x < x1; x++) v.put(x, top + 1, z1 - 1, "glass", 0.1);
+      v.box(x0 + 7, top + 1, z0 + 2, x0 + 11, top + 2, z0 + 5, "cyan", 0.4);
+      c.smoke(x0 + 8, top + 2, z0 + 3, "steam");
+    } else {
+      v.box(lx, top - 2, z0 + 3, lx + 4, top + 3, z0 + 7, s === 1 ? "#5fd0c8" : s === 3 ? "sand" : "white");
+      v.box(lx, top, z0 + 3, lx + 4, top + 2, z0 + 7, "glass", 0.5);
+      hip(v, lx - 1, top + 3, z0 + 2, lx + 5, z0 + 8, s === 3 ? "#c9a24f" : s === 1 ? "silver" : "slate");
+    }
+    if (big) {
+      const gx = hx - 8;
+      const gz = shore - 4;
+      for (const [ddx, ddz] of [[0, 0], [3, 0], [0, 3], [3, 3]]) v.box(gx + ddx, 1, gz + ddz, gx + ddx + 1, 6, gz + ddz + 1, "white");
+      v.box(gx - 1, 6, gz - 1, gx + 5, 7, gz + 5, "white");
+      v.box(gx, 7, gz, gx + 4, 10, gz + 4, "red");
+      v.box(gx - 1, 10, gz - 1, gx + 5, 11, gz + 5, "white");
+      v.box(gx + 1, 8, gz + 4, gx + 3, 9, gz + 5, "glass", 0.4);
+      flag(v, gx + 4, 11, gz, 4, ["red", "yellow"]);
+      // jet ski
+      v.box(-hx + 8, 1, hz - 4, -hx + 12, 2, hz - 2, "yellow");
+      v.put(-hx + 9, 2, hz - 3, "black");
+      c.bob();
+    }
+    folk(c, x0 + 3, z1 + 6, 1);
+  }
+}
+
+// =============================================================================================
+// VILLAS — Mediterranean & tropical
+// =============================================================================================
+
+/** Vine pergola: posts + beam grid with leaves and grapes */
+function pergola(c: Ctx, x0: number, z0: number, x1: number, z1: number, y0 = 1, h = 5, post = "woodDark"): void {
+  const v = c.v;
+  for (const [px, pz] of [[x0, z0], [x1 - 1, z0], [x0, z1 - 1], [x1 - 1, z1 - 1]]) v.box(px, y0, pz, px + 1, y0 + h, pz + 1, post);
+  for (let x = x0; x < x1; x += 2) v.box(x, y0 + h, z0, x + 1, y0 + h + 1, z1, post);
+  for (let x = x0; x < x1; x++) {
+    for (let z = z0; z < z1; z++) {
+      const r = hash01(x * 13 + z, y0);
+      if (r < 0.55) v.put(x, y0 + h + 1, z, r < 0.2 ? "leafDark" : "leaf");
+      else if (r < 0.62) v.put(x, y0 + h - 1, z, "purple");
+    }
+  }
+}
+
+/**
+ * VILLA — Mediterranean / tropical luxury that gains terraces, pool, tower, vineyard and gardens.
+ *  V0 Tuscan (ochre, terracotta, cypress, tower)   V1 Santorini (white cubes, blue domes)
+ *  V2 Moroccan riad (crenellated pink walls, arches, zellige)   V3 Balinese (thatched pavilions, lotus pond)
+ */
+function buildVilla(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant;
+  lot(c, s === 1 ? "concrete" : s === 2 ? "sand" : "grass2");
+  speckle(c, s === 1 ? "white" : s === 2 ? "sandDark" : "grass3", 0.08);
+  const fh = 5;
+  const x0 = -hx + 3;
+  const x1 = Math.min(hx - 3, x0 + 24);
+  const zf = Math.min(hz - 5, 4);
+  const z0 = zf - 10;
+  const cx = Math.floor((x0 + x1) / 2);
+  const wt = 1 + 2 * fh;
+  v.box(cx - 1, 0, zf, cx + 2, 1, hz, s === 1 ? "white" : "path2");
+
+  if (s === 0) {
+    const wall = "#e0b46a";
+    v.box(x0, 1, z0, x1, wt, zf, wall);
+    v.box(x0, 1, z0, x1, 2, zf, "stone");
+    for (let f = 0; f < 2; f++) {
+      for (let x = x0 + 2; x < x1 - 2; x += 4) {
+        v.box(x, 2 + f * fh + 1, zf - 1, x + 2, 5 + f * fh, zf, "glass", 0.45);
+        v.box(x - 1, 2 + f * fh + 1, zf, x, 5 + f * fh, zf + 1, "#4f7a3f");
+        v.box(x + 2, 2 + f * fh + 1, zf, x + 3, 5 + f * fh, zf + 1, "#4f7a3f");
+      }
+    }
+    windows(c, x0, 1, z0, x1, wt, zf, { faces: "e", stepV: fh, h: 2, emit: 0.45 });
+    hip(v, x0 - 1, wt, z0 - 1, x1 + 1, zf + 1, "terracotta", "brick2", 4);
+    // lower wing
+    v.box(x1 - 9, 1, zf, x1, 1 + fh, zf + 5, wall);
+    v.box(x1 - 8, 2, zf + 4, x1 - 1, 5, zf + 5, "glass", 0.45);
+    hip(v, x1 - 10, 1 + fh, zf - 1, x1 + 1, zf + 6, "terracotta", "brick2", 3);
+    door(v, cx - 1, 1, zf - 1, "woodDark");
+    // tower (belvedere) at L4+, small dovecote before
+    const th = lv >= 4 ? wt + 10 : wt + 3;
+    const tx0 = x0 + 1;
+    v.box(tx0, 1, z0 + 1, tx0 + 6, th, z0 + 7, wall);
+    if (lv >= 4) {
+      v.box(tx0, th - 4, z0 + 1, tx0 + 6, th - 1, z0 + 7, null);
+      for (const [px, pz] of [[tx0, z0 + 1], [tx0 + 5, z0 + 1], [tx0, z0 + 6], [tx0 + 5, z0 + 6]]) v.box(px, th - 4, pz, px + 1, th, pz + 1, wall);
+      v.put(tx0 + 2, th - 3, z0 + 3, "warmGlow", 1);
+    }
+    hip(v, tx0 - 1, th, z0, tx0 + 7, z0 + 8, "terracotta", "brick2");
+    for (let x = x0; x < x1; x += 4) tree(v, x, 1, hz - 2, "cypress", 1.1, x);
+  } else if (s === 1) {
+    // stacked white cubes with blue domes and doors
+    const blocks: [number, number, number, number, number][] = [
+      [x0, z0, x1, zf, 1 + fh],
+      [x0 + 2, z0, x0 + 12, zf - 3, 1 + fh * 2],
+      [x1 - 9, z0, x1, zf - 5, 1 + fh * 2],
+    ];
+    for (const [bx0, bz0, bx1, bz1, h] of blocks) {
+      v.box(bx0, 1, bz0, bx1, h, bz1, "white");
+      v.box(bx0, h, bz0, bx1, h + 1, bz1, "marble");
+      for (let x = bx0 + 2; x < bx1 - 2; x += 4) {
+        v.box(x, h - 4, bz1 - 1, x + 2, h - 1, bz1, "blue");
+        v.put(x, h - 1, bz1 - 1, "white");
+      }
+    }
+    v.dome(x0 + 7, 1 + fh * 2 + 1, z0 + 4, 4, "blue");
+    v.box(x0 + 7, 1 + fh * 2 + 5, z0 + 4, x0 + 8, 1 + fh * 2 + 7, z0 + 5, "white");
+    v.put(x0 + 7, 1 + fh * 2 + 7, z0 + 4, "gold");
+    // bell gable on the right block
+    v.box(x1 - 6, 1 + fh * 2, z0 + 1, x1 - 1, 1 + fh * 2 + 6, z0 + 2, "white");
+    v.clear(x1 - 5, 1 + fh * 2 + 2, z0 + 1, x1 - 4, 1 + fh * 2 + 4, z0 + 2);
+    v.clear(x1 - 3, 1 + fh * 2 + 2, z0 + 1, x1 - 2, 1 + fh * 2 + 4, z0 + 2);
+    v.put(x1 - 5, 1 + fh * 2 + 3, z0 + 1, "gold");
+    // bougainvillea cascading
+    for (let i = 0; i < 18; i++) v.put(x0 + c.ri(0, 4), c.ri(2, 9), zf - c.ri(0, 1) + (i % 2), i % 3 ? "magenta" : "pink");
+    door(v, cx, 1, zf - 1, "blue");
+    // terrace stairs down to the front
+    for (let k = 0; k < 4; k++) v.box(x1 - 5, 1, zf + k, x1 - 1, 5 - k, zf + k + 1, "white");
+  } else if (s === 2) {
+    // riad: high crenellated walls around an open courtyard with fountain & orange trees
+    const wall = "#d9896a";
+    v.box(x0, 1, z0, x1, wt, zf, wall);
+    v.box(x0 + 4, 1, z0 + 3, x1 - 4, wt + 1, zf - 3, null);
+    v.box(x0 + 4, 0, z0 + 3, x1 - 4, 1, zf - 3, "teal");
+    for (let x = x0 + 4; x < x1 - 4; x++) for (let z = z0 + 3; z < zf - 3; z++) if ((x + z) % 2 === 0) v.put(x, 0, z, "white");
+    v.cylinderY(cx, (z0 + zf) / 2, 1, 2, 2, "teal");
+    v.put(cx, 2, Math.floor((z0 + zf) / 2), "water", 0.4);
+    tree(v, x0 + 5, 1, z0 + 4, "fruit", 0.8, 1);
+    tree(v, x1 - 6, 1, zf - 5, "fruit", 0.8, 2);
+    // inner arcade
+    for (let x = x0 + 4; x < x1 - 4; x += 3) v.box(x, 1, zf - 4, x + 1, 5, zf - 3, "cream");
+    // crenellations
+    for (let x = x0; x < x1; x += 2) {
+      v.put(x, wt, zf - 1, wall);
+      v.put(x, wt, z0, wall);
+    }
+    for (let z = z0; z < zf; z += 2) {
+      v.put(x0, wt, z, wall);
+      v.put(x1 - 1, wt, z, wall);
+    }
+    // horseshoe arch door with zellige frame, lanterns
+    v.box(cx - 3, 1, zf - 1, cx + 4, 8, zf, "teal");
+    v.box(cx - 2, 1, zf - 1, cx + 3, 6, zf, "woodDark");
+    v.box(cx - 1, 6, zf - 1, cx + 2, 7, zf, "woodDark");
+    for (let x = x0 + 2; x < x1 - 2; x += 5) {
+      if (Math.abs(x - cx) < 5) continue;
+      v.box(x, 6, zf - 1, x + 2, 9, zf, "woodDark");
+      v.put(x, 9, zf - 1, wall);
+    }
+    for (const lx of [cx - 5, cx + 5]) {
+      v.put(lx, 6, zf, "iron");
+      v.put(lx, 5, zf, "amber", 1.3);
+    }
+    windows(c, x0, 1, z0, x1, wt, zf, { faces: "e", stepV: fh, h: 2, emit: 0.45, col: "amber" });
+    tree(v, x0 - 1, 1, zf + 3, "palm", 1.4, 1);
+    tree(v, x1, 1, zf + 3, "palm", 1.4, 2);
+  } else {
+    // Balinese: open-sided pavilions with tall dark thatch on stone plinths
+    const pav = (px0: number, pz0: number, pw: number, pd: number, h: number, open: boolean): void => {
+      v.box(px0, 1, pz0, px0 + pw, 2, pz0 + pd, "stone");
+      for (const [qx, qz] of [[px0, pz0], [px0 + pw - 1, pz0], [px0, pz0 + pd - 1], [px0 + pw - 1, pz0 + pd - 1]]) v.box(qx, 2, qz, qx + 1, h, qz + 1, "woodDark");
+      if (!open) {
+        v.box(px0 + 1, 2, pz0 + 1, px0 + pw - 1, h, pz0 + pd - 1, "woodLight");
+        v.box(px0 + 2, 2, pz0 + pd - 2, px0 + pw - 2, h - 1, pz0 + pd - 1, "glass", 0.5);
+      } else {
+        v.box(px0 + 1, 2, pz0 + 1, px0 + pw - 1, 3, pz0 + pd - 1, "white");
+      }
+      let k = 0;
+      for (; px0 - 2 + k < px0 + pw + 2 - k && pz0 - 2 + k < pz0 + pd + 2 - k; k++) {
+        v.box(px0 - 2 + k, h + k * 2, pz0 - 2 + k, px0 + pw + 2 - k, h + k * 2 + 2, pz0 + pd + 2 - k, k % 2 ? "#4a3a28" : "#5a4632");
+      }
+      v.put(px0 + Math.floor(pw / 2), h + k * 2, pz0 + Math.floor(pd / 2), "gold");
+    };
+    pav(x0, z0, 12, 10, 8, false);
+    pav(x0 + 15, z0 + 2, 8, 7, 6, true);
+    // lotus pond
+    v.box(x0 + 1, 0, zf + 1, x0 + 11, 1, zf + 5, "waterDeep", 0.1);
+    for (const [lx, lz] of [[x0 + 3, zf + 2], [x0 + 7, zf + 3], [x0 + 9, zf + 2]]) {
+      v.put(lx, 1, lz, "leafLight");
+      v.put(lx, 2, lz, "pink");
+    }
+    // stone guardian statues + frangipani
+    for (const gx of [cx - 3, cx + 3]) {
+      v.box(gx, 1, hz - 3, gx + 1, 4, hz - 2, "granite");
+      v.put(gx, 4, hz - 3, "stone");
+    }
+    tree(v, x1 - 1, 1, zf + 3, "blossom", 1.1, 3);
+  }
+
+  // ---- L2+: pergola terrace with vines ----
+  if (lv >= 2 && hz > 8) pergola(c, x0, -hz + 2, x0 + 10, z0 - 1, 1, 5, s === 1 ? "white" : "woodDark");
+  // ---- L3+: pool ----
+  if (lv >= 3 && hz > 8) {
+    const px0 = x0 + 12;
+    const px1 = Math.min(hx - 2, px0 + 14);
+    if (s === 3) {
+      // infinity-edge pool on a stone deck
+      v.box(px0, 1, -hz + 2, px1, 2, z0 - 1, "stone");
+      v.box(px0 + 1, 1, -hz + 3, px1 - 1, 2, z0 - 2, "cyan", 0.2);
+    } else pool(v, px0, -hz + 2, px1, z0 - 1, s === 1 ? "white" : s === 2 ? "teal" : "stone");
+    for (let x = px0 + 1; x < px1 - 1; x += 4) lawnChair(v, x, z0 - 1 + 0, "white");
+  }
+  // ---- L4+: vineyard / olive grove / palm grove on the extra tile ----
+  if (lv >= 4 && hx > 16) {
+    const gx0 = x1 + 3;
+    for (let x = gx0; x < hx - 1; x += 3) {
+      for (let z = -hz + 2; z < hz - 2; z++) {
+        if (s === 0) {
+          if (z % 6 === 0) v.box(x, 1, z, x + 1, 4, z + 1, "woodDark");
+          else v.box(x, 1, z, x + 1, 3, z + 1, (z & 1) ? "leaf" : "leafDark");
+          if (hash01(x, z) < 0.15) v.put(x, 2, z, "purple");
+        }
+      }
+    }
+    if (s !== 0) {
+      for (let x = gx0 + 2; x < hx - 2; x += 7) {
+        for (let z = -hz + 4; z < hz - 3; z += 7) tree(v, x, 1, z, s === 1 ? "oak" : s === 2 ? "palm" : "fruit", 1.1, x + z);
+      }
+    }
+  }
+  // ---- L5: guest wing, fountain garden & gate ----
+  if (lv >= 5 && hz > 16) {
+    const gz0 = zf + 6;
+    const fxc = Math.floor((x0 + x1) / 2);
+    // formal garden with fountain
+    v.box(x0, 0, gz0, x1, 1, hz - 3, s === 2 ? "#e9c7a0" : "path");
+    for (let x = x0 + 1; x < x1 - 1; x += 4) {
+      hedge(v, x, gz0 + 1, x + 2, gz0 + 2);
+      hedge(v, x, hz - 5, x + 2, hz - 4);
+    }
+    v.cylinderY(fxc, gz0 + 7, 1, 2, 4, s === 2 ? "teal" : "marble");
+    v.cylinderY(fxc, gz0 + 7, 1, 2, 3.2, "water", 0.15);
+    v.box(fxc, 2, gz0 + 7, fxc + 1, 6, gz0 + 8, s === 2 ? "teal" : "marble");
+    v.put(fxc, 6, gz0 + 7, "foam", 0.6);
+    // gate
+    for (const gx of [fxc - 4, fxc + 4]) {
+      v.box(gx, 1, hz - 2, gx + 2, 8, hz, s === 1 ? "white" : s === 2 ? "#d9896a" : "stone");
+      v.put(gx, 8, hz - 2, "warmGlow", 1.2);
+    }
+    v.box(fxc - 2, 7, hz - 2, fxc + 4, 8, hz - 1, "iron");
+    folk(c, fxc - 3, gz0 + 4);
+    folk(c, fxc + 4, gz0 + 9);
+  }
+}
+
+// =============================================================================================
+// MANSIONS — gated estates that gain grounds and prestige
+// =============================================================================================
+
+/** Topiary cone or ball */
+function topiary(v: PixelVox, x: number, z: number, ball: boolean): void {
+  v.box(x, 1, z, x + 1, 2, z + 1, "terracotta");
+  if (ball) {
+    v.put(x, 2, z, "woodDark");
+    v.sphere(x + 0.5, 4, z + 0.5, 1.6, 1.6, 1.6, "leafDark");
+  } else v.cone(x + 0.5, 2, 7, z + 0.5, 1.6, 0.4, "leafDark");
+}
+
+/** Marble statue on plinth */
+function statue(v: PixelVox, x: number, z: number, col = "marble"): void {
+  v.box(x - 1, 1, z - 1, x + 2, 3, z + 2, "marbleShade");
+  v.box(x, 3, z, x + 1, 6, z + 1, col);
+  v.put(x, 6, z, col);
+  v.put(x + 1, 5, z, col);
+}
+
+/** Helicopter on a pad (static) with rotor */
+function helicopter(c: Ctx, x: number, y: number, z: number, col = "black"): void {
+  const v = c.v;
+  v.box(x - 2, y + 1, z - 1, x + 2, y + 3, z + 1, col);
+  v.box(x + 1, y + 2, z - 1, x + 2, y + 3, z + 1, "glassDark");
+  v.box(x - 6, y + 2, z, x - 2, y + 3, z + 1, col);
+  v.put(x - 6, y + 3, z, col);
+  v.box(x - 2, y, z - 1, x + 2, y + 1, z - 0, "steelDark");
+  v.box(x - 2, y, z, x + 2, y + 1, z + 1, "steelDark");
+  const r = new PixelVox(5);
+  for (let d = -5; d <= 5; d++) {
+    r.put(d, 0, 0, "charcoal");
+    r.put(0, 0, d, "charcoal");
+  }
+  c.addRotor({ vox: r, pivot: [x, y + 3, z], axis: "y", speed: 3 });
+}
+
+/**
+ * MANSION — the gated estate: each level adds grounds (gates, fountains, pools, hedges, maze, helipad).
+ *  V0 Palladian (white columns, pediment, dome)   V1 French château (blue slate, turrets)
+ *  V2 Hollywood-Hills modern (white planes, glass, infinity pool)   V3 Scottish-baronial castle (stone, crenellated towers)
+ */
+function buildMansion(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant;
+  lot(c, "grass");
+  speckle(c, "grass3", 0.08);
+  const fh = 5;
+  const wt = 1 + 2 * fh;
+  // the house sits in the back-centre of the lot; grounds fill the front
+  const bw = 26;
+  const cx = hx > 16 ? 0 : 0;
+  const x0 = cx - bw / 2;
+  const x1 = cx + bw / 2;
+  const z0 = -hz + 3;
+  const zf = z0 + 12;
+  const gold = lv >= 5 ? "gold" : "iron";
+
+  if (s === 0) {
+    v.box(x0, 1, z0, x1, wt, zf, "marble");
+    v.box(x0, 1, z0, x1, 3, zf, "marbleShade");
+    for (let f = 0; f < 2; f++) {
+      for (let x = x0 + 2; x < x1 - 1; x += 3) {
+        if (Math.abs(x - cx) < 5) continue;
+        v.box(x, 3 + f * fh, zf - 1, x + 1, 6 + f * fh, zf, "glass", 0.45);
+        v.put(x, 6 + f * fh, zf - 1, "marbleShade");
+      }
+    }
+    windows(c, x0, 1, z0, x1, wt, zf, { faces: "e", stepV: fh, h: 3, emit: 0.45 });
+    v.box(x0 - 1, wt, z0 - 1, x1 + 1, wt + 1, zf + 1, "marbleShade");
+    for (let x = x0; x < x1; x += 2) v.put(x, wt + 1, zf, "marble");
+    hip(v, x0, wt + 1, z0, x1, zf, "slateLight", "marbleShade", 3);
+    // grand portico + pediment + dome
+    v.box(cx - 6, 1, zf, cx + 6, 3, zf + 4, "marbleShade");
+    for (let x = cx - 6; x < cx + 6; x += 2) column(v, x, zf + 3, 3, wt, "marble", "marbleShade");
+    v.box(cx - 6, wt, zf, cx + 6, wt + 1, zf + 4, "marble");
+    for (let k = 0; k < 4; k++) v.box(cx - 6 + k * 2 - 1, wt + 1 + k, zf - 1, cx + 6 - k * 2 + 1, wt + 2 + k, zf + 4, k === 0 ? "marble" : "marbleShade");
+    door(v, cx - 1, 3, zf - 1, "woodDark");
+    v.cylinderY(cx, (z0 + zf) / 2, wt + 3, wt + 6, 4, "marble");
+    v.dome(cx, wt + 6, (z0 + zf) / 2, 4.2, lv >= 5 ? "gold" : "#6fa38a");
+    v.box(cx, wt + 10, Math.floor((z0 + zf) / 2), cx + 1, wt + 13, Math.floor((z0 + zf) / 2) + 1, "gold", 0.4);
+    for (let k = 0; k < 3; k++) v.box(cx - 4 + k, 1, zf + 4 + k, cx + 4 - k, 3 - k, zf + 5 + k, "marbleShade");
+  } else if (s === 1) {
+    v.box(x0, 1, z0, x1, wt, zf, "limestone");
+    for (let f = 0; f < 2; f++) {
+      for (let x = x0 + 3; x < x1 - 3; x += 3) {
+        v.box(x, 2 + f * fh, zf - 1, x + 1, 5 + f * fh, zf, "glass", 0.45);
+      }
+    }
+    windows(c, x0, 1, z0, x1, wt, zf, { faces: "e", stepV: fh, h: 3, emit: 0.45 });
+    // steep slate roof with dormers
+    let k = 0;
+    for (; z0 + k < zf - k; k++) v.box(x0, wt + k * 2, z0 + k, x1, wt + k * 2 + 2, zf - k, "#3e5470");
+    const rtop = wt + k * 2;
+    for (let x = x0 + 3; x < x1 - 3; x += 4) {
+      v.box(x, wt, zf - 2, x + 2, wt + 4, zf, "limestone");
+      v.box(x, wt + 1, zf - 1, x + 2, wt + 3, zf, "glass", 0.55);
+      v.box(x, wt + 4, zf - 2, x + 2, wt + 5, zf, "#3e5470");
+    }
+    v.box(x0 + 4, rtop - 1, z0 + 5, x1 - 4, rtop, z0 + 7, gold);
+    // corner turrets with witch-hat cones
+    for (const tx of [x0, x1]) {
+      for (const tz of [z0 + 1, zf - 1]) {
+        v.cylinderY(tx, tz, 1, wt + 4, 3, "limestone");
+        windows(c, tx - 3, 1, tz - 3, tx + 3, wt + 4, tz + 3, { faces: "se", stepV: fh, h: 2, emit: 0.5 });
+        v.cone(tx, wt + 4, wt + 16, tz, 3.8, 0.3, "#3e5470");
+        v.box(Math.floor(tx), wt + 16, Math.floor(tz), Math.floor(tx) + 1, wt + 19, Math.floor(tz) + 1, gold, 0.4);
+      }
+    }
+    door(v, cx - 1, 1, zf - 1, "#2f4f7a");
+    for (let k2 = 0; k2 < 2; k2++) v.box(cx - 3 + k2, 1, zf + k2, cx + 3 - k2, 3 - k2, zf + k2 + 1, "limestone");
+  } else if (s === 2) {
+    // Hollywood modern: stacked white slabs, cantilevers, glass
+    v.box(x0, 1, z0, x1, 1 + fh, zf, "glass", 0.5);
+    v.box(x0, 1, z0, x0 + 6, 1 + fh, zf, "stone");
+    v.box(x0 - 2, 1 + fh, z0, x1 + 2, 2 + fh, zf + 3, "white");
+    v.box(x0 + 6, 2 + fh, z0 + 1, x1 + 6, 1 + fh * 2 + 1, zf - 2, "glass", 0.5);
+    v.box(x0 + 6, 2 + fh, z0 + 1, x0 + 9, 1 + fh * 2 + 1, zf - 2, "white");
+    v.box(x0 + 4, 1 + fh * 2 + 1, z0, x1 + 7, 2 + fh * 2 + 1, zf, "white");
+    v.box(x0 + 12, 2 + fh * 2 + 1, z0 + 2, x0 + 20, 3 + fh * 2 + 1 + fh, z0 + 9, "white");
+    v.box(x0 + 13, 3 + fh * 2 + 1, z0 + 8, x0 + 19, 2 + fh * 2 + 1 + fh, z0 + 9, "glass", 0.55);
+    for (let x = x0; x < x1; x += 4) v.box(x, 1, zf - 1, x + 1, 1 + fh, zf, "white");
+    // infinity pool cantilevered in front
+    v.box(x0 + 2, 1, zf + 3, x1 - 2, 3, zf + 9, "white");
+    v.box(x0 + 3, 2, zf + 4, x1 - 3, 3, zf + 8, "cyan", 0.35);
+    for (let x = x0 + 4; x < x1 - 4; x += 4) lawnChair(v, x, zf + 2, "white", 1);
+    for (const px of [x0 - 1, x1 + 1, x1 + 4]) tree(v, px, 1, zf + 1, "palm", 1.8, px);
+  } else {
+    // baronial castle: stone keep, crenellated parapets, square & round towers
+    v.box(x0, 1, z0, x1, wt + 2, zf, "stone");
+    for (let x = x0; x < x1; x++) for (let y = 1; y < wt + 2; y++) if (hash01(x * 3 + y, 7) < 0.2) v.put(x, y, zf - 1, "granite");
+    for (let x = x0; x < x1; x += 2) {
+      v.put(x, wt + 2, zf - 1, "stone");
+      v.put(x, wt + 2, z0, "stone");
+    }
+    v.box(x0 + 1, wt + 1, z0 + 1, x1 - 1, wt + 2, zf - 1, "slate");
+    gable(v, x0 + 2, wt + 2, z0 + 2, x1 - 2, zf - 2, "x", "redDark");
+    for (let x = x0 + 3; x < x1 - 2; x += 4) {
+      v.box(x, 3, zf - 1, x + 1, 6, zf, "glass", 0.5);
+      v.box(x, 8, zf - 1, x + 1, 11, zf, "glass", 0.5);
+    }
+    windows(c, x0, 1, z0, x1, wt, zf, { faces: "e", stepV: fh, h: 3, emit: 0.45 });
+    // gatehouse arch
+    v.box(cx - 3, 1, zf - 1, cx + 3, 8, zf + 1, "granite");
+    v.box(cx - 2, 1, zf, cx + 2, 6, zf + 1, "woodDark");
+    // towers
+    const towers: [number, number, number, boolean][] = [[x0, z0 + 2, wt + 9, true], [x1, zf - 2, wt + 12, false], [x1, z0 + 2, wt + 6, true]];
+    for (const [tx, tz, th, round] of towers) {
+      if (round) v.cylinderY(tx, tz, 1, th, 3.3, "stone");
+      else v.box(tx - 3, 1, tz - 3, tx + 3, th, tz + 3, "stone");
+      for (let a = 0; a < 12; a += 2) {
+        const ang = (a / 12) * Math.PI * 2;
+        v.put(Math.round(tx + Math.cos(ang) * 3), th, Math.round(tz + Math.sin(ang) * 3), "stone");
+      }
+      if (!round) {
+        for (let d = -3; d < 3; d += 2) {
+          v.put(tx + d, th, tz - 3, "stone");
+          v.put(tx + d, th, tz + 2, "stone");
+          v.put(tx - 3, th, tz + d, "stone");
+          v.put(tx + 2, th, tz + d, "stone");
+        }
+      } else v.cone(tx, th, th + 6, tz, 3.4, 0.4, "slate");
+      v.put(Math.floor(tx), th - 4, Math.floor(tz) + 3, "glass", 0.6);
+    }
+    flag(v, x1, wt + 12, zf - 2, 7, ["blue", "white", "blue"]);
+  }
+
+  // ---- grounds ----
+  // drive from gate to the front door + gate pillars & front wall
+  const driveZ0 = s === 2 ? zf + 10 : zf + 4;
+  v.box(cx - 2, 0, driveZ0, cx + 2, 1, hz, "path2");
+  const wallCol = s === 3 ? "stone" : s === 2 ? "white" : "limestone";
+  v.box(-hx + 1, 1, hz - 2, cx - 4, 3, hz - 1, wallCol);
+  v.box(cx + 4, 1, hz - 2, hx - 1, 3, hz - 1, wallCol);
+  for (let x = -hx + 1; x < hx - 1; x += 2) if (Math.abs(x - cx) > 4) v.put(x, 3, hz - 2, gold);
+  for (const px of [cx - 5, cx + 3]) {
+    v.box(px, 1, hz - 3, px + 2, 7, hz - 1, wallCol);
+    v.put(px, 7, hz - 3, "warmGlow", 1.2);
+    v.put(px + 1, 7, hz - 2, gold, lv >= 5 ? 0.4 : 0);
+  }
+  for (let x = cx - 3; x < cx + 3; x++) v.box(x, 1, hz - 2, x + 1, 6 - (Math.abs(x + 0.5 - cx) < 1.5 ? 0 : 1), hz - 1, (x & 1) ? gold : "iron", lv >= 5 ? 0.3 : 0);
+  // hedges lining the front
+  hedge(v, -hx + 1, hz - 4, cx - 5, hz - 3);
+  hedge(v, cx + 5, hz - 4, hx - 1, hz - 3);
+  if (lv >= 2) {
+    // fountain court in front of the house
+    const fz = Math.floor((driveZ0 + hz - 4) / 2);
+    for (let x = cx - 8; x <= cx + 8; x++) for (let z = fz - 6; z <= fz + 6; z++) {
+      const d = Math.hypot(x - cx, z - fz);
+      if (d <= 6.5) v.put(x, 0, z, "path2");
+    }
+    v.cylinderY(cx, fz, 1, 2, 4.2, "marble");
+    v.cylinderY(cx, fz, 1, 2, 3.4, "water", 0.2);
+    v.cylinderY(cx, fz, 2, 4, 1.2, "marble");
+    v.cylinderY(cx, fz, 4, 5, 2, "marble");
+    v.put(cx, 5, fz, "foam", 0.6);
+    v.put(cx, 6, fz, "foam", 0.6);
+    if (lv >= 5) v.put(cx, 7, fz, "gold", 0.6);
+    car(v, cx - 5, 1, fz + 4, "x", "black");
+    for (const tx of [cx - 9, cx + 8]) topiary(v, tx, fz, s === 1);
+  }
+  if (lv >= 3 && hx > 16) {
+    // pool + pool house on the right, garage with supercars on the left
+    const px0 = x1 + 3;
+    const px1 = hx - 2;
+    if (px1 - px0 >= 6) {
+      pool(v, px0, z0 + 2, px1, z0 + 12, s === 3 ? "stone" : "marble");
+      v.box(px0, 1, z0 - 2 + 0, px1, 6, z0 + 1, s === 2 ? "white" : wallCol);
+      v.box(px0 + 1, 1, z0 + 0, px1 - 1, 5, z0 + 1, "glass", 0.45);
+      for (let x = px0 + 1; x < px1 - 1; x += 3) lawnChair(v, x, z0 + 14, "white");
+    }
+    const gx1 = x0 - 2;
+    const gx0 = -hx + 2;
+    if (gx1 - gx0 >= 6) {
+      v.box(gx0, 1, z0 + 1, gx1, 6, z0 + 10, wallCol);
+      for (let z = z0 + 2; z < z0 + 9; z += 3) v.box(gx1 - 1, 1, z, gx1, 5, z + 2, "charcoal");
+      v.box(gx1, 0, z0 + 1, x0, 1, z0 + 10, "path2");
+      car(v, gx1 + 3, 1, z0 + 12, "z", "red");
+      car(v, gx0 + 3, 1, z0 + 13, "z", "yellow");
+    }
+  }
+  if (lv >= 4 && hz > 16) {
+    // hedge maze + statues on the flanks
+    const mx0 = -hx + 2;
+    const mx1 = cx - 10;
+    const mz0 = zf + 6;
+    const mz1 = hz - 6;
+    if (mx1 - mx0 > 8) {
+      for (let x = mx0; x < mx1; x++) {
+        for (let z = mz0; z < mz1; z++) {
+          const edge = x === mx0 || x === mx1 - 1 || z === mz0 || z === mz1 - 1;
+          const inner = (x - mx0) % 3 === 0 && hash01(x, z) < 0.75 || (z - mz0) % 3 === 0 && hash01(z, x) < 0.55;
+          if ((edge && !(z === mz1 - 1 && x === mx0 + 3)) || inner) v.box(x, 1, z, x + 1, 3, z + 1, "leafDark");
+        }
+      }
+      v.put(Math.floor((mx0 + mx1) / 2), 1, Math.floor((mz0 + mz1) / 2), gold);
+    }
+    // rose garden on the right
+    const rx0 = cx + 10;
+    for (let x = rx0; x < (lv >= 5 ? rx0 - 1 : hx - 2); x += 3) for (let z = zf + 7; z < hz - 6; z += 3) bush(v, x, 1, z, 1, "leaf", c.pick(["red", "pink", "white"]));
+    for (const sx of [cx - 9, cx + 9]) statue(v, sx, zf + 4);
+  }
+  if (lv >= 5) {
+    // helipad with helicopter + lamp-lined drive
+    const hpx = hx > 16 ? hx - 9 : x1 - 6;
+    const hpz = hz > 16 ? Math.floor((zf + hz) / 2) - 2 : zf + 3;
+    if (hz > 16) {
+      v.box(hpx - 6, 0, hpz - 6, hpx + 6, 1, hpz + 6, "concreteDark");
+      helipad(v, hpx, 1, hpz, 5);
+      helicopter(c, hpx, 2, hpz, s === 2 ? "white" : "black");
+      for (const [bx, bz] of [[-6, -6], [5, -6], [-6, 5], [5, 5]]) c.blink(hpx + bx, 1, hpz + bz, "amber");
+    }
+    for (let z = driveZ0 + 1; z < hz - 3; z += 4) {
+      v.box(cx - 3, 1, z, cx - 2, 4, z + 1, "iron");
+      v.put(cx - 3, 4, z, "warmGlow", 1.2);
+      v.box(cx + 2, 1, z, cx + 3, 4, z + 1, "iron");
+      v.put(cx + 2, 4, z, "warmGlow", 1.2);
+    }
+    folk(c, cx + 1, zf + 5);
+  }
+}
+
+defineDesigns({
+  beach_houses: {
+    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+    levels: ["Stilt Beach Shack", "Surf-Deck Cottage", "Boardwalk Beach House", "Dockside Beach House", "Oceanfront Lookout Retreat"],
+    growth: "Gains a wraparound deck, a boardwalk to the surf, a dock with sailboat, then a rooftop lookout and lifeguard tower.",
+    build: buildBeachHouse,
+  },
+  villas: {
+    footprints: [[2, 1], [2, 2], [2, 2], [3, 2], [3, 3]],
+    levels: ["Hillside Villa", "Pergola Villa", "Poolside Villa", "Vineyard Villa", "Grand Riviera Villa"],
+    growth: "Adds a vine pergola, a pool, a tower and vineyard/grove, then formal fountain gardens and a gate.",
+    build: buildVilla,
+  },
+  mansions: {
+    footprints: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
+    levels: ["Gated Manor", "Fountain-Court Mansion", "Pool & Garage Mansion", "Hedge-Maze Estate", "Billionaire's Palace"],
+    growth: "Gains prestige grounds: gates, a fountain court, pool & supercar garage, hedge maze & statues, then a gilded gate and helipad.",
+    build: buildMansion,
+  },
+});
