@@ -17,10 +17,10 @@ page.on("pageerror", (e) => logs.push(`[pageerror] ${e.message}\n${e.stack}`));
 await page.goto(`http://localhost:${port}/`);
 await page.waitForTimeout(2500);
 if (setup) {
-  await page.evaluate(setup);
+  try { await page.evaluate(setup); } catch (e) { /* navigation after seeding is expected */ }
   await page.waitForTimeout(Number(process.env.WAIT ?? 4000));
 }
 await page.screenshot({ path: out });
-console.log(logs.slice(0, 15).join("\n"));
+console.log(logs.slice(0, 6).map((l) => l.split("\n").slice(0, 4).join("\n")).join("\n"));
 console.log(`saved ${out}`);
 await browser.close();

@@ -359,6 +359,7 @@ export const App: React.FC = () => {
       onHoverInfo: setHoverInfo,
     });
     rendererRef.current = world;
+    (window as unknown as { __pixelWorld?: PixelWorldRenderer }).__pixelWorld = world;
 
     return () => {
       world.dispose();

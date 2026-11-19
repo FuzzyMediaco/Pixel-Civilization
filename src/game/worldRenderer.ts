@@ -1555,7 +1555,18 @@ export class PixelWorldRenderer {
 
       const load = a.isRail ? 0 : loadMap.get(`${a.gx},${a.gz}`) ?? 0;
       const jam = load > 0.85 ? 1 / (1 + (load - 0.85) * 2.2) : 1;
-      a.progress += dt * a.speed * Math.max(0.25, jam);
+      // Car-following: brake behind a vehicle ahead in the same lane (same tile & heading, or the next tile)
+      let follow = 1;
+      if (!a.isRail) {
+        for (const b of this.trafficAgents) {
+          if (b === a || b.isRail || b.dirX !== a.dirX || b.dirZ !== a.dirZ) continue;
+          let gap = -1;
+          if (b.gx === a.gx && b.gz === a.gz && b.progress > a.progress) gap = b.progress - a.progress;
+          else if (b.gx === a.nextGx && b.gz === a.nextGz) gap = 1 - a.progress + b.progress;
+          if (gap >= 0 && gap < 0.55) follow = Math.min(follow, Math.max(0, (gap - 0.22) / 0.33));
+        }
+      }
+      a.progress += dt * a.speed * Math.max(0.25, jam) * follow;
       if (a.progress >= 1) {
         a.gx = a.nextGx;
         a.gz = a.nextGz;

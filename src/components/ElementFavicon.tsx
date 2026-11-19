@@ -171,6 +171,9 @@ function renderLevel1FaviconDataUrl(def: CivElementDef): string {
   };
 
   collectGeoTris(asset.baseGeo, 0, 0, 0, rawTris, bounds);
+  for (const r of asset.rotors ?? []) {
+    collectGeoTris(r.geo, r.pivot[0] * VOXEL_SIZE, r.pivot[1] * VOXEL_SIZE, r.pivot[2] * VOXEL_SIZE, rawTris, bounds);
+  }
   if (asset.rotorGeo && asset.rotorPivot) {
     collectGeoTris(
       asset.rotorGeo,
