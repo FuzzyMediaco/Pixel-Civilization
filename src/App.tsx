@@ -30,6 +30,7 @@ import {
   type SelectionFilter,
   type WeatherKind,
   checkPlacementValid,
+  planNetworkPlacement,
   createInitialGameState,
   isNightTime,
   launchIslandAttack,
@@ -187,19 +188,32 @@ export const App: React.FC = () => {
     (gx: number, gz: number) => {
       const curBrush = brushRef.current;
       if (curBrush.kind !== "place" || !curBrush.defId) return;
-      const def = ELEMENT_BY_ID[curBrush.defId];
-      if (!def) return;
+      const brushDef = ELEMENT_BY_ID[curBrush.defId];
+      if (!brushDef) return;
 
       const cur = stateRef.current;
       if (cur.gameOver) return;
+
+      let def = brushDef;
+      let replaceId: string | undefined;
+      let overWater = false;
+      if (brushDef.isNetwork) {
+        const plan = planNetworkPlacement(cur, brushDef, gx, gz);
+        if (!plan.ok) return;
+        def = ELEMENT_BY_ID[plan.defId] ?? brushDef;
+        replaceId = plan.replaceId;
+        overWater = Boolean(plan.overWater);
+      }
 
       const placeLevel = cur.mode === "god" ? curBrush.level : 1;
       const [sx, sz] = getStandardFootprintForLevel(def, placeLevel);
       const spanX = curBrush.rotation % 2 === 1 ? sz : sx;
       const spanZ = curBrush.rotation % 2 === 1 ? sx : sz;
 
-      const chk = checkPlacementValid(cur, def, gx, gz, spanX, spanZ);
-      if (!chk.valid) return;
+      if (!def.isNetwork) {
+        const chk = checkPlacementValid(cur, def, gx, gz, spanX, spanZ);
+        if (!chk.valid) return;
+      }
 
       if (cur.mode !== "god" && cur.money < def.cost) {
         commitState((draft) => {
@@ -241,8 +255,13 @@ export const App: React.FC = () => {
           onFire: false,
           animProgress: 1.0,
           animKind: "place",
+          ...(overWater ? { overWater: true } : {}),
         };
+        if (replaceId) draft.elements = draft.elements.filter((e) => e.id !== replaceId);
         draft.elements.push(placed);
+        if (def.id !== brushDef.id && !draft.achievements?.includes("bridge_builder")) {
+          pushToast(draft, "merge", `Auto-Bridge: ${def.name}`, "Roads dragged across water become bridges automatically.");
+        }
         recomputeConnectivityAndMetrics(draft);
       });
 

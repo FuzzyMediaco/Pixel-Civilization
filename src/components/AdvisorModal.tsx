@@ -1,7 +1,51 @@
 import React, { useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Info, Layers, Trophy, X } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Info, Layers, Trophy, X } from "lucide-react";
 import { ELEMENTS, STAGES } from "../game/catalog";
-import { type GameState } from "../game/simulation";
+import { ACHIEVEMENTS, SYNERGY_RULES } from "../game/cityDynamics";
+import { type GameState, type HistorySample } from "../game/simulation";
+
+const Sparkline: React.FC<{ data: HistorySample[]; pick: (h: HistorySample) => number; color: string; label: string; fmt: (n: number) => string }> = ({
+  data,
+  pick,
+  color,
+  label,
+  fmt,
+}) => {
+  const w = 220;
+  const h = 46;
+  const vals = data.map(pick);
+  const last = vals.length ? vals[vals.length - 1] : 0;
+  const first = vals.length ? vals[0] : 0;
+  const min = Math.min(...vals, 0);
+  const max = Math.max(...vals, 1);
+  const pts = vals
+    .map((v, i) => `${(i / Math.max(1, vals.length - 1)) * w},${h - 3 - ((v - min) / Math.max(1e-6, max - min)) * (h - 6)}`)
+    .join(" ");
+  const delta = last - first;
+  return (
+    <div className="rounded-lg border border-stone-200 bg-white p-2.5">
+      <div className="flex items-baseline justify-between">
+        <span className="text-[11px] font-bold text-stone-600">{label}</span>
+        <span className="font-mono-num text-sm font-extrabold text-stone-900">{fmt(last)}</span>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} className="mt-1 h-12 w-full" preserveAspectRatio="none" aria-hidden="true">
+        {vals.length > 1 ? (
+          <>
+            <polyline points={`0,${h} ${pts} ${w},${h}`} fill={color} fillOpacity={0.12} stroke="none" />
+            <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+          </>
+        ) : (
+          <text x={4} y={h / 2} fontSize={10} fill="#a8a29e">
+            collecting data…
+          </text>
+        )}
+      </svg>
+      <div className={`font-mono-num text-[10px] font-bold ${delta >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+        {delta >= 0 ? "▲" : "▼"} {fmt(Math.abs(delta))} over {Math.round(((data[data.length - 1]?.t ?? 0) - (data[0]?.t ?? 0)) / 60)} min
+      </div>
+    </div>
+  );
+};
 
 interface AdvisorModalProps {
   state: GameState;
@@ -10,7 +54,7 @@ interface AdvisorModalProps {
 }
 
 export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose }) => {
-  const [tab, setTab] = useState<"needs" | "stages" | "rules">("needs");
+  const [tab, setTab] = useState<"needs" | "trends" | "stages" | "rules">("needs");
   const [expanded, setExpanded] = useState(false);
   if (!open) return null;
 
@@ -68,7 +112,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
         </div>
 
         {/* Tabs */}
-        <div className="grid grid-cols-3 gap-1 border-b border-stone-200 bg-stone-100/80 px-3 py-2 sm:px-5">
+        <div className="grid grid-cols-4 gap-1 border-b border-stone-200 bg-stone-100/80 px-3 py-2 sm:px-5">
           <button
             type="button"
             onClick={() => setTab("needs")}
@@ -81,6 +125,19 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
             <Info className="h-3.5 w-3.5 shrink-0" />
             <span className="sm:hidden">Needs</span>
             <span className="hidden sm:inline">City Needs & Missing</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("trends")}
+            className={`flex items-center justify-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-bold ${
+              tab === "trends"
+                ? "bg-stone-900 text-white"
+                : "text-stone-600 hover:bg-stone-200 hover:text-stone-900"
+            }`}
+          >
+            <Activity className="h-3.5 w-3.5 shrink-0" />
+            <span className="sm:hidden">Trends</span>
+            <span className="hidden sm:inline">Trends & Trophies</span>
           </button>
           <button
             type="button"
@@ -261,6 +318,73 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
             </div>
           )}
 
+          {tab === "trends" && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <Sparkline data={state.history ?? []} pick={(h) => h.pop} color="#0369a1" label="Population" fmt={(n) => Math.round(n).toLocaleString()} />
+                <Sparkline data={state.history ?? []} pick={(h) => h.money} color="#b45309" label="Treasury" fmt={(n) => `$${Math.round(n).toLocaleString()}`} />
+                <Sparkline data={state.history ?? []} pick={(h) => h.happy} color="#047857" label="Happiness" fmt={(n) => `${Math.round(n)}%`} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                {[
+                  { k: "Cash flow", v: `${(m.netIncomePerTick ?? 0) >= 0 ? "+" : ""}${m.netIncomePerTick ?? 0}/tick`, sub: `in ${m.grossIncomePerTick ?? 0} · upkeep ${m.upkeepPerTick ?? 0}` },
+                  { k: "Traffic", v: `${m.congestion ?? 0}%`, sub: `${m.trafficTrips ?? 0} trips · ${m.transitShare ?? 0}% transit` },
+                  { k: "Power mix", v: `${m.renewablePct ?? 0}% green`, sub: `☀ ${Math.round((m.solarFactor ?? 1) * 100)}% · 🌬 ${Math.round((m.windFactor ?? 1) * 100)}%` },
+                  { k: "Land value", v: (m.landValueAvg ?? 0.5).toFixed(2), sub: `pollution ${(m.pollutionAvg ?? 0).toFixed(1)}` },
+                ].map((c) => (
+                  <div key={c.k} className="rounded-lg border border-stone-200 bg-white p-2.5">
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-stone-500">{c.k}</div>
+                    <div className="font-mono-num text-sm font-extrabold text-stone-900">{c.v}</div>
+                    <div className="text-[10px] text-stone-500">{c.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-lg border border-stone-200 bg-white p-3">
+                <h4 className="font-display text-sm font-bold text-stone-900">
+                  Neighbourhood Synergies · {m.synergyCount ?? 0} active
+                </h4>
+                <p className="mt-0.5 text-[11px] text-stone-500">Each synergy adds +12% output (up to +48%). Build smart neighbours!</p>
+                <div className="mt-2 grid grid-cols-1 gap-1 text-[11px] sm:grid-cols-2">
+                  {SYNERGY_RULES.map((r) => {
+                    const n = state.elements.filter((e) => e.synergies?.includes(r.id)).length;
+                    return (
+                      <div key={r.id} className={`flex items-center gap-1.5 rounded px-1.5 py-0.5 ${n > 0 ? "bg-violet-50 text-violet-900" : "text-stone-500"}`}>
+                        <span>{r.emoji}</span>
+                        <span className="font-bold">{r.label}</span>
+                        <span className="ml-auto font-mono-num">{n > 0 ? `×${n}` : ""}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-stone-200 bg-white p-3">
+                <h4 className="font-display text-sm font-bold text-stone-900">
+                  Trophies · {(state.achievements ?? []).length}/{ACHIEVEMENTS.length}
+                </h4>
+                <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                  {ACHIEVEMENTS.map((a) => {
+                    const got = (state.achievements ?? []).includes(a.id);
+                    return (
+                      <div
+                        key={a.id}
+                        className={`rounded-md border px-2 py-1.5 ${got ? "border-amber-400 bg-amber-50" : "border-stone-200 bg-stone-50 opacity-60"}`}
+                        title={a.detail}
+                      >
+                        <div className="text-[11px] font-extrabold text-stone-900">
+                          {got ? a.emoji : "🔒"} {a.title}
+                        </div>
+                        <div className="text-[10px] leading-tight text-stone-500">{a.detail}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
           {tab === "stages" && (
             <div className="space-y-2">
               {STAGES.map((st) => {
@@ -325,11 +449,24 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
                   press <strong>Merge</strong>!
                 </p>
                 <p className="mt-1.5">
-                  Merged buildings grow horizontally up to <strong>Level 4–5 (3×3 max)</strong>,
-                  adding richer architectural tiers, spires, and rooftop details at every upgrade.
-                  Roads, paths, bridges, and train tracks keep their 1×1 lane tiles when upgraded or
-                  merged.
+                  Every element grows <strong>in its own way</strong>: farms, parks and bases sprawl
+                  outward (up to 4×4), towers and turbines shoot skyward, factories become compounds,
+                  temples and landmarks gain grandeur, and ships climb hull classes. Each level has its
+                  own name — check the inspector to see what's next. Roads, bridges and tracks stay 1×1
+                  but gain lanes, lights and capacity.
                 </p>
+              </div>
+
+              <div className="rounded-lg border border-stone-200 bg-white p-3.5">
+                <h4 className="font-display text-sm font-bold text-stone-900">Living City Systems</h4>
+                <ul className="mt-1 list-disc space-y-1 pl-4">
+                  <li><strong>Traffic:</strong> every building makes trips; roads have capacity by type & level. Rush hour (8am, 6pm) jams streets; bus & train stations take cars off the road. Jammed shops earn less.</li>
+                  <li><strong>Pollution & Land Value:</strong> industry, coal and landfills spread smog; trees, parks and swamps absorb it. Parks, water, landmarks and temples raise land value — homes on valuable land hold up to 2× the people, shops earn more.</li>
+                  <li><strong>Synergies:</strong> smart neighbours boost output (Farmstead, Shopping District, Waterfront, Rail Freight…).</li>
+                  <li><strong>Live power:</strong> solar follows the sun and clouds, wind turbines follow the wind, hydro loves rain.</li>
+                  <li><strong>Auto-bridges:</strong> drag any road across water and it becomes a bridge, with ramps where it lands.</li>
+                  <li><strong>Upkeep:</strong> utilities and services cost money to run — keep your cash flow green.</li>
+                </ul>
               </div>
 
               <div className="rounded-lg border border-stone-200 bg-white p-3.5">

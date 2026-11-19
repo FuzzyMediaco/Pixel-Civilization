@@ -14,9 +14,12 @@ import {
   type SelectionFilter,
   canMergePair,
   checkPlacementValid,
+  planNetworkPlacement,
   computeHeatmapCells,
   getConnectedRailCoordSet,
   getConnectedRoadCoordSet,
+  getTrafficLoadMap,
+  PEDESTRIAN_IDS,
   getNetworkConnMask,
   gridToWorldCenter,
   islandMarginAtWorld,
@@ -27,6 +30,7 @@ import { buildPlacedGroupFromAsset, getOrBuildElementAsset } from "./voxelArchit
 import {
   PixelVox,
   TILE_SIZE,
+  PALETTE,
   VOXEL_SIZE,
   buildVoxelGeometry,
   getDimmedVoxelMaterial,
@@ -355,6 +359,18 @@ export class PixelWorldRenderer {
   private villagerAgents: VillagerAgent[] = [];
   private particles: VoxelParticle[] = [];
   private trafficSyncAccum = 0;
+  // Cached network sets (recomputed only when the layout changes, not every frame)
+  private netCacheKey = "";
+  private cachedRoadSet = new Set<string>();
+  private cachedRailSet = new Set<string>();
+  private cachedCarSet = new Set<string>();
+  // Pooled smoke / steam particles & blinking beacons
+  private smokeMesh: THREE.InstancedMesh | null = null;
+  private smokeParts: { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; max: number; size: number; kind: number }[] = [];
+  private smokeEmitters: { entryId: string; local: THREE.Vector3; kind: number; acc: number }[] = [];
+  private blinkMesh: THREE.InstancedMesh | null = null;
+  private blinkPhases: number[] = [];
+  private blinkKey = "";
   private fireEmitAccum = 0;
 
   // Pointer & pinch-zoom interaction state
@@ -801,6 +817,9 @@ export class PixelWorldRenderer {
         };
         this.placedEntries.set(el.id, entry);
 
+        if (!entry && !wasUpgradeOrMerge && el.animKind === "place" && el.animProgress > 0.7 && !def.isNetwork) {
+          this.spawnCelebrationBurst(wx, baseY + 0.3, wz, 8 + el.spanX * el.spanZ * 3, 0xd8c6a1);
+        }
         if (wasUpgradeOrMerge && el.animProgress > 0.7) {
           this.spawnCelebrationBurst(
             wx,
@@ -834,6 +853,8 @@ export class PixelWorldRenderer {
       }
     }
 
+    this.refreshNetworkCache();
+    this.rebuildEmittersAndBeacons();
     this.rebuildSelectionAndRadiusOverlays();
     this.updateHoverOverlay();
     this.rebuildHeatmapOverlay();
@@ -1214,7 +1235,16 @@ export class PixelWorldRenderer {
       return;
     }
 
-    const chk = checkPlacementValid(this.gameState, def, gx, gz, spanX, spanZ, ignoreIds);
+    let chk = checkPlacementValid(this.gameState, def, gx, gz, spanX, spanZ, ignoreIds);
+    if (!chk.valid && def.isNetwork && this.brush.kind === "place") {
+      const plan = planNetworkPlacement(this.gameState, def, gx, gz);
+      if (plan.ok) {
+        def = ELEMENT_BY_ID[plan.defId] ?? def;
+        chk = { valid: true };
+      } else if (plan.reason) {
+        chk = { valid: false, reason: plan.reason };
+      }
+    }
     const [wx, wz] = gridToWorldCenter(gx, gz, spanX, spanZ);
     const baseY = this.getGroundElevationForElement(def, wx, wz);
 
@@ -1251,11 +1281,28 @@ export class PixelWorldRenderer {
 
   // ===================== AUTONOMOUS CARS, TRAINS & PIXEL VILLAGERS =====================
 
+  private refreshNetworkCache(): void {
+    let key = "";
+    for (const e of this.gameState.elements) key += `${e.defId}${e.gx},${e.gz},${e.spanX}${e.spanZ}${e.connected ? 1 : 0};`;
+    if (key === this.netCacheKey) return;
+    this.netCacheKey = key;
+    this.cachedRoadSet = getConnectedRoadCoordSet(this.gameState.elements);
+    this.cachedRailSet = getConnectedRailCoordSet(this.gameState.elements);
+    this.cachedCarSet = new Set<string>();
+    const occ = new Map<string, string>();
+    for (const e of this.gameState.elements) occ.set(`${e.gx},${e.gz}`, e.defId);
+    for (const k of this.cachedRoadSet) {
+      if (!PEDESTRIAN_IDS.has(occ.get(k) ?? "")) this.cachedCarSet.add(k);
+    }
+  }
+
   private syncAutonomousTrafficAndVillagers(): void {
-    const connectedRoadSet = getConnectedRoadCoordSet(this.gameState.elements);
-    const connectedRailSet = getConnectedRailCoordSet(this.gameState.elements);
+    this.refreshNetworkCache();
+    const connectedRoadSet = this.cachedRoadSet;
+    const connectedRailSet = this.cachedRailSet;
 
     const roadTiles: PlacedElement[] = [];
+    const carTiles: PlacedElement[] = [];
     const railTiles: PlacedElement[] = [];
     let hasBusDepot = false;
     let hasTaxiDepot = false;
@@ -1265,7 +1312,10 @@ export class PixelWorldRenderer {
     for (const el of this.gameState.elements) {
       const def = ELEMENT_BY_ID[el.defId];
       if (!def) continue;
-      if (def.isRoadNetwork && connectedRoadSet.has(`${el.gx},${el.gz}`)) roadTiles.push(el);
+      if (def.isRoadNetwork && connectedRoadSet.has(`${el.gx},${el.gz}`)) {
+        roadTiles.push(el);
+        if (this.cachedCarSet.has(`${el.gx},${el.gz}`)) carTiles.push(el);
+      }
       if (def.isRailNetwork && connectedRailSet.has(`${el.gx},${el.gz}`)) railTiles.push(el);
       if (el.defId === "bus_depots" || el.defId === "bus_stops") hasBusDepot = true;
       if (el.defId === "taxi_depots") hasTaxiDepot = true;
@@ -1275,7 +1325,7 @@ export class PixelWorldRenderer {
 
     // Immediately remove any vehicles or villagers stranded on isolated/disconnected stubs
     this.trafficAgents = this.trafficAgents.filter((a) => {
-      const net = a.isRail ? connectedRailSet : connectedRoadSet;
+      const net = a.isRail ? connectedRailSet : this.cachedCarSet;
       if (!net.has(`${a.gx},${a.gz}`)) {
         this.trafficGroup.remove(a.mesh);
         return false;
@@ -1297,10 +1347,15 @@ export class PixelWorldRenderer {
 
     // Target road vehicle & villager counts: require connected road tiles AND population > 0
     const hasPop = this.gameState.population > 0;
-    const maxVehicles = this.isSoftwareGl ? 18 : 42;
+    const maxVehicles = this.isSoftwareGl ? 22 : 60;
+    const m = this.gameState.metrics;
+    const busyness = Math.min(1.8, 0.45 + (m.congestion ?? 0) / 100);
     const targetRoadVehicles =
-      roadTiles.length >= 2 && hasPop
-        ? Math.min(maxVehicles, Math.max(2, Math.floor(roadTiles.length / 3) + Math.floor(activeBuildings / 2)))
+      carTiles.length >= 2 && hasPop
+        ? Math.min(
+            maxVehicles,
+            Math.max(2, Math.round((Math.floor(carTiles.length / 4) + Math.floor(activeBuildings / 3) + Math.sqrt(m.trafficTrips ?? 0)) * busyness)),
+          )
         : 0;
 
     const targetTrains =
@@ -1326,7 +1381,7 @@ export class PixelWorldRenderer {
 
     // Spawn road vehicles (Cars, Sports Cars, Trucks, Military Trucks, Cybertrucks, Mini Coopers, Buses, Taxis!)
     for (let i = currentRoadCount; i < targetRoadVehicles; i++) {
-      const tile = roadTiles[Math.floor(Math.random() * roadTiles.length)];
+      const tile = carTiles[Math.floor(Math.random() * carTiles.length)];
       const pool: RoadVehicleKind[] = ["sedan", "sedan", "mini_cooper", "sports_car", "truck", "cybertruck"];
       if (hasBusDepot || this.gameState.highestStageReached >= 5) pool.push("bus");
       if (hasTaxiDepot || this.gameState.highestStageReached >= 4) pool.push("taxi");
@@ -1483,8 +1538,9 @@ export class PixelWorldRenderer {
   }
 
   private stepTrafficAndVillagers(dt: number, elapsed: number): void {
-    const roadSet = getConnectedRoadCoordSet(this.gameState.elements);
-    const railSet = getConnectedRailCoordSet(this.gameState.elements);
+    const roadSet = this.cachedRoadSet;
+    const railSet = this.cachedRailSet;
+    const loadMap = getTrafficLoadMap();
 
     const dirs: [number, number][] = [
       [1, 0],
@@ -1494,10 +1550,12 @@ export class PixelWorldRenderer {
     ];
 
     for (const a of this.trafficAgents) {
-      const net = a.isRail ? railSet : roadSet;
+      const net = a.isRail ? railSet : this.cachedCarSet;
       if (net.size === 0) continue;
 
-      a.progress += dt * a.speed;
+      const load = a.isRail ? 0 : loadMap.get(`${a.gx},${a.gz}`) ?? 0;
+      const jam = load > 0.85 ? 1 / (1 + (load - 0.85) * 2.2) : 1;
+      a.progress += dt * a.speed * Math.max(0.25, jam);
       if (a.progress >= 1) {
         a.gx = a.nextGx;
         a.gz = a.nextGz;
@@ -1663,6 +1721,14 @@ export class PixelWorldRenderer {
         const spd = ((grp.userData.rotorSpeed as number) || 1.6) * (0.45 + (this.gameState.windSpeed ?? 1.0) * 0.75);
         rotor.rotation[axis] += dt * spd;
       }
+      const rotorList = grp.userData.rotorList as { pivot: THREE.Group; axis: "x" | "y" | "z"; speed: number; wind: boolean }[] | undefined;
+      if (rotorList) {
+        const windMul = 0.45 + (this.gameState.windSpeed ?? 1.0) * 0.75;
+        const powered = el.connected && !el.disrepair && !el.onFire ? 1 : 0.15;
+        for (const r of rotorList) {
+          r.pivot.rotation[r.axis] += dt * r.speed * (r.wind ? windMul : 1) * powered;
+        }
+      }
 
       const baseY = (grp.userData.baseY as number) || 0;
       if (grp.userData.bobOnWater) {
@@ -1671,8 +1737,14 @@ export class PixelWorldRenderer {
         grp.position.y = baseY;
       }
 
-      // Celebratory squash-stretch animation on placement, upgrade & merge!
-      if (el.animProgress > 0.001) {
+      // New construction rises out of the ground; upgrades & merges squash-stretch
+      if (el.animProgress > 0.001 && el.animKind === "place" && entry.isBuilding) {
+        const t = 1 - el.animProgress; // 0 -> 1
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        const ease = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+        grp.scale.set(1, Math.max(0.03, ease), 1);
+      } else if (el.animProgress > 0.001) {
         const t = 1 - el.animProgress; // 0 -> 1
         const bounce = Math.sin(t * Math.PI * 2.2) * Math.exp(-t * 3.2);
         const amp = el.animKind === "merge" ? 0.38 : 0.22;
@@ -1714,6 +1786,9 @@ export class PixelWorldRenderer {
       this.spherical.theta += dt * 0.42;
       this.updateCameraTransform();
     }
+
+    // Smoke plumes, steam & blinking beacons
+    this.stepSmokeAndBeacons(dt, elapsed);
 
     // Fire voxels, destruction rubble & celebration particles
     this.emitFireVoxels(dt);
@@ -1908,36 +1983,189 @@ export class PixelWorldRenderer {
       this.heatmapGroup.remove(ch);
       if (ch instanceof THREE.Mesh) {
         (ch.material as THREE.Material).dispose();
+        if (ch instanceof THREE.InstancedMesh) ch.dispose();
       }
     }
     if (this.activeHeatmap === "none") return;
 
     const samples = computeHeatmapCells(this.gameState, this.activeHeatmap);
-    const tileGeo = new THREE.PlaneGeometry(TILE_SIZE * 0.92, TILE_SIZE * 0.92);
+    if (samples.length === 0) return;
+    const tileGeo = new THREE.PlaneGeometry(TILE_SIZE * 0.94, TILE_SIZE * 0.94);
     tileGeo.rotateX(-Math.PI / 2);
 
     const goodCol = new THREE.Color(0x22c55e);
     const midCol = new THREE.Color(0xf59e0b);
     const badCol = new THREE.Color(0xef4444);
-
-    for (const s of samples) {
-      const col = new THREE.Color();
-      if (s.score >= 0) {
-        col.copy(midCol).lerp(goodCol, s.score);
-      } else {
-        col.copy(midCol).lerp(badCol, Math.min(1, Math.abs(s.score)));
-      }
-      const mat = new THREE.MeshBasicMaterial({
-        color: col,
-        transparent: true,
-        opacity: 0.42 + Math.abs(s.score) * 0.25,
-        depthWrite: false,
-      });
-      const mesh = new THREE.Mesh(tileGeo, mat);
+    const mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.55, depthWrite: false });
+    const inst = new THREE.InstancedMesh(tileGeo, mat, samples.length);
+    const m4 = new THREE.Matrix4();
+    const col = new THREE.Color();
+    samples.forEach((s, i) => {
+      if (s.score >= 0) col.copy(midCol).lerp(goodCol, s.score);
+      else col.copy(midCol).lerp(badCol, Math.min(1, Math.abs(s.score)));
       const [wx, wz] = gridToWorldCenter(s.gx, s.gz, 1, 1);
-      mesh.position.set(wx, 0.08, wz);
-      this.heatmapGroup.add(mesh);
+      m4.makeTranslation(wx, 0.09, wz);
+      inst.setMatrixAt(i, m4);
+      inst.setColorAt(i, col);
+    });
+    inst.instanceMatrix.needsUpdate = true;
+    if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+    inst.renderOrder = 2;
+    this.heatmapGroup.add(inst);
+  }
+
+  // ===================== SMOKE PLUMES & BLINKING BEACONS =====================
+
+  private static SMOKE_COLORS = [0xb7bcc4, 0xf4f8fb, 0x4b4f58, 0xffa040];
+  private static SMOKE_MAX = 700;
+
+  private ensureSmokeMesh(): THREE.InstancedMesh {
+    if (this.smokeMesh) return this.smokeMesh;
+    const mat = new THREE.MeshLambertMaterial({ transparent: true, opacity: 0.82, depthWrite: false });
+    const mesh = new THREE.InstancedMesh(this.unitCubeGeo, mat, PixelWorldRenderer.SMOKE_MAX);
+    mesh.count = 0;
+    mesh.frustumCulled = false;
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.fxGroup.add(mesh);
+    this.smokeMesh = mesh;
+    return mesh;
+  }
+
+  private rebuildEmittersAndBeacons(): void {
+    const kinds: Record<string, number> = { smoke: 0, steam: 1, dark: 2, spark: 3 };
+    this.smokeEmitters = [];
+    const beacons: { pos: THREE.Vector3; col: string }[] = [];
+    for (const el of this.gameState.elements) {
+      const entry = this.placedEntries.get(el.id);
+      if (!entry) continue;
+      const pts = (entry.group.userData.smokePoints as [number, number, number, string][]) ?? [];
+      const active = el.connected && !el.disrepair;
+      if (active) {
+        for (const [x, y, z, k] of pts) {
+          this.smokeEmitters.push({ entryId: el.id, local: new THREE.Vector3(x, y, z), kind: kinds[k] ?? 0, acc: Math.random() });
+        }
+      }
+      const bl = (entry.group.userData.blinkers as [number, number, number, string][]) ?? [];
+      if (bl.length) {
+        entry.group.updateMatrixWorld(true);
+        for (const [x, y, z, c] of bl) {
+          beacons.push({ pos: entry.group.localToWorld(new THREE.Vector3(x, y, z)), col: c });
+        }
+      }
     }
+    const bKey = beacons.map((b) => `${b.pos.x.toFixed(1)},${b.pos.y.toFixed(1)},${b.pos.z.toFixed(1)}${b.col}`).join("|");
+    if (bKey === this.blinkKey) return;
+    this.blinkKey = bKey;
+    if (this.blinkMesh) {
+      this.fxGroup.remove(this.blinkMesh);
+      this.blinkMesh.dispose();
+      this.blinkMesh = null;
+    }
+    if (beacons.length === 0) return;
+    const mesh = new THREE.InstancedMesh(this.unitCubeGeo, new THREE.MeshBasicMaterial({ toneMapped: false }), beacons.length);
+    const m4 = new THREE.Matrix4();
+    const col = new THREE.Color();
+    beacons.forEach((b, i) => {
+      m4.makeScale(0.22, 0.22, 0.22).setPosition(b.pos);
+      mesh.setMatrixAt(i, m4);
+      col.set(PALETTE[b.col] ?? b.col);
+      col.multiplyScalar(1.6);
+      mesh.setColorAt(i, col);
+    });
+    mesh.frustumCulled = false;
+    mesh.userData.positions = beacons.map((b) => b.pos);
+    this.blinkPhases = beacons.map(() => Math.random());
+    this.fxGroup.add(mesh);
+    this.blinkMesh = mesh;
+  }
+
+  private stepSmokeAndBeacons(dt: number, elapsed: number): void {
+    // Beacons: crisp on/off blink, a little desynchronised
+    if (this.blinkMesh) {
+      const positions = this.blinkMesh.userData.positions as THREE.Vector3[];
+      const m4 = new THREE.Matrix4();
+      for (let i = 0; i < positions.length; i++) {
+        const on = (elapsed * 0.9 + this.blinkPhases[i]) % 1 < 0.42;
+        const sc = on ? 0.26 : 0.001;
+        m4.makeScale(sc, sc, sc).setPosition(positions[i]);
+        this.blinkMesh.setMatrixAt(i, m4);
+      }
+      this.blinkMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    if (this.smokeEmitters.length === 0 && this.smokeParts.length === 0) {
+      if (this.smokeMesh) this.smokeMesh.count = 0;
+      return;
+    }
+    const mesh = this.ensureSmokeMesh();
+    const wind = (this.gameState.windSpeed ?? 1) * 0.9;
+    const budget = PixelWorldRenderer.SMOKE_MAX;
+    const rate = this.isSoftwareGl ? 1.2 : 2.6;
+    const tmp = new THREE.Vector3();
+    for (const em of this.smokeEmitters) {
+      em.acc += dt * rate * (em.kind === 1 ? 1.3 : em.kind === 3 ? 2.5 : 1);
+      while (em.acc >= 1 && this.smokeParts.length < budget) {
+        em.acc -= 1;
+        const entry = this.placedEntries.get(em.entryId);
+        if (!entry) break;
+        tmp.copy(em.local);
+        entry.group.localToWorld(tmp);
+        const spark = em.kind === 3;
+        this.smokeParts.push({
+          x: tmp.x + (Math.random() - 0.5) * 0.2,
+          y: tmp.y,
+          z: tmp.z + (Math.random() - 0.5) * 0.2,
+          vx: (Math.random() - 0.5) * (spark ? 1.6 : 0.3),
+          vy: spark ? 1.2 + Math.random() * 1.4 : 0.9 + Math.random() * 0.5,
+          vz: (Math.random() - 0.5) * (spark ? 1.6 : 0.3),
+          life: 0,
+          max: spark ? 0.6 + Math.random() * 0.4 : em.kind === 1 ? 2.4 + Math.random() : 3.4 + Math.random() * 1.4,
+          size: spark ? 0.09 : em.kind === 1 ? 0.42 : 0.34,
+          kind: em.kind,
+        });
+      }
+      if (em.acc > 3) em.acc = 0;
+    }
+    const m4 = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const sc = new THREE.Vector3();
+    const pos = new THREE.Vector3();
+    const col = new THREE.Color();
+    let n = 0;
+    for (let i = this.smokeParts.length - 1; i >= 0; i--) {
+      const p = this.smokeParts[i];
+      p.life += dt;
+      if (p.life >= p.max) {
+        this.smokeParts[i] = this.smokeParts[this.smokeParts.length - 1];
+        this.smokeParts.pop();
+        continue;
+      }
+      const t = p.life / p.max;
+      if (p.kind === 3) {
+        p.vy -= 3.5 * dt;
+      } else {
+        p.vx += wind * 0.35 * dt;
+        p.vz += wind * 0.18 * dt;
+        p.vy *= 1 - dt * 0.25;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.z += p.vz * dt;
+      const grow = p.kind === 3 ? 1 - t : (0.6 + t * 2.4) * (t > 0.75 ? (1 - t) / 0.25 : 1);
+      const s2 = p.size * Math.max(0.05, grow);
+      pos.set(p.x, p.y, p.z);
+      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.life * 0.6 + i);
+      sc.set(s2, s2, s2);
+      m4.compose(pos, q, sc);
+      mesh.setMatrixAt(n, m4);
+      col.setHex(PixelWorldRenderer.SMOKE_COLORS[p.kind] ?? 0xcccccc);
+      if (p.kind === 0) col.lerp(new THREE.Color(0xe8ecf0), t);
+      mesh.setColorAt(n, col);
+      n += 1;
+    }
+    mesh.count = n;
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   }
 
   private findRoadPath(startGx: number, startGz: number, targetGx: number, targetGz: number): [number, number][] {

@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import {
   Briefcase,
+  Car,
   ChevronDown,
+  Factory,
+  Gem,
   ChevronUp,
   Droplets,
   Flame,
@@ -30,6 +33,24 @@ const HEATMAP_OPTIONS: {
   icon: React.ComponentType<{ className?: string }>;
   getSummary: (s: GameState) => string;
 }[] = [
+  {
+    id: "landvalue",
+    label: "Land Value",
+    icon: Gem,
+    getSummary: (s) => `avg ${(s.metrics.landValueAvg ?? 0.5).toFixed(2)}`,
+  },
+  {
+    id: "pollution",
+    label: "Pollution",
+    icon: Factory,
+    getSummary: (s) => `avg ${(s.metrics.pollutionAvg ?? 0).toFixed(1)}`,
+  },
+  {
+    id: "traffic",
+    label: "Traffic",
+    icon: Car,
+    getSummary: (s) => `${s.metrics.congestion ?? 0}%`,
+  },
   {
     id: "water",
     label: "Water",

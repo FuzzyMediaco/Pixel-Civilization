@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Car,
   ChevronDown,
   ChevronUp,
   Cloud,
@@ -21,6 +22,7 @@ import {
   Wallet,
   Wrench,
   X,
+  Zap,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -136,13 +138,56 @@ export const TopHud: React.FC<TopHudProps> = ({
             </span>
           </div>
 
-          {/* Treasury */}
-          <div className="flex items-center gap-0.5" title="Treasury">
+          {/* Treasury + live cash flow */}
+          <div
+            className="flex items-center gap-0.5"
+            title={`Treasury · income $${m.grossIncomePerTick ?? 0}/tick − upkeep $${m.upkeepPerTick ?? 0}/tick`}
+          >
             <Wallet className="h-3.5 w-3.5 text-amber-700" />
             <span className="font-mono-num text-xs font-extrabold text-stone-900">
               {state.mode === "god" ? "∞" : `$${Math.floor(state.money).toLocaleString()}`}
             </span>
+            {state.mode !== "god" && (
+              <span
+                className={`font-mono-num text-[10px] font-bold ${(m.netIncomePerTick ?? 0) >= 0 ? "text-emerald-700" : "text-rose-700"}`}
+              >
+                {(m.netIncomePerTick ?? 0) >= 0 ? "+" : ""}
+                {Math.round(m.netIncomePerTick ?? 0)}
+              </span>
+            )}
           </div>
+
+          {/* Live power (solar follows the sun, wind follows the weather) */}
+          {m.powerDemand > 0 && (
+            <div
+              className="flex items-center gap-0.5"
+              title={`Power ${m.powerSupply}/${m.powerDemand} · ${m.renewablePct ?? 0}% renewable · solar ${Math.round((m.solarFactor ?? 1) * 100)}% · wind ${Math.round((m.windFactor ?? 1) * 100)}%`}
+            >
+              <Zap className={`h-3.5 w-3.5 ${m.powerSupply >= m.powerDemand ? "text-yellow-600" : "text-rose-600"}`} />
+              <span
+                className={`font-mono-num text-xs font-extrabold ${m.powerSupply >= m.powerDemand ? "text-stone-900" : "text-rose-700"}`}
+              >
+                {Math.round((m.powerSupply / Math.max(1, m.powerDemand)) * 100)}%
+              </span>
+            </div>
+          )}
+
+          {/* Traffic congestion */}
+          {(m.trafficTrips ?? 0) > 10 && (
+            <div
+              className="flex items-center gap-0.5"
+              title={`Traffic: ${m.trafficTrips} trips vs ${m.trafficCapacity} road capacity · ${m.transitShare ?? 0}% on transit`}
+            >
+              <Car
+                className={`h-3.5 w-3.5 ${(m.congestion ?? 0) <= 70 ? "text-emerald-700" : (m.congestion ?? 0) <= 100 ? "text-amber-600" : "text-rose-600"}`}
+              />
+              <span
+                className={`font-mono-num text-xs font-extrabold ${(m.congestion ?? 0) <= 70 ? "text-stone-900" : (m.congestion ?? 0) <= 100 ? "text-amber-700" : "text-rose-700"}`}
+              >
+                {m.congestion ?? 0}%
+              </span>
+            </div>
+          )}
 
           {/* Crime Metric: Toggleable ON/OFF in God Mode, or Stage 5+ in Real/Survival */}
           {state.mode === "god" && onToggleGodCrime ? (

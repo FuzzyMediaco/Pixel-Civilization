@@ -7,9 +7,39 @@ import {
   type GameMode,
   STAGES,
   getStandardFootprintForLevel,
+  MAX_FOOTPRINT,
   getUpgradeCost,
 } from "./catalog";
 import { TILE_SIZE } from "./voxelCore";
+import {
+  ACHIEVEMENTS,
+  analyzeLayout,
+  fieldIndex,
+  landValuePopMultiplier,
+  powerKind,
+  powerOutputFactor,
+  roadCapacity,
+  rushHourFactor,
+  sampleFieldAvg,
+  synergyMultiplier,
+  transitRelief,
+  tripsFor,
+  upkeepFor,
+} from "./cityDynamics";
+
+/** Latest per-road-tile traffic load ratio (0 = empty, 1 = at capacity), for heatmaps & car density */
+let lastTrafficLoad = new Map<string, number>();
+export function getTrafficLoadMap(): Map<string, number> {
+  return lastTrafficLoad;
+}
+
+function isCoastalTile(gx: number, gz: number): boolean {
+  if (getTileTerrainKind(gx, gz) !== "land") return true;
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2]]) {
+    if (getTileTerrainKind(gx + dx, gz + dz) !== "land") return true;
+  }
+  return false;
+}
 
 export const GRID_HALF = 32; // tiles from -32 .. +31 (64x64 grid = 256m x 256m)
 export const GRID_MIN = -GRID_HALF;
@@ -36,6 +66,12 @@ export interface PlacedElement {
   maintTimerSec: number;
   disrepair: boolean;
   onFire: boolean;
+  /** Active neighbour synergies (ids from SYNERGY_RULES) */
+  synergies?: string[];
+  /** Land value 0..2 sampled under this element */
+  landValue?: number;
+  /** Pollution sampled under this element */
+  pollution?: number;
   /** Network piece that replaced a placed river/canal/lake tile (bridge over water) */
   overWater?: boolean;
   /** 1 -> 0 animation progress for newly placed / merged / upgraded buildings */
@@ -65,7 +101,10 @@ export type HeatmapKind =
   | "parks"
   | "police"
   | "fire"
-  | "defense";
+  | "defense"
+  | "landvalue"
+  | "pollution"
+  | "traffic";
 
 export type SelectionFilter = "all" | "roads" | "buildings" | "water" | "power" | "waste";
 
@@ -189,6 +228,27 @@ export interface CityMetrics {
   disrepairCount: number;
   burningCount: number;
   netIncomePerTick: number;
+  grossIncomePerTick: number;
+  upkeepPerTick: number;
+  pollutionAvg: number;
+  landValueAvg: number;
+  trafficTrips: number;
+  trafficCapacity: number;
+  /** 0..200+ % of road capacity used (after transit relief, at the current hour) */
+  congestion: number;
+  transitTrips: number;
+  transitShare: number;
+  renewablePct: number;
+  solarFactor: number;
+  windFactor: number;
+  synergyCount: number;
+}
+
+export interface HistorySample {
+  t: number;
+  pop: number;
+  money: number;
+  happy: number;
 }
 
 export interface GameEventToast {
@@ -229,6 +289,11 @@ export interface GameState {
   metrics: CityMetrics;
   diagnostics: AdvisorDiagnostic[];
   toasts: GameEventToast[];
+  /** Rolling stat history for sparklines */
+  history?: HistorySample[];
+  historyTimerSec?: number;
+  /** Unlocked achievement ids */
+  achievements?: string[];
 }
 
 export function isNightTime(timeOfDay: number): boolean {
@@ -337,6 +402,19 @@ export function createEmptyMetrics(): CityMetrics {
     disrepairCount: 0,
     burningCount: 0,
     netIncomePerTick: 0,
+    grossIncomePerTick: 0,
+    upkeepPerTick: 0,
+    pollutionAvg: 0,
+    landValueAvg: 0.5,
+    trafficTrips: 0,
+    trafficCapacity: 0,
+    congestion: 0,
+    transitTrips: 0,
+    transitShare: 0,
+    renewablePct: 0,
+    solarFactor: 1,
+    windFactor: 1,
+    synergyCount: 0,
   };
 }
 
@@ -448,6 +526,57 @@ export function isWaterTile(elements: PlacedElement[] | Map<string, PlacedElemen
   if (here.overWater) return true;
   const d = ELEMENT_BY_ID[here.defId];
   return Boolean(d?.isWaterFeature);
+}
+
+export interface NetworkPlacementPlan {
+  ok: boolean;
+  reason?: string;
+  /** Element actually placed (a road dragged over water becomes a bridge) */
+  defId: string;
+  /** Existing water-feature tile replaced by the bridge */
+  replaceId?: string;
+  overWater?: boolean;
+}
+
+/**
+ * Smart road placement: dragging a ground road across water automatically builds a bridge
+ * (steel truss, stone arch, or suspension span for highways), and bridges can be laid right
+ * over rivers, canals & ponds — the water keeps flowing underneath.
+ */
+export function planNetworkPlacement(state: GameState, def: CivElementDef, gx: number, gz: number): NetworkPlacementPlan {
+  const base = checkPlacementValid(state, def, gx, gz, 1, 1);
+  if (base.valid) return { ok: true, defId: def.id };
+  if (!def.isRoadNetwork) return { ok: false, reason: base.reason, defId: def.id };
+  if (gx < GRID_MIN || gz < GRID_MIN || gx > GRID_MAX || gz > GRID_MAX) {
+    return { ok: false, reason: base.reason, defId: def.id };
+  }
+  const occ = buildOccupancyMap(state.elements);
+  const here = occ.get(`${gx},${gz}`);
+  const hereDef = here ? ELEMENT_BY_ID[here.defId] : undefined;
+  const waterUnder = here
+    ? Boolean(hereDef?.isWaterFeature && hereDef.isNetwork)
+    : getTileTerrainKind(gx, gz) === "water";
+  if (!waterUnder) return { ok: false, reason: base.reason, defId: def.id };
+
+  let bridgeId = def.id;
+  if (networkDeckClass(def) !== "elevated") {
+    const prefs =
+      def.id === "highways" || def.id === "freeways"
+        ? ["suspension_bridges", "bridges", "stone_bridges"]
+        : def.id === "pretty_roads" || def.id === "walking_paths" || def.id === "paths" || def.id === "trails" || def.id === "side_walks"
+          ? ["stone_bridges", "bridges"]
+          : ["bridges", "stone_bridges", "suspension_bridges"];
+    if (def.id === "boardwalks") prefs.unshift("boardwalks");
+    const pick = prefs.find((id) => {
+      const d = ELEMENT_BY_ID[id];
+      return d && isElementUnlocked(d, state);
+    });
+    if (!pick) {
+      return { ok: false, reason: "Water! Bridges unlock at Stage 6 — then roads auto-bridge across", defId: def.id };
+    }
+    bridgeId = pick;
+  }
+  return { ok: true, defId: bridgeId, replaceId: here?.id, overWater: Boolean(here) || getTileTerrainKind(gx, gz) !== "land" };
 }
 
 export function getNetworkConnMask(
@@ -573,12 +702,12 @@ export function canMergePair(
   const minZ = Math.min(a.gz, b.gz);
   const maxZ = Math.max(a.gz + a.spanZ - 1, b.gz + b.spanZ - 1);
 
-  const wantX = Math.min(3, Math.max(a.spanX, stdX));
-  const wantZ = Math.min(3, Math.max(a.spanZ, stdZ));
+  const wantX = Math.min(MAX_FOOTPRINT, Math.max(stdX, 1));
+  const wantZ = Math.min(MAX_FOOTPRINT, Math.max(stdZ, 1));
   const dimAttempts: [number, number][] = [[wantX, wantZ]];
   if (wantX !== wantZ) dimAttempts.push([wantZ, wantX]);
-  if (a.spanX !== wantX || a.spanZ !== wantZ) {
-    dimAttempts.push([a.spanX, a.spanZ]);
+  if ((a.spanX !== wantX || a.spanZ !== wantZ) && (a.spanX !== wantZ || a.spanZ !== wantX)) {
+    dimAttempts.push([Math.max(a.spanX, b.spanX), Math.max(a.spanZ, b.spanZ)]);
   }
 
   for (const [tx, tz] of dimAttempts) {
@@ -642,7 +771,12 @@ export function mergeElementsInState(state: GameState, idA: string, idB: string)
     gz: plan.targetGz,
     spanX: plan.spanX,
     spanZ: plan.spanZ,
-    rotation: plan.spanX < plan.spanZ ? 1 : a.rotation % 2 === 0 ? a.rotation : 0,
+    rotation: (() => {
+      const [fx, fz] = getStandardFootprintForLevel(def, plan.nextLevel!);
+      const swapped = fx !== fz && plan.spanX === fz && plan.spanZ === fx;
+      const base = a.rotation % 2 === 0 ? a.rotation : a.rotation - 1;
+      return swapped ? base + 1 : base;
+    })(),
     level: plan.nextLevel,
     variant: randomVariant(),
     connected: true,
@@ -681,43 +815,40 @@ export function resizeElementForLevel(
   if (!def.isNetwork) {
     const [stdX, stdZ] = getStandardFootprintForLevel(def, nextLevel);
     const rotSwap = el.rotation % 2 === 1;
-    let targetSpanX = Math.min(3, rotSwap ? stdZ : stdX);
-    let targetSpanZ = Math.min(3, rotSwap ? stdX : stdZ);
+    const wantX = Math.min(MAX_FOOTPRINT, rotSwap ? stdZ : stdX);
+    const wantZ = Math.min(MAX_FOOTPRINT, rotSwap ? stdX : stdZ);
     const ignore = new Set([el.id]);
-
-    if (targetSpanX > el.spanX || targetSpanZ > el.spanZ) {
-      const tryDims: [number, number][] = [[targetSpanX, targetSpanZ]];
-      if (targetSpanX !== targetSpanZ) tryDims.push([targetSpanZ, targetSpanX]);
-      const altOffsets: [number, number][] = [
-        [0, 0],
-        [-1, 0],
-        [0, -1],
-        [-1, -1],
-        [1, 0],
-        [0, 1],
-      ];
-      let fitted = false;
-      for (const [dxSpan, dzSpan] of tryDims) {
-        for (const [ox, oz] of altOffsets) {
-          if (checkPlacementValid(state, def, el.gx + ox, el.gz + oz, dxSpan, dzSpan, ignore).valid) {
-            el.gx += ox;
-            el.gz += oz;
-            targetSpanX = dxSpan;
-            targetSpanZ = dzSpan;
-            fitted = true;
-            break;
-          }
+    let fitted = false;
+    const tryDims: [number, number][] = [[wantX, wantZ]];
+    if (wantX !== wantZ) tryDims.push([wantZ, wantX]);
+    for (const [tx, tz] of tryDims) {
+      // Candidate anchors that keep the old footprint inside/overlapping, nearest-to-centre first
+      const cands: [number, number, number][] = [];
+      for (let ox = -(tx - 1); ox <= el.spanX - 1; ox++) {
+        for (let oz = -(tz - 1); oz <= el.spanZ - 1; oz++) {
+          const cx = el.gx + ox + tx / 2 - (el.gx + el.spanX / 2);
+          const cz = el.gz + oz + tz / 2 - (el.gz + el.spanZ / 2);
+          cands.push([ox, oz, cx * cx + cz * cz]);
         }
-        if (fitted) break;
       }
-      if (!fitted) {
-        targetSpanX = el.spanX;
-        targetSpanZ = el.spanZ;
+      cands.sort((p, q) => p[2] - q[2]);
+      for (const [ox, oz] of cands) {
+        if (checkPlacementValid(state, def, el.gx + ox, el.gz + oz, tx, tz, ignore).valid) {
+          el.gx += ox;
+          el.gz += oz;
+          el.spanX = tx;
+          el.spanZ = tz;
+          if (tx !== wantX || tz !== wantZ) el.rotation = (el.rotation + 1) % 4;
+          fitted = true;
+          break;
+        }
       }
+      if (fitted) break;
     }
-
-    el.spanX = targetSpanX;
-    el.spanZ = targetSpanZ;
+    if (!fitted && (wantX <= el.spanX && wantZ <= el.spanZ)) {
+      el.spanX = wantX;
+      el.spanZ = wantZ;
+    }
   }
 
   el.level = nextLevel;
@@ -942,8 +1073,14 @@ export function getConnectedRailCoordSet(elements: PlacedElement[]): Set<string>
  * Computes road network connected components, coverage radii (Police, Fire, Nuisance),
  * and full city supply/demand metrics + Advisor diagnostics.
  */
+const HARBOR_IDS = new Set(["docks", "shipyards", "ship_building_areas", "naval_base", "submarine_base"]);
+
+/** Foot-traffic-only network pieces (cars stay off; villagers love them) */
+export const PEDESTRIAN_IDS = new Set(["paths", "walking_paths", "trails", "side_walks", "boardwalks"]);
+
 export function recomputeConnectivityAndMetrics(state: GameState): void {
   const elements = state.elements;
+  let unportedVessels = 0;
   const { buildingsInRoadComp, elementRoadComps } = analyzeRoadNetwork(elements);
 
   // An element is connected if:
@@ -956,8 +1093,22 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       el.connected = false;
       continue;
     }
-    if (def.isNetwork || def.passiveNature || def.domain === "water") {
+    if (def.isNetwork || def.passiveNature) {
       el.connected = true;
+      continue;
+    }
+    if (def.domain === "water") {
+      // Vessels need a home port: a dock, shipyard or naval base nearby
+      const range = def.military || def.id === "naval_vessels" || def.id === "submarines" || def.id === "aircraft_carriers" ? 10 : 7;
+      const cx = el.gx + el.spanX / 2;
+      const cz = el.gz + el.spanZ / 2;
+      el.connected =
+        state.mode === "god" ||
+        elements.some((p) => {
+          if (!HARBOR_IDS.has(p.defId)) return false;
+          return Math.hypot(p.gx + p.spanX / 2 - cx, p.gz + p.spanZ / 2 - cz) <= range + (p.spanX + p.spanZ) / 2;
+        });
+      if (!el.connected) unportedVessels += 1;
       continue;
     }
     const comps = elementRoadComps.get(el.id);
@@ -982,10 +1133,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     const d = ELEMENT_BY_ID[e.defId];
     return e.connected && !e.onFire && (d?.fireRadius ?? 0) > 0;
   });
-  const nuisanceSources = elements.filter((e) => {
-    const d = ELEMENT_BY_ID[e.defId];
-    return (d?.nuisanceRadius ?? 0) > 0;
-  });
+  const layout = analyzeLayout(elements, isCoastalTile);
 
   for (const el of elements) {
     el.hasPoliceCover = false;
@@ -1018,15 +1166,12 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
 
     const def = ELEMENT_BY_ID[el.defId];
-    if (def?.popBase) {
-      for (const n of nuisanceSources) {
-        const nDef = ELEMENT_BY_ID[n.defId]!;
-        const rad = nDef.nuisanceRadius ?? 6;
-        const dist = Math.hypot(cx - (n.gx + n.spanX * 0.5), cz - (n.gz + n.spanZ * 0.5));
-        if (dist <= rad) {
-          el.nuisancePenalty += Math.max(1, Math.round((rad - dist + 1) * 2.5));
-        }
-      }
+    const pol = sampleFieldAvg(layout.pollution, el);
+    el.pollution = Math.round(pol * 10) / 10;
+    el.landValue = Math.round(sampleFieldAvg(layout.landValue, el) * 100) / 100;
+    el.synergies = layout.synergies.get(el.id) ?? [];
+    if (def?.popBase && pol > 1.2) {
+      el.nuisancePenalty = Math.round((pol - 1.2) * 3);
     }
   }
 
@@ -1038,6 +1183,69 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   let coverableBuildings = 0;
   let militaryPower = 0;
   let incomeSum = 0;
+  let upkeepSum = 0;
+  let renewableOut = 0;
+  let landValueSum = 0;
+
+  // Traffic: trips per road component vs capacity, minus transit relief, scaled by rush hour
+  const congestedEls = new Set<string>();
+  {
+    const { roadCompByCoord, elementRoadComps } = analyzeRoadNetwork(elements);
+    const capByComp = new Map<number, number>();
+    const tripsByComp = new Map<number, number>();
+    const reliefByComp = new Map<number, number>();
+    const occ = buildOccupancyMap(elements);
+    for (const [coord, comp] of roadCompByCoord) {
+      const el = occ.get(coord);
+      const d = el ? ELEMENT_BY_ID[el.defId] : undefined;
+      if (!el || !d) continue;
+      capByComp.set(comp, (capByComp.get(comp) ?? 0) + roadCapacity(d, el.level));
+    }
+    const rush = rushHourFactor(state.timeOfDay ?? 10.5);
+    let totalTrips = 0;
+    let totalRelief = 0;
+    for (const el of elements) {
+      const d = ELEMENT_BY_ID[el.defId];
+      if (!d || !el.connected) continue;
+      const comps = elementRoadComps.get(el.id);
+      if (!comps || comps.size === 0) continue;
+      const share = 1 / comps.size;
+      const trips = tripsFor(d) * Math.pow(1.7, el.level - 1) * rush;
+      const relief = transitRelief(d, el.level);
+      for (const c of comps) {
+        if (trips) tripsByComp.set(c, (tripsByComp.get(c) ?? 0) + trips * share);
+        if (relief) reliefByComp.set(c, (reliefByComp.get(c) ?? 0) + relief * share);
+      }
+      totalTrips += trips;
+    }
+    const loadByComp = new Map<number, number>();
+    let usedCap = 0;
+    let sumCap = 0;
+    for (const [comp, trips] of tripsByComp) {
+      const relief = Math.min(trips * 0.7, reliefByComp.get(comp) ?? 0);
+      totalRelief += relief;
+      const cap = Math.max(1, capByComp.get(comp) ?? 1);
+      const load = (trips - relief) / cap;
+      loadByComp.set(comp, load);
+      usedCap += trips - relief;
+      sumCap += cap;
+    }
+    const loadMap = new Map<string, number>();
+    for (const [coord, comp] of roadCompByCoord) loadMap.set(coord, loadByComp.get(comp) ?? 0);
+    lastTrafficLoad = loadMap;
+    for (const el of elements) {
+      const comps = elementRoadComps.get(el.id);
+      if (!comps) continue;
+      for (const c of comps) if ((loadByComp.get(c) ?? 0) > 1.15) congestedEls.add(el.id);
+    }
+    m.trafficTrips = Math.round(totalTrips);
+    m.transitTrips = Math.round(totalRelief);
+    m.transitShare = totalTrips > 0 ? Math.round((totalRelief / totalTrips) * 100) : 0;
+    m.trafficCapacity = Math.round(sumCap);
+    m.congestion = sumCap > 0 ? Math.round((usedCap / sumCap) * 100) : 0;
+  }
+  m.solarFactor = Math.round(powerOutputFactor("solar", state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * 100) / 100;
+  m.windFactor = Math.round(powerOutputFactor("wind", state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * 100) / 100;
 
   for (const el of elements) {
     const def = ELEMENT_BY_ID[el.defId];
@@ -1052,13 +1260,19 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
     if (!el.connected || el.onFire) continue;
 
-    // Level scaling: doubling per level (1, 2, 4, 8, 16)
+    // Level scaling: doubling per level (1, 2, 4, 8, 16) + neighbour synergies
+    const synCount = el.synergies?.length ?? 0;
+    m.synergyCount += synCount;
+    const synMult = synergyMultiplier(synCount);
     const lvMult = Math.pow(2, el.level - 1);
     // Disrepair in Survival Mode cuts positive service output by 75%
-    const serviceHealth = el.disrepair ? 0.25 : 1.0;
+    const serviceHealth = (el.disrepair ? 0.25 : 1.0) * synMult;
+    upkeepSum += state.mode === "god" ? 0 : upkeepFor(def, el.level);
 
     if (def.popBase) {
-      baseHousingPop += def.popBase * lvMult;
+      const lvPop = landValuePopMultiplier(el.landValue ?? 0.5);
+      landValueSum += el.landValue ?? 0.5;
+      baseHousingPop += def.popBase * lvMult * lvPop * synMult;
       m.connectedHouses += 1;
       if (el.nuisancePenalty > 0) {
         m.nuisanceAffectedHomes += 1;
@@ -1066,7 +1280,13 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
 
     if (def.power) {
-      if (def.power > 0) m.powerSupply += Math.round(def.power * lvMult * serviceHealth);
+      const pk = powerKind(def);
+      if (def.power > 0 && pk) {
+        const live = powerOutputFactor(pk, state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1);
+        const out = Math.round(def.power * lvMult * serviceHealth * live);
+        m.powerSupply += out;
+        if (pk === "solar" || pk === "wind" || pk === "hydro" || pk === "geo") renewableOut += out;
+      }
       else m.powerDemand += Math.abs(def.power) * Math.max(1, Math.round(lvMult * 0.75));
     }
     if (def.water) {
@@ -1098,7 +1318,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       militaryPower += Math.round(def.military * lvMult * serviceHealth);
     }
     if (def.income) {
-      incomeSum += Math.round(def.income * lvMult * serviceHealth);
+      const lvIncome = 0.8 + Math.min(2, el.landValue ?? 0.5) * 0.3;
+      incomeSum += Math.round(def.income * lvMult * serviceHealth * lvIncome * (congestedEls.has(el.id) ? 0.75 : 1));
     }
 
     if (!def.isNetwork && !def.passiveNature && (def.popBase || def.jobs)) {
@@ -1222,7 +1443,23 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   }
 
   const taxFromPop = Math.round(Math.sqrt(state.population) * 0.9);
-  m.netIncomePerTick = incomeSum + taxFromPop;
+  m.grossIncomePerTick = incomeSum + taxFromPop;
+  m.upkeepPerTick = Math.round(upkeepSum * 10) / 10;
+  m.netIncomePerTick = Math.round((m.grossIncomePerTick - m.upkeepPerTick) * 10) / 10;
+  m.renewablePct = m.powerSupply > 0 ? Math.round((renewableOut / m.powerSupply) * 100) : 0;
+  m.landValueAvg = m.connectedHouses > 0 ? Math.round((landValueSum / m.connectedHouses) * 100) / 100 : 0.5;
+  {
+    let pSum = 0;
+    let pN = 0;
+    for (const el of elements) {
+      const d = ELEMENT_BY_ID[el.defId];
+      if (!d || d.isNetwork || d.passiveNature) continue;
+      pSum += Math.max(0, el.pollution ?? 0);
+      pN += 1;
+    }
+    m.pollutionAvg = pN ? Math.round((pSum / pN) * 10) / 10 : 0;
+  }
+  checkAchievements(state, m);
 
   // 5. Compute Happiness & Diagnostics ("What's Missing?")
   const diags: AdvisorDiagnostic[] = [];
@@ -1251,6 +1488,16 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       title: `${m.disconnectedBuildings} Unconnected Building${m.disconnectedBuildings > 1 ? "s" : ""}`,
       detail: "Houses and services only operate when linked by road to at least one other building.",
       fixHint: "Build Roads touching both your Houses and workplaces/utilities.",
+    });
+  }
+
+  if (unportedVessels > 0) {
+    diags.push({
+      id: "no_port",
+      severity: "warning",
+      title: `${unportedVessels} Vessel${unportedVessels > 1 ? "s" : ""} Without a Home Port`,
+      detail: "Boats and ships only earn, patrol and defend when a Dock, Shipyard or Naval Base is nearby.",
+      fixHint: "Build a Dock (or a Naval Base for warships) on the coast within a few tiles of your fleet.",
     });
   }
 
@@ -1285,7 +1532,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       });
     };
 
-    checkNeed("power", "Power", m.powerSupply, m.powerDemand, 22, "Place Solar Panels, Windmills, or Power Plants connected by road.");
+    checkNeed("power", "Power", m.powerSupply, m.powerDemand, 22, m.solarFactor < 0.6 ? `Solar is only at ${Math.round(m.solarFactor * 100)}% (night/clouds) — mix in Wind, Coal, Gas or Nuclear for steady power.` : "Place Solar Panels, Windmills, or Power Plants connected by road.");
     checkNeed("water", "Clean Water", m.waterSupply, m.waterDemand, 24, "Build a Water Plant, Water Tower, or Wells connected to roads.");
     checkNeed("waste", "Garbage Pickup", m.wasteCapacity, m.wasteDemand, 16, "Add a Landfill or Trash Plant (keep a few tiles away from homes!).");
     checkNeed("jobs", "Jobs", m.jobsAvailable, m.jobsNeeded, 18, "Build Businesses, Shops, Farms, or Factories so citizens can work.");
@@ -1303,9 +1550,22 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       diags.push({
         id: "nuisance",
         severity: "warning",
-        title: `${m.nuisanceAffectedHomes} Home${m.nuisanceAffectedHomes > 1 ? "s" : ""} Near Pollution/Trash`,
-        detail: "Landfills, Coal Plants, and heavy Factories lower happiness when built right next to houses.",
-        fixHint: "Place Landfills & heavy industry down the road away from residential blocks.",
+        title: `${m.nuisanceAffectedHomes} Home${m.nuisanceAffectedHomes > 1 ? "s" : ""} Breathing Polluted Air`,
+        detail: "Smog from factories, coal & gas plants, landfills and big highways drifts into nearby homes (see the Pollution heatmap).",
+        fixHint: "Move heavy industry away from homes, or plant trees, parks and gardens as green buffers — they soak up pollution.",
+        deltaHappiness: -pen,
+      });
+    }
+
+    if (m.trafficTrips > 20 && m.congestion > 100) {
+      const pen = Math.min(16, Math.round((m.congestion - 100) * 0.12) + 3);
+      happiness -= pen;
+      diags.push({
+        id: "traffic",
+        severity: m.congestion >= 160 ? "critical" : "warning",
+        title: `Gridlock: Roads at ${m.congestion}% Capacity`,
+        detail: `${m.trafficTrips.toLocaleString()} trips this hour vs ${m.trafficCapacity.toLocaleString()} capacity. Jammed shops earn 25% less. Rush hours (8am & 6pm) are worst.`,
+        fixHint: "Upgrade roads (merge for capacity), add Two-Lane Roads/Highways, or build Bus & Train stops to take cars off the road.",
         deltaHappiness: -pen,
       });
     }
@@ -1371,6 +1631,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (m.recreationSupply > m.recreationDemand * 1.6 && m.connectedHouses > 0) {
       happiness += 5;
     }
+    // Beautiful, valuable neighbourhoods make people happier
+    if (m.landValueAvg >= 1.0) happiness += Math.min(6, Math.round((m.landValueAvg - 0.9) * 10));
   }
 
   state.happiness = Math.max(0, Math.min(100, happiness));
@@ -1396,6 +1658,45 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
   state.metrics = m;
   state.diagnostics = diags;
+}
+
+function checkAchievements(state: GameState, m: CityMetrics): void {
+  if (!Array.isArray(state.achievements)) state.achievements = [];
+  const have = new Set(state.achievements);
+  const els = state.elements;
+  const count = (pred: (e: PlacedElement) => boolean) => els.reduce((n, e) => n + (pred(e) ? 1 : 0), 0);
+  const tests: Record<string, () => boolean> = {
+    first_citizens: () => state.population > 0,
+    pop_1k: () => state.population >= 1_000,
+    pop_100k: () => state.population >= 100_000,
+    pop_1m: () => state.population >= 1_000_000,
+    legendary: () => els.some((e) => e.level >= 5),
+    five_legends: () => count((e) => e.level >= 5) >= 5,
+    bridge_builder: () =>
+      els.some((e) => {
+        const d = ELEMENT_BY_ID[e.defId];
+        return Boolean(d && (d.archetype === "bridge_span" || d.archetype === "bridge_suspension") && (e.overWater || getTileTerrainKind(e.gx, e.gz) !== "land"));
+      }),
+    skyline: () => count((e) => e.defId === "skyscrapers") >= 5,
+    green_grid: () => m.powerSupply >= 200 && m.renewablePct >= 80,
+    synergist: () => m.synergyCount >= 25,
+    free_flow: () => m.trafficTrips >= 100 && m.congestion < 40,
+    clean_air: () => count((e) => !ELEMENT_BY_ID[e.defId]?.isNetwork && !ELEMENT_BY_ID[e.defId]?.passiveNature) >= 30 && m.pollutionAvg <= 0.15,
+    prime_real_estate: () => m.connectedHouses >= 5 && m.landValueAvg > 1.2,
+    transit_city: () => m.trafficTrips >= 60 && m.transitShare >= 40,
+    wonder: () => els.some((e) => e.level >= 5 && ELEMENT_BY_ID[e.defId]?.category === "landmarks"),
+    admiral: () => els.some((e) => e.defId === "aircraft_carriers"),
+    happy_place: () => state.mode !== "god" && state.happiness >= 100 && state.population >= 5_000,
+    tycoon: () => state.mode !== "god" && state.money >= 1_000_000,
+  };
+  for (const a of ACHIEVEMENTS) {
+    if (have.has(a.id)) continue;
+    const t = tests[a.id];
+    if (t && t()) {
+      state.achievements.push(a.id);
+      pushToast(state, "stage", `${a.emoji} Achievement: ${a.title}`, a.detail);
+    }
+  }
 }
 
 /**
@@ -2207,6 +2508,20 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
   if (!isTabVisible) return dirty;
   state.activePlaySec += dtSec;
 
+  // Rolling stat history (every 6 s of play, last 150 samples ≈ 15 min)
+  state.historyTimerSec = (state.historyTimerSec ?? 0) + dtSec;
+  if (state.historyTimerSec >= 6) {
+    state.historyTimerSec = 0;
+    const hist = Array.isArray(state.history) ? state.history : [];
+    hist.push({
+      t: Math.round(state.activePlaySec),
+      pop: state.population,
+      money: Math.round(state.money),
+      happy: state.happiness,
+    });
+    state.history = hist.length > 150 ? hist.slice(hist.length - 150) : hist;
+  }
+
   // 0. Day/Night Cycle (respecting timeLocked) & Weather Cycle (respecting weatherLocked)
   if (!state.timeLocked) {
     const prevNight = isNightTime(state.timeOfDay ?? 10.5);
@@ -2424,6 +2739,30 @@ export function computeHeatmapCells(state: GameState, kind: HeatmapKind): Heatma
       }
     }
   };
+
+  if (kind === "landvalue" || kind === "pollution") {
+    const layout = analyzeLayout(state.elements, isCoastalTile);
+    const field = kind === "landvalue" ? layout.landValue : layout.pollution;
+    for (let gx = GRID_MIN; gx <= GRID_MAX; gx++) {
+      for (let gz = GRID_MIN; gz <= GRID_MAX; gz++) {
+        if (getTileTerrainKind(gx, gz) === "water") continue;
+        const v = field[fieldIndex(gx, gz)];
+        if (kind === "landvalue") {
+          setSample(gx, gz, Math.max(-1, Math.min(1, (v - 0.75) / 0.6)));
+        } else if (Math.abs(v) > 0.15) {
+          setSample(gx, gz, Math.max(-1, Math.min(1, -v / 4)));
+        }
+      }
+    }
+    return Array.from(samples.values());
+  }
+  if (kind === "traffic") {
+    for (const [coord, load] of getTrafficLoadMap()) {
+      const [gx, gz] = coord.split(",").map(Number);
+      setSample(gx, gz, Math.max(-1, Math.min(1, 1 - load * 1.6)));
+    }
+    return Array.from(samples.values());
+  }
 
   const providers: { el: PlacedElement; rad: number; strength: number }[] = [];
   const consumers: PlacedElement[] = [];

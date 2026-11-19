@@ -23,8 +23,12 @@ import {
   ELEMENTS,
   ELEMENT_BY_ID,
   type ElementCategory,
+  getElementGrowthNote,
+  getElementLevelName,
+  getStandardFootprintForLevel,
   getUpgradeCost,
 } from "../game/catalog";
+import { SYNERGY_RULES } from "../game/cityDynamics";
 import {
   MAINTENANCE_INTERVAL_SEC,
   type GameState,
@@ -173,6 +177,15 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                   {primaryDef.name} · Lv.{primaryEl.level}
                 </span>
               </div>
+              <div className="truncate text-[10px] font-bold italic text-amber-800" title={getElementGrowthNote(primaryDef) ?? ""}>
+                “{getElementLevelName(primaryDef, primaryEl.level)}”
+                {primaryEl.level < 5 && (
+                  <span className="font-semibold not-italic text-stone-400">
+                    {" "}→ {getElementLevelName(primaryDef, primaryEl.level + 1)}
+                    {!primaryDef.isNetwork && ` (${getStandardFootprintForLevel(primaryDef, primaryEl.level + 1).join("×")})`}
+                  </span>
+                )}
+              </div>
               <div className="font-mono-num flex flex-wrap items-center gap-1 text-[9.5px] font-semibold text-stone-500">
                 <span>
                   V{primaryEl.variant + 1} · {primaryEl.spanX}×{primaryEl.spanZ}
@@ -182,6 +195,36 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                     <span aria-hidden="true">·</span>
                     <span className={primaryEl.connected ? "text-emerald-700" : "text-rose-700"}>
                       {primaryEl.connected ? "Linked" : "No Road"}
+                    </span>
+                  </>
+                )}
+                {!primaryDef.isNetwork && !primaryDef.passiveNature && primaryEl.landValue !== undefined && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span
+                      className={(primaryEl.landValue ?? 0.5) >= 1 ? "text-emerald-700" : (primaryEl.landValue ?? 0.5) < 0.45 ? "text-rose-700" : "text-stone-500"}
+                      title="Land value (parks, water & landmarks raise it; pollution lowers it)"
+                    >
+                      💎{(primaryEl.landValue ?? 0.5).toFixed(2)}
+                    </span>
+                  </>
+                )}
+                {(primaryEl.pollution ?? 0) > 1 && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="text-rose-700" title="Pollution at this spot">☁{(primaryEl.pollution ?? 0).toFixed(1)}</span>
+                  </>
+                )}
+                {(primaryEl.synergies?.length ?? 0) > 0 && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span
+                      className="text-violet-700"
+                      title={`Synergies (+${Math.min(4, primaryEl.synergies?.length ?? 0) * 12}% output): ${(primaryEl.synergies ?? [])
+                        .map((id) => SYNERGY_RULES.find((r) => r.id === id)?.label ?? id)
+                        .join(", ")}`}
+                    >
+                      {(primaryEl.synergies ?? []).map((id) => SYNERGY_RULES.find((r) => r.id === id)?.emoji ?? "✨").join("")}
                     </span>
                   </>
                 )}
@@ -337,7 +380,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                     ? "Max Level (Lv.5)"
                     : state.mode === "god"
                       ? `Level Up to Lv.${primaryEl.level + 1}`
-                      : `Upgrade to Lv.${primaryEl.level + 1} ($${getUpgradeCost(primaryDef, primaryEl.level)})`
+                      : `Upgrade to Lv.${primaryEl.level + 1} “${getElementLevelName(primaryDef, primaryEl.level + 1)}” ($${getUpgradeCost(primaryDef, primaryEl.level)})`
                 }
                 aria-label="Level Up"
               >
