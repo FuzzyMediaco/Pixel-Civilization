@@ -1050,18 +1050,19 @@ function buildReservoir(c: Ctx): void {
   const z0 = -hz + 2;
   const z1 = hz - front;
 
+  const inset = s === 2 ? Math.ceil(eh / 2) + 1 : 2;
   if (s === 2) {
-    // sloped earthen dikes
+    // Broad toes below a narrow maintenance path, with an earthen slope visible on all four sides.
     for (let k = 0; k < eh; k++) {
-      v.box(x0 + k - 1, 1 + k, z0 + k - 1, x1 - k + 1, 2 + k, z1 - k + 1, k % 2 ? "grass2" : "grass");
+      const step = Math.floor(k / 2);
+      const crest = k === eh - 1;
+      const turf = crest ? "path2" : k % 2 ? "grass2" : "grass";
+      v.box(x0 + step, 1 + k, z0 + step, x1 - step, 2 + k, z0 + inset, turf);
+      v.box(x0 + step, 1 + k, z1 - inset, x1 - step, 2 + k, z1 - step, turf);
+      v.box(x0 + step, 1 + k, z0 + inset, x0 + inset, 2 + k, z1 - inset, turf);
+      v.box(x1 - inset, 1 + k, z0 + inset, x1 - step, 2 + k, z1 - inset, turf);
     }
-    v.clear(x0 + eh, 2, z0 + eh, x1 - eh, eh + 2, z1 - eh);
-    water(v, x0 + eh - 1, 1, z0 + eh - 1, x1 - eh + 1, eh, z1 - eh + 1);
-    v.box(x0 + 1, 1, z0 + 1, x1 - 1, eh, z1 - 1, "grass");
-    v.clear(x0 + 2, 2, z0 + 2, x1 - 2, eh + 1, z1 - 2);
-    water(v, x0 + 2, 1, z0 + 2, x1 - 2, eh, z1 - 2);
-    v.box(x0, eh, z0, x1, eh + 1, z0 + 1, "path");
-    v.box(x0, eh, z1 - 1, x1, eh + 1, z1, "path");
+    water(v, x0 + inset, eh - 1, z0 + inset, x1 - inset, eh, z1 - inset);
   } else {
     v.box(x0, 1, z0, x1, eh + 1, z1, emb);
     v.clear(x0 + 2, 2, z0 + 2, x1 - 2, eh + 1, z1 - 2);
@@ -1080,7 +1081,7 @@ function buildReservoir(c: Ctx): void {
     }
   }
   // ripples
-  for (let i = 0; i < 6 + lv * 3; i++) v.put(c.ri(x0 + 3, x1 - 4), eh - 1, c.ri(z0 + 3, z1 - 4), "foam", 0.2);
+  for (let i = 0; i < 6 + lv * 3; i++) v.put(c.ri(x0 + inset, x1 - inset - 1), eh - 1, c.ri(z0 + inset, z1 - inset - 1), "foam", 0.2);
 
   // Dam face + spillway at the front (+z) for Lv3+
   if (lv >= 3) {
@@ -1141,8 +1142,9 @@ function buildReservoir(c: Ctx): void {
       v.box(tx, th + 4, tz, tx + 1, th + 6, tz + 1, "gold", 0.5);
     }
     // footbridge to the right bank
-    v.box(tx, eh, tz, x1, eh + 1, tz + 2, s === 2 ? "wood" : emb2);
-    for (let x = tx; x < x1; x += 2) v.put(x, eh + 1, tz + 1, "iron");
+    const bank = s === 2 ? x1 - Math.floor((eh - 1) / 2) : x1;
+    v.box(tx, eh, tz, bank, eh + 1, tz + 2, s === 2 ? "wood" : emb2);
+    for (let x = tx; x < bank; x += 2) v.put(x, eh + 1, tz + 1, "iron");
   } else {
     // valve hut on the bank
     v.box(x1 - 4, eh + 1, z0 - 1, x1, eh + 5, z0 + 3, ["stone", "concrete", "woodLight", "marble"][s]);

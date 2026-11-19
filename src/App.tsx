@@ -30,8 +30,10 @@ import {
   type SelectionFilter,
   type WeatherKind,
   checkPlacementValid,
-  getTileTerrainKind,
-  planNetworkPlacement,
+  planConstruction,
+  removePlacedElements,
+  relocatePlacedElement,
+  planRelocation,
   createInitialGameState,
   isNightTime,
   launchIslandAttack,
@@ -54,32 +56,6 @@ import {
 } from "./game/worldRenderer";
 
 const SAVE_PREFIX = "pixel_civ_save_v1_";
-
-/** Rotation (0..3) whose front (+z local) faces the most water tiles just beyond the footprint. */
-function bestSeaFacingRotation(gx: number, gz: number, sx: number, sz: number, fallback: number): number {
-  let best = fallback;
-  let bestScore = -1;
-  for (let rot = 0; rot < 4; rot++) {
-    const spanX = rot % 2 === 1 ? sz : sx;
-    const spanZ = rot % 2 === 1 ? sx : sz;
-    // front direction in world for this rotation: 0:+z 1:+x 2:-z 3:-x
-    const [dx, dz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][rot];
-    let score = 0;
-    for (let d = 1; d <= 3; d++) {
-      const len = dx !== 0 ? spanZ : spanX;
-      for (let k = 0; k < len; k++) {
-        const tx = dx > 0 ? gx + spanX - 1 + d : dx < 0 ? gx - d : gx + k;
-        const tz = dz > 0 ? gz + spanZ - 1 + d : dz < 0 ? gz - d : gz + k;
-        if (getTileTerrainKind(tx, tz) === "water") score += 1;
-      }
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      best = rot;
-    }
-  }
-  return bestScore > 0 ? best : fallback;
-}
 
 function loadModeState(mode: GameMode): GameState {
   try {
@@ -221,44 +197,14 @@ export const App: React.FC = () => {
       const cur = stateRef.current;
       if (cur.gameOver) return;
 
-      let def = brushDef;
-      let replaceId: string | undefined;
-      let overWater = false;
-      if (brushDef.isNetwork) {
-        const plan = planNetworkPlacement(cur, brushDef, gx, gz);
-        if (!plan.ok) return;
-        def = ELEMENT_BY_ID[plan.defId] ?? brushDef;
-        replaceId = plan.replaceId;
-        overWater = Boolean(plan.overWater);
-      }
-
-      const placeLevel = cur.mode === "god" ? curBrush.level : 1;
-      const [sx, sz] = getStandardFootprintForLevel(def, placeLevel);
-      let rotation = curBrush.rotation;
-      if (def.domain === "coast_or_water" && !def.isNetwork) {
-        // Face the open water: local +z (front/water side) should point at the sea
-        rotation = bestSeaFacingRotation(gx, gz, sx, sz, curBrush.rotation);
-      }
-      const spanX = rotation % 2 === 1 ? sz : sx;
-      const spanZ = rotation % 2 === 1 ? sx : sz;
-
-      if (!def.isNetwork) {
-        const chk = checkPlacementValid(cur, def, gx, gz, spanX, spanZ);
-        if (!chk.valid) return;
-      }
-
-      if (cur.mode !== "god" && cur.money < def.cost) {
-        commitState((draft) => {
-          pushToast(
-            draft,
-            "alert",
-            "Insufficient Treasury",
-            `Need $${def.cost.toLocaleString()} to build ${def.name}.`,
-          );
-        });
+      const plan = planConstruction(cur, brushDef, gx, gz, curBrush.level, curBrush.rotation);
+      if (!plan.valid) {
+        if (cur.mode !== "god" && cur.money < plan.def.cost) {
+          commitState(draft => pushToast(draft, "alert", "Insufficient Treasury", `Need $${plan.def.cost.toLocaleString()} to build ${plan.def.name}.`));
+        }
         return;
       }
-
+      const { def, level: placeLevel, spanX, spanZ, rotation, overWater, replaceId } = plan;
       const chosenVariant =
         cur.mode === "god" && curBrush.variantMode >= 0
           ? curBrush.variantMode
@@ -289,7 +235,10 @@ export const App: React.FC = () => {
           animKind: "place",
           ...(overWater ? { overWater: true } : {}),
         };
-        if (replaceId) draft.elements = draft.elements.filter((e) => e.id !== replaceId);
+        if (replaceId) {
+          placed.waterUnderlay = draft.elements.find(e => e.id === replaceId);
+          draft.elements = draft.elements.filter(e => e.id !== replaceId);
+        }
         draft.elements.push(placed);
         if (def.id !== brushDef.id && !draft.achievements?.includes("bridge_builder")) {
           pushToast(draft, "merge", `Auto-Bridge: ${def.name}`, "Roads dragged across water become bridges automatically.");
@@ -316,29 +265,11 @@ export const App: React.FC = () => {
       const cur = stateRef.current;
       const el = cur.elements.find((e) => e.id === elementId);
       if (!el) return;
-      const def = ELEMENT_BY_ID[el.defId];
-      if (!def) return;
-
-      const chk = checkPlacementValid(
-        cur,
-        def,
-        gx,
-        gz,
-        el.spanX,
-        el.spanZ,
-        new Set([el.id]),
-      );
-      if (!chk.valid) return;
+      if (!planRelocation(cur, el, gx, gz).valid) return;
 
       commitState((draft) => {
-        const target = draft.elements.find((e) => e.id === elementId);
-        if (target) {
-          target.gx = gx;
-          target.gz = gz;
-          target.animProgress = 0.85;
-          target.animKind = "place";
-          recomputeConnectivityAndMetrics(draft);
-        }
+        const target = draft.elements.find(e => e.id === elementId);
+        if (target && relocatePlacedElement(draft, target, gx, gz)) recomputeConnectivityAndMetrics(draft);
       });
 
       setBrush((b) => ({ ...b, kind: "none", movingElementId: undefined }));
@@ -527,7 +458,7 @@ export const App: React.FC = () => {
       ) {
         const toDel = new Set(selectedIdsRef.current);
         commitState((draft) => {
-          draft.elements = draft.elements.filter((el) => !toDel.has(el.id));
+          removePlacedElements(draft, toDel);
           recomputeConnectivityAndMetrics(draft);
         });
         setSelectedIds([]);
@@ -657,7 +588,11 @@ export const App: React.FC = () => {
       const el = draft.elements.find((item) => item.id === id);
       if (!el) return;
       if (patch.level !== undefined) {
-        resizeElementForLevel(draft, el, patch.level);
+        if (patch.level !== el.level && !resizeElementForLevel(draft, el, patch.level)) {
+          const [w, h] = getStandardFootprintForLevel(ELEMENT_BY_ID[el.defId], patch.level);
+          pushToast(draft, "alert", "More room needed", `Clear a ${w}×${h} site for this level.`);
+          return;
+        }
       }
       if (patch.variant !== undefined) el.variant = patch.variant;
       if (patch.rotation !== undefined) {
@@ -685,7 +620,7 @@ export const App: React.FC = () => {
   const handleDeleteSelected = () => {
     const ids = new Set(selectedIds);
     commitState((draft) => {
-      draft.elements = draft.elements.filter((e) => !ids.has(e.id));
+      removePlacedElements(draft, ids);
       recomputeConnectivityAndMetrics(draft);
     });
     setSelectedIds([]);

@@ -3,7 +3,6 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import {
   type CivElementDef,
   ELEMENT_BY_ID,
-  getStandardFootprintForLevel,
 } from "./catalog";
 import {
   GRID_MAX,
@@ -13,8 +12,9 @@ import {
   type PlacedElement,
   type SelectionFilter,
   canMergePair,
-  checkPlacementValid,
-  planNetworkPlacement,
+  planConstruction,
+  planRelocation,
+  buildOccupancyMap,
   computeHeatmapCells,
   getConnectedRailCoordSet,
   getConnectedRoadCoordSet,
@@ -26,6 +26,7 @@ import {
   matchesSelectionFilter,
   worldToGrid,
 } from "./simulation";
+import { networkRoadProfile } from "./designs/networks";
 import { buildPlacedGroupFromAsset, getOrBuildElementAsset } from "./voxelArchitect";
 import {
   PixelVox,
@@ -81,6 +82,7 @@ interface TrafficAgent {
   progress: number;
   speed: number;
   laneOffset: number;
+  velocity: number;
 }
 
 interface VillagerAgent {
@@ -365,7 +367,7 @@ export class PixelWorldRenderer {
   private cachedRailSet = new Set<string>();
   private cachedCarSet = new Set<string>();
   /** Road deck height (m) per tile for bridges / overpasses so vehicles ride on top */
-  private deckHeight = new Map<string, number>();
+  private streets = new Map<string, { base: number; profile: ReturnType<typeof networkRoadProfile> }>();
   // Pooled smoke / steam particles & blinking beacons
   private smokeMesh: THREE.InstancedMesh | null = null;
   private smokeParts: { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; max: number; size: number; kind: number }[] = [];
@@ -744,12 +746,13 @@ export class PixelWorldRenderer {
 
     const seenIds = new Set<string>();
 
+    const occupancy = buildOccupancyMap(state.elements);
     for (const el of state.elements) {
       seenIds.add(el.id);
       const def = ELEMENT_BY_ID[el.defId];
       if (!def) continue;
 
-      const connMask = def.isNetwork ? getNetworkConnMask(state.elements, el) : 0;
+      const connMask = def.isNetwork ? getNetworkConnMask(state.elements, el, occupancy) : 0;
       const oddRot = el.rotation % 2 === 1;
       const localSpanX = def.isNetwork || !oddRot ? el.spanX : el.spanZ;
       const localSpanZ = def.isNetwork || !oddRot ? el.spanZ : el.spanX;
@@ -867,7 +870,8 @@ export class PixelWorldRenderer {
   private getGroundElevationForElement(def: CivElementDef, wx: number, wz: number): number {
     if (def.domain === "water") return -0.58;
     const m = islandMarginAtWorld(wx, wz);
-    if (m >= 2.0) return 0;
+    // The top of a lot's ground voxel meets the island surface. A small clearance prevents z-fighting.
+    if (m >= 2.0) return 0.025 - VOXEL_SIZE;
     if (def.archetype === "bridge_span" || def.archetype === "bridge_suspension" || def.archetype === "dock_pier") {
       return -0.15;
     }
@@ -999,7 +1003,7 @@ export class PixelWorldRenderer {
       depthWrite: false,
     });
     const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.position.set(entry.wx, entry.baseY + 0.08, entry.wz);
+    ring.position.set(entry.wx, entry.baseY + VOXEL_SIZE + 0.04, entry.wz);
     this.fxGroup.add(ring);
     this.shockwaveRings.push({
       mesh: ring,
@@ -1143,8 +1147,8 @@ export class PixelWorldRenderer {
     if (this.brush.kind === "place" && this.brush.defId && this.hoverGrid) {
       const def = ELEMENT_BY_ID[this.brush.defId];
       if (def) {
-        const [sx, sz] = getStandardFootprintForLevel(def, this.brush.level);
-        [wx, wz] = gridToWorldCenter(this.hoverGrid[0], this.hoverGrid[1], sx, sz);
+        const { spanX, spanZ } = planConstruction(this.gameState, def, this.hoverGrid[0], this.hoverGrid[1], this.brush.level, this.brush.rotation);
+        [wx, wz] = gridToWorldCenter(this.hoverGrid[0], this.hoverGrid[1], spanX, spanZ);
         if (def.policeRadius) {
           radTiles = def.policeRadius * (1 + (this.brush.level - 1) * 0.18);
           ringHex = 0x3b82f6;
@@ -1209,7 +1213,8 @@ export class PixelWorldRenderer {
     let level = this.brush.level;
     let variant = this.brush.variantMode >= 0 ? this.brush.variantMode : 0;
     let rotation = this.brush.rotation;
-    let ignoreIds: Set<string> | undefined;
+    let relocation: ReturnType<typeof planRelocation> | undefined;
+    let placement: ReturnType<typeof planConstruction> | undefined;
 
     if (this.brush.kind === "move" && this.brush.movingElementId) {
       const moving = this.gameState.elements.find((e) => e.id === this.brush.movingElementId);
@@ -1220,14 +1225,13 @@ export class PixelWorldRenderer {
         level = moving.level;
         variant = moving.variant;
         rotation = moving.rotation;
-        ignoreIds = new Set([moving.id]);
+        relocation = planRelocation(this.gameState, moving, gx, gz);
       }
     } else if (this.brush.kind === "place" && this.brush.defId) {
       def = ELEMENT_BY_ID[this.brush.defId];
       if (def) {
-        const [sx, sz] = getStandardFootprintForLevel(def, level);
-        spanX = rotation % 2 === 1 ? sz : sx;
-        spanZ = rotation % 2 === 1 ? sx : sz;
+        placement = planConstruction(this.gameState, def, gx, gz, level, rotation);
+        ({ def, level, spanX, spanZ, rotation } = placement);
       }
     }
 
@@ -1237,22 +1241,16 @@ export class PixelWorldRenderer {
       return;
     }
 
-    let chk = checkPlacementValid(this.gameState, def, gx, gz, spanX, spanZ, ignoreIds);
-    if (!chk.valid && def.isNetwork && this.brush.kind === "place") {
-      const plan = planNetworkPlacement(this.gameState, def, gx, gz);
-      if (plan.ok) {
-        def = ELEMENT_BY_ID[plan.defId] ?? def;
-        chk = { valid: true };
-      } else if (plan.reason) {
-        chk = { valid: false, reason: plan.reason };
-      }
-    }
+    const chk = placement ?? relocation ?? { valid: false, reason: "Select an element" };
+    const mask = def.isNetwork ? getNetworkConnMask(this.gameState.elements, {
+      defId: def.id, gx, gz, overWater: placement?.overWater || Boolean(relocation?.underlay),
+    }) : 0;
     const [wx, wz] = gridToWorldCenter(gx, gz, spanX, spanZ);
     const baseY = this.getGroundElevationForElement(def, wx, wz);
 
     this.cursorOutline.visible = true;
     this.cursorOutline.scale.set(spanX * TILE_SIZE, 0.25, spanZ * TILE_SIZE);
-    this.cursorOutline.position.set(wx, baseY + 0.14, wz);
+    this.cursorOutline.position.set(wx, baseY + VOXEL_SIZE + 0.06, wz);
     (this.cursorOutline.material as THREE.LineBasicMaterial).color.setHex(
       chk.valid ? 0x64f5df : 0xff5a5f,
     );
@@ -1260,12 +1258,12 @@ export class PixelWorldRenderer {
     const oddRot = rotation % 2 === 1;
     const localSpanX = def.isNetwork || !oddRot ? spanX : spanZ;
     const localSpanZ = def.isNetwork || !oddRot ? spanZ : spanX;
-    const wantedGhostKey = `${def.id}|L${level}|V${variant}|${localSpanX}x${localSpanZ}|${chk.valid ? "ok" : "bad"}`;
+    const wantedGhostKey = `${def.id}|L${level}|V${variant}|${localSpanX}x${localSpanZ}|C${mask}|${chk.valid ? "ok" : "bad"}`;
     if (this.ghostKey !== wantedGhostKey) {
       if (this.ghostGroup) {
         this.overlayGroup.remove(this.ghostGroup);
       }
-      const asset = getOrBuildElementAsset(def.id, level, variant, localSpanX, localSpanZ, 15);
+      const asset = getOrBuildElementAsset(def.id, level, variant, localSpanX, localSpanZ, mask);
       this.ghostGroup = buildPlacedGroupFromAsset(asset, true, chk.valid);
       this.overlayGroup.add(this.ghostGroup);
       this.ghostKey = wantedGhostKey;
@@ -1285,23 +1283,45 @@ export class PixelWorldRenderer {
 
   private refreshNetworkCache(): void {
     let key = "";
-    for (const e of this.gameState.elements) key += `${e.defId}${e.gx},${e.gz},${e.spanX}${e.spanZ}${e.connected ? 1 : 0};`;
+    for (const e of this.gameState.elements) key += `${e.defId}${e.gx},${e.gz},${e.spanX}${e.spanZ}${e.connected ? 1 : 0}${e.onFire ? 1 : 0};`;
     if (key === this.netCacheKey) return;
     this.netCacheKey = key;
     this.cachedRoadSet = getConnectedRoadCoordSet(this.gameState.elements);
     this.cachedRailSet = getConnectedRailCoordSet(this.gameState.elements);
     this.cachedCarSet = new Set<string>();
-    this.deckHeight = new Map<string, number>();
-    const DECK_VOX: Record<string, number> = { bridges: 4, stone_bridges: 5, suspension_bridges: 6, over_passes: 7 };
+    this.streets.clear();
+    const occ = buildOccupancyMap(this.gameState.elements);
+    const profiles = new Map<string, ReturnType<typeof networkRoadProfile>>();
     for (const e of this.gameState.elements) {
-      const dv = DECK_VOX[e.defId];
-      if (dv) this.deckHeight.set(`${e.gx},${e.gz}`, dv * VOXEL_SIZE);
+      const d = ELEMENT_BY_ID[e.defId];
+      if (!d?.isRoadNetwork) continue;
+      const key = `${e.gx},${e.gz}`;
+      const mask = getNetworkConnMask(this.gameState.elements, e, occ);
+      const profileKey = d.id + ":" + mask;
+      if (!profiles.has(profileKey)) profiles.set(profileKey, networkRoadProfile(d.id, mask));
+      const [wx, wz] = gridToWorldCenter(e.gx, e.gz);
+      this.streets.set(key, { profile: profiles.get(profileKey), base: this.getGroundElevationForElement(d, wx, wz) });
+      if (this.cachedRoadSet.has(key) && !PEDESTRIAN_IDS.has(d.id)) this.cachedCarSet.add(key);
     }
-    const occ = new Map<string, string>();
-    for (const e of this.gameState.elements) occ.set(`${e.gx},${e.gz}`, e.defId);
-    for (const k of this.cachedRoadSet) {
-      if (!PEDESTRIAN_IDS.has(occ.get(k) ?? "")) this.cachedCarSet.add(k);
+  }
+
+  private streetHeight(wx: number, wz: number, eastWest: boolean): number {
+    const [gx, gz] = worldToGrid(wx, wz);
+    const street = this.streets.get(`${gx},${gz}`);
+    if (!street) return 0;
+    const profile = street.profile;
+    let height = 0;
+    if (profile && (profile.elevatedAxis < 0 || (profile.elevatedAxis === 1) === eastWest)) {
+      const x = Math.min(15, Math.floor((wx - gx * TILE_SIZE) / VOXEL_SIZE));
+      const z = Math.min(15, Math.floor((wz - gz * TILE_SIZE) / VOXEL_SIZE));
+      height = profile.heights[x * 16 + z] * VOXEL_SIZE;
     }
+    return street.base + height;
+  }
+
+  private canTurn(gx: number, gz: number, incomingX: number, outgoingX: number): boolean {
+    const axis = this.streets.get(`${gx},${gz}`)?.profile?.elevatedAxis ?? -1;
+    return axis < 0 || (incomingX === 0) === (outgoingX === 0);
   }
 
   private syncAutonomousTrafficAndVillagers(): void {
@@ -1417,6 +1437,7 @@ export class PixelWorldRenderer {
         progress: 1,
         speed: kind === "sports_car" ? 2.6 : kind === "bus" || kind === "truck" ? 1.55 : 2.0,
         laneOffset: 0.36,
+        velocity: 0,
       });
     }
 
@@ -1456,6 +1477,7 @@ export class PixelWorldRenderer {
         progress: 1,
         speed: 2.8,
         laneOffset: 0,
+        velocity: 0,
       });
     }
 
@@ -1549,6 +1571,7 @@ export class PixelWorldRenderer {
     const roadSet = this.cachedRoadSet;
     const railSet = this.cachedRailSet;
     const loadMap = getTrafficLoadMap();
+    const grip = this.gameState.weather === "storm" ? 0.65 : this.gameState.weather === "rain" ? 0.82 : 1;
 
     const dirs: [number, number][] = [
       [1, 0],
@@ -1565,16 +1588,24 @@ export class PixelWorldRenderer {
       const jam = load > 0.85 ? 1 / (1 + (load - 0.85) * 2.2) : 1;
       // Car-following: brake behind a vehicle ahead in the same lane (same tile & heading, or the next tile)
       let follow = 1;
+      let availableGap = Infinity;
       if (!a.isRail) {
         for (const b of this.trafficAgents) {
           if (b === a || b.isRail || b.dirX !== a.dirX || b.dirZ !== a.dirZ) continue;
           let gap = -1;
           if (b.gx === a.gx && b.gz === a.gz && b.progress > a.progress) gap = b.progress - a.progress;
           else if (b.gx === a.nextGx && b.gz === a.nextGz) gap = 1 - a.progress + b.progress;
-          if (gap >= 0 && gap < 0.55) follow = Math.min(follow, Math.max(0, (gap - 0.22) / 0.33));
+          if (gap >= 0) {
+            const room = Math.max(0, gap - 0.22 / grip);
+            availableGap = Math.min(availableGap, room);
+            follow = Math.min(follow, room / (0.33 / grip));
+          }
         }
       }
-      a.progress += dt * a.speed * Math.max(0.25, jam) * follow;
+      const targetSpeed = a.speed * Math.max(0.25, jam) * follow * (a.isRail ? 1 : grip);
+      const acceleration = (targetSpeed < a.velocity ? 5.8 : 2.4) * (a.isRail ? 0.7 : grip);
+      a.velocity += THREE.MathUtils.clamp(targetSpeed - a.velocity, -acceleration * dt, acceleration * dt);
+      a.progress += Math.min(availableGap, dt * a.velocity);
       if (a.progress >= 1) {
         a.gx = a.nextGx;
         a.gz = a.nextGz;
@@ -1588,7 +1619,7 @@ export class PixelWorldRenderer {
         }
 
         // Prefer continuing forward or turning, falling back to U-turn at dead ends
-        const validDirs = dirs.filter(([dx, dz]) => net.has(`${a.gx + dx},${a.gz + dz}`));
+        const validDirs = dirs.filter(([dx, dz]) => net.has(`${a.gx + dx},${a.gz + dz}`) && (a.isRail || this.canTurn(a.gx, a.gz, a.dirX, dx)));
         const nonReverse = validDirs.filter(([dx, dz]) => !(dx === -a.dirX && dz === -a.dirZ));
         const choices = nonReverse.length > 0 ? nonReverse : validDirs;
 
@@ -1616,13 +1647,7 @@ export class PixelWorldRenderer {
         ? [wx + perpX, wz + perpZ]
         : this.resolveBuildingCollision(wx + perpX, wz + perpZ, 0.35);
 
-      const deckY = a.isRail
-        ? 0
-        : THREE.MathUtils.lerp(
-            this.deckHeight.get(`${a.gx},${a.gz}`) ?? 0,
-            this.deckHeight.get(`${a.nextGx},${a.nextGz}`) ?? 0,
-            a.progress,
-          );
+      const deckY = a.isRail ? 0 : this.streetHeight(carX, carZ, a.dirX !== 0);
       a.mesh.position.set(carX, VOXEL_SIZE + 0.02 + deckY, carZ);
       const targetAngle = Math.atan2(a.dirX, a.dirZ);
       const angleDiff = Math.atan2(
@@ -1648,7 +1673,7 @@ export class PixelWorldRenderer {
           v.gz = fz;
         }
 
-        const validDirs = dirs.filter(([dx, dz]) => roadSet.has(`${v.gx + dx},${v.gz + dz}`));
+        const validDirs = dirs.filter(([dx, dz]) => roadSet.has(`${v.gx + dx},${v.gz + dz}`) && this.canTurn(v.gx, v.gz, v.dirX, dx));
         const nonReverse = validDirs.filter(([dx, dz]) => !(dx === -v.dirX && dz === -v.dirZ));
         const choices = nonReverse.length > 0 ? nonReverse : validDirs;
         if (choices.length > 0) {
@@ -1672,11 +1697,7 @@ export class PixelWorldRenderer {
       const [vx, vz] = this.resolveBuildingCollision(wx + perpX, wz + perpZ, 0.36);
 
       const stride = Math.sin(elapsed * 8.5 + v.phase);
-      const vDeck = THREE.MathUtils.lerp(
-        this.deckHeight.get(`${v.gx},${v.gz}`) ?? 0,
-        this.deckHeight.get(`${v.nextGx},${v.nextGz}`) ?? 0,
-        v.progress,
-      );
+      const vDeck = this.streetHeight(vx, vz, v.dirX !== 0);
       v.root.position.set(vx, VOXEL_SIZE + vDeck + Math.abs(stride) * 0.04, vz);
       const targetVAngle = Math.atan2(v.dirX, v.dirZ);
       const vDiff = Math.atan2(
@@ -1746,12 +1767,6 @@ export class PixelWorldRenderer {
       if (!entry) continue;
       const grp = entry.group;
 
-      const rotor = grp.userData.rotorPivot as THREE.Group | undefined;
-      if (rotor) {
-        const axis = (grp.userData.rotorAxis as "x" | "y" | "z") || "z";
-        const spd = ((grp.userData.rotorSpeed as number) || 1.6) * (0.45 + (this.gameState.windSpeed ?? 1.0) * 0.75);
-        rotor.rotation[axis] += dt * spd;
-      }
       const rotorList = grp.userData.rotorList as { pivot: THREE.Group; axis: "x" | "y" | "z"; speed: number; wind: boolean }[] | undefined;
       if (rotorList) {
         const windMul = 0.45 + (this.gameState.windSpeed ?? 1.0) * 0.75;
@@ -3000,10 +3015,12 @@ export class PixelWorldRenderer {
       const spd = 18 * dt;
       const fwd = new THREE.Vector3(Math.sin(this.walkYaw), 0, Math.cos(this.walkYaw));
       const right = new THREE.Vector3(-fwd.z, 0, fwd.x);
-      this.walkPos.addScaledVector(fwd, forwardInput * spd);
-      this.walkPos.addScaledVector(right, rightInput * spd);
-      this.walkPos.x = THREE.MathUtils.clamp(this.walkPos.x, -125, 125);
-      this.walkPos.z = THREE.MathUtils.clamp(this.walkPos.z, -125, 125);
+      const step = fwd.multiplyScalar(forwardInput).addScaledVector(right, rightInput).normalize().multiplyScalar(spd);
+      const [x, z] = this.resolveBuildingCollision(this.walkPos.x + step.x, this.walkPos.z + step.z, 0.27);
+      this.walkPos.x = THREE.MathUtils.clamp(x, -125, 125);
+      this.walkPos.z = THREE.MathUtils.clamp(z, -125, 125);
+      const deck = this.streetHeight(this.walkPos.x, this.walkPos.z, Math.abs(step.x) > Math.abs(step.z));
+      this.walkPos.y = THREE.MathUtils.lerp(this.walkPos.y, 2.3 + deck, Math.min(1, dt * 14));
       this.updateCameraTransform();
     } else {
       const spd = this.spherical.radius * 0.65 * dt;

@@ -19,11 +19,11 @@ import {
   person,
   ring,
   securityFence,
+  solarRow,
   speckle,
   tank,
   tree,
   truck,
-  waterPlane,
   windows,
 } from "./kit";
 import {
@@ -34,7 +34,9 @@ import {
   hull,
   jet,
   mast,
+  pier,
   propPlane,
+  quayFoundation,
   radar,
   radarDish,
   screwProp,
@@ -316,17 +318,38 @@ function buildPolicePrecinct(c: Ctx): void {
     bench(v, -6, 1, -5, "x", "woodDark");
     return;
   }
+  if (lv === 1) {
+    // A single officer can work the street-facing counter. The enclosed station comes at L2.
+    v.box(-4, 0, -4, 4, 1, 4, "path");
+    v.box(-3, 1, -3, 3, 4, 2, p.wall);
+    v.box(-3, 4, -3, 3, 7, -2, p.wall);
+    for (const x of [-3, 2]) v.box(x, 4, 1, x + 1, 7, 2, p.trim);
+    guy(c, 0, 2, -1, "blueDark", "black");
+    v.box(-3, 4, 1, 3, 5, 3, p.trim);
+    if (s === 1) {
+      gable(v, -4, 7, -4, 4, 3, "z", "woodDark");
+      v.box(3, 1, 4, 4, 4, 5, "woodDark");
+      v.box(6, 1, 4, 7, 4, 5, "woodDark");
+      v.box(3, 3, 4, 7, 4, 5, "wood");
+      v.put(0, 8, 3, "gold", 0.4);
+    } else if (s === 2) {
+      v.box(-3, 7, -3, 4, 8, 4, "white");
+      solarRow(v, -2, 3, 8, -2);
+      v.put(-3, 7, 3, "screenCyan", 1);
+    } else {
+      hip(v, -4, 7, -4, 4, 3, "copper", "iron", 3);
+      v.put(0, 10, 0, POLICE_BLUE, 1);
+    }
+    lamp(v, -6, 1, 5, 4);
+    bench(v, 1, 1, 5, "x", p.trim);
+    return;
+  }
   const floors = lv5(lv, [1, 1, 2, 2, 3] as const);
   let x0 = -hx + 2;
   let x1 = hx - 2;
   let z0 = -hz + 2;
   let z1 = hz - 5;
-  if (lv === 1) {
-    x0 = -5;
-    x1 = 5;
-    z0 = -6;
-    z1 = 2;
-  } else if (lv === 3) {
+  if (lv === 3) {
     x1 = Math.min(hx - 12, 4);
   } else if (lv >= 4) {
     z1 = Math.min(hz - 13, z0 + 14);
@@ -340,17 +363,6 @@ function buildPolicePrecinct(c: Ctx): void {
     v.box(x0 + 2, ty, z0 + 2, x0 + 3, ty + 7, z0 + 3, "steelDark");
     v.put(x0 + 2, ty + 7, z0 + 2, "red", 1.2);
     c.blink(x0 + 2, ty + 7, z0 + 2, "red");
-  }
-  if (lv === 1) {
-    cruiser(c, hx - 4, 4, "z", p.carBody, p.carDark, true);
-    lamp(v, -6, 1, 5, 4);
-    guy(c, -3, 1, 4, "blueDark", "black");
-    if (s === 1) {
-      // horse at the hitching post
-      v.box(-7, 2, -2, -6, 4, 3, "woodDark");
-      v.box(-7, 3, 3, -6, 5, 4, "woodDark");
-    }
-    return;
   }
   if (lv === 2) {
     cruiser(c, -hx + 4, hz - 3, "x", p.carBody, p.carDark, true);
@@ -939,6 +951,10 @@ function buildMilitaryBase(c: Ctx): void {
       barrelRoof(v, bx, 1, z0, bx + bw, z1, "z", p.bld, p.roof);
       v.box(bx + 3, 1, z1 - 1, bx + 7, 5, z1, s === 2 ? "steelDark" : "woodDark");
       v.put(bx + 4, 4, z1, "warmGlow", 0.8);
+      if (s === 0) {
+        for (const x of [bx + 1, bx + 7]) v.box(x, 2, z1 - 1, x + 2, 4, z1, "glass", 0.5);
+        v.box(bx + 2, 5, z1 - 1, bx + 8, 6, z1 + 1, "woodLight");
+      }
       if (s === 2) v.box(bx, 7, z0, bx + bw, 8, z1, "snow");
     } else if (s === 1) {
       v.box(bx, 1, z0, bx + bw, 6, z1, p.bld);
@@ -1345,12 +1361,16 @@ function buildNavalBase(c: Ctx): void {
   const { v, lv, hx, hz } = c;
   const s = c.variant % 4;
   const p = NB[s];
-  waterPlane(v, -hx, -hz, hx, hz, 0, "waterDeep");
   const qd = lv5(lv, [10, 11, 12, 14, 16] as const);
   const qz = -hz + qd;
+  quayFoundation(v, -hx, -hz, hx, qz);
   v.box(-hx, 0, -hz, hx, 3, qz, p.land);
   v.box(-hx, 2, qz - 1, hx, 3, qz, s === 0 ? "hazard" : "stone");
-  if (s === 3) speckle(c, "snow", 0.15, 0, 2);
+  if (s === 3) {
+    for (let x = -hx; x < hx; x++) for (let z = -hz; z < qz - 1; z++) {
+      if (c.rand() < 0.15) v.put(x, 2, z, "snow");
+    }
+  }
   // HQ building on the quay
   const hqW = lv5(lv, [8, 12, 14, 16, 20] as const);
   const hqx0 = -hx + 2;
@@ -1373,7 +1393,7 @@ function buildNavalBase(c: Ctx): void {
   const pitch = Math.floor((hx * 2) / nPiers);
   for (let i = 0; i < nPiers; i++) {
     const px = -hx + pitch * i + pitch - 4;
-    v.box(px, 0, qz, px + 3, 3, hz - 1, "concrete");
+    pier(v, px, qz, px + 3, hz - 1, "concrete", "concreteDark", 5, 2);
     for (let z = qz + 2; z < hz - 1; z += 5) v.box(px - 1, 3, z, px, 4, z + 1, "steelDark");
     lamp(v, px + 1, 3, hz - 2, 4);
     // ship berthed alongside (west of the pier)
@@ -1382,9 +1402,9 @@ function buildNavalBase(c: Ctx): void {
     const len = hz - 2 - qz - 2;
     if (lv === 4 && i === 0 && nPiers > 1) {
       // dry dock with a hull on blocks
-      v.box(px - slotW - 2, 0, qz, px - slotW, 3, hz - 1, "concrete");
+      v.box(px - slotW - 2, -4, qz, px - slotW, 3, hz - 1, "concrete");
       v.box(px - slotW, 0, qz, px, 1, hz - 2, "concreteDark");
-      v.box(px - slotW - 2, 0, hz - 2, px, 3, hz - 1, "steelDark");
+      v.box(px - slotW - 2, -4, hz - 2, px, 3, hz - 1, "steelDark");
       const o: HullOpts = { cx, y0: 1, z0: qz + 2, z1: hz - 3, beam: Math.min(10, slotW - 2), h: 5, col: "#7d8995", bottom: "#a5402a", water: 2, deck: "#5d6670", bow: 9 };
       hull(v, o);
       c.smoke(cx, 6, qz + 8, "spark");
@@ -1441,10 +1461,10 @@ function buildNavalBase(c: Ctx): void {
 function buildSubmarineBase(c: Ctx): void {
   const { v, lv, hx, hz } = c;
   const s = c.variant % 4;
-  waterPlane(v, -hx, -hz, hx, hz, 0, "waterDeep");
   const land = ["concrete2", "concrete2", "concrete2", "granite"][s];
   const qd = lv5(lv, [8, 10, 10, 12, 12] as const);
   const qz = -hz + qd;
+  quayFoundation(v, -hx, -hz, hx, qz, s === 3 ? "granite" : "concreteDark");
   v.box(-hx, 0, -hz, hx, 3, qz, land);
   const subCol = s === 1 ? "#3a3f45" : "#2a2d33";
   const sub = (cx: number, z0: number, len: number, r: number): void => {
@@ -1457,7 +1477,7 @@ function buildSubmarineBase(c: Ctx): void {
   };
   if (lv === 1) {
     // floating pier + a surfaced sub + tender shed
-    v.box(-2, 1, qz, 2, 2, hz - 1, "concrete");
+    pier(v, -2, qz, 2, hz - 1, "concrete", "steelDark", 5);
     for (let z = qz + 2; z < hz - 1; z += 5) v.box(2, 2, z, 3, 3, z + 1, "steelDark");
     sub(-7, qz + 3, hz - qz - 5, 3);
     screwProp(c, -7, 1.5, qz + 2.5, 2, "brass", 6);
@@ -1485,27 +1505,26 @@ function buildSubmarineBase(c: Ctx): void {
         const hgt = Math.min(bh + 10, 4 + d * 2 + Math.floor(Math.sin(x * 0.7 + z * 0.4) * 2));
         const ht = Math.max(3, hgt);
         const edge = x === bx0 - 1 || z === -hz || z === bz1 - 1 || x === Math.min(hx, bx1 + 6) - 1;
-        v.box(x, edge ? 0 : Math.max(0, ht - 3), z, x + 1, ht, z + 1, hgt > bh + 6 ? "snow" : (x + z) % 5 === 0 ? "basalt" : "stone");
+        v.box(x, edge ? -4 : Math.max(0, ht - 3), z, x + 1, ht, z + 1, hgt > bh + 6 ? "snow" : (x + z) % 5 === 0 ? "basalt" : "stone");
       }
     }
   } else {
+    quayFoundation(v, bx0, bz0, bx1, bz1);
     v.box(bx0, 0, bz0, bx1, bh, bz1, wallC);
     v.clear(bx0 + 1, 3, bz0 + 1, bx1 - 1, bh - 1, bz1 - 1);
-    for (let k = 1; k < nPens; k++) v.box(bx0 + k * penW - 1, 0, bz0, bx0 + k * penW + 2, bh, bz1, wallC);
+    for (let k = 1; k < nPens; k++) v.box(bx0 + k * penW - 1, -4, bz0, bx0 + k * penW + 2, bh, bz1, wallC);
     v.box(bx0 - 1, bh, bz0 - 1, bx1 + 1, bh + 3, bz1 + 1, s === 2 ? "#3d5a85" : "concreteDark");
     if (s === 0) for (let x = bx0; x < bx1; x += 3) v.box(x, bh + 3, bz0, x + 1, bh + 5, bz1, "concrete");
     if (s === 1) v.box(bx0, bh - 2, bz1 - 1, bx1, bh - 1, bz1, "red");
     if (s === 2) for (let k = 0; k < nPens; k++) barrelRoof(v, bx0 + k * penW, bh + 3, bz0, bx0 + (k + 1) * penW, bz1, "z", "#3d5a85", "steelLight");
   }
-  // carve pens & fill them with water and subs
+  // Open the slips to the same water surface as the rest of the harbor.
   for (let k = 0; k < nPens; k++) {
     const px0 = bx0 + k * penW + 2;
     const px1 = bx0 + (k + 1) * penW - 1;
     const cx = Math.floor((px0 + px1) / 2);
-    v.box(px0, 0, qz, px1, bh - 2, bz1 + 1, null);
-    v.box(px0, 0, qz, px1, 1, bz1 + 1, "waterDeep", 0.08);
-    v.box(px0 - 1, 0, -hz + 3, px1 + 1, 3, qz, null);
-    v.box(px0, 0, -hz + 3, px1, 1, qz, "waterDeep", 0.08);
+    v.clear(px0, -4, qz, px1, bh - 2, bz1 + 1);
+    v.clear(px0, -4, -hz + 3, px1, 3, qz);
     // blast doors (partly raised, striped)
     const doorY = bh - 2 - (k % 2 === 0 ? 4 : 2);
     for (let y = doorY; y < bh - 2; y++) v.box(px0, y, bz1 - 1, px1, y + 1, bz1, y % 2 ? "hazard" : "black");
@@ -1522,7 +1541,7 @@ function buildSubmarineBase(c: Ctx): void {
   // outer pier with a sub moored outside
   if (bx1 + 10 <= hx - 1) {
     const ox = bx1 + 4;
-    v.box(ox, 0, qz, ox + 3, 3, hz - 1, "concrete");
+    pier(v, ox, qz, ox + 3, hz - 1, "concrete", "concreteDark", 5, 2);
     for (let z = qz + 2; z < hz - 1; z += 5) v.box(ox + 3, 3, z, ox + 4, 4, z + 1, "steelDark");
     sub(ox + 8, qz + 2, hz - qz - 4, 3.5);
     screwProp(c, ox + 8, 1.5, qz + 1.5, 2, "brass", 6);

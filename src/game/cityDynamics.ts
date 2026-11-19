@@ -163,7 +163,7 @@ const isOffice: Pred = ids("businesses", "buildings", "banks", "data_centers", "
 const isTransit: Pred = (d) => d.archetype === "transit_stop" || d.archetype === "transit_depot";
 const isWater: Pred = (d) => Boolean(d.isWaterFeature) || ["ponds", "lakes", "wells", "water_towers", "aqueduct", "municipal_reservoir"].includes(d.id);
 const isPark: Pred = (d) => (d.recreation ?? 0) > 0 && d.category === "civic_parks";
-const isRail: Pred = (d) => Boolean(d.isRailNetwork) || isTransit(d);
+const isRail: Pred = (d) => Boolean(d.isRailNetwork) || d.id === "train_stops" || d.id === "train_depots";
 const isPowerGen: Pred = (d) => (d.power ?? 0) > 0;
 const isLandmark: Pred = (d) => d.category === "landmarks";
 const isBeach: Pred = ids("beaches", "sand", "beach_umbrellas");
@@ -218,7 +218,7 @@ let cached: LayoutAnalysis | null = null;
 
 function layoutKey(elements: PlacedElement[]): string {
   let s = "";
-  for (const e of elements) s += `${e.defId}@${e.gx},${e.gz},${e.spanX}x${e.spanZ}L${e.level}${e.onFire ? "F" : ""};`;
+  for (const e of elements) s += `${e.id}:${e.defId}@${e.gx},${e.gz},${e.spanX}x${e.spanZ}L${e.level}${e.onFire ? "F" : ""};`;
   return s;
 }
 
@@ -306,7 +306,7 @@ export function analyzeLayout(
       }
       if (count < need) {
         for (const o of builds) {
-          if (o === e) continue;
+          if (o === e || o.onFire) continue;
           const od = ELEMENT_BY_ID[o.defId]!;
           if (!rule.near(od)) continue;
           if (footprintGap(e, o) <= rule.radius) {
@@ -423,8 +423,8 @@ export function powerOutputFactor(
 
 /** $ per tick to keep a building running (services & utilities without their own income) */
 export function upkeepFor(def: CivElementDef, level: number): number {
-  if (def.passiveNature) return 0;
   if (def.isNetwork) return def.isRoadNetwork || def.isRailNetwork ? 0.04 * level : 0;
+  if (def.passiveNature) return 0;
   if (def.popBase && def.category === "housing") return 0;
   if ((def.income ?? 0) > 0) return 0;
   return def.cost * 0.008 * Math.pow(level, 0.8);

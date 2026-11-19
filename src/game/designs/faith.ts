@@ -377,8 +377,10 @@ function buildChurch(c: Ctx): void {
         v.box(px, 1, zF, px + 2, 6, zF + 1, null);
         v.box(px, 1, zF - 1, px + 2, 5, zF, "woodDark");
       }
-      // crossing flèche
-      spire(v, 0, tz0 + tw / 2, ridge - 1, 12, 1.6, "slate", "gold");
+      const crossing = Math.round(tz0 + tw / 2);
+      v.cylinderY(0, crossing, ridge - 2, ridge + 2, 2.4, wall2);
+      for (const side of [-1, 1]) v.put(side, ridge + 1, crossing + 1, "warmGlow", 0.45);
+      spire(v, 0, crossing, ridge + 2, 10, 2.5, "#577f83", "gold");
     }
   } else if (s === 1) {
     newEnglandSteeple(c, ridge, zF);
@@ -609,7 +611,7 @@ function orthodoxChurch(c: Ctx): void {
   const z0 = zF - D;
   const x0 = -W / 2;
   const x1 = W / 2;
-  const wall = lv >= 5 ? "brick" : "cream";
+  const wall = "cream";
   v.box(-2, 0, zF, 2, 1, hz, "path");
   v.hollowBox(x0, 1, z0, x1, 1 + H, zF, wall);
   band(v, x0, H, z0, x1, zF, "white", 0);
@@ -619,7 +621,7 @@ function orthodoxChurch(c: Ctx): void {
     v.box(x, 1 + H, zF - 1, x + 3, 2 + H, zF, "white");
     v.put(x + 1, 3 + H, zF - 1, "white");
   }
-  v.box(x0, 1 + H, z0, x1, 2 + H, zF, wall === "brick" ? "brick" : "cream");
+  v.box(x0, 1 + H, z0, x1, 2 + H, zF, wall);
   v.box(x0 + 1, 2 + H, z0 + 1, x1 - 1, 3 + H, zF - 1, "tealDark");
   for (let z = z0 + 2; z < zF - 1; z += 3) {
     v.box(x0, 4, z, x0 + 1, H - 1, z + 1, "glass", 0.5);
@@ -644,17 +646,16 @@ function orthodoxChurch(c: Ctx): void {
     }
   } else {
     domes.push([0, zc, 5.5, "gold", "goldDark"]);
-    const o = 8;
-    const cols: [string, string][] = [["red", "lime"], ["blue", "white"], ["yellow", "leaf"], ["crimson", "white"], ["teal", "gold"], ["orange", "leafDark"], ["purple", "yellow"], ["red", "white"]];
-    let k = 0;
-    for (let a = 0; a < 8; a++) {
-      const ang = (a * Math.PI) / 4 + Math.PI / 8;
-      const [c1, c2] = cols[k++ % cols.length];
-      domes.push([Math.cos(ang) * o, zc + Math.sin(ang) * o, a % 2 ? 2.8 : 3.4, c1, c2]);
+    const o = 9;
+    const cols = [["crimson", "cream"], ["blue", "cream"], ["teal", "gold"], ["crimson", "gold"]];
+    for (let a = 0; a < 4; a++) {
+      const ang = a * Math.PI / 2 + Math.PI / 4;
+      const [c1, c2] = cols[a];
+      domes.push([Math.cos(ang) * o, zc + Math.sin(ang) * o, 3.4, c1, c2]);
     }
   }
   domes.forEach(([dx, dz, r, c1, c2], i) => {
-    const drumH = i === 0 ? byLv(c, [3, 4, 5, 6, 10]) : byLv(c, [2, 2, 3, 4, 5]) + (lv >= 5 ? (i % 2) * 3 : 0);
+    const drumH = i === 0 ? byLv(c, [3, 4, 5, 6, 11]) : byLv(c, [2, 2, 3, 4, 5]);
     v.cylinderY(dx, dz, roofY, roofY + drumH, r * 0.75, "white");
     for (let y = roofY + 1; y < roofY + drumH - 1; y += 2) {
       v.put(Math.floor(dx), y, Math.floor(dz + r * 0.75), "glass", 0.5);
@@ -708,7 +709,7 @@ function missionChurch(c: Ctx): void {
   const zF = hz - byLv(c, [2, 2, 5, 5, 8]);
   const L = Math.min(byLv(c, [11, 11, 18, 22, 30]), zF + hz - 2);
   const z0 = zF - L;
-  const xc = lv >= 4 ? -hx + W / 2 + 3 : 0; // nave shifts left to leave room for the courtyard
+  const xc = lv >= 4 ? -hx + W / 2 + (lv === 5 ? 8 : 3) : 0;
   const x0 = xc - W / 2;
   const x1 = xc + W / 2;
   const wall = lv >= 5 ? "white" : "plaster";
@@ -750,10 +751,10 @@ function missionChurch(c: Ctx): void {
     const aW = 4;
     v.box(ax, 5, z0 + 2, Math.min(hx, ax + aW), 6, zF - 1, "terracotta");
     for (let z = z0 + 2; z < zF - 1; z += 3) v.box(ax + aW - 1, 1, z, ax + aW, 5, z + 1, wall);
-    v.box(ax, 1, z0 + 2, ax + aW, 1, zF - 1, "sandDark");
+    v.box(ax, 0, z0 + 2, ax + aW, 1, zF - 1, "sandDark");
   }
   // bell tower with dome (lv4 one tower, lv5 twin towers)
-  const towers: number[] = lv >= 5 ? [x0 - 3, x1 - 3] : lv >= 4 ? [x1 - 3] : [];
+  const towers: number[] = lv >= 5 ? [x0 - 6, x1] : lv >= 4 ? [x1 + 1] : [];
   for (const tx of towers) {
     const tz = zF - 4;
     const th = H + 10;
@@ -774,11 +775,21 @@ function missionChurch(c: Ctx): void {
   }
   // courtyard with fountain, palms, cacti
   if (lv >= 3) {
-    const qx0 = lv >= 4 ? x1 + 5 : x1 + 5;
+    const qx0 = x1 + 5;
     const qx1 = hx - 1;
     if (qx1 - qx0 > 6) {
       v.box(qx0, 0, z0 + 2, qx1, 1, zF, "terracotta");
-      if (lv >= 4) fountain(v, (qx0 + qx1) / 2, 1, (z0 + 2 + zF) / 2, 3, "plaster");
+      if (lv >= 4) {
+        const mid = Math.floor((qx0 + qx1) / 2), cz = Math.floor((z0 + 2 + zF) / 2);
+        v.box(qx0, 0, cz - 1, qx1, 1, cz + 1, "path");
+        v.box(mid - 1, 0, z0 + 2, mid + 1, 1, zF, "path");
+        fountain(v, mid, 1, cz, 3, "plaster");
+        for (const xx of [qx0 + 2, qx1 - 3]) {
+          flowerBed(c, xx - 1, z0 + 3, xx + 1, cz - 2, 1, ["purple", "lime", "white"]);
+          tree(v, xx, 1, z0 + 4, "fruit", 1.1);
+        }
+        bench(v, qx1 - 4, 1, cz + 3, "z");
+      }
       tree(v, qx1 - 3, 1, zF - 3, "palm", 1.3);
     }
     cactus(v, -hx + 2, hz - 3);
@@ -917,8 +928,8 @@ function staveChurch(c: Ctx): void {
   lot(c, "grass2");
   speckle(c, "moss", 0.15);
   speckle(c, "snow", 0.04);
-  const tar = "#3b2a1e";
-  const tar2 = "#5a3d28";
+  const tar = "#4e3529";
+  const tar2 = "#855c3c";
   const zc = byLv(c, [0, 0, -2, -2, -4]);
   const base = byLv(c, [8, 10, 12, 14, 18]);
   v.box(-2, 0, zc + base / 2, 2, 1, hz, "path2");
@@ -930,12 +941,12 @@ function staveChurch(c: Ctx): void {
       v.box(x, 2, zc + g - 1, x + 1, 4, zc + g, null);
       v.box(x, 2, zc - g, x + 1, 4, zc - g + 1, null);
     }
-    steepHip(v, -g - 1, 4, zc - g - 1, g + 1, zc + g + 1, tar, 1, tar, );
+    steepHip(v, -g - 1, 4, zc - g - 1, g + 1, zc + g + 1, tar, 1, tar2);
     v.box(-g + 2, 4, zc - g + 2, g - 2, 8, zc + g - 2, tar);
   }
   // tiered core: wall band, then a two-step steep skirt roof, repeated
   const tiers = byLv(c, [1, 2, 3, 4, 5]);
-  const wallC = "#8a5a35";
+  const wallC = "#ad7b4e";
   let y = 1;
   let half = base / 2;
   for (let t = 0; t < tiers; t++) {
@@ -945,7 +956,7 @@ function staveChurch(c: Ctx): void {
     for (let x = -half + 1; x < half - 1; x += 3) v.put(x, y + wh - 2, zc + half - 1, "warmGlow", 0.6);
     y += wh;
     v.box(-half - 2, y, zc - half - 2, half + 2, y + 1, zc + half + 2, tar);
-    v.box(-half - 1, y + 1, zc - half - 1, half + 1, y + 2, zc + half + 1, "#4a3524");
+    v.box(-half - 1, y + 1, zc - half - 1, half + 1, y + 2, zc + half + 1, "#77543e");
     v.box(-half, y + 2, zc - half, half, y + 3, zc + half, tar);
     // dragon heads at the corners
     for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
@@ -1494,6 +1505,20 @@ function cloister(c: Ctx, s: number, x0: number, z0: number, x1: number, z1: num
     v.box(Math.floor(cx) - 2, by, Math.floor(cz), Math.floor(cx) - 1, by + 4, Math.floor(cz) + 1, "woodDark");
     v.box(Math.floor(cx) + 1, by, Math.floor(cz), Math.floor(cx) + 2, by + 4, Math.floor(cz) + 1, "woodDark");
     v.box(Math.floor(cx) - 2, by + 4, Math.floor(cz) - 1, Math.floor(cx) + 2, by + 5, Math.floor(cz) + 2, roof);
+    v.put(Math.floor(cx), by, Math.floor(cz), "waterDeep", 0.12);
+    v.put(Math.floor(cx), by + 2, Math.floor(cz), "brass");
+  }
+  if ((s === 0 || s === 3) && c.lv >= 3) {
+    // The physic garden occupies four beds around the path to the chapter house.
+    for (const [ax, bx] of [[x0 + d + 1, Math.floor(cx) - 2], [Math.floor(cx) + 2, x1 - d - 1]]) {
+      for (const [az, bz] of [[z0 + d + 1, Math.floor(cz) - 2], [Math.floor(cz) + 2, z1 - d - 1]]) {
+        if (bx <= ax || bz <= az) continue;
+        v.box(ax, by - 1, az, bx, by, bz, "soilDark");
+        for (let xx = ax; xx < bx; xx += 2) for (let zz = az; zz < bz; zz++) {
+          v.put(xx, by, zz, (zz - az) % 3 === 0 ? (s === 3 ? "purple" : "cream") : "olive");
+        }
+      }
+    }
   }
   // corner trees in the garth
   for (const [tx, tz] of [[x0 + d + 1, z0 + d + 1], [x1 - d - 2, z1 - d - 2]]) {
@@ -1579,8 +1604,15 @@ function meteora(c: Ctx): void {
   const cx = -4;
   const cz = -4;
   for (let y = 1; y < 26; y++) {
-    const r = 12 - Math.abs(y - 10) * 0.12 + Math.sin(y * 0.7) * 0.6;
-    v.cylinderY(cx, cz, y, y + 1, r, y % 5 === 0 ? "granite" : "stone");
+    const t = y / 25;
+    const r = 11.6 - 1.7 * Math.sin(t * Math.PI) + (1 - t) ** 3 * 5;
+    v.cylinderY(cx, cz, y, y + 1, r, y % 8 === 0 ? "#9a9684" : "stone");
+    for (let k = 0; k < 7; k++) {
+      const angle = k * 2 * Math.PI / 7;
+      const reach = r - 1 + 0.7 * Math.sin(t * 5 + k);
+      const xx = cx + Math.cos(angle) * reach, zz = cz + Math.sin(angle) * reach;
+      v.cylinderY(xx, zz, y, y + 1, 1.5 + (1 - t) * 2, k % 2 ? "#868379" : "#a29e8e");
+    }
   }
   v.cylinderY(cx, cz, 25, 26, 11.5, "grass2");
   // small pillar with hermitage
@@ -1591,6 +1623,17 @@ function meteora(c: Ctx): void {
   v.box(sx - 3, 20, sz - 3, sx + 3, 21, sz + 3, "terracotta");
   v.dome(sx, 21, sz, 2, "blue");
   v.put(sx, 15, sz + 3, "warmGlow", 1);
+  // Stone stairs switch back along the cliff from the olive grove.
+  for (let step = 0; step < 24; step++) {
+    const a = 0.45 + step * 0.11, r = 14.5 - step * 0.07;
+    const xx = Math.round(cx + Math.sin(a) * r), zz = Math.round(cz + Math.cos(a) * r);
+    v.box(xx - 1, step + 1, zz, xx + 2, step + 3, zz + 2, "sandDark");
+    if (step % 4 === 0) v.put(xx, step + 3, zz + 1, "woodDark");
+  }
+  for (let i = 0; i < 9; i++) {
+    const xx = -hx + 5 + i * 5, zz = hz - 9 + Math.round(Math.sin(i) * 3);
+    tree(v, xx, 1, zz, i % 3 === 0 ? "cypress" : "round", 0.9 + (i % 3) * 0.15);
+  }
   // monastery on top
   const by = 26;
   mainHall(c, 2, cx - 5, cz - 8, cx + 5, cz + 2, by, 7, "white", "blue");
@@ -1933,6 +1976,16 @@ function buildSynagogue(c: Ctx): void {
       for (let a = 0; a < 12; a++) v.put(Math.floor(Math.cos(a * 0.52) * R), 4 + H, Math.floor(cz + Math.sin(a * 0.52) * R), "glass", 0.5);
       v.dome(0, 5 + H, cz, R + 0.3, "copper");
       smallStar(v, 0, 8 + H + Math.ceil(R), Math.floor(cz), "gold");
+      if (lv >= 4) {
+        // Copper lanterns frame the stone entrance, leaving the central dome visible.
+        for (const side of [-1, 1]) {
+          const xx = side * (W / 2 - 2), zz = zF - 2;
+          v.cylinderY(xx, zz, 1, H + 3, 2.4, "limestone");
+          v.cylinderY(xx, zz, H + 3, H + 5, 2, "glass", 0.5);
+          for (const dx of [-1, 1]) v.box(xx + dx, H + 3, zz, xx + dx + 1, H + 5, zz + 1, "brass");
+          v.dome(xx, H + 5, zz, 2.5, "copper");
+        }
+      }
     }
   } else if (s === 2) {
     // modernist wedge rising to the front
@@ -1940,9 +1993,10 @@ function buildSynagogue(c: Ctx): void {
     for (let z = z0; z < zF; z++) {
       const t = (z - z0) / (zF - z0);
       const hh = Math.round(H * 0.6 + t * rise);
-      v.box(x0, 1, z, x1, 1 + hh, z + 1, "white");
+      for (const x of [x0, x1 - 1]) v.box(x, 1, z, x + 1, 1 + hh, z + 1, "white");
+      v.box(x0, hh, z, x1, hh + 1, z + 1, (z - z0) % 6 === 3 ? "glass" : "marbleShade");
+      if (z === z0 || z === zF - 1) v.box(x0, 1, z, x1, 1 + hh, z + 1, "white");
     }
-    v.clear(x0 + 1, 1, z0 + 1, x1 - 1, 1 + H + rise - 2, zF - 1);
     for (let z = z0 + 2; z < zF - 1; z += 2) {
       v.box(x0, 2, z, x0 + 1, 4, z + 1, "glass", 0.4);
       v.box(x1 - 1, 2, z, x1, 4, z + 1, "glass", 0.4);
@@ -2401,6 +2455,31 @@ function buildLdsTemple(c: Ctx): void {
     waterPlane(v, -hx + 4, pz0 + 1, -4, pz1 - 1, 0, "sky");
     v.box(3, 0, pz0, hx - 3, 1, pz1, "marble");
     waterPlane(v, 4, pz0 + 1, hx - 4, pz1 - 1, 0, "sky");
+    if (s === 0) {
+      // The granite campus has formal rose islands within its garden courts.
+      for (const side of [-1, 1]) {
+        const xx = side * Math.floor(hx * 0.55), zz = Math.floor((pz0 + pz1) / 2);
+        v.cylinderY(xx, zz, 0, 1, 2 + lv / 2, "marbleShade");
+        bush(v, xx, 1, zz, lv / 2, "leafDark", "pink");
+      }
+    } else if (s === 1) {
+      for (let zz = pz0 + 3; zz < pz1 - 2; zz += 5) for (const side of [-1, 1]) {
+        const xx = side * (hx - 6);
+        v.box(xx - 2, 0, zz, xx + 2, 1, zz + 2, "marble");
+        lamp(v, xx, 1, zz, 2, "white");
+      }
+    } else if (s === 2) {
+      for (const side of [-1, 1]) for (let zz = pz0 + 2; zz < pz1 - 1; zz += 6) {
+        v.box(side * 5 - 1, 0, zz, side * 5 + 2, 1, zz + 2, "marble");
+        v.put(side * 5, 1, zz, "foam", 0.35);
+      }
+    } else {
+      for (let zz = pz0 + 3; zz < pz1 - 1; zz += 5) for (const side of [-1, 1]) {
+        const start = side > 0 ? 4 : -hx + 4, end = side > 0 ? hx - 4 : -4;
+        v.box(start, 0, zz, end, 1, zz + 1, "foam", 0.15);
+        v.box(start, 1, zz - 1, end, 2, zz, "water", 0.15);
+      }
+    }
   }
   for (const fx of [x0 - 3, x1 + 1]) flowerBed(c, fx, z0 + 2, fx + 2, z1 - 2, 1, ["pink", "white", "purple", "yellow"]);
   // the temple body

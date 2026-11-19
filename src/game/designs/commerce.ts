@@ -41,6 +41,7 @@ import {
   ribbonWindows,
   ring,
   rocks,
+  sawtooth,
   securityFence,
   sign,
   solarRow,
@@ -2340,6 +2341,185 @@ defineDesigns({
 });
 
 // =============================================================================================
+// BLACKSMITH — the work moves from a field hearth to a smithy, powered hammer, casting yard
+// and finally a guild ironworks. Timber village, turf-roof Nordic, brick industrial and tatara clay.
+// =============================================================================================
+
+const forgeStyles = [
+  { wall: "plaster", beam: "woodDark", roof: "slate", stone: "brickDark", accent: "copper" },
+  { wall: "granite", beam: "oak", roof: "moss", stone: "stone", accent: "goldDark" },
+  { wall: "brick", beam: "iron", roof: "steelDark", stone: "brickDark", accent: "hazard" },
+  { wall: "#c68e62", beam: "#493b34", roof: "#4a5666", stone: "#966846", accent: "crimson" },
+];
+
+function buildBlacksmith(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const style = c.variant % 4;
+  const p = forgeStyles[style];
+  lot(c, style === 1 ? "grass2" : style === 3 ? "sandDark" : "path2");
+  speckle(c, style === 1 ? "stone" : "soil", 0.07);
+  const left = -hx + 1;
+  const rear = -hz + 2;
+  const front = rear + (lv >= 4 ? 14 : 8);
+  const width = Math.min(hx * 2 - 2, lv >= 4 ? 19 : 14);
+  const right = left + width;
+  const eaves = lv >= 4 ? 10 : 7;
+  const hearthX = left + 5;
+  const hearthZ = lv === 1 ? -2 : front - 2;
+  const anvilX = lv === 1 ? 3 : left + width - 5;
+  const anvilZ = lv === 1 ? 4 : front + 2;
+
+  if (lv >= 2) {
+    // Leave the firebox and the entire front of the shop visible.
+    v.box(left, 0, rear, right, 1, front + 2, "concreteDark");
+    v.box(left, 1, rear, right, eaves, rear + 1, p.wall);
+    v.box(left, 1, rear, left + 1, eaves, front - 1, p.wall);
+    for (const x of [left, right - 1]) v.box(x, 1, front, x + 1, eaves + 1, front + 1, p.beam);
+    v.box(left, eaves - 1, front, right, eaves + 1, front + 1, p.beam);
+    if (style === 0) {
+      gable(v, left - 1, eaves, rear - 1, right + 1, front + 2, "x", p.roof, "woodDark");
+      for (let z = rear + 1; z < front - 1; z++) v.put(left, 2 + (z - rear) % 5, z, "woodDark");
+    } else if (style === 1) {
+      gable(v, left - 1, eaves, rear - 1, right + 1, front + 2, "x", "woodDark");
+      gable(v, left, eaves + 1, rear, right, front + 1, "x", "grass2", "moss");
+      for (let x = left + 2; x < right - 1; x += 3) v.put(x, eaves + 1, front, "grass3");
+    } else if (style === 2) {
+      sawtooth(v, left, eaves, rear, right, front + 1, p.roof, "glass", 4);
+      v.box(left + 1, 3, rear, right - 1, 5, rear + 1, "glassDark", 0.25);
+    } else {
+      hip(v, left - 1, eaves, rear - 1, right + 1, front + 2, p.roof, "charcoal", 4);
+      for (const x of [left - 1, right]) for (const z of [rear - 1, front + 1]) v.put(x, eaves + 1, z, p.roof);
+      v.box(left + 1, eaves - 3, front, left + 4, eaves - 1, front + 1, "crimson");
+    }
+  }
+
+  const hood = lv === 1 ? 5 : 7;
+  v.box(hearthX - 3, 1, hearthZ - 3, hearthX + 3, hood, hearthZ + 2, p.stone);
+  v.box(hearthX - 2, 2, hearthZ, hearthX + 2, hood - 1, hearthZ + 2, "charcoal");
+  v.box(hearthX - 2, 2, hearthZ + 1, hearthX + 2, 3, hearthZ + 2, "fire", 1.1);
+  v.put(hearthX, 3, hearthZ + 1, "amber", 1.05);
+  if (style === 2) {
+    v.cone(hearthX, hood, hood + 4, hearthZ - 1, 3.1, 1.4, "iron");
+  } else if (style === 3) {
+    v.box(hearthX - 2, hood, hearthZ - 2, hearthX + 2, hood + 3, hearthZ + 1, p.wall);
+    v.box(hearthX - 3, 1, hearthZ - 2, hearthX - 2, 4, hearthZ + 1, "wood");
+  } else {
+    v.box(hearthX - 2, hood, hearthZ - 2, hearthX + 2, hood + 2, hearthZ + 1, p.stone);
+  }
+  const chimneyHeight = lv === 1 ? hood + 3 + (style === 2 ? 2 : 0) : eaves + lv + 6;
+  v.box(hearthX - 1, hood + 1, hearthZ - 2, hearthX + 1, chimneyHeight, hearthZ, p.stone);
+  v.box(hearthX - 2, chimneyHeight, hearthZ - 3, hearthX + 2, chimneyHeight + 1, hearthZ + 1, p.beam);
+  v.box(hearthX - 1, chimneyHeight, hearthZ - 2, hearthX + 1, chimneyHeight + 1, hearthZ, "charcoal");
+  c.smoke(hearthX, chimneyHeight + 1, hearthZ - 1, "smoke");
+
+  // Anvil, tapered horn, hot billet and the smith in a leather apron.
+  v.box(anvilX - 1, 1, anvilZ - 1, anvilX + 2, 3, anvilZ + 1, "woodDark");
+  v.box(anvilX, 3, anvilZ - 1, anvilX + 1, 4, anvilZ + 1, "iron");
+  v.box(anvilX - 2, 4, anvilZ - 1, anvilX + 2, 5, anvilZ + 1, "steel");
+  v.put(anvilX - 3, 4, anvilZ, "silver");
+  v.put(anvilX + 1, 5, anvilZ, "fire", 0.8);
+  person(v, anvilX + 2, 1, anvilZ - 1, "woodDark", "blueDark");
+  c.smoke(anvilX + 1, 5, anvilZ, "spark");
+  if (lv === 1) {
+    // Each tool cart has a different form even before a permanent roof is built.
+    if (style === 0) {
+      v.box(-6, 1, 3, -5, 7, 4, "woodDark");
+      v.box(-6, 6, 3, -2, 7, 4, "wood");
+      v.ringZ(-3.5, 4.5, 3, 4, 1.6, 0.8, "iron");
+    } else if (style === 1) {
+      for (const x of [2, 4]) v.box(x, 1, -5, x + 1, 2, -1, "woodDark");
+      v.box(1, 2, -5, 6, 3, -1, "wood");
+      v.box(2, 3, -5, 5, 5, -3, "charcoal");
+    } else if (style === 2) {
+      v.ringZ(3, 4, -3, -2, 3, 2, "iron");
+      v.box(2, 1, -4, 4, 4, -2, "steelDark");
+      v.box(0, 4, -2, 6, 5, -1, "copper");
+    } else {
+      v.box(1, 1, -5, 6, 4, -1, "woodDark");
+      v.box(2, 4, -5, 3, 6, -4, "wood");
+      v.box(2, 5, -5, 6, 6, -4, "woodLight");
+    }
+    return;
+  }
+  if (lv >= 3) {
+    // A visible flywheel and eccentrically mounted pin power the trip hammer.
+    const wx = right + 6;
+    const wz = rear + 6;
+    v.box(wx - 5, 1, wz - 3, wx + 4, 2, wz + 3, "granite");
+    v.box(wx - 1, 2, wz - 2, wx + 1, 8, wz, p.beam);
+    v.box(wx - 5, 7, wz - 1, wx + 2, 9, wz + 1, "woodDark");
+    v.box(wx - 5, 5, wz - 1, wx - 3, 8, wz + 1, "iron");
+    v.box(wx - 5, 2, wz - 1, wx - 3, 4, wz + 1, "steel");
+    const wheel = new PixelVox();
+    wheel.ringZ(0, 0, 0, 1, 4.4, 3.2, style === 2 ? "crimson" : "woodDark");
+    wheel.box(-4, 0, 0, 5, 1, 1, p.accent);
+    wheel.box(0, -4, 0, 1, 5, 1, p.accent);
+    wheel.put(2, 0, 1, "silver");
+    c.addRotor({ vox: wheel, pivot: [wx, 6, wz + 1], axis: "z", speed: -1.1 });
+  }
+  if (lv >= 4) {
+    // Cupola and casting sand form a separate, open-air production line.
+    const fx = hx - 6;
+    const fz = hz - 8;
+    v.cylinderY(fx, fz, 1, 5, 3.8, "brickDark");
+    v.cone(fx, 5, 14, fz, 3.6, 2.4, style === 2 ? "iron" : p.stone);
+    ring(v, fx, fz, 8, 9, 3.4, 2.2, "iron");
+    v.cylinderY(fx, fz, 14, 16, 2.4, "charcoal");
+    c.smoke(fx, 16, fz, "spark");
+    v.box(fx - 2, 3, fz + 2, fx + 1, 5, fz + 4, "fire", 1.1);
+    v.box(fx - 7, 1, fz + 3, fx, 2, fz + 6, "sandDark");
+    v.box(fx - 6, 2, fz + 3, fx, 3, fz + 4, "amber", 0.8);
+    for (let x = fx - 6; x < fx; x += 2) v.put(x, 2, fz + 4, "fire", 0.8);
+  }
+  if (lv === 5) {
+    // A pattern loft and travelling hoist occupy the new third bay of the works.
+    const lx = hx - 15;
+    const lz = rear + 2;
+    const loft = 7;
+    for (const x of [lx, hx - 3]) for (const z of [lz, lz + 7]) v.box(x, 1, z, x + 1, loft, z + 1, p.beam);
+    for (let z = lz; z < lz + 7; z += 2) {
+      v.box(lx + 2, 1, z, hx - 4, 3, z + 1, "iron");
+      v.put(lx + 2, 2, z, "silver");
+    }
+    if (style === 2) sawtooth(v, lx - 1, loft, lz - 1, hx - 1, lz + 9, p.roof, "glass");
+    else if (style === 3) hip(v, lx - 1, loft, lz - 1, hx - 1, lz + 9, p.roof, p.beam, 3);
+    else gable(v, lx - 1, loft, lz - 1, hx - 1, lz + 9, "x", p.roof, p.beam);
+    const craneZ = hz - 12;
+    for (const x of [lx + 1, hx - 4]) v.box(x, 1, craneZ, x + 1, 17, craneZ + 1, p.beam);
+    v.box(lx, 16, craneZ, hx - 2, 18, craneZ + 1, p.accent);
+    v.box(lx + 4, 10, craneZ, lx + 5, 16, craneZ + 1, "iron");
+    v.box(lx + 3, 9, craneZ - 1, lx + 6, 11, craneZ + 2, "steelDark");
+    // Cast-iron arcade: the finished ironwork frames its maker's courtyard.
+    const z = hz - 5;
+    const crest = 11;
+    for (const x of [-6, 5]) {
+      v.box(x - 1, 1, z - 1, x + 2, 3, z + 2, "granite");
+      v.box(x, 3, z, x + 1, crest, z + 1, p.beam);
+      for (let k = 0; k < 4; k++) v.put(x < 0 ? x + k : x - k, crest - 3 + k, z, p.beam);
+    }
+    v.box(-6, crest, z, 6, crest + 1, z + 1, "iron");
+    v.ringZ(0, crest + 4, z, z + 2, 4.3, 2.6, p.accent);
+    v.clear(-2, crest + 6, z, 2, crest + 10, z + 2);
+    for (const x of [-5, 4]) lamp(v, x, 1, z + 2, 5, "iron");
+    v.box(-hx + 2, 1, hz - 7, -hx + 13, 3, hz - 4, "wood");
+    for (let x = -hx + 3; x < -hx + 12; x += 3) {
+      v.box(x, 3, hz - 6, x + 1, 4, hz - 3, "woodLight");
+      v.box(x - 1, 3, hz - 6, x + 2, 4, hz - 5, "steel");
+    }
+    crowd(c, -hx + 3, hz - 4, -hx + 12, hz - 1, 3);
+  }
+}
+
+defineDesigns({
+  blacksmiths: {
+    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [3, 2]],
+    levels: ["Wayside Hearth", "Village Smithy", "Trip-Hammer Workshop", "Casting Yard", "Ironworkers' Guildhall"],
+    growth: "A roadside anvil gains a sheltered hearth, a flywheel-driven hammer, a casting furnace and a guild courtyard of finished ironwork.",
+    build: buildBlacksmith,
+  },
+});
+
+// =============================================================================================
 // GAS STATIONS
 // =============================================================================================
 
@@ -2353,7 +2533,6 @@ function buildGas(c: Ctx): void {
   const s = c.variant % 4;
   const main = ["red", "#1e8a3c", "#2ec4b6", "magenta"][s];
   const second = ["white", "yellow", "cream", "white"][s];
-  const ev = lv === 5;
   lot(c, "asphalt");
   speckle(c, "asphaltDark", 0.08);
 
@@ -2366,7 +2545,7 @@ function buildGas(c: Ctx): void {
     if (elec) v.box(x + 1, 2, z + 2, x + 2, 3, z + 3, "cyan", 1.0);
   };
   const canopy = (x0: number, z0: number, x1: number, z1: number, y: number) => {
-    if (s === 3 || (ev && s === 3)) {
+    if (s === 3) {
       // saucer canopy on one central stem
       const cx = (x0 + x1) / 2;
       const cz = (z0 + z1) / 2;
@@ -2495,15 +2674,24 @@ function buildGas(c: Ctx): void {
     crowd(c, -hx + 2, -3, 0, -1, 4);
     return;
   }
-  // L5 SOLAR EV SUPERHUB: wavy solar canopy over rows of glowing chargers, lounge pod with green roof, wind turbine
+  // Three generations of solar architecture surround the charging court; the space-age lot keeps its saucer.
   const panel = (x0: number, z0: number, x1: number, z1: number, y: number) => {
-    for (const px of [x0 + 2, x1 - 3]) for (const pz of [z0 + 1, z1 - 2]) v.box(px, 1, pz, px + 1, y, pz + 1, s === 0 ? "red" : "white");
+    const center = (x1 + x0 - 1) / 2;
+    const radius = (x1 - x0) / 2;
+    const roofAt = (x: number) => {
+      const across = Math.abs(x - center) / radius;
+      if (s === 0) return y + Math.round(across * 6); // upswept Googie wings
+      if (s === 1) return y + (Math.floor((x - x0) / 2) % 3); // photovoltaic sawteeth
+      return y + Math.round(3 * Math.sqrt(Math.max(0, 1 - across * across)));
+    };
+    for (const px of [x0 + 2, x1 - 3]) for (const pz of [z0 + 1, z1 - 2]) v.box(px, 1, pz, px + 1, roofAt(px), pz + 1, s === 0 ? "red" : "white");
     for (let x = x0; x < x1; x++) {
-      const wy = y + Math.round(Math.sin((x / (x1 - x0)) * Math.PI * 2) * (s === 2 ? 1 : 0.6));
+      const wy = roofAt(x);
       v.box(x, wy, z0, x + 1, wy + 1, z1, "solarBlue", 0.15);
       v.box(x, wy - 1, z0, x + 1, wy, z0 + 1, main, 0.5);
       v.box(x, wy - 1, z1 - 1, x + 1, wy, z1, main, 0.5);
-      if (x % 3 === 0) v.box(x, wy, z0, x + 1, wy + 1, z1, "silver");
+      for (let z = z0 + 2; z < z1; z += s === 2 ? 4 : 6) v.put(x, wy, z, s === 2 ? "brass" : "steelLight");
+      if (s === 1 && (x - x0) % 6 === 5) v.box(x, wy - 2, z0 + 1, x + 1, wy, z1 - 1, "glass", 0.4);
     }
   };
   if (s === 3) {
@@ -2532,7 +2720,6 @@ function buildGas(c: Ctx): void {
   v.box(lx0, 1, 3, hx - 2, 6, 4, "glass", 0.6);
   v.box(lx0, 1, -hz + 2, lx0 + 1, 6, 4, "glass", 0.5);
   v.box(lx0 - 1, 7, -hz + 1, hx - 1, 8, 5, "grass2");
-  speckle(c, "leafLight", 0.0);
   for (let x = lx0; x < hx - 2; x += 3) bush(v, x, 8, -hz + 4, 1, "leaf", "pink");
   cafeTable(v, lx0 + 3, 8, main);
   cafeTable(v, lx0 + 9, 8, main);
@@ -2934,6 +3121,15 @@ function buildMalls(c: Ctx): void {
       shell(v, a, 1, z0, a + 6, 7, z1, i % 2 ? wall : wall2);
       shopfront(v, a, a + 6, 1, z1 - 1, 4, "steelLight");
       v.box(a, 5, z1 - 1, a + 6, 7, z1 + 1, c.pick(["red", "teal", "orange", "blue", "magenta", "lime"]), 0.6);
+      if (s === 1) {
+        gable(v, a, 8, z0, a + 6, z1 + 1, "z", "slate", "limestone");
+      } else if (s === 2 && i % 2 === 0) {
+        v.dome(a + 3, 8, z0 + 5, 3, "copper");
+      } else if (s === 3) {
+        ledScreen(a + 1, a + 5, 7, 10 + i % 3, z1);
+      } else if (s === 0) {
+        awning(v, a, a + 6, 5, z1, "#f7a1c4", "white");
+      }
     }
     v.box(-hx + 2, 7, z0, -hx + 2 + Math.floor((2 * hx - 4) / 6) * 6, 8, z1 + 2, roof);
     v.box(-hx + 2, 1, z1, hx - 2, 1, z1 + 2, "concrete");
@@ -2986,31 +3182,32 @@ function buildMalls(c: Ctx): void {
     }
   }
   if (lv >= 4) {
-    // CINEMA block on the back right with marquee + parking garage on the left back
+    // The cinema occupies the right anchor's front; the rooftop parking deck sits across the entry.
     const cx0 = hx - 16;
-    shell(v, cx0, 1, -hz + 2, hx - 2, H + 8, mz0 + 2 + 0, s === 3 ? "black" : "purpleDark");
-    v.box(cx0, H + 2, mz0 + 1, hx - 2, H + 6, mz0 + 2, "warmGlow", 1);
-    for (let x = cx0; x < hx - 2; x += 2) v.put(x, H + 1, mz0 + 2, "yellow", 1.3);
-    flatRoof(c, cx0, H + 8, -hz + 2, hx - 2, mz0 + 2, "concreteDark", "purple", false);
-    // parking garage
-    for (let y = 1; y < 15; y += 4) {
-      v.box(-hx + 2, y, -hz + 2, -hx + 14, y + 1, mz0 + 2, "concrete");
-      for (let x = -hx + 3; x < -hx + 13; x += 4) if (c.rand() < 0.7) car(v, x, y + 1, -hz + 5, "z", c.pick([...CAR_COLORS]));
+    shell(v, cx0, H + 2, mz1 - 9, hx - 2, H + 8, mz1, s === 3 ? "black" : "purpleDark");
+    v.box(cx0, H + 2, mz1, hx - 2, H + 5, mz1 + 2, "warmGlow", 0.8);
+    for (let x = cx0; x < hx - 2; x += 2) v.put(x, H + 1, mz1 + 1, "yellow", 1.3);
+    flatRoof(c, cx0, H + 8, mz1 - 9, hx - 2, mz1, "concreteDark", "purple", false);
+    for (let y = H + 3; y <= H + 7; y += 4) {
+      v.box(-hx + 2, y, mz1 - 10, -hx + 14, y + 1, mz1, "concrete");
+      for (let x = -hx + 4; x < -hx + 13; x += 4) car(v, x, y + 1, mz1 - 4, "z", c.pick(CAR_COLORS));
     }
-    for (const [px, pz] of [[-hx + 2, -hz + 2], [-hx + 13, -hz + 2], [-hx + 2, mz0 + 1], [-hx + 13, mz0 + 1]]) v.box(px, 1, pz, px + 1, 15, pz + 1, "concrete");
+    for (const px of [-hx + 2, -hx + 13]) for (const pz of [mz1 - 10, mz1 - 1]) v.box(px, H + 3, pz, px + 1, H + 8, pz + 1, "concrete");
   }
   if (lv === 5) {
     // ROOFTOP FERRIS WHEEL (rotor) on the right anchor + fountain plaza + more palms
-    const fx = hx - 10;
-    const fz = Math.floor((mz0 + mz1) / 2);
+    const fx = hx - 15;
+    const fz = mz0 + 8;
     const baseY = H + 3;
     const R = 13;
     for (const dz of [-2, 2]) {
       for (let i = 0; i <= R + 1; i++) {
-        v.put(fx - Math.round(i * 0.45), baseY + i, fz + dz, "white");
-        v.put(fx + Math.round(i * 0.45), baseY + i, fz + dz, "white");
+        const spread = Math.round((R + 1 - i) * 0.45);
+        v.put(fx - spread, baseY + i, fz + dz, "white");
+        v.put(fx + spread, baseY + i, fz + dz, "white");
       }
     }
+    v.box(fx, baseY + R + 1, fz - 2, fx + 1, baseY + R + 2, fz + 3, "iron");
     const wheel = new PixelVox(17);
     wheel.ringZ(0, 0, -1, 0, R, R - 1, accent === "iron" ? "red" : accent, 0.4);
     wheel.ringZ(0, 0, 0, 1, R, R - 1, accent === "iron" ? "red" : accent, 0.4);
@@ -3051,14 +3248,19 @@ function buildDataCenters(c: Ctx): void {
   const hall = (x0: number, z0: number, x1: number, z1: number, h: number) => {
     if (s === 3) {
       // earth berm bunker: sloped grass sides, concrete face with blast door
-      for (let k = 0; k < h; k++) v.box(x0 - (h - k) + 1, k + 1, z0 - (h - k) + 1, x1 + (h - k) - 1, k + 2, z1 - 1, k === h - 1 ? "grass2" : "grass");
+      for (let k = 0; k < h; k++) {
+        const shoulder = Math.min(2, Math.floor((h - 1 - k) / 2));
+        const layer = k % 3 === 1 ? "moss" : "grass2";
+        v.box(x0 - shoulder, k + 1, z0 - shoulder, x1 + shoulder, k + 2, z1 - 1, layer);
+        if (k < h - 1) v.clear(x0 + 1, k + 1, z0 + 1, x1 - 1, k + 2, z1 - 2);
+      }
       v.box(x0, 1, z1 - 1, x1, h + 1, z1, "concreteDark");
       const dx = Math.floor((x0 + x1) / 2);
       v.box(dx - 2, 1, z1, dx + 2, 5, z1 + 1, "steelDark");
       v.box(dx - 2, 3, z1, dx + 2, 4, z1 + 1, "hazard");
       for (let x = x0 + 1; x < x1 - 1; x += 2) v.put(x, h - 1, z1 - 1, band2, 1.0);
       let vents = 0;
-      for (let x = x0 + 3; x < x1 - 2; x += 6) for (let z = z0 + 2; z < z1 - 2; z += 6) { v.box(x, h + 2, z, x + 2, h + 4, z + 2, "steelLight"); v.put(x, h + 4, z, "steelDark"); if (vents++ % 3 === 0) c.smoke(x, h + 5, z, "steam"); }
+      for (let x = x0 + 3; x < x1 - 2; x += 6) for (let z = z0 + 2; z < z1 - 2; z += 6) { v.box(x, h + 1, z, x + 2, h + 4, z + 2, "steelLight"); v.put(x, h + 4, z, "steelDark"); if (vents++ % 3 === 0) c.smoke(x, h + 5, z, "steam"); }
       return h + 1;
     }
     shell(v, x0, 1, z0, x1, h, z1, wall);
@@ -3074,7 +3276,20 @@ function buildDataCenters(c: Ctx): void {
       v.cylinderY(x + 1.5, z0 + 3.5, h + 3, h + 4, 1.2, "steelDark");
       if ((x - x0) % 10 === 2) c.smoke(x + 1, h + 4, z0 + 3, "steam");
     }
-    if (s === 1) for (let x = x0; x < x1; x += 1) if (c.rand() < 0.5) v.put(x, h + 1, z1 - 2, "snow");
+    const midX = Math.floor((x0 + x1) / 2);
+    if (s === 0) {
+      // Stacked glass service core; the external fibre trunk rises beside the racks.
+      v.box(midX - 2, 1, z1 - 1, midX + 2, h + 4, z1 + 1, "glassDark", 0.25);
+      for (let y = 2; y < h + 4; y += 3) v.box(midX - 2, y, z1, midX + 2, y + 1, z1 + 1, band2);
+      v.box(midX - 2, h + 4, z1 - 1, midX + 2, h + 5, z1 + 1, "silver");
+    } else if (s === 1) {
+      // A long rooftop air intake with a snow hood gives polar halls a ridge.
+      gable(v, x0 + 1, h + 1, z1 - 6, x1 - 1, z1 - 1, "x", "snow", "silver");
+      for (let x = x0 + 2; x < x1 - 1; x += 3) v.box(x, h + 1, z1 - 1, x + 1, h + 3, z1, "steelDark");
+    } else {
+      // Tilted photovoltaic sunshades cover the hot aisle of every desert hall.
+      for (let z = z0 + 7; z + 4 <= z1 - 1; z += 6) solarRow(v, x0 + 1, x1 - 1, h + 1, z, 4);
+    }
     return h + 1;
   };
   const fiberTower = (x: number, z: number, h: number) => {

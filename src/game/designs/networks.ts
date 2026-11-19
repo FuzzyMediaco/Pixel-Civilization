@@ -17,8 +17,9 @@
  *  - Elevated / sunken pieces use `deckH` (per-cell deck height) that slopes to ground level toward
  *    ramp sides, and can split into a grade-separated crossing.
  */
-import { type Ctx, PixelVox, bench, bush, lamp, person, rocks, tree, type TreeKind } from "./kit";
+import { type Ctx, PixelVox, bench, bush, lamp, person, rocks, solarRow, tree, type TreeKind } from "./kit";
 import { defineDesigns } from "./registry";
+import { separatedDeckAxis } from "../roadTopology";
 
 // ---------------------------------------------------------------------------------------------
 // Rotation frame
@@ -69,6 +70,7 @@ class RotVox extends PixelVox {
 // ---------------------------------------------------------------------------------------------
 
 interface Net {
+  mask: number;
   c: Ctx;
   v: PixelVox;
   R: RotVox[];
@@ -97,8 +99,7 @@ interface Net {
 const idx = (x: number, z: number) => (x + 8) * 16 + (z + 8);
 const inT = (x: number, z: number) => x >= -8 && x < 8 && z >= -8 && z < 8;
 
-function mkNet(c: Ctx, lonelyArms = true): Net {
-  const m = c.conn;
+function networkLayout(m: number, lonelyArms: boolean) {
   const arm = [0, 1, 2, 3].map((k) => ((m >> k) & 1) === 1);
   const drive = [0, 1, 2, 3].map((k) => ((m >> (k + 4)) & 1) === 1 && !arm[k]);
   const ramp = [0, 1, 2, 3].map((k) => ((m >> (k + 8)) & 1) === 1 && arm[k]);
@@ -119,11 +120,7 @@ function mkNet(c: Ctx, lonelyArms = true): Net {
     for (let k = 0; k < 4; k++) if (arm[k] && arm[(k + 1) % 4]) corner = k;
   }
   return {
-    c,
-    v: c.v,
-    R: [0, 1, 2, 3].map((k) => new RotVox(c.v, k)),
-    lv: Math.max(1, Math.min(5, c.lv)),
-    vr: ((c.variant % 4) + 4) % 4,
+    mask: m,
     arm,
     drive,
     ramp,
@@ -135,6 +132,17 @@ function mkNet(c: Ctx, lonelyArms = true): Net {
     straight,
     corner,
     junction: nArms >= 3,
+  };
+}
+
+function mkNet(c: Ctx, lonelyArms = true): Net {
+  return {
+    ...networkLayout(c.conn, lonelyArms),
+    c,
+    v: c.v,
+    R: [0, 1, 2, 3].map((k) => new RotVox(c.v, k)),
+    lv: Math.max(1, Math.min(5, c.lv)),
+    vr: ((c.variant % 4) + 4) % 4,
     D: new Float32Array(256),
     ap: new Uint8Array(256),
     used: new Uint8Array(256),
@@ -369,6 +377,32 @@ interface DressOpts {
 function streetDressing(n: Net, half: number, walk: number, line: string, lv: number, vr: number, o: DressOpts): void {
   const v = n.v;
   const sy = 2; // top of raised sidewalk
+  // Municipal curb patterns run through crossings and terminate at every driveway.
+  forCells((x, z, i) => {
+    if (n.ap[i] || n.D[i] < half || n.D[i] >= walk) return;
+    if (vr === 1 && ((x + z) & 3) === 0) v.put(x, 1, z, "slateLight");
+    if (vr === 2) v.put(x, 1, z, ((x >> 1) + z) % 3 ? "brick" : "terracotta");
+    if (vr === 3 && (x - z) % 3 === 0) v.put(x, 1, z, "sand");
+  });
+  if (lv === 1) {
+    for (let q = 0; q < 4; q++) {
+      if (propK(n, q, walk, -6, walk, R => {
+        if (vr === 0) {
+          R.box(walk, 1, -6, walk + 1, 3, -5, "red");
+          R.put(walk, 3, -6, "iron");
+        } else if (vr === 1) {
+          R.box(walk, 1, -6, walk + 1, 5, -5, "steelDark");
+          R.put(walk, 4, -5, "screenCyan", 0.5);
+        } else if (vr === 2) {
+          R.box(walk, 1, -6, walk + 1, 4, -5, "stone");
+          R.put(walk, 4, -6, "brass");
+        } else {
+          R.box(walk, 1, -6, walk + 1, 3, -5, "terracotta");
+          R.put(walk, 3, -6, "leaf");
+        }
+      }, 1)) break;
+    }
+  }
   const a0 = armStart(n, half);
   // ---- markings
   for (let k = 0; k < 4; k++) {
@@ -662,7 +696,7 @@ function buildDirt(c: Ctx): void {
   const { v, lv, vr } = n;
   computeD(n, "arc", 1);
   aprons(n, 2, 3);
-  const dirt = "#b8905c";
+  const dirt = ["#b8905c", "#c49d6d", "#988677", "#a77348"][vr];
   forCells((x, z, i) => {
     const d = n.D[i];
     const r = h2(x, z, 21);
@@ -671,6 +705,11 @@ function buildDirt(c: Ctx): void {
       if (lv >= 4 && r > 0.75) col = "concreteDark"; // gravel topping
       v.put(x, 0, z, col);
     } else v.put(x, 0, z, d < 5 && r < 0.3 ? "olive" : grassVerge(x, z));
+    if (lv === 1 && d > 5 && r < 0.035) {
+      if (vr === 1) v.box(x, 1, z, x + 1, 3, z + 1, "grass3");
+      if (vr === 2) v.put(x, 1, z, "stone");
+      if (vr === 3) v.put(x, 1, z, "orange");
+    }
   });
   // ruts: cells at perpendicular offset 1 from centre-line on each side (x = -2 and 1)
   forCells((x, z, i) => {
@@ -923,14 +962,14 @@ function buildWalking(c: Ctx): void {
     } else bench(R, x, 1, z, "z", vr === 1 ? "marble" : "wood");
   };
   for (let q = 0; q < 4; q++) {
-    if (lv >= 2) propK(n, q, 4, q % 2 ? -3 : -6, 4, (R) => lampF(R, 4, q % 2 ? -3 : -6), 1, 6) || propK(n, q, 4, -1, 4, (R) => lampF(R, 4, -1), 1, 6);
     if (lv >= 3 && q % 2 === 0) {
-      if (freeK(n, q, 4, -5, 4, 6) && freeK(n, q, 4, -3, 4, 6)) {
+      if (freeK(n, q, 5, -5, 4) && freeK(n, q, 5, -3, 4)) {
         claimK(n, q, 4, -4, 1);
         benchF(n.R[q], 5, -5);
         if (lv >= 4) person(n.R[q], 4, 1, -4, ["red", "teal", "yellow", "pink"][vr]);
       }
     }
+    if (lv >= 2) propK(n, q, 4, q % 2 ? -3 : -7, 4, (R) => lampF(R, 4, q % 2 ? -3 : -7), 1, 7) || propK(n, q, 4, -1, 4, (R) => lampF(R, 4, -1), 1, 7);
     if (lv >= 4) {
       propK(n, q, 6, -7, 5, (R) => {
         R.box(5, 0, -8, 8, 1, -5, "soil");
@@ -1159,6 +1198,21 @@ function buildMotorway(c: Ctx, free: boolean): void {
     else v.put(x, 0, z, free ? "concreteDark" : h2(x, z) < 0.5 ? "grass3" : "grass2");
   });
   const sign = ["leafDark", "blue", "woodDark", "tealDark"][vr];
+  if (free && n.straight >= 0) {
+    // Compact distance marker, twin reflective paddles, scenic shield or urban call box.
+    const R = n.R[n.straight];
+    R.box(7, 2, -5, 8, 5, -4, vr === 2 ? "oak" : "steelDark");
+    if (vr === 0) R.box(7, 4, -6, 8, 6, -3, sign);
+    if (vr === 1) for (const z of [-6, -4]) R.box(7, 4, z, 8, 7, z + 1, "white", 0.3);
+    if (vr === 2) {
+      R.box(7, 4, -6, 8, 6, -3, sign);
+      R.put(7, 6, -5, "brass");
+    }
+    if (vr === 3) {
+      R.box(6, 3, -5, 8, 7, -3, "orange");
+      R.put(6, 5, -3, "screenCyan", 0.9);
+    }
+  }
   const lineW = lv >= 5 ? "screenCyan" : "white";
   for (let k = 0; k < 4; k++) {
     if (!n.arm[k]) continue;
@@ -1268,15 +1322,31 @@ function buildMotorway(c: Ctx, free: boolean): void {
       R.put(2, h, lz, "warmGlow", 1.3);
     }
   }
-  // junction signal mast
+  // Junction crossheads grow with traffic capacity. The structure sits beyond the running lanes.
   if (n.junction) {
-    for (let q = 0; q < 4; q++) {
-      if (!n.arm[q] && !n.arm[(q + 1) % 4]) continue;
+    const R = n.R[n.arm.findIndex(Boolean)];
+    const top = free ? 10 : 8;
+    R.box(7, 1, -7, 8, top + 1, -6, "steel");
+    R.box(lv >= 3 ? -7 : 1, top, -7, 8, top + 1, -6, "steel");
+    R.put(2, top - 1, -7, "red", 1.1);
+    R.put(4, top - 1, -7, "screenGreen", 1.1);
+    if (lv >= 2) {
+      R.box(6, top + 1, -7, 8, top + 2, -6, "silver");
+      R.put(6, top, -6, "warmGlow", 1);
     }
-    v.box(7, 1, 7, 8, 9, 8, "steel");
-    v.box(1, 8, 7, 8, 9, 8, "steel");
-    v.put(2, 7, 7, "red", 1.1);
-    v.put(4, 7, 7, "screenGreen", 1.1);
+    if (lv >= 3) {
+      R.box(-8, 1, -7, -7, top + 1, -6, "steel");
+      R.box(-6, top - 2, -7, -1, top + 1, -6, sign);
+      R.box(-5, top - 1, -6, -2, top, -5, "white");
+    }
+    if (lv >= 4) {
+      R.box(-6, top + 1, -7, 6, top + 3, -6, lv === 5 ? "black" : "steelDark");
+      for (let x = -5; x < 6; x += 2) R.put(x, top + 1, -6, lv === 5 ? "screenGreen" : "amber", 0.9);
+    }
+    if (lv === 5) {
+      solarRow(R, -6, 6, top + 3, -7);
+      R.put(7, top + 1, -7, "screenCyan", 1.2);
+    }
   }
   // roadside props in non-arm verge (only highways have a verge)
   if (!free) {
@@ -1314,12 +1384,9 @@ interface DeckInfo {
  * centre at full height and slope ramp arms within their half.  A tile whose ramp arms are all on one
  * axis while elevated arms are on the other becomes a grade-separated crossing.
  */
-function deckH(n: Net, full: number): DeckInfo {
+function deckH(n: ReturnType<typeof networkLayout>, full: number): DeckInfo {
   const H = new Int8Array(256);
-  const elev = [0, 1, 2, 3].map((k) => n.arm[k] && !n.ramp[k]);
-  let sep = -1;
-  if (n.ramp[0] && n.ramp[2] && !n.ramp[1] && !n.ramp[3] && (elev[1] || elev[3])) sep = 1;
-  if (n.ramp[1] && n.ramp[3] && !n.ramp[0] && !n.ramp[2] && (elev[0] || elev[2])) sep = 0;
+  const sep = separatedDeckAxis(n.mask);
   forCells((x, z, i) => {
     let h = full;
     if (sep >= 0) h = full;
@@ -1383,7 +1450,7 @@ function deckCells(n: Net, hw: number, f: (x: number, z: number, i: number, d: n
 
 // ---------------------------------------------------------------------------------------------
 // BRIDGES — steel truss road bridge, deck at y=4.
-//  Paint by variant: V0 Bottle green   V1 Crimson   V2 Royal blue   V3 Weathered black
+//  Four truss systems in the same municipal paint: Warren, crossed lattice, Pratt and bowstring.
 //  Lv1 girder span -> Lv2 pony truss -> Lv3 through truss -> Lv4 lit truss -> Lv5 camelback landmark
 // ---------------------------------------------------------------------------------------------
 
@@ -1412,8 +1479,8 @@ function railingsAround(n: Net, dk: DeckInfo, hw: number, col: string, h = 1, po
 function buildBridge(c: Ctx): void {
   const n = mkNet(c);
   const { v, lv, vr } = n;
-  const paint = ["#3f7a5a", "crimson", "blue", "#3a3d44"][vr];
-  const paint2 = ["#5f9c78", "red", "sky", "steelDark"][vr];
+  const paint = "#3e7169";
+  const paint2 = "#73a394";
   const dk = deckH(n, BRIDGE_H);
   underGround(n);
   const hw = 7;
@@ -1493,11 +1560,26 @@ function buildBridge(c: Ctx): void {
   }
   // Truss on straight full-height tiles
   const fullStraight = (n.straight >= 0 || n.lonely) && !n.ramp.some(Boolean);
+  if (fullStraight && lv === 1) {
+    const R = n.R[n.straight === 1 ? 1 : 0];
+    for (const side of [-7, 6]) {
+      if (vr === 1) {
+        for (let z = -7; z < 8; z += 4) R.box(side, 1, z, side + 1, BRIDGE_H, z + 1, paint2);
+      } else if (vr === 2) {
+        for (const z of [-4, 3]) R.box(side, 0, z, side + 1, BRIDGE_H + 2, z + 1, "concreteDark");
+      } else if (vr === 3) {
+        for (let z = -5; z <= 5; z++) R.put(side, BRIDGE_H + Math.round(2 * Math.cos(z * Math.PI / 12)), z, paint2);
+      }
+    }
+  }
   if (fullStraight && lv >= 2) {
     const R = n.R[n.straight === 1 ? 1 : 0];
     const y0 = BRIDGE_H + 1;
     const th = lv === 2 ? 3 : lv === 3 ? 7 : 8;
-    const topAt = (z: number) => (lv >= 5 ? th + Math.round(3 * Math.sin((Math.PI * (z + 8.5)) / 16)) : th);
+    const topAt = (z: number) => {
+      const rise = vr === 3 ? 3 + lv : lv >= 5 ? 3 : 0;
+      return th + Math.round(rise * Math.sin((Math.PI * (z + 8.5)) / 16));
+    };
     for (const sx of [-7, 6]) {
       for (let z = -8; z < 8; z++) {
         const t = topAt(z);
@@ -1506,9 +1588,11 @@ function buildBridge(c: Ctx): void {
         if (lv >= 5) R.put(sx, y0 + t - 1, z, paint);
         const p = ((z + 8) % 8 + 8) % 8; // 0..7 period
         if (p === 0) R.box(sx, y0, z, sx + 1, y0 + t, z + 1, paint2);
-        // Warren diagonals
-        const diagY = Math.round(((p < 4 ? p : 8 - p) / 4) * t);
-        R.box(sx, y0 + Math.min(diagY, t), z, sx + 1, y0 + Math.min(diagY, t) + 1, z + 1, paint);
+        const phase = vr === 2 ? (z < 0 ? 7 - p : p) / 7 : (p < 4 ? p : 8 - p) / 4;
+        const diagY = Math.round(phase * t);
+        if (vr !== 3) R.box(sx, y0 + diagY, z, sx + 1, y0 + Math.min(t, diagY + Math.ceil(t / 5)) + 1, z + 1, paint);
+        if (vr === 1) R.box(sx, y0 + t - diagY, z, sx + 1, y0 + Math.min(t, t - diagY + 1) + 1, z + 1, paint2);
+        if (vr === 3 && p % 3 === 1) R.box(sx, y0 + 1, z, sx + 1, y0 + t, z + 1, "silver");
         if (lv >= 4 && p === 4) R.put(sx, y0 + 1, z, "warmGlow", 1.0);
       }
     }
@@ -1523,7 +1607,7 @@ function buildBridge(c: Ctx): void {
           R.put(0, y0 + t, z, paint2);
         }
       }
-      R.box(-1, y0 + topAt(0), -8, 1, y0 + topAt(0) + 1, 8, paint2);
+      for (let z = -8; z < 8; z++) R.box(-1, y0 + topAt(z), z, 1, y0 + topAt(z) + 1, z + 1, paint2);
     }
     if (lv >= 4) {
       // deck lamps hanging from the top bracing
@@ -1588,17 +1672,17 @@ function buildStoneBridge(c: Ctx): void {
   const sepAxis = dk.sep;
   const archOpen = (x: number, z: number, y: number): boolean => {
     const openAlongX = (px: number) => {
-      // opening seen from E/W faces: a tunnel along x; profile in (z,y)
-      const t = Math.abs(px + 0.5) / 6;
-      return t < 1 && y < 1 + Math.sqrt(1 - t * t) * 3.2;
+      const offset = Math.abs(px + 0.5);
+      const t = vr === 1 ? Math.abs(offset - 3.5) / 3 : offset / 6.5;
+      if (t >= 1) return false;
+      const rise = vr === 2 ? 1 - t : Math.sqrt(1 - t * t);
+      return y < 1 + rise * (vr === 3 ? 2.5 : 3.4);
     };
     if (sepAxis >= 0) {
       // grade-separated: a big tunnel carrying the ground road under
-      const p = sepAxis === 0 ? x : z;
       const q = sepAxis === 0 ? z : x;
-      void p;
       const t = Math.abs(q + 0.5) / 6.5;
-      return false || (sepAxis === 0 ? Math.abs(x + 0.5) < 9 && t < 1 && y < 1 + Math.sqrt(1 - t * t) * 3.4 : Math.abs(z + 0.5) < 9 && t < 1 && y < 1 + Math.sqrt(1 - t * t) * 3.4);
+      return t < 1 && y < 1 + Math.sqrt(1 - t * t) * 3.4;
     }
     const ns = n.straight === 0 || (n.lonely && n.straight !== 1);
     const ew = n.straight === 1;
@@ -1629,22 +1713,6 @@ function buildStoneBridge(c: Ctx): void {
       if (lv >= 2) v.put(x, h + 2, z, ((x + z) & 1) === 0 ? wall2 : wall);
     }
   });
-  // arch ring (voussoirs) highlight + keystone
-  forCells((x, z) => {
-    for (let y = 1; y < STONE_H; y++) {
-      if (!v.v.has(0)) {
-        /* noop to keep types happy */
-      }
-      void y;
-    }
-    void x;
-    void z;
-  });
-  // open parapets where arms continue (parapets are only on the outer edges: handled by dd >= 6)
-  // remove parapet across arm mouths in junctions
-  for (let k = 0; k < 4; k++) {
-    if (!n.arm[k] || n.straight >= 0) continue;
-  }
   // lanterns on parapets
   if (lv >= 3) {
     const lant = vr === 2 ? "iron" : "black";
@@ -1696,7 +1764,7 @@ function buildStoneBridge(c: Ctx): void {
 
 // ---------------------------------------------------------------------------------------------
 // SUSPENSION BRIDGES — tower per straight span with catenary cables & hangers, deck at y=6.
-//  V0 International orange   V1 White   V2 Steel blue   V3 Bronze
+//  International-orange towers with rectangular, peaked, forked or finial-topped portals.
 // ---------------------------------------------------------------------------------------------
 
 const SUSP_H = 6;
@@ -1704,8 +1772,8 @@ const SUSP_H = 6;
 function buildSuspension(c: Ctx): void {
   const n = mkNet(c);
   const { v, lv, vr } = n;
-  const paint = ["#d0452e", "white", "#5b7fa8", "#a8763e"][vr];
-  const paint2 = ["#a8342b", "silver", "#3f5f86", "#7f5528"][vr];
+  const paint = "#d15640";
+  const paint2 = "#964137";
   const cableCol = lv >= 2 ? paint2 : "woodDark";
   const dk = deckH(n, SUSP_H);
   underGround(n);
@@ -1757,6 +1825,20 @@ function buildSuspension(c: Ctx): void {
     }
     // portal beams
     R.box(-6, towerTop - 2, -1, 6, towerTop, 1, paint);
+    // Each style keeps the same deck and cable anchorage but has a different portal silhouette.
+    if (vr === 1 || vr === 2) {
+      const rise = vr === 1 ? 3 + lv : 3;
+      for (let x = -7; x <= 6; x++) {
+        const lift = vr === 1 ? 1 - Math.abs(x + 0.5) / 7 : Math.abs(x + 0.5) / 7;
+        const y = towerTop - 1 + Math.round(rise * lift);
+        R.box(x, y - 1, -1, x + 1, y + 1, 1, paint);
+      }
+    } else if (vr === 3) {
+      for (const x of [-7, 6]) {
+        R.box(x - 1, towerTop, -2, x + 2, towerTop + 2, 2, "brass");
+        R.box(x, towerTop + 2, -1, x + 1, towerTop + 4 + lv, 1, paint);
+      }
+    }
     if (lv >= 2) R.box(-6, Math.floor((SUSP_H + towerTop) / 2), -1, 6, Math.floor((SUSP_H + towerTop) / 2) + 1, 1, paint);
     if (lv >= 4) R.box(-6, SUSP_H + 6, -1, 6, SUSP_H + 7, 1, paint);
     if (lv >= 5) {
@@ -1800,15 +1882,21 @@ function buildSuspension(c: Ctx): void {
         R.box(sx - (sx < 0 ? 0 : 1), 0, 1, sx + (sx < 0 ? 2 : 1), 4, 4, "concrete");
       }
     }
-    if ((n.junction || n.corner >= 0) && lv >= 3) {
+    if (n.junction || n.corner >= 0) {
       for (let q = 0; q < 4; q++) {
-        if (n.arm[q] || n.arm[(q + 1) % 4]) continue;
-        const [px, pz] = rotK(q, 7, -8);
-        if (n.D[idx(px, pz)] < 7 && n.arm[q] && n.arm[(q + 1) % 4]) {
-          /* corner open on both arms: still the corner cell is outside both arms */
+        if (!n.arm[q] || !n.arm[(q + 1) % 4]) continue;
+        const R = n.R[q];
+        const top = SUSP_H + 2 + lv * 2;
+        R.box(6, 0, -7, 8, top, -5, paint);
+        R.box(6, top, -7, 8, top + 1, -5, lv >= 4 ? "warmGlow" : paint2, lv >= 4 ? 1 : 0);
+        if (lv >= 3) {
+          for (let d = 1; d <= 6; d++) {
+            const y = top - 1 - Math.round((lv + 1) * d / 6);
+            R.put(7, y, -6 + d, "steelLight");
+            R.put(7 - d, y, -7, "steelLight");
+          }
         }
-        v.box(px, 0, pz, px + 1, SUSP_H + 8 + lv, pz + 1, paint);
-        v.put(px, SUSP_H + 8 + lv, pz, lv >= 4 ? "warmGlow" : paint2, lv >= 4 ? 1.1 : 0);
+        if (lv >= 5) R.box(6, top + 1, -7, 7, top + 4, -6, "gold");
       }
     }
   }
@@ -1920,6 +2008,29 @@ function buildOverpass(c: Ctx): void {
 
 const UNDER_H = 4;
 
+function underpassCrossingHeight(axisCell: number): number {
+  return Math.min(UNDER_H + 1, Math.round((UNDER_H + 1) * (7.5 - Math.abs(axisCell + 0.5)) / 2));
+}
+
+/** Y-index of each road voxel; index (x + 8) * 16 + z + 8. The other axis at a crossing is at y=0. */
+export function networkRoadProfile(id: string, mask: number): { heights: Int8Array; elevatedAxis: number } | undefined {
+  let full: number;
+  switch (id) {
+    case "bridges": full = BRIDGE_H; break;
+    case "stone_bridges": full = STONE_H; break;
+    case "suspension_bridges": full = SUSP_H; break;
+    case "over_passes": full = OVER_H; break;
+    case "underpasses": full = UNDER_H; break;
+    default: return undefined;
+  }
+  const { H, sep } = deckH(networkLayout(mask, true), full);
+  if (id !== "underpasses") return { heights: H, elevatedAxis: sep };
+  if (sep < 0) return { heights: H.fill(0), elevatedAxis: -1 };
+  const elevatedAxis = 1 - sep;
+  forCells((x, z, i) => { H[i] = underpassCrossingHeight(elevatedAxis === 0 ? z : x); });
+  return { heights: H, elevatedAxis };
+}
+
 function buildUnderpass(c: Ctx): void {
   const n = mkNet(c);
   const { v, lv, vr } = n;
@@ -1928,6 +2039,9 @@ function buildUnderpass(c: Ctx): void {
   const wall2 = ["concreteDark", "brickDark", "stone", "teal"][vr];
   const sepK = dk.sep >= 0 ? (dk.sep === 0 ? 0 : 1) : -1;
   computeD(n, "box", 1);
+  if (sepK >= 0) forCells((x, z, i) => {
+    n.D[i] = Math.floor(Math.abs((sepK === 0 ? x : z) + 0.5));
+  });
   // terrain berm everywhere outside the trench, height follows the deck profile
   forCells((x, z, i) => {
     const d = n.D[i];
@@ -2006,12 +2120,13 @@ function buildUnderpass(c: Ctx): void {
     const R = n.R[sepK === 0 ? 1 : 0];
     for (let z = -8; z < 8; z++) {
       const a = Math.abs(z + 0.5);
-      const h = a < 6 ? UNDER_H + 1 : Math.max(0, Math.round((UNDER_H + 1) * (8 - a) / 2.5));
+      const h = underpassCrossingHeight(z);
+      if (h < UNDER_H + 1) R.box(-5, h, z, 5, UNDER_H + 3, z + 1, null);
       R.box(-4, h, z, 4, h + 1, z + 1, "asphalt");
       R.box(-5, h, z, -4, h + 2, z + 1, "concrete");
       R.box(4, h, z, 5, h + 2, z + 1, "concrete");
       if (((z + 64) & 3) === 1 || ((z + 64) & 3) === 2) R.box(-1, h, z, 1, h + 1, z + 1, "white");
-      if (h > 1) R.box(-5, 1, z, 5, h, z + 1, "soil");
+      if (h > 1 && a >= 5) R.box(-5, 1, z, 5, h, z + 1, "soil");
     }
   }
   // tunnel sign / lights on approach walls
@@ -2313,6 +2428,17 @@ function buildRails(c: Ctx): void {
   if (lv >= 5 && straightK >= 0 && !n.water) {
     // high-speed: security fence along both sides
     const R = n.R[straightK];
+    if (vr === 1) {
+      R.box(6, 2, 3, 8, 5, 6, "brickDark");
+      R.box(5, 5, 2, 8, 6, 6, "slate");
+    } else if (vr === 2) {
+      R.box(6, 2, 2, 7, 8, 3, "iron");
+      R.box(5, 8, 1, 8, 9, 4, "solarBlue");
+    } else if (vr === 3) {
+      R.box(6, 1, 3, 7, 7, 4, "woodDark");
+      R.box(3, 6, 3, 7, 7, 4, "red");
+      R.put(4, 6, 3, "white");
+    }
     for (let z = -8; z < 8; z++) {
       R.put(-8, 1, z, "steelLight");
       R.put(7, 1, z, "steelLight");
@@ -2379,6 +2505,19 @@ function buildCanal(c: Ctx): void {
     if (n.D[i] === 5 && ((x * 3 + z * 5 + 64) % 7) === 0) v.put(x, 2, z, "iron");
   });
   // lamps on quays
+  if (lv === 1) {
+    const R = n.R[n.arm.findIndex(Boolean)];
+    if (vr === 1) {
+      for (const z of [-6, -3]) R.box(6, 2, z, 7, 5, z + 1, "woodDark");
+      R.box(6, 4, -6, 7, 5, -2, "woodLight");
+    } else if (vr === 2) {
+      R.box(5, 1, -7, 8, 2, -2, "wood");
+      R.box(6, 2, -5, 8, 4, -3, "crate");
+    } else if (vr === 3) {
+      R.box(6, 2, -6, 8, 3, -3, "terracotta");
+      R.box(6, 3, -6, 8, 4, -3, "leafDark");
+    }
+  }
   if (lv >= 3) {
     for (let q = 0; q < 4; q++) {
       propK(n, q, 6, -6, 6, (R) => {

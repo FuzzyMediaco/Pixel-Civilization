@@ -210,10 +210,25 @@ function buildBusStop(c: Ctx): void {
 
   // stop pole with roundel
   const pole = (px: number, pz: number, h: number) => {
-    v.box(px, 1, pz, px + 1, h, pz + 1, "steelDark");
-    v.box(px - 1, h, pz, px + 2, h + 3, pz + 1, ["red", "green", "teal", "orange"][s] === "green" ? "leaf" : ["red", "tealDark", "teal", "orange"][s]);
-    v.put(px, h + 1, pz, "white", 0.6);
-    v.box(px - 1, h + 1, pz, px + 2, h + 2, pz + 1, "white", 0.5);
+    v.box(px, 1, pz, px + 1, h + 1, pz + 1, frame);
+    if (s === 0) {
+      v.ringZ(px + 0.5, h + 1.5, pz, pz + 1, 2.5, 1.2, "red");
+      v.box(px - 2, h + 1, pz, px + 3, h + 2, pz + 1, "blueDark");
+    } else if (s === 1) {
+      v.box(px - 2, h, pz, px + 3, h + 1, pz + 1, "woodDark");
+      v.box(px - 2, h - 2, pz, px, h, pz + 1, "cream");
+      v.put(px, h + 1, pz, "gold");
+    } else if (s === 2) {
+      v.box(px - 1, 2, pz, px + 2, h, pz + 1, "steelDark");
+      v.box(px - 1, 4, pz + 1, px + 1, h, pz + 2, "screenCyan", 0.7);
+      solarRow(v, px - 2, px + 2, h + 1, pz - 1);
+    } else {
+      for (let n = 0; n < 2; n++) {
+        const dx = n === 0 ? -2 : 0;
+        v.box(px + dx, h - 2 * n, pz, px + dx + 3, h + 2 - 2 * n, pz + 1, n ? "teal" : "orange");
+        v.put(px + dx + (n ? 3 : -1), h - 2 * n, pz, n ? "teal" : "orange");
+      }
+    }
   };
 
   if (lv === 1) {
@@ -347,6 +362,21 @@ function buildTrainStop(c: Ctx): void {
     person(v, 0, 2, pz0 + 2, c.pick(SHIRTS), "blueDark");
     v.box(-1, 0, pz1, 1, 1, hz, "path");
     tree(v, -hx + 2, 1, hz - 3, s === 1 ? "pine" : "round", 1, 1);
+    if (s === 0) {
+      // The stationmaster's semaphore clears trains at a request stop.
+      v.box(hx - 3, 1, tz + 3, hx - 2, 10, tz + 4, "iron");
+      v.box(hx - 6, 8, tz + 3, hx - 2, 9, tz + 4, "red");
+      v.put(hx - 5, 8, tz + 3, "white");
+    } else if (s === 1) {
+      gable(v, -6, 10, pz1 - 3, 1, pz1 + 2, "x", "woodDark", "snow");
+    } else if (s === 2) {
+      for (let x = -6; x < 0; x++) v.box(x, 9, pz1 - 1, x + 1, 13 - Math.floor(Math.abs(x + 3) / 2), pz1, "cream");
+      v.box(-4, 10, pz1, -2, 13, pz1 + 1, "teal");
+    } else {
+      v.box(5, 1, tz + 3, 6, 12, tz + 4, "silver");
+      v.box(5, 11, tz, 6, 12, tz + 4, "steelDark");
+      v.box(-hx, 10, tz, hx, 11, tz + 1, "steel");
+    }
     return;
   }
 
@@ -734,6 +764,29 @@ function buildTaxiDepot(c: Ctx): void {
 
   // painted yellow bays
   for (let x = -hx + 1; x < hx; x += 4) v.box(x, 0, hz - 6, x + 1, 1, hz - 1, "yellow");
+  if (lv === 1) {
+    // No garage at a street rank: a call box, queue and three idling cabs.
+    v.box(-hx, 0, -hz, hx, 1, -hz + 8, "path2");
+    const x = -hx + 5;
+    const z = -hz + 3;
+    v.box(x - 2, 1, z - 1, x + 2, 6, z + 2, wall);
+    v.box(x - 1, 3, z + 1, x + 2, 5, z + 2, "glassDark", 0.4);
+    if (s === 0) {
+      checkerBand(v, x - 2, x + 2, 5, z + 2);
+      hip(v, x - 3, 7, z - 2, x + 3, z + 3, "charcoal");
+    } else if (s === 1) {
+      for (let k = -3; k <= 3; k++) v.box(x + k, 6 + Math.abs(k), z - 2, x + k + 1, 7 + Math.abs(k), z + 3, "pink");
+    } else if (s === 2) {
+      solarRow(v, x - 3, x + 3, 6, z - 1);
+    } else {
+      v.box(x - 3, 6, z - 2, x + 3, 7, z + 3, "slate");
+      v.box(x - 1, 7, z, x + 1, 12, z + 1, "magenta", 0.8);
+    }
+    for (let k = -1; k <= 1; k++) taxi(v, k * 9, 1, hz - 3, "x", "yellow", lampC);
+    bench(v, 1, 1, z, "x", trim);
+    for (const px of [3, 5, 8]) person(v, px, 1, z + 2, c.pick(SHIRTS), c.pick(PANTS));
+    return;
+  }
 
   // garage building at the back
   const gd = [7, 10, 12, 12, 12][lv - 1];

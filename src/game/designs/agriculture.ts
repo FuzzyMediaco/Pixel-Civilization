@@ -1224,9 +1224,20 @@ function buildOrchards(c: Ctx): void {
     for (let z = -hz + 3; z < hz - front; z += sz) {
       if (bW && x > hx - bW - 3 && z < -hz + bD + 2) continue;
       if (centerFree && Math.abs(x - cxm) < 9 && Math.abs(z - czm) < 9) continue;
-      v.put(x, 0, z, "soil");
-      fruitTree(c, x, 1, z, kind, size * (0.9 + c.rand() * 0.2));
-      if (lv === 1) { v.box(x + 1, 1, z, x + 2, 4, z + 1, "woodLight"); }
+      const treeX = lv === 1 ? x : x + Math.round((h2(x, z, V + 4) - 0.5) * 1.8);
+      const treeZ = lv === 1 ? z : z + Math.round((h2(x, z, V + 19) - 0.5) * 1.8);
+      v.put(treeX, 0, treeZ, "soil");
+      if (lv === 1) {
+        // Young whips have a visible stake and graft, before their first harvest.
+        v.box(x + 1, 1, z, x + 2, 5, z + 1, "woodLight");
+        v.box(x, 1, z, x + 1, 4, z + 1, "woodDark");
+        v.put(x, 3, z, "path");
+        const leaf = ["leaf", "pink", "leafDark", "leafLight"][V];
+        v.put(x - 1, 4, z, leaf);
+        v.put(x, 5, z, leaf);
+        if (V === 1 || V === 3) v.put(x, 4, z + 1, V === 1 ? "cream" : "pink");
+        if (V === 2) v.put(x - 1, 5, z + 1, "leaf");
+      } else fruitTree(c, treeX, 1, treeZ, kind, size * (0.84 + c.rand() * 0.35));
     }
   }
   // front lane
@@ -1234,7 +1245,16 @@ function buildOrchards(c: Ctx): void {
   if (lv === 1) { v.box(-hx + 1, 1, hz - 2, -hx + 4, 2, hz - 1, "steelDark"); v.put(-hx + 4, 1, hz - 1, "rubber"); return; }
   const fruit = kind === "apple" ? "red" : kind === "orange" ? "orange" : kind === "peach" ? "#f6a77a" : "pink";
   // crates & pickers
-  for (let i = 0; i < lv; i++) crate(v, -hx + 2 + i * 3, 1, hz - 2, fruit);
+  for (let i = 0; i < lv; i++) {
+    const x = -hx + 2 + i * 3, z = hz - 3;
+    if (i % 2) {
+      // Bent willow handles arch over the harvest, beside the square packing crates.
+      v.cylinderY(x + 0.5, z + 0.5, 1, 3, 1.6, "woodLight");
+      v.put(x, 2, z, fruit);
+      for (const dx of [-1, 1]) v.put(x + dx, 3, z, "oak");
+      v.put(x, 4, z, "oak");
+    } else crate(v, x, 1, z, fruit);
+  }
   if (lv >= 3) {
     for (let i = 0; i < 2; i++) {
       const px = -hx + 4 + i * sx * 2;

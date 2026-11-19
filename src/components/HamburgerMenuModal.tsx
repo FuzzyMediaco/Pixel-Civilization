@@ -250,6 +250,9 @@ export const HamburgerMenuModal: React.FC<HamburgerMenuModalProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-2">
+            <a href="./field-guide.html" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white p-2 text-xs font-bold text-stone-800 hover:bg-stone-50">
+              <Layers className="h-4 w-4 text-emerald-700" /> Island field guide ↗
+            </a>
             <button
               type="button"
               onClick={() => {

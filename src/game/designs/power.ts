@@ -76,7 +76,7 @@ function bladeRotor(
       for (let s = 0; s <= w; s += 0.5) {
         const px = ca * t - sa * s;
         const py = sa * t + ca * s;
-        r.put(F(px), F(py), 0, t > R - tipLen ? tip : col);
+        r.put(F(px), F(py), 0, t > R - tipLen ? tip : col, col === "white" ? 0.14 : 0);
       }
     }
   }
@@ -182,7 +182,6 @@ function pylon(v: PixelVox, x: number, z: number, h: number, col = "steelLight",
 function substation(c: Ctx, x0: number, z0: number, x1: number, z1: number, gantry = 7): void {
   const v = c.v;
   v.box(x0, 0, z0, x1, 1, z1, "path2");
-  speckle(c, "stone", 0, 0);
   for (let x = x0 + 1; x < x1 - 2; x += 4) {
     for (let z = z0 + 2; z < z1 - 2; z += 5) {
       v.box(x, 1, z, x + 2, 4, z + 3, "steelDark");
@@ -890,6 +889,7 @@ function turbineAt(c: Ctx, x: number, z: number, H: number, R: number, k: number
   const nh = Math.max(2, Math.round(R * 0.13));
   const nacCol = k === 3 ? "red" : k === 1 ? "steelLight" : "white";
   v.box(x - 1, H, z - nl + 2, x + 1, H + nh, z + 2, nacCol);
+  v.put(x, H, z + 1, "warmGlow", 0.8);
   if (nh >= 3) {
     v.box(x - 2, H, z - nl + 3, x + 2, H + nh, z + 1, nacCol);
     v.box(x - 1, H + nh, z - nl + 3, x + 1, H + nh + 1, z, "steelLight");

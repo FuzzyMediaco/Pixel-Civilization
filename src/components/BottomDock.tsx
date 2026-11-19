@@ -173,9 +173,10 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                 <svg className="h-1.5 w-1.5 shrink-0" viewBox="0 0 6 6" aria-hidden="true">
                   <rect width="6" height="6" rx="1" fill={primaryDef.accentHex} />
                 </svg>
-                <span className="truncate">
-                  {primaryDef.name} · Lv.{primaryEl.level}
-                </span>
+                <a className="truncate hover:underline" title="Open in the island field guide" target="_blank" rel="noreferrer"
+                  href={`./field-guide.html?id=${primaryDef.id}&level=${primaryEl.level}&variant=${primaryEl.variant + 1}`}>
+                  {primaryDef.name} · Lv.{primaryEl.level} ↗
+                </a>
               </div>
               <div className="truncate text-[10px] font-bold italic text-amber-800" title={getElementGrowthNote(primaryDef) ?? ""}>
                 “{getElementLevelName(primaryDef, primaryEl.level)}”

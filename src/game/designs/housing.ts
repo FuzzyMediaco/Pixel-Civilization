@@ -25,6 +25,7 @@ import {
 } from "./kit";
 import { defineDesigns } from "./registry";
 import { packVoxKey } from "../voxelCore";
+import { buildApartmentBlock, buildCondo, buildSkyscraper } from "./residentialTowers";
 
 // =============================================================================================
 // Shared little helpers for the housing category
@@ -182,9 +183,9 @@ function buildHouse(c: Ctx): void {
   const trim = ["woodDark", "white", "steelLight", "woodDark"][s];
 
   // Main body footprint inside the lot, leaving a front yard on +z
-  const yard = lv >= 3 ? 5 : 3;
+  const yard = lv >= 4 ? 12 : lv === 3 ? 5 : 3;
   const x0 = -hx + 2;
-  const x1 = lv >= 3 ? Math.min(hx - 2, 6) : hx - 2;
+  const x1 = lv >= 3 ? Math.min(hx - 2, x0 + 20, 6) : hx - 2;
   const z0 = -hz + 2;
   const z1 = hz - yard;
   const floors = lv === 1 ? 1 : lv <= 3 ? 2 : 3;
@@ -263,23 +264,29 @@ function buildHouse(c: Ctx): void {
     }
     car(v, gx0 + 4, 1, 4, "z", c.vpick(["red", "sky", "silver", "teal"]));
     if (s !== 2) fence(v, -hx + 1, hz - 2, gx0 - 1, hz - 1, 1, 2, "white", [-2, 2]);
-    tree(v, -hx + 3, 1, hz - 4, s === 3 ? "palm" : "round", 1.1, c.variant);
+    tree(v, lv >= 4 ? x1 - 2 : -hx + 3, 1, hz - 4, s === 3 ? "palm" : "round", 1.1, c.variant);
   }
   if (lv >= 4) {
     const px0 = -hx + 3;
-    const pz0 = -hz + 2;
+    const pz0 = hz - 8;
     if (hz >= 16) {
       pool(v, px0, pz0, px0 + 10, pz0 + 6, s === 3 ? "terracotta" : "white");
       v.box(px0 + 11, 1, pz0, px0 + 12, 2, pz0 + 2, "white");
     }
-    flowerBed(c, x0, hz - 4, x0 + 5, hz - 3, 1);
+    flowerBed(c, x0, hz - 2, x0 + 5, hz - 1, 1);
     tree(v, hx - 3, 1, -hz + 12, s === 3 ? "cypress" : s === 1 ? "blossom" : "birch", 1.2, 3);
   }
   if (lv >= 5) {
-    if (s === 2) {
-      for (let x = x0 + 3; x < x1; x += 3) v.box(x, 2 + fh * 2 + 1, z0 + 1, x + 2, 3 + fh * 2 + 1, z0 + 4, "solarBlue", 0.15);
-    } else {
-      v.box(-2, top + 6, -2, 2, top + 7, 2, trim);
+    // A glass conservatory opens onto the pool terrace behind the house.
+    const ax = x1;
+    const end = Math.min(ax + 11, hx - 9);
+    const az = z0 + 1;
+    if (end - ax > 3) {
+      v.hollowBox(ax, 1, az, end, 8, az + 7, "glass", trim);
+      for (let x = ax + 1; x < end; x += 3) v.box(x, 1, az + 6, x + 1, 8, az + 7, trim);
+      gable(v, ax - 1, 8, az - 1, end + 1, az + 8, "x", "glassDark", trim);
+      lawnChair(v, ax + 3, az + 8, "sky");
+      topiary(v, end - 1, az + 9, s === 1);
     }
     for (const lx of [-hx + 1, hx - 2]) {
       v.box(lx, 1, hz - 1, lx + 1, 4, hz, "iron");
@@ -1059,9 +1066,9 @@ function buildCottages(c: Ctx): void {
 
 defineDesigns({
   house: {
-    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [3, 2]],
     levels: ["Starter Bungalow", "Two-Story Family Home", "Home with Garage", "Backyard-Pool Estate", "Grand Family Manor"],
-    growth: "Adds floors, then a garage and driveway, then a backyard pool and gardens.",
+    growth: "Adds floors, a garage, a pool terrace and a glass conservatory wing.",
     build: buildHouse,
   },
   tiny_homes: {
@@ -2453,7 +2460,24 @@ function buildVilla(c: Ctx): void {
       v.box(gx, 1, hz - 2, gx + 2, 8, hz, s === 1 ? "white" : s === 2 ? "#d9896a" : "stone");
       v.put(gx, 8, hz - 2, "warmGlow", 1.2);
     }
-    v.box(fxc - 2, 7, hz - 2, fxc + 4, 8, hz - 1, "iron");
+    if (s === 3) {
+      // Paired split-gate finials echo the Balinese guest pavilions.
+      for (const gx of [fxc - 4, fxc + 4]) {
+        v.box(gx - 1, 7, hz - 3, gx + 3, 9, hz, "woodDark");
+        v.box(gx, 9, hz - 2, gx + 2, 11, hz, "stone");
+        v.put(gx, 11, hz - 2, "gold");
+      }
+    } else {
+      const stone = s === 1 ? "white" : s === 2 ? "#dc9976" : "limestone";
+      v.box(fxc - 4, 8, hz - 3, fxc + 6, 10, hz, stone);
+      if (s === 1) v.dome(fxc + 1, 10, hz - 1, 3.7, "blue");
+      else if (s === 2) {
+        for (let tier = 0; tier < 3; tier++) v.box(fxc - 4 + tier, 10 + tier, hz - 3, fxc + 6 - tier, 11 + tier, hz, stone);
+        for (let x = fxc - 3; x <= fxc + 5; x += 2) v.put(x, 10, hz - 1, "teal");
+      } else {
+        gable(v, fxc - 5, 10, hz - 4, fxc + 7, hz, "x", "terracotta", "brick2");
+      }
+    }
     folk(c, fxc - 3, gz0 + 4);
     folk(c, fxc + 4, gz0 + 9);
   }
@@ -2740,5 +2764,23 @@ defineDesigns({
     levels: ["Gated Manor", "Fountain-Court Mansion", "Pool & Garage Mansion", "Hedge-Maze Estate", "Billionaire's Palace"],
     growth: "Gains prestige grounds: gates, a fountain court, pool & supercar garage, hedge maze & statues, then a gilded gate and helipad.",
     build: buildMansion,
+  },
+  apartment_buildings: {
+    footprints: [[1, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+    levels: ["Courtyard Flats", "Gallery Block", "Community Roof Deck", "Garden Court Towers", "Vertical Neighbourhood"],
+    growth: "Homes gather along shared galleries, then around a courtyard with communal roofs and a high-level footbridge.",
+    build: buildApartmentBlock,
+  },
+  condos: {
+    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+    levels: ["Balcony Suites", "Penthouse Terrace", "Clubhouse Residences", "Sky Pool Residences", "Cloud Garden Penthouses"],
+    growth: "Private terraces climb above a residents' clubhouse, a rooftop pool and a garden pavilion.",
+    build: buildCondo,
+  },
+  skyscrapers: {
+    footprints: [[1, 1], [1, 1], [1, 1], [2, 2], [2, 2]],
+    levels: ["Downtown Tower", "Skyline Anchor", "Observation Tower", "Cloud District", "City of the Sky"],
+    growth: "The lobby grows into a landmark with observation decks, a signature crown and a beacon visible across town.",
+    build: buildSkyscraper,
   },
 });

@@ -174,17 +174,6 @@ function renderLevel1FaviconDataUrl(def: CivElementDef): string {
   for (const r of asset.rotors ?? []) {
     collectGeoTris(r.geo, r.pivot[0] * VOXEL_SIZE, r.pivot[1] * VOXEL_SIZE, r.pivot[2] * VOXEL_SIZE, rawTris, bounds);
   }
-  if (asset.rotorGeo && asset.rotorPivot) {
-    collectGeoTris(
-      asset.rotorGeo,
-      asset.rotorPivot[0] * VOXEL_SIZE,
-      asset.rotorPivot[1] * VOXEL_SIZE,
-      asset.rotorPivot[2] * VOXEL_SIZE,
-      rawTris,
-      bounds,
-    );
-  }
-
   const canvas = document.createElement("canvas");
   canvas.width = ICON_SIZE;
   canvas.height = ICON_SIZE;

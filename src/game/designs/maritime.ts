@@ -13,7 +13,6 @@ import {
   person,
   ring,
   tree,
-  waterPlane,
   windows,
 } from "./kit";
 import { defineDesigns } from "./registry";
@@ -30,6 +29,7 @@ import {
   pier,
   portholes,
   propPlane,
+  quayFoundation,
   radar,
   radarDish,
   screwProp,
@@ -48,6 +48,32 @@ function crew(c: Ctx, x: number, y: number, z: number, shirt: string, pants = "b
   person(c.v, x, y, z, shirt, pants, c.pick(SKIN));
 }
 
+function deckAwning(v: V, x: number, y: number, z: number, width: number, length: number, cloth: string): void {
+  for (const dx of [0, width - 1]) for (const dz of [0, length - 1]) {
+    v.box(x + dx, y, z + dz, x + dx + 1, y + 4, z + dz + 1, "woodDark");
+  }
+  for (let k = 0; k < length; k++) {
+    v.box(x, y + 4, z + k, x + width, y + 5, z + k + 1, k % 3 ? cloth : "cream");
+  }
+}
+
+function paddleWheels(c: Ctx, halfBeam: number, y: number, z: number, radius: number): void {
+  for (const x of [-halfBeam - 1, halfBeam]) {
+    const rot = new PixelVox();
+    for (let k = 0; k < 8; k++) {
+      const angle = k * Math.PI / 4;
+      for (let d = 0; d < radius; d += 0.5) {
+        rot.put(0, Math.round(Math.cos(angle) * d), Math.round(Math.sin(angle) * d), "red");
+      }
+      const py = Math.round(Math.cos(angle) * radius);
+      const pz = Math.round(Math.sin(angle) * radius);
+      rot.box(0, py, pz, 1, py + 1, pz + 2, "woodLight");
+    }
+    c.v.box(x, y, z, x + 1, y + 1, z + 1, "iron");
+    c.addRotor({ vox: rot, pivot: [x, y, z], axis: "x", speed: 0.9 });
+  }
+}
+
 // =============================================================================================
 // BOATS — hull class grows: rowboat → fishing boat → trawler → ferry → cruise liner
 //  V0 Harbor Classic (white hull, red bottom, blue stripe)   V1 Retro Red (crimson hull, cream cabins)
@@ -62,7 +88,8 @@ const BOAT_PAL = [
 
 function buildBoat(c: Ctx): void {
   const { v, lv, hx, hz } = c;
-  const p = BOAT_PAL[c.variant % 4];
+  const style = c.variant % 4;
+  const p = BOAT_PAL[style];
   const z0 = -hz + 2;
   const z1 = hz - 1;
   if (lv === 1) {
@@ -78,6 +105,16 @@ function buildBoat(c: Ctx): void {
     }
     person(v, 0, dy - 1, 1, p.accent === "gold" ? "yellow" : "orange", "blueDark");
     v.put(-1, dy - 1, -4, "crate");
+    if (style === 1) {
+      v.box(-1, dy, -5, 1, dy + 2, -4, "oak");
+      v.box(0, dy, -5, 1, dy + 4, -4, "brass");
+      v.put(0, dy + 4, -5, "warmGlow", 0.9);
+    } else if (style === 2) {
+      deckAwning(v, -2, dy, -5, 4, 4, "orange");
+    } else if (style === 3) {
+      v.box(-2, dy - 1, 3, 2, dy + 1, 5, "oak");
+      flag(v, 0, dy, -5, 4, ["blueDark", "gold"]);
+    }
     v.put(0, dy - 1, 5, "amber", 0.8);
     wake(v, 0, -6, 2, 3, -hz);
     return;
@@ -97,6 +134,12 @@ function buildBoat(c: Ctx): void {
     v.put(2, dy, -9, "orange");
     v.box(-2, dy, -10, 2, dy + 1, -8, "crate");
     crew(c, 1, dy, 4, "yellow");
+    if (style === 1) funnel(c, 0, -4, dy + 6, 4, 1, "brass", "charcoal");
+    if (style === 2) deckAwning(v, -3, dy, -11, 6, 5, "orange");
+    if (style === 3) {
+      mast(v, 0, dy, -11, 9, "woodDark", 0);
+      triSail(v, 0, dy + 2, dy + 9, -11, 5, "cream", 1);
+    }
     wake(v, 0, z0, 4, 3, -hz);
     return;
   }
@@ -125,6 +168,12 @@ function buildBoat(c: Ctx): void {
     for (const bx of [-3, 2]) v.box(bx, dy, -11, bx + 1, dy + 1, -9, "orange");
     crew(c, -2, dy, -8, "orange");
     crew(c, 2, dy, -2, "yellow");
+    if (style === 1) paddleWheels(c, 6, 4, -4, 3);
+    if (style === 2) deckAwning(v, -4, dy + 8, 2, 8, 5, "orange");
+    if (style === 3) {
+      mast(v, 0, dy, -8, 13, "woodDark", 1);
+      triSail(v, 0, dy + 4, dy + 13, -8, 6, "cream", 1);
+    }
     wake(v, 0, z0, 6, 3, -hz);
     return;
   }
@@ -151,6 +200,12 @@ function buildBoat(c: Ctx): void {
     for (let i = 0; i < 4; i++) crew(c, c.ri(-hw + 2, hw - 2), dy + 9, c.ri(z0 + 8, z1 - 16), c.pick(["red", "yellow", "pink", "sky", "white"]));
     flag(v, 0, dy, z1 - 6, 6, [p.accent, "white", p.accent]);
     flag(v, 0, dy, z0 + 1, 5, ["red", "white", "blue"]);
+    if (style === 1) paddleWheels(c, Math.floor(beam / 2), 5, 1, 4);
+    if (style === 2) deckAwning(v, -4, dy + 9, z0 + 16, 8, 7, "orange");
+    if (style === 3) {
+      mast(v, 0, dy, z1 - 9, 12, "woodDark", 1);
+      triSail(v, 0, dy + 4, dy + 12, z1 - 9, 6, "cream", 1);
+    }
     wake(v, 0, z0, beam - 4, 2, -hz);
     return;
   }
@@ -208,6 +263,15 @@ function buildBoat(c: Ctx): void {
   }
   for (let i = 0; i < 8; i++) crew(c, c.ri(-hw + 3, hw - 4), top + 1, c.ri(z0 + 9, z1 - 20), c.pick(["red", "yellow", "pink", "sky", "white", "orange"]));
   flag(v, 0, dy, z1 - 4, 5, [p.accent, "white"]);
+  if (style === 1) {
+    paddleWheels(c, hw + 2, 5, 1, 5);
+    funnel(c, 0, z0 + 30, top + 1, 8, 2.2, "cream", "crimson");
+  } else if (style === 2) {
+    deckAwning(v, -6, top + 1, z0 + 27, 12, 8, "orange");
+  } else if (style === 3) {
+    mast(v, 0, dy, z1 - 7, 19, "woodDark", 3);
+    for (let d = 1; d < 10; d++) v.put(0, dy + d + 6, z1 - 17 + d, "cream");
+  }
   wake(v, 0, z0, beam - 6, 2, -hz);
 }
 
@@ -240,11 +304,26 @@ function buildSailBoat(c: Ctx): void {
   };
   const z0 = -hz + 2;
   const z1 = hz - 1;
+  // The regatta fleet gains stability from narrow detachable floats. Antique and pirate rigs
+  // carry very different silhouettes even with their sails seen edge-on.
+  if (s === 3) {
+    const halfBeam = Math.min(c.hx - 2, lv === 1 ? 5 : lv + 4);
+    const length = 4 + lv * 2;
+    for (const x of [-halfBeam, halfBeam - 1]) {
+      v.box(x, 0, -length, x + 1, 2, length, "white");
+      for (const z of [-length + 2, length - 3]) v.box(Math.min(x, 0), 2, z, Math.max(x, 0) + 1, 3, z + 1, "teal");
+    }
+  }
   if (lv === 1) {
     const o: HullOpts = { z0: -6, z1: 7, beam: 6, h: 3, col: p.hull, bottom: p.bottom, stripe: p.stripe, stripeY: 1, deck: p.deck, bow: 5, open: true };
     const dy = hull(v, o);
     v.box(0, dy - 1, 1, 1, dy + 13, 2, "silver");
-    triSail(v, 0, dy + 1, dy + 13, 1, 7, sailPaint);
+    if (s === 1) {
+      squareSail(v, 0, dy + 4, dy + 11, 2, 6, "cream", "woodDark");
+    } else if (s === 2) {
+      squareSail(v, 0, dy + 5, dy + 12, 1, 8, "#3b3d44");
+      v.box(-1, dy + 7, 3, 1, dy + 10, 4, "white");
+    } else triSail(v, 0, dy + 1, dy + 13, 1, 7, sailPaint);
     v.box(0, dy, -6, 1, dy + 1, 1, "steelDark");
     person(v, -1, dy - 1, -3, "orange", "blueDark");
     v.box(0, 0, -7, 1, 2, -6, "woodDark");
@@ -280,7 +359,7 @@ function buildSailBoat(c: Ctx): void {
       v.box(0, dy, mz, 1, dy + mh, mz + 1, "woodDark");
       // gaff sail: quadrilateral
       for (let y = dy + 2; y < dy + mh - 2; y++) {
-        const l = 8 - Math.floor((y - dy) * 0.12);
+        const l = 8 - Math.floor((y - dy) * (s === 0 ? 0.26 : 0.12));
         for (let k = 1; k <= l; k++) v.put(0, y, mz - k, sailPaint(y, mz - k));
       }
       v.box(0, dy + mh - 2, mz - 7, 1, dy + mh - 1, mz, "woodDark");
@@ -323,7 +402,7 @@ function buildSailBoat(c: Ctx): void {
       let y = dy + 4;
       const segH = Math.floor((m.h - 6) / tiers);
       for (let t = 0; t < tiers; t++) {
-        const w = Math.max(5, (big ? 16 : 13) - t * 3);
+        const w = Math.max(5, (big ? 16 : 13) - t * (s === 2 ? 2 : 3));
         squareSail(v, 0, y, y + segH - 1, m.z + 1, w, sqPaint);
         y += segH;
       }
@@ -369,7 +448,38 @@ const SPEED_PAL = [
 
 function buildSpeedBoat(c: Ctx): void {
   const { v, lv, hx, hz } = c;
-  const p = SPEED_PAL[c.variant % 4];
+  const style = c.variant % 4;
+  const p = SPEED_PAL[style];
+  const cockpit = (cy: number, cz: number, width: number) => {
+    const height = lv === 1 ? 2 : lv <= 3 ? 3 : 5;
+    if (style === 0) {
+      // Competition boats carry paired air scoops and a rear aerofoil.
+      for (const x of [-width, width - 1]) {
+        v.box(x, cy, cz - 1, x + 1, cy + height, cz, "red");
+        v.put(x, cy + height - 1, cz, "charcoal");
+      }
+      v.box(-width, cy + height, cz - 1, width, cy + height + 1, cz, "white");
+    } else if (style === 1) {
+      // Low swept-back tinted glazing curls around the passengers.
+      for (let x = -width; x <= width; x++) {
+        const setback = Math.floor(Math.abs(x) / 2);
+        v.box(x, cy, cz - setback, x + 1, cy + height - (Math.abs(x) === width ? 1 : 0), cz + 1 - setback, "glassDark", 0.2);
+        v.put(x, cy, cz + 1 - setback, "brass");
+      }
+    } else if (style === 2) {
+      // Raked sport arch with a pair of bright boards in the rack.
+      for (const x of [-width, width - 1]) for (let y = 0; y < height; y++) v.put(x, cy + y, cz - Math.floor(y / 2), "silver");
+      v.box(-width, cy + height, cz - Math.floor((height - 1) / 2), width, cy + height + 1, cz - Math.floor((height - 1) / 2) + 1, "teal");
+      v.box(width - 1, cy + 1, cz - 2, width, cy + 2, cz + 2, "pink");
+    } else {
+      // Varnished split cowl and an individual curved windscreen for each seat.
+      v.box(-width, cy, cz, width, cy + 1, cz + 2, "wood");
+      for (const x of [-width, 1]) {
+        v.box(x, cy + 1, cz, x + Math.max(1, width - 1), cy + 2, cz + 1, "glass", 0.25);
+        v.put(x, cy + 2, cz, "chrome");
+      }
+    }
+  };
   if (lv === 1) {
     // Jet ski + rider + spray
     v.box(-1, 0, -3, 2, 2, 3, p.hull);
@@ -379,6 +489,7 @@ function buildSpeedBoat(c: Ctx): void {
     v.box(-1, 3, 1, 2, 4, 2, "steelDark");
     person(v, 0, 2, -1, p.accent === "cream" ? "red" : p.accent, "black");
     v.put(0, 5, -1, "yellow");
+    cockpit(2, -2, 2);
     for (let k = 0; k < 4; k++) {
       v.put(0, 1 + Math.floor(k / 2), -4 - k, "foam", 0.3);
       v.put(-2 - Math.floor(k / 2), 0, -3 - k, "foam", 0.2);
@@ -397,19 +508,28 @@ function buildSpeedBoat(c: Ctx): void {
     v.box(-1, 0, -7, 1, 4, -6, "charcoal");
     person(v, -1, dy - 1, -1, "sky", "white");
     person(v, 0, dy - 1, -3, "yellow", "red");
+    cockpit(dy, style === 1 || style === 3 ? 2 : -4, 2);
     wake(v, 0, -6, 4, 2, -hz);
     return;
   }
   if (lv === 3) {
-    // Cigarette racer: long narrow arrow hull, twin outboards, rooster tail
+    // Offshore racers have either a single arrow hull or two slender sponsons.
     const o: HullOpts = { z0, z1, beam: 7, h: 3, col: p.hull, bottom: p.bottom, stripe: p.stripe, stripeY: 1, deck: p.deck, bow: 14, rake: 1.2, rail: p.accent };
-    const dy = hull(v, o);
-    for (let z = z0 + 2; z < z1 - 4; z++) v.put(0, dy - 1, z, p.accent);
+    const dy = o.h;
+    if (style === 2) {
+      for (const cx of [-4, 4]) hull(v, { ...o, cx, beam: 4, bow: 9 });
+      v.box(-4, dy - 1, z0 + 2, 4, dy, z1 - 8, p.deck);
+      for (const cx of [-4, 4]) v.box(cx, dy, z0 + 3, cx + 1, dy + 1, z1 - 7, "teal");
+    } else {
+      hull(v, o);
+      for (let z = z0 + 2; z < z1 - 4; z++) v.put(0, dy - 1, z, p.accent);
+    }
     v.box(-2, dy - 1, -6, 3, dy, -1, "leather");
     v.box(-2, dy, -1, 3, dy + 1, 0, p.glass, 0.45);
     v.box(-3, 0, z0 - 1, -1, 4, z0, "charcoal");
     v.box(1, 0, z0 - 1, 3, 4, z0, "charcoal");
     person(v, 0, dy - 1, -3, "white", "black");
+    cockpit(dy, style === 1 || style === 3 ? 0 : -6, 3);
     for (let k = 0; k < 3; k++) v.box(-1, 1 + k, z0 - 2 - k, 2, 2 + k, z0 - 1 - k, "foam", 0.3);
     wake(v, 0, z0 - 1, 6, 3, -hz);
     return;
@@ -430,6 +550,7 @@ function buildSpeedBoat(c: Ctx): void {
     v.box(-4, 1, z0 - 1, 4, 2, z0, p.deck);
     person(v, -1, dy + 5, -3, "white", "blueDark");
     person(v, 2, dy, -11, "pink", "white");
+    cockpit(dy + 5, 0, 3);
     wake(v, 0, z0 - 1, 6, 2, -hz);
     return;
   }
@@ -461,6 +582,7 @@ function buildSpeedBoat(c: Ctx): void {
     y += 4;
   }
   // mast + radar domes
+  cockpit(y, z0 + 14, hw - 4);
   v.box(-1, y, z1 - 26, 1, y + 4, z1 - 24, p.cabin);
   v.sphere(-1.5, y + 5, z1 - 25, 1.4, 1.4, 1.4, "white");
   radar(c, 0, y + 4, z1 - 25, 6, p.accent === "gold" ? "gold" : "white", 2);
@@ -956,7 +1078,6 @@ function buildDocks(c: Ctx): void {
   const { v, lv, hx, hz } = c;
   const s = c.variant % 4;
   const p = DOCK_PAL[s];
-  waterPlane(v, -hx, -hz, hx, hz);
   const bollard = s === 2 ? "steelDark" : p.pile;
   if (lv === 1) {
     pier(v, -3, -hz, 3, hz - 2, p.deck, p.pile, 4);
@@ -967,12 +1088,17 @@ function buildDocks(c: Ctx): void {
     v.box(-2, 2, 3, -1, 3, 4, s === 0 ? "red" : "silver");
     mooredBoat(c, -6, -5, 9, 4, p.boat[0], "row");
     lamp(v, -3, 2, hz - 3, 4, "iron");
-    if (s === 1) tree(v, 5, 1, -6, "palm", 1.1);
+    if (s === 1) {
+      pier(v, 3, -hz, 7, -hz + 4, p.deck, p.pile);
+      v.box(3, 2, -hz, 7, 3, -hz + 4, "clay");
+      tree(v, 5, 3, -hz + 2, "palm", 1.1);
+    }
     return;
   }
   // quay / land strip at the back
   const qd = lv >= 4 ? 10 : 7;
   const qz = -hz + qd;
+  quayFoundation(v, -hx, -hz, hx, qz);
   v.box(-hx, 0, -hz, hx, 2, qz, p.land);
   v.box(-hx, 2, qz - 1, hx, 3, qz, s === 2 ? "hazard" : p.trim === "white" ? "stone" : p.pile);
   if (lv === 2) {
@@ -1032,6 +1158,7 @@ function buildDocks(c: Ctx): void {
     const tx1 = walkX - 6;
     const tz0 = qz;
     const tz1 = qz + 10;
+    quayFoundation(v, tx0, tz0, tx1, tz1);
     v.box(tx0, 0, tz0, tx1, 2, tz1, p.land);
     v.box(tx0 + 1, 2, tz0, tx1 - 1, 8, tz1 - 1, "glass", 0.3);
     v.clear(tx0 + 2, 2, tz0 + 1, tx1 - 2, 7, tz1 - 2);
@@ -1047,6 +1174,7 @@ function buildDocks(c: Ctx): void {
     // lighthouse on the far pier head
     const lx = hx - 4;
     const lz = hz - 4;
+    v.cylinderY(lx, lz, -4, 2, 3, "granite");
     v.cylinderY(lx, lz, 1, 14, 1.8, "white");
     v.cylinderY(lx, lz, 4, 6, 1.85, "red");
     v.cylinderY(lx, lz, 9, 11, 1.85, "red");
@@ -1071,10 +1199,10 @@ function buildDocks(c: Ctx): void {
 function buildShipBuilding(c: Ctx): void {
   const { v, lv, hx, hz } = c;
   const s = c.variant % 4;
-  waterPlane(v, -hx, -hz, hx, hz);
   const land = ["path", "sandDark", "concrete2", "sand"][s];
   const landD = Math.round(hz * 1.1);
   const lz = -hz + landD;
+  quayFoundation(v, -hx, -hz, hx, lz, s === 2 ? "concreteDark" : "stone");
   v.box(-hx, 0, -hz, hx, 2, lz, land);
   v.box(-hx, 1, lz - 1, hx, 2, lz, ["stone", "stone", "hazard", "stone"][s]);
   const nSlips = byLv(c, [1, 1, 2, 2, 3] as const);
@@ -1088,8 +1216,8 @@ function buildShipBuilding(c: Ctx): void {
     const rz0 = -hz + 2;
     const rz1 = hz - 1;
     for (let z = rz0; z < rz1; z++) {
-      const yy = Math.max(0, Math.round(3 - ((z - rz0) / (rz1 - rz0)) * 4));
-      v.box(cx - 3, 0, z, cx + 3, yy + 1, z + 1, s === 2 ? "concreteDark" : "woodDark");
+      const yy = Math.round(3 - ((z - rz0) / (rz1 - rz0)) * 6);
+      v.box(cx - 3, Math.min(0, yy), z, cx + 3, yy + 1, z + 1, s === 2 ? "concreteDark" : "woodDark");
       if (z % 3 === 0) v.box(cx - 4, yy, z, cx + 4, yy + 1, z + 1, s === 2 ? "steelDark" : "wood");
     }
     // hull under construction: stern toward water (+z), bow toward land
@@ -1238,9 +1366,9 @@ function buildShipyard(c: Ctx): void {
   const { v, lv, hx, hz } = c;
   const s = c.variant % 4;
   const p = YARD_PAL[s];
-  waterPlane(v, -hx, -hz, hx, hz);
   // land apron at the back, dock walls run to the water at front
   const back = -hz + 8;
+  quayFoundation(v, -hx, -hz, hx, back);
   v.box(-hx, 0, -hz, hx, 4, back, "concrete2");
   const nDocks = lv >= 4 ? 2 : 1;
   const dockW = Math.min(lv >= 3 ? 24 : 20, Math.floor((hx * 2 - 4) / nDocks) - 4);
@@ -1250,14 +1378,14 @@ function buildShipyard(c: Ctx): void {
     const x0 = cx - Math.floor(dockW / 2);
     const x1 = x0 + dockW;
     // dock walls (stepped altars)
-    v.box(x0 - 3, 0, back, x0, 4, hz - 3, "concrete");
-    v.box(x1, 0, back, x1 + 3, 4, hz - 3, "concrete");
+    v.box(x0 - 3, -4, back, x0, 4, hz - 3, "concrete");
+    v.box(x1, -4, back, x1 + 3, 4, hz - 3, "concrete");
     v.box(x0, 0, back, x0 + 1, 2, hz - 3, "concreteDark");
     v.box(x1 - 1, 0, back, x1, 2, hz - 3, "concreteDark");
     // dry dock floor
     v.box(x0, 0, back, x1, 1, hz - 3, "concreteDark");
     // caisson gate at the sea end
-    v.box(x0 - 3, 0, hz - 3, x1 + 3, 4, hz - 1, "steelDark");
+    v.box(x0 - 3, -4, hz - 3, x1 + 3, 4, hz - 1, "steelDark");
     v.box(x0, 3, hz - 3, x1, 4, hz - 1, "hazard");
     // keel blocks
     for (let z = back + 3; z < hz - 6; z += 3) v.box(cx - 1, 1, z, cx + 1, 3, z + 1, "woodDark");
@@ -1377,8 +1505,8 @@ defineDesigns({
   },
   speed_boats: {
     footprints: [[1, 1], [1, 1], [1, 2], [1, 2], [2, 3]],
-    levels: ["Jet Ski", "Runabout Speedboat", "Cigarette Racer", "Flybridge Cruiser", "Helipad Megayacht"],
-    growth: "Jet ski → runabout → arrow-hull racer → flybridge cruiser → tiered megayacht with helicopter and jacuzzi.",
+    levels: ["Jet Ski", "Runabout Speedboat", "Offshore Racer", "Flybridge Cruiser", "Helipad Megayacht"],
+    growth: "Jet skis grow into runabouts, offshore racers with single or tunnel hulls, flybridge cruisers and finally tiered megayachts with a helipad and jacuzzi.",
     build: buildSpeedBoat,
   },
   ship_building_areas: {

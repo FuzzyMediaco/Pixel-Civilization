@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Activity, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Info, Layers, Trophy, X } from "lucide-react";
 import { ELEMENTS, STAGES } from "../game/catalog";
 import { ACHIEVEMENTS, SYNERGY_RULES } from "../game/cityDynamics";
+import { CITY_GRANTS, grantProgress } from "../game/cityGrants";
 import { type GameState, type HistorySample } from "../game/simulation";
 
 const Sparkline: React.FC<{ data: HistorySample[]; pick: (h: HistorySample) => number; color: string; label: string; fmt: (n: number) => string }> = ({
@@ -325,6 +326,32 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
                 <Sparkline data={state.history ?? []} pick={(h) => h.money} color="#b45309" label="Treasury" fmt={(n) => `$${Math.round(n).toLocaleString()}`} />
                 <Sparkline data={state.history ?? []} pick={(h) => h.happy} color="#047857" label="Happiness" fmt={(n) => `${Math.round(n)}%`} />
               </div>
+
+              <section className="rounded-lg border border-stone-200 bg-white p-3">
+                <h4 className="font-display text-sm font-bold text-stone-900">Public works grants</h4>
+                <p className="mt-1 text-xs text-stone-600">
+                  {state.mode === "god" ? "Explore the goals used in Real and Survival modes." : "Meet all targets at once to earn a one-time treasury payment."}
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {CITY_GRANTS.map(grant => {
+                    const paid = state.awardedGrants?.includes(grant.id);
+                    return (
+                      <div key={grant.id} className="rounded-md border border-stone-200 p-2">
+                        <div className="flex items-baseline justify-between gap-2 text-xs font-bold">
+                          <span>{grant.name}</span>
+                          <span className="text-emerald-700">{paid ? "Received " : ""}${grant.reward.toLocaleString()}</span>
+                        </div>
+                        {!paid && grantProgress(grant, m).map(target => (
+                          <div key={target.label} className="mt-1 flex justify-between gap-2 text-[11px] text-stone-600">
+                            <span>{target.label}</span>
+                            <span className="font-mono-num">{target.current}{target.unit} / {target.goal}{target.unit}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
 
               <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                 {[

@@ -10,7 +10,9 @@ import {
   MAX_FOOTPRINT,
   getUpgradeCost,
 } from "./catalog";
+import { separatedDeckAxis } from "./roadTopology";
 import { TILE_SIZE } from "./voxelCore";
+import { payEarnedGrants } from "./cityGrants";
 import {
   ACHIEVEMENTS,
   analyzeLayout,
@@ -74,6 +76,8 @@ export interface PlacedElement {
   pollution?: number;
   /** Network piece that replaced a placed river/canal/lake tile (bridge over water) */
   overWater?: boolean;
+  /** Waterway temporarily covered by a bridge. Restored when the deck is moved or removed. */
+  waterUnderlay?: PlacedElement;
   /** 1 -> 0 animation progress for newly placed / merged / upgraded buildings */
   animProgress: number;
   animKind: "place" | "upgrade" | "merge";
@@ -294,6 +298,8 @@ export interface GameState {
   historyTimerSec?: number;
   /** Unlocked achievement ids */
   achievements?: string[];
+  /** Public works payments already credited to this city's treasury. */
+  awardedGrants?: string[];
 }
 
 export function isNightTime(timeOfDay: number): boolean {
@@ -545,7 +551,10 @@ export interface NetworkPlacementPlan {
  */
 export function planNetworkPlacement(state: GameState, def: CivElementDef, gx: number, gz: number): NetworkPlacementPlan {
   const base = checkPlacementValid(state, def, gx, gz, 1, 1);
-  if (base.valid) return { ok: true, defId: def.id };
+  if (!isElementUnlocked(def, state)) return { ok: false, reason: base.reason, defId: def.id };
+  if (base.valid) {
+    return { ok: true, defId: def.id, overWater: networkDeckClass(def) === "elevated" && getTileTerrainKind(gx, gz) !== "land" };
+  }
   if (!def.isRoadNetwork) return { ok: false, reason: base.reason, defId: def.id };
   if (gx < GRID_MIN || gz < GRID_MIN || gx > GRID_MAX || gz > GRID_MAX) {
     return { ok: false, reason: base.reason, defId: def.id };
@@ -579,9 +588,90 @@ export function planNetworkPlacement(state: GameState, def: CivElementDef, gx: n
   return { ok: true, defId: bridgeId, replaceId: here?.id, overWater: Boolean(here) || getTileTerrainKind(gx, gz) !== "land" };
 }
 
+/** Choose a valid shoreline orientation. Facing is scored per edge tile so a wide side has no inherent advantage. */
+function shoreRotation(state: GameState, def: CivElementDef, gx: number, gz: number, sx: number, sz: number, preferred: number): number {
+  const rearIntake = ["water_pumping_station", "desalination_plant", "hydro_electric_power_plants"].includes(def.id);
+  const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+  let best = preferred;
+  let bestScore = -1;
+  for (let turn = 0; turn < 4; turn++) {
+    const rot = (preferred + turn) % 4;
+    const [w, h] = rot % 2 ? [sz, sx] : [sx, sz];
+    if (!checkPlacementValid(state, def, gx, gz, w, h).valid) continue;
+    const [dx, dz] = directions[(rot + (rearIntake ? 2 : 0)) % 4];
+    const edge = dx ? h : w;
+    let score = 0;
+    for (let k = 0; k < edge; k++) {
+      for (let d = 1; d <= 3; d++) {
+        const x = dx > 0 ? gx + w - 1 + d : dx < 0 ? gx - d : gx + k;
+        const z = dz > 0 ? gz + h - 1 + d : dz < 0 ? gz - d : gz + k;
+        if (getTileTerrainKind(x, z) === "water") score += (4 - d) / edge;
+      }
+    }
+    if (score > bestScore + 0.001) {
+      best = rot;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
+export function planConstruction(state: GameState, selected: CivElementDef, gx: number, gz: number, brushLevel: number, preferred: number) {
+  const network = selected.isNetwork ? planNetworkPlacement(state, selected, gx, gz) : undefined;
+  const def = ELEMENT_BY_ID[network?.defId ?? selected.id];
+  const level = state.mode === "god" ? brushLevel : 1;
+  const [sx, sz] = getStandardFootprintForLevel(def, level);
+  const rotation = def.domain === "coast_or_water" && !def.isNetwork
+    ? shoreRotation(state, def, gx, gz, sx, sz, preferred) : preferred;
+  const [spanX, spanZ] = rotation % 2 ? [sz, sx] : [sx, sz];
+  const check = network ? { valid: network.ok, reason: network.reason } : checkPlacementValid(state, def, gx, gz, spanX, spanZ);
+  if (check.valid && state.mode !== "god" && state.money < def.cost) {
+    check.valid = false;
+    check.reason = `Need $${def.cost.toLocaleString()} to build ${def.name}.`;
+  }
+  return { ...check, def, level, rotation, spanX, spanZ, overWater: Boolean(network?.overWater), replaceId: network?.replaceId };
+}
+
+export function planRelocation(state: GameState, el: PlacedElement, gx: number, gz: number) {
+  const def = ELEMENT_BY_ID[el.defId];
+  const ignore = new Set([el.id]);
+  let underlay: PlacedElement | undefined;
+  if (def.isRoadNetwork && (networkDeckClass(def) === "elevated" || def.id === "boardwalks")) {
+    const occupied = buildOccupancyMap(state.elements).get(`${gx},${gz}`);
+    const water = occupied && ELEMENT_BY_ID[occupied.defId];
+    if (water?.isNetwork && water.isWaterFeature) {
+      underlay = occupied;
+      ignore.add(occupied!.id);
+    }
+  }
+  return { ...checkPlacementValid(state, def, gx, gz, el.spanX, el.spanZ, ignore), underlay };
+}
+
+export function relocatePlacedElement(state: GameState, el: PlacedElement, gx: number, gz: number): boolean {
+  if (el.gx === gx && el.gz === gz) return true;
+  const plan = planRelocation(state, el, gx, gz);
+  if (!plan.valid) return false;
+  if (plan.underlay) state.elements = state.elements.filter(e => e.id !== plan.underlay!.id);
+  if (el.waterUnderlay) state.elements.push(el.waterUnderlay);
+  el.waterUnderlay = plan.underlay;
+  el.overWater = Boolean(plan.underlay) || (ELEMENT_BY_ID[el.defId].isRoadNetwork && getTileTerrainKind(gx, gz) !== "land");
+  el.gx = gx;
+  el.gz = gz;
+  el.animProgress = 0.85;
+  el.animKind = "place";
+  return true;
+}
+
+export function removePlacedElements(state: GameState, ids: Set<string>): void {
+  state.elements = state.elements.flatMap(el => {
+    if (!ids.has(el.id)) return [el];
+    return el.waterUnderlay ? [el.waterUnderlay] : [];
+  });
+}
+
 export function getNetworkConnMask(
   elements: PlacedElement[],
-  el: PlacedElement,
+  el: Pick<PlacedElement, "defId" | "gx" | "gz" | "overWater">,
   occIn?: Map<string, PlacedElement>,
 ): number {
   const def = ELEMENT_BY_ID[el.defId];
@@ -605,7 +695,7 @@ export function getNetworkConnMask(
     const nbDef = ELEMENT_BY_ID[nb.defId];
     if (!nbDef) continue;
     if (def.isRailNetwork) {
-      if (nbDef.isRailNetwork || nbDef.archetype === "transit_stop" || nbDef.archetype === "transit_depot") {
+      if (nbDef.isRailNetwork || nbDef.id === "train_stops" || nbDef.id === "train_depots") {
         mask |= roadBit;
       }
     } else if (def.isWaterFeature) {
@@ -702,13 +792,12 @@ export function canMergePair(
   const minZ = Math.min(a.gz, b.gz);
   const maxZ = Math.max(a.gz + a.spanZ - 1, b.gz + b.spanZ - 1);
 
-  const wantX = Math.min(MAX_FOOTPRINT, Math.max(stdX, 1));
-  const wantZ = Math.min(MAX_FOOTPRINT, Math.max(stdZ, 1));
+  const odd = a.rotation % 2 === 1;
+  const wantX = odd ? stdZ : stdX;
+  const wantZ = odd ? stdX : stdZ;
   const dimAttempts: [number, number][] = [[wantX, wantZ]];
   if (wantX !== wantZ) dimAttempts.push([wantZ, wantX]);
-  if ((a.spanX !== wantX || a.spanZ !== wantZ) && (a.spanX !== wantZ || a.spanZ !== wantX)) {
-    dimAttempts.push([Math.max(a.spanX, b.spanX), Math.max(a.spanZ, b.spanZ)]);
-  }
+
 
   for (const [tx, tz] of dimAttempts) {
     const candidates: [number, number][] = [
@@ -721,6 +810,8 @@ export function canMergePair(
       }
     }
     for (const [cx, cz] of candidates) {
+      const overlaps = (e: PlacedElement) => cx < e.gx + e.spanX && cx + tx > e.gx && cz < e.gz + e.spanZ && cz + tz > e.gz;
+      if (!overlaps(a) && !overlaps(b)) continue;
       if (checkPlacementValid(state, def, cx, cz, tx, tz, ignore).valid) {
         return {
           ok: true,
@@ -746,16 +837,14 @@ export function mergeElementsInState(state: GameState, idA: string, idB: string)
   const a = state.elements.find((e) => e.id === idA)!;
   const def = ELEMENT_BY_ID[a.defId]!;
 
-  // Remove both A and B (except for network elements, where B stays as road connectivity and A upgrades, OR if user merges two roads, A upgrades and B stays so road doesn't break!)
+  // Keep both network tiles in place so merging a route never leaves a gap.
   if (def.isNetwork) {
     a.level = plan.nextLevel;
-    a.variant = randomVariant();
     a.animProgress = 1.0;
     a.animKind = "merge";
     const b = state.elements.find((e) => e.id === idB);
     if (b) {
       b.level = plan.nextLevel;
-      b.variant = randomVariant();
       b.animProgress = 1.0;
       b.animKind = "merge";
     }
@@ -773,12 +862,12 @@ export function mergeElementsInState(state: GameState, idA: string, idB: string)
     spanZ: plan.spanZ,
     rotation: (() => {
       const [fx, fz] = getStandardFootprintForLevel(def, plan.nextLevel!);
-      const swapped = fx !== fz && plan.spanX === fz && plan.spanZ === fx;
-      const base = a.rotation % 2 === 0 ? a.rotation : a.rotation - 1;
-      return swapped ? base + 1 : base;
+      if (fx === fz) return a.rotation;
+      const needsOdd = plan.spanX === fz && plan.spanZ === fx;
+      return needsOdd === (a.rotation % 2 === 1) ? a.rotation : (a.rotation + 1) % 4;
     })(),
     level: plan.nextLevel,
-    variant: randomVariant(),
+    variant: a.variant,
     connected: true,
     hasPoliceCover: false,
     hasFireCover: false,
@@ -845,10 +934,7 @@ export function resizeElementForLevel(
       }
       if (fitted) break;
     }
-    if (!fitted && (wantX <= el.spanX && wantZ <= el.spanZ)) {
-      el.spanX = wantX;
-      el.spanZ = wantZ;
-    }
+    if (!fitted) return false;
   }
 
   el.level = nextLevel;
@@ -872,12 +958,11 @@ export function upgradeElementDirect(state: GameState, id: string): { ok: boolea
     return { ok: false, reason: `Need $${cost.toLocaleString()} to upgrade` };
   }
 
-  if (state.mode !== "god") {
-    state.money -= cost;
+  if (!resizeElementForLevel(state, el, el.level + 1)) {
+    const [w, h] = getStandardFootprintForLevel(def, el.level + 1);
+    return { ok: false, reason: `Clear a ${w}×${h} site touching this ${def.name} to expand.` };
   }
-
-  resizeElementForLevel(state, el, el.level + 1);
-  el.variant = randomVariant();
+  state.money -= cost;
   el.animProgress = 1.0;
 
   recomputeConnectivityAndMetrics(state);
@@ -903,50 +988,56 @@ export function pushToast(
 }
 
 interface RoadNetworkAnalysis {
-  roadCompByCoord: Map<string, number>;
+  roadCompsByCoord: Map<string, number[]>;
   buildingsInRoadComp: Map<number, Set<string>>;
   elementRoadComps: Map<string, Set<number>>;
 }
 
 function analyzeRoadNetwork(elements: PlacedElement[]): RoadNetworkAnalysis {
   const occ = buildOccupancyMap(elements);
-  const roadCompByCoord = new Map<string, number>();
-  let compSeq = 0;
-
-  for (const el of elements) {
-    const def = ELEMENT_BY_ID[el.defId];
-    if (!def?.isRoadNetwork) continue;
-    const startKey = `${el.gx},${el.gz}`;
-    if (roadCompByCoord.has(startKey)) continue;
-
-    compSeq += 1;
-    const queue: [number, number][] = [[el.gx, el.gz]];
-    roadCompByCoord.set(startKey, compSeq);
-
-    while (queue.length > 0) {
-      const [cx, cz] = queue.shift()!;
-      const dirs = [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ];
-      for (const [dx, dz] of dirs) {
-        const nx = cx + dx;
-        const nz = cz + dz;
-        const nKey = `${nx},${nz}`;
-        if (roadCompByCoord.has(nKey)) continue;
-        const nb = occ.get(nKey);
-        if (!nb) continue;
-        const nbDef = ELEMENT_BY_ID[nb.defId];
-        if (nbDef?.isRoadNetwork) {
-          roadCompByCoord.set(nKey, compSeq);
-          queue.push([nx, nz]);
+  // A bridge deck and the street passing underneath occupy one cell but cannot exchange traffic.
+  const roadTiles = new Set<string>();
+  const split = new Set<string>();
+  for (const e of elements) {
+    const d = ELEMENT_BY_ID[e.defId];
+    if (!d?.isRoadNetwork) continue;
+    const key = `${e.gx},${e.gz}`;
+    roadTiles.add(key);
+    if (networkDeckClass(d) !== "ground" && separatedDeckAxis(getNetworkConnMask(elements, e, occ)) >= 0) split.add(key);
+  }
+  const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const nodeKey = (coord: string, dx: number) => dx !== 0 && split.has(coord) ? coord + "/ew" : coord;
+  const component = new Map<string, number>();
+  const roadCompsByCoord = new Map<string, number[]>();
+  let sequence = 0;
+  for (const coord of roadTiles) {
+    const [x, z] = coord.split(",").map(Number);
+    for (const startAxis of split.has(coord) ? [0, 1] : [0]) {
+      const start = nodeKey(coord, startAxis);
+      if (component.has(start)) continue;
+      sequence++;
+      const queue = [[x, z, startAxis]];
+      component.set(start, sequence);
+      for (let head = 0; head < queue.length; head++) {
+        const [cx, cz, axis] = queue[head];
+        const here = `${cx},${cz}`;
+        for (const [dx, dz] of directions) {
+          if (split.has(here) && (dx !== 0) !== (axis !== 0)) continue;
+          const nx = cx + dx, nz = cz + dz;
+          const neighbor = `${nx},${nz}`;
+          const next = nodeKey(neighbor, dx);
+          if (!roadTiles.has(neighbor) || component.has(next)) continue;
+          component.set(next, sequence);
+          queue.push([nx, nz, Math.abs(dx)]);
         }
       }
     }
   }
-
+  for (const coord of roadTiles) {
+    const main = component.get(coord)!;
+    const second = component.get(coord + "/ew");
+    roadCompsByCoord.set(coord, second && second !== main ? [main, second] : [main]);
+  }
   const buildingsInRoadComp = new Map<number, Set<string>>();
   const elementRoadComps = new Map<string, Set<number>>();
 
@@ -966,7 +1057,7 @@ function analyzeRoadNetwork(elements: PlacedElement[]): RoadNetworkAnalysis {
           [0, -1],
         ];
         for (const [ox, oz] of dirs) {
-          const cId = roadCompByCoord.get(`${tx + ox},${tz + oz}`);
+          const cId = component.get(nodeKey(`${tx + ox},${tz + oz}`, ox));
           if (cId !== undefined) {
             comps.add(cId);
             let set = buildingsInRoadComp.get(cId);
@@ -982,7 +1073,7 @@ function analyzeRoadNetwork(elements: PlacedElement[]): RoadNetworkAnalysis {
     elementRoadComps.set(el.id, comps);
   }
 
-  return { roadCompByCoord, buildingsInRoadComp, elementRoadComps };
+  return { roadCompsByCoord, buildingsInRoadComp, elementRoadComps };
 }
 
 /**
@@ -990,10 +1081,10 @@ function analyzeRoadNetwork(elements: PlacedElement[]): RoadNetworkAnalysis {
  * Isolated roads or stubs touching 0 or 1 building never spawn cars or pedestrians.
  */
 export function getConnectedRoadCoordSet(elements: PlacedElement[]): Set<string> {
-  const { roadCompByCoord, buildingsInRoadComp } = analyzeRoadNetwork(elements);
+  const { roadCompsByCoord, buildingsInRoadComp } = analyzeRoadNetwork(elements);
   const validCoords = new Set<string>();
-  for (const [coord, compId] of roadCompByCoord.entries()) {
-    if ((buildingsInRoadComp.get(compId)?.size ?? 0) >= 2) {
+  for (const [coord, comps] of roadCompsByCoord) {
+    if (comps.some(id => (buildingsInRoadComp.get(id)?.size ?? 0) >= 2)) {
       validCoords.add(coord);
     }
   }
@@ -1001,7 +1092,7 @@ export function getConnectedRoadCoordSet(elements: PlacedElement[]): Set<string>
 }
 
 /**
- * Returns rail coordinates belonging to rail components touching at least 1 transit stop/depot or building.
+ * Returns rail coordinates belonging to rail components touching a working train stop or depot.
  */
 export function getConnectedRailCoordSet(elements: PlacedElement[]): Set<string> {
   const occ = buildOccupancyMap(elements);
@@ -1041,8 +1132,7 @@ export function getConnectedRailCoordSet(elements: PlacedElement[]): Set<string>
 
   const activeComps = new Set<number>();
   for (const el of elements) {
-    const def = ELEMENT_BY_ID[el.defId];
-    if (!def || def.isNetwork || def.passiveNature) continue;
+    if ((el.defId !== "train_stops" && el.defId !== "train_depots") || el.onFire) continue;
     for (let dx = 0; dx < el.spanX; dx++) {
       for (let dz = 0; dz < el.spanZ; dz++) {
         const tx = el.gx + dx;
@@ -1081,7 +1171,7 @@ export const PEDESTRIAN_IDS = new Set(["paths", "walking_paths", "trails", "side
 export function recomputeConnectivityAndMetrics(state: GameState): void {
   const elements = state.elements;
   let unportedVessels = 0;
-  const { buildingsInRoadComp, elementRoadComps } = analyzeRoadNetwork(elements);
+  const { buildingsInRoadComp, elementRoadComps, roadCompsByCoord } = analyzeRoadNetwork(elements);
 
   // An element is connected if:
   // - In God Mode: always active, or
@@ -1133,7 +1223,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     const d = ELEMENT_BY_ID[e.defId];
     return e.connected && !e.onFire && (d?.fireRadius ?? 0) > 0;
   });
-  const layout = analyzeLayout(elements, isCoastalTile);
+  const waterUnderlays = elements.flatMap(e => e.waterUnderlay ? [e.waterUnderlay] : []);
+  const layout = analyzeLayout(waterUnderlays.length ? [...elements, ...waterUnderlays] : elements, isCoastalTile);
 
   for (const el of elements) {
     el.hasPoliceCover = false;
@@ -1177,6 +1268,12 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
   // 4. Aggregate Supplies, Demands, Population & Happiness
   const m = createEmptyMetrics();
+  for (const water of waterUnderlays) {
+    const feature = ELEMENT_BY_ID[water.defId];
+    const scale = 2 ** (water.level - 1);
+    m.waterSupply += (feature?.water ?? 0) * scale;
+    m.recreationSupply += (feature?.recreation ?? 0) * scale;
+  }
   let baseHousingPop = 0;
   let policePoints = 0;
   let uncoveredBuildings = 0;
@@ -1190,16 +1287,15 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   // Traffic: trips per road component vs capacity, minus transit relief, scaled by rush hour
   const congestedEls = new Set<string>();
   {
-    const { roadCompByCoord, elementRoadComps } = analyzeRoadNetwork(elements);
     const capByComp = new Map<number, number>();
     const tripsByComp = new Map<number, number>();
     const reliefByComp = new Map<number, number>();
     const occ = buildOccupancyMap(elements);
-    for (const [coord, comp] of roadCompByCoord) {
+    for (const [coord, comps] of roadCompsByCoord) {
       const el = occ.get(coord);
       const d = el ? ELEMENT_BY_ID[el.defId] : undefined;
       if (!el || !d) continue;
-      capByComp.set(comp, (capByComp.get(comp) ?? 0) + roadCapacity(d, el.level));
+      for (const comp of comps) capByComp.set(comp, (capByComp.get(comp) ?? 0) + roadCapacity(d, el.level) / comps.length);
     }
     const rush = rushHourFactor(state.timeOfDay ?? 10.5);
     let totalTrips = 0;
@@ -1231,7 +1327,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       sumCap += cap;
     }
     const loadMap = new Map<string, number>();
-    for (const [coord, comp] of roadCompByCoord) loadMap.set(coord, loadByComp.get(comp) ?? 0);
+    for (const [coord, comps] of roadCompsByCoord) loadMap.set(coord, Math.max(...comps.map(id => loadByComp.get(id) ?? 0)));
     lastTrafficLoad = loadMap;
     for (const el of elements) {
       const comps = elementRoadComps.get(el.id);
@@ -1459,7 +1555,6 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
     m.pollutionAvg = pN ? Math.round((pSum / pN) * 10) / 10 : 0;
   }
-  checkAchievements(state, m);
 
   // 5. Compute Happiness & Diagnostics ("What's Missing?")
   const diags: AdvisorDiagnostic[] = [];
@@ -1467,6 +1562,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
   if (state.mode === "god") {
     state.happiness = 100;
+    checkAchievements(state, m);
     if (elements.length === 0) {
       diags.push({
         id: "god_welcome",
@@ -1636,6 +1732,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   }
 
   state.happiness = Math.max(0, Math.min(100, happiness));
+  checkAchievements(state, m);
 
   if (diags.length === 0 && m.connectedHouses > 0) {
     diags.push({
@@ -2362,11 +2459,11 @@ function stepActiveAttack(state: GameState, dtSec: number): boolean {
               changed = true;
             } else {
               if (targetEl.level > 1 && Math.random() < 0.38) {
-                targetEl.level -= 1;
+                resizeElementForLevel(state, targetEl, targetEl.level - 1);
                 targetEl.animProgress = 0.8;
                 targetEl.animKind = "place";
               } else {
-                state.elements = state.elements.filter((e) => e.id !== targetEl!.id);
+                removePlacedElements(state, new Set([targetEl.id]));
                 atk.buildingsDestroyed += 1;
                 if (tDef?.popBase) {
                   const lost = tDef.popBase * Math.pow(2, targetEl.level - 1);
@@ -2511,7 +2608,8 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
   // Rolling stat history (every 6 s of play, last 150 samples ≈ 15 min)
   state.historyTimerSec = (state.historyTimerSec ?? 0) + dtSec;
   if (state.historyTimerSec >= 6) {
-    state.historyTimerSec = 0;
+    dirty = true;
+    state.historyTimerSec %= 6;
     const hist = Array.isArray(state.history) ? state.history : [];
     hist.push({
       t: Math.round(state.activePlaySec),
@@ -2694,6 +2792,12 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
 
   if (dirty) {
     recomputeConnectivityAndMetrics(state);
+  }
+  if (dtSec > 0) {
+    for (const grant of payEarnedGrants(state)) {
+      pushToast(state, "stage", grant.name, `Public works grant received · +$${grant.reward.toLocaleString()}`);
+      dirty = true;
+    }
   }
   return dirty;
 }

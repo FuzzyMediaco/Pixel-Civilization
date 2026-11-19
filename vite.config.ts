@@ -12,6 +12,7 @@ export default defineConfig({
   build: {
     outDir: "dist",
     target: "es2022",
+    rolldownOptions: { input: { island: "index.html", guide: "field-guide.html" } },
     emptyOutDir: true,
   },
 });

@@ -73,6 +73,15 @@ export function hull(v: V, o: HullOpts): number {
   };
   const water = o.water ?? 1;
   for (let z = o.z0; z < o.z1; z++) {
+    // A floating hull narrows into the water. Hulls on cradles keep their own keel height.
+    const bottom = y0 === 0 ? hullRange(o, y0, z) : null;
+    if (bottom) {
+      const width = bottom[1] - bottom[0];
+      for (let depth = 1; depth <= Math.min(3, Math.ceil(width / 2)); depth++) {
+        const inset = Math.min(depth - 1, Math.floor((width - 1) / 2));
+        v.box(bottom[0] + inset, -depth, z, bottom[1] - inset, 1 - depth, z + 1, o.bottom ?? o.col);
+      }
+    }
     for (let y = y0; y < y0 + o.h; y++) {
       const r = hullRange(o, y, z);
       if (!r) continue;
@@ -344,12 +353,12 @@ export function subHull(v: V, cx: number, z0: number, z1: number, r: number, col
     const rx = rr;
     const ry = flat ? rr * 0.75 : rr;
     for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
-      for (let y = 0; y <= Math.ceil(cy + ry); y++) {
+      for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
         const d = ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2;
         if (d > 1) continue;
         const dIn = ((x + 0.5 - cx) / Math.max(0.1, rx - 1.2)) ** 2 + ((y + 0.5 - cy) / Math.max(0.1, ry - 1.2)) ** 2;
-        if (dIn < 1 && y > 0 && z > z0 && z < z1 - 1) continue;
-        v.put(x, y, z, y === 0 ? belly : col);
+        if (dIn < 1 && z > z0 && z < z1 - 1) continue;
+        v.put(x, y, z, y <= 0 ? belly : col);
         top = Math.max(top, y + 1);
       }
     }
@@ -367,14 +376,19 @@ export function screwProp(c: Ctx, x: number, y: number, z: number, r = 2, col = 
   c.addRotor({ vox: p, pivot: [x, y, z], axis: "z", speed });
 }
 
-/** Triangular fore-and-aft sail in the x=x plane: luff on the mast at z=zm, foot extends to zm-len (aft). */
+/** The luff and leech stay under tension while the center of the canvas bellies to leeward. */
 export function triSail(v: V, x: number, y0: number, y1: number, zm: number, len: number, col: string | ((y: number, z: number) => string), dir: 1 | -1 = -1): void {
   const H = y1 - y0;
   for (let y = y0; y < y1; y++) {
     const l = Math.max(1, Math.round(len * (1 - (y - y0) / H)));
+    let previous = 0;
     for (let k = 1; k <= l; k++) {
       const z = zm + dir * k;
-      v.put(x, y, z, typeof col === "string" ? col : col(y, z));
+      const fullness = Math.min(2.8, l * 0.22) * Math.sin(Math.PI * (k - 1) / Math.max(1, l - 1));
+      const offset = Math.round(fullness * Math.sin(Math.PI * (y - y0 + 1) / (H + 1)));
+      const cloth = typeof col === "string" ? col : col(y, z);
+      v.box(x + Math.min(previous, offset), y, z, x + Math.max(previous, offset) + 1, y + 1, z + 1, cloth);
+      previous = offset;
     }
   }
 }
@@ -423,18 +437,26 @@ export function mooredBoat(c: Ctx, cx: number, z0: number, len: number, beam: nu
   }
 }
 
+/** Perimeter caisson under a working quay, down past the ocean surface. */
+export function quayFoundation(v: V, x0: number, z0: number, x1: number, z1: number, col = "concreteDark"): void {
+  v.box(x0, -4, z0, x1, 0, z0 + 1, col);
+  v.box(x0, -4, z1 - 1, x1, 0, z1, col);
+  v.box(x0, -4, z0 + 1, x0 + 1, 0, z1 - 1, col);
+  v.box(x1 - 1, -4, z0 + 1, x1, 0, z1 - 1, col);
+}
+
 /** Piles + deck for a pier rectangle. Deck at y=1 (top surface y=2). */
 export function pier(v: V, x0: number, z0: number, x1: number, z1: number, deck = "wood", pile = "woodDark", step = 4, y = 1): void {
   v.box(x0, y, z0, x1, y + 1, z1, deck);
   for (let x = x0; x < x1; x += step) {
-    v.box(x, 0, z0, x + 1, y + 2, z0 + 1, pile);
-    v.box(x, 0, z1 - 1, x + 1, y + 2, z1, pile);
+    v.box(x, -4, z0, x + 1, y + 2, z0 + 1, pile);
+    v.box(x, -4, z1 - 1, x + 1, y + 2, z1, pile);
   }
   for (let z = z0; z < z1; z += step) {
-    v.box(x0, 0, z, x0 + 1, y + 2, z + 1, pile);
-    v.box(x1 - 1, 0, z, x1, y + 2, z + 1, pile);
+    v.box(x0, -4, z, x0 + 1, y + 2, z + 1, pile);
+    v.box(x1 - 1, -4, z, x1, y + 2, z + 1, pile);
   }
-  v.box(x0, 0, z1 - 1, x0 + 1, y + 2, z1, pile);
-  v.box(x1 - 1, 0, z1 - 1, x1, y + 2, z1, pile);
+  v.box(x0, -4, z1 - 1, x0 + 1, y + 2, z1, pile);
+  v.box(x1 - 1, -4, z1 - 1, x1, y + 2, z1, pile);
 }
 

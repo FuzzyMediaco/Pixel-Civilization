@@ -8,16 +8,17 @@
  *  - `growth`: one-line description of how this element grows when it levels up.
  *  - `build(ctx)`: the voxel builder.
  *
- * This file deliberately imports nothing from the game so it can be shared by the catalog,
- * the simulation, the renderer and the standalone gallery without import cycles.
+ * The shared footprint table is plain data, so the catalog and isolated gallery
+ * can load individual builders without importing the renderer or simulation.
  */
 import type { Ctx } from "./kit";
+import type { LevelSpanTuple } from "../levelSpans";
 
-export type Footprint = [number, number];
+export type { Footprint } from "../levelSpans";
 
 export interface DesignEntry {
   /** [spanX, spanZ] for Lv.1..Lv.5 (local axes, before rotation). Each axis 1..4, non-decreasing. */
-  footprints: [Footprint, Footprint, Footprint, Footprint, Footprint];
+  footprints: LevelSpanTuple;
   /** Display names for Lv.1..Lv.5 */
   levels: [string, string, string, string, string];
   /** Short description of how the element evolves as it levels */

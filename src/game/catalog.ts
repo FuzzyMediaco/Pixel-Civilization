@@ -1,4 +1,7 @@
 import { getDesign, getLevelName } from "./designs/registry";
+import { ELEMENT_LEVEL_SPANS } from "./levelSpans";
+
+export { ELEMENT_LEVEL_SPANS };
 
 export type GameMode = "god" | "real" | "survival";
 
@@ -2553,53 +2556,20 @@ export const CRIME_UNLOCK_STAGE: number = Math.min(
 export const CRIME_UNLOCK_MIN_POP: number =
   STAGES[Math.max(0, Math.min(STAGES.length - 1, CRIME_UNLOCK_STAGE - 1))]?.minPop ?? 85_000;
 
-/**
- * Computes footprint dimensions (in grid tiles) for a placed element.
- * - Network elements (roads, tracks, bridges, rivers, canals) stay 1x1 so they tile cleanly.
- * - Higher-stage and monumental elements start at stage-proportional footprints (up to 3x2 / 3x3).
- * - Standard elements progress smoothly with merges/upgrades and cap cleanly at 3x3 max.
- */
 export const MAX_FOOTPRINT = 4;
 
+/** Local tile dimensions before the player rotates an element. Networks always tile one square. */
 export function getStandardFootprintForLevel(
   def: CivElementDef,
   level: number,
 ): [number, number] {
   if (def.isNetwork) return [1, 1];
-  const design = getDesign(def.id);
-  if (design) {
-    const fp = design.footprints[Math.max(0, Math.min(4, (level | 0) - 1))];
-    return [
-      Math.max(1, Math.min(MAX_FOOTPRINT, fp[0] | 0)),
-      Math.max(1, Math.min(MAX_FOOTPRINT, fp[1] | 0)),
-    ];
-  }
-  const base = def.baseSpan ?? [1, 1];
-  const max = def.maxSpan ?? (def.stage >= 17 ? [3, 3] : def.stage >= 10 ? [3, 2] : [2, 2]);
-  const cap = (n: number) => Math.max(1, Math.min(3, n));
-  const bx = cap(base[0]);
-  const bz = cap(base[1]);
-  const mx = cap(Math.max(bx, max[0]));
-  const mz = cap(Math.max(bz, max[1]));
-  const lv = Math.max(1, Math.min(5, level | 0));
-
-  if (lv <= 1) return [bx, bz];
-  if (lv === 2) {
-    const lx = bx < mx ? Math.min(mx, bx + 1) : bx;
-    const lz = lx === bx && bz < mz ? Math.min(mz, bz + 1) : bz;
-    return [lx, lz];
-  }
-  if (lv === 3) {
-    const lx = Math.min(mx, bx + 1);
-    const lz = Math.min(mz, bz + 1);
-    return [lx, lz];
-  }
-  if (lv === 4) {
-    const lx = Math.min(mx, bx + 2);
-    const lz = Math.min(mz, bz + 1);
-    return [lx, lz];
-  }
-  return [mx, mz]; // Level 5 hits full maxSpan (at most 3x3)
+  const index = Math.max(0, Math.min(4, (level | 0) - 1));
+  const [x, z] = ELEMENT_LEVEL_SPANS[def.id]?.[index] ?? def.baseSpan ?? [1, 1];
+  return [
+    Math.max(1, Math.min(MAX_FOOTPRINT, x | 0)),
+    Math.max(1, Math.min(MAX_FOOTPRINT, z | 0)),
+  ];
 }
 
 export function getUpgradeCost(def: CivElementDef, currentLevel: number): number {
