@@ -520,9 +520,18 @@ export function canMergePair(
   }
 
   const [stdX, stdZ] = getStandardFootprintForLevel(def, nextLevel);
+  const oddRotA = a.rotation % 2 === 1;
+  const prefX = Math.min(3, oddRotA ? stdZ : stdX);
+  const prefZ = Math.min(3, oddRotA ? stdX : stdZ);
 
-  // Adjacent 1x1 + 1x1 -> 2x1 or 1x2 occupying their exact combined footprint!
-  if (a.spanX === 1 && a.spanZ === 1 && b.spanX === 1 && b.spanZ === 1 && ((stdX === 2 && stdZ === 1) || (stdX === 1 && stdZ === 2))) {
+  // Adjacent 1x1 + 1x1 merging into a 2x1 or 1x2 footprint naturally occupies their combined pair!
+  if (
+    a.spanX === 1 &&
+    a.spanZ === 1 &&
+    b.spanX === 1 &&
+    b.spanZ === 1 &&
+    ((stdX === 2 && stdZ === 1) || (stdX === 1 && stdZ === 2))
+  ) {
     const minX = Math.min(a.gx, b.gx);
     const minZ = Math.min(a.gz, b.gz);
     const spanX = a.gx !== b.gx ? 2 : 1;
@@ -543,11 +552,9 @@ export function canMergePair(
   const minZ = Math.min(a.gz, b.gz);
   const maxZ = Math.max(a.gz + a.spanZ - 1, b.gz + b.spanZ - 1);
 
-  const wantX = Math.min(3, Math.max(a.spanX, stdX));
-  const wantZ = Math.min(3, Math.max(a.spanZ, stdZ));
-  const dimAttempts: [number, number][] = [[wantX, wantZ]];
-  if (wantX !== wantZ) dimAttempts.push([wantZ, wantX]);
-  if (a.spanX !== wantX || a.spanZ !== wantZ) {
+  const dimAttempts: [number, number][] = [[prefX, prefZ]];
+  if (prefX !== prefZ) dimAttempts.push([prefZ, prefX]);
+  if (a.spanX !== prefX || a.spanZ !== prefZ) {
     dimAttempts.push([a.spanX, a.spanZ]);
   }
 
@@ -575,7 +582,10 @@ export function canMergePair(
     }
   }
 
-  return { ok: false, reason: `Need clear ${wantX}×${wantZ} space around pair for Lv.${nextLevel} ${def.name}` };
+  return {
+    ok: false,
+    reason: `Need clear ${prefX}×${prefZ} space around pair for Lv.${nextLevel} ${def.name}`,
+  };
 }
 
 export function mergeElementsInState(state: GameState, idA: string, idB: string): { ok: boolean; mergedId?: string; reason?: string } {
@@ -587,7 +597,7 @@ export function mergeElementsInState(state: GameState, idA: string, idB: string)
   const a = state.elements.find((e) => e.id === idA)!;
   const def = ELEMENT_BY_ID[a.defId]!;
 
-  // Remove both A and B (except for network elements, where B stays as road connectivity and A upgrades, OR if user merges two roads, A upgrades and B stays so road doesn't break!)
+  // Remove both A and B (except for network elements, where B stays as road connectivity and A upgrades)
   if (def.isNetwork) {
     a.level = plan.nextLevel;
     a.variant = randomVariant();
@@ -605,6 +615,14 @@ export function mergeElementsInState(state: GameState, idA: string, idB: string)
     return { ok: true, mergedId: a.id };
   }
 
+  const [stdX, stdZ] = getStandardFootprintForLevel(def, plan.nextLevel);
+  let mergedRot = a.rotation;
+  if (stdX !== stdZ) {
+    const needsOddRot = plan.spanX === stdZ && plan.spanZ === stdX;
+    if (needsOddRot && mergedRot % 2 === 0) mergedRot = 1;
+    else if (!needsOddRot && mergedRot % 2 === 1) mergedRot = 0;
+  }
+
   const merged: PlacedElement = {
     id: makeElementId(),
     defId: a.defId,
@@ -612,7 +630,7 @@ export function mergeElementsInState(state: GameState, idA: string, idB: string)
     gz: plan.targetGz,
     spanX: plan.spanX,
     spanZ: plan.spanZ,
-    rotation: plan.spanX < plan.spanZ ? 1 : a.rotation % 2 === 0 ? a.rotation : 0,
+    rotation: mergedRot,
     level: plan.nextLevel,
     variant: randomVariant(),
     connected: true,
@@ -655,7 +673,7 @@ export function resizeElementForLevel(
     let targetSpanZ = Math.min(3, rotSwap ? stdX : stdZ);
     const ignore = new Set([el.id]);
 
-    if (targetSpanX > el.spanX || targetSpanZ > el.spanZ) {
+    if (targetSpanX !== el.spanX || targetSpanZ !== el.spanZ) {
       const tryDims: [number, number][] = [[targetSpanX, targetSpanZ]];
       if (targetSpanX !== targetSpanZ) tryDims.push([targetSpanZ, targetSpanX]);
       const altOffsets: [number, number][] = [
@@ -674,6 +692,11 @@ export function resizeElementForLevel(
             el.gz += oz;
             targetSpanX = dxSpan;
             targetSpanZ = dzSpan;
+            if (stdX !== stdZ) {
+              const needsOdd = dxSpan === stdZ && dzSpan === stdX;
+              if (needsOdd && el.rotation % 2 === 0) el.rotation = 1;
+              else if (!needsOdd && el.rotation % 2 === 1) el.rotation = 0;
+            }
             fitted = true;
             break;
           }

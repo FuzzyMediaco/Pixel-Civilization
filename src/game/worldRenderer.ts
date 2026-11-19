@@ -1121,7 +1121,13 @@ export class PixelWorldRenderer {
       const def = ELEMENT_BY_ID[this.brush.defId];
       if (def) {
         const [sx, sz] = getStandardFootprintForLevel(def, this.brush.level);
-        [wx, wz] = gridToWorldCenter(this.hoverGrid[0], this.hoverGrid[1], sx, sz);
+        const oddRot = this.brush.rotation % 2 === 1;
+        [wx, wz] = gridToWorldCenter(
+          this.hoverGrid[0],
+          this.hoverGrid[1],
+          oddRot ? sz : sx,
+          oddRot ? sx : sz,
+        );
         if (def.policeRadius) {
           radTiles = def.policeRadius * (1 + (this.brush.level - 1) * 0.18);
           ringHex = 0x3b82f6;

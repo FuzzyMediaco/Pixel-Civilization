@@ -2551,43 +2551,196 @@ export const CRIME_UNLOCK_STAGE: number = Math.min(
 export const CRIME_UNLOCK_MIN_POP: number =
   STAGES[Math.max(0, Math.min(STAGES.length - 1, CRIME_UNLOCK_STAGE - 1))]?.minPop ?? 85_000;
 
+type LevelSpanTuple = [
+  [number, number],
+  [number, number],
+  [number, number],
+  [number, number],
+  [number, number],
+];
+
+const FIXED = (sx: number, sz: number): LevelSpanTuple => [
+  [sx, sz],
+  [sx, sz],
+  [sx, sz],
+  [sx, sz],
+  [sx, sz],
+];
+
 /**
- * Computes footprint dimensions (in grid tiles) for a placed element.
- * - Network elements (roads, tracks, bridges, rivers, canals) stay 1x1 so they tile cleanly.
- * - Higher-stage and monumental elements start at stage-proportional footprints (up to 3x2 / 3x3).
- * - Standard elements progress smoothly with merges/upgrades and cap cleanly at 3x3 max.
+ * Intrinsic, adaptive [spanX, spanZ] footprints per element across Levels 1..5.
+ * Eliminates the uniform "1 block -> 2 blocks -> 4 blocks" progression so every element
+ * preserves an authentic architectural proportion suited to its real-world form & Stage.
  */
+export const ELEMENT_LEVEL_SPANS: Record<string, LevelSpanTuple> = {
+  // --- Stage 1 Starters ---
+  house: [[1, 1], [1, 1], [1, 1], [2, 1], [2, 1]],
+  businesses: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 2]],
+  solar_panels: FIXED(1, 1),
+  grocery_store: [[1, 1], [2, 1], [2, 1], [2, 1], [2, 2]],
+  school: [[2, 1], [2, 1], [2, 2], [2, 2], [3, 2]],
+  water_treatment_plant: [[2, 1], [2, 1], [2, 2], [2, 2], [3, 2]],
+  landfill: [[1, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  park: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  shops: [[1, 1], [1, 1], [1, 1], [2, 1], [2, 1]],
+
+  // --- Housing ---
+  tiny_homes: FIXED(1, 1),
+  trailer_home: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]],
+  cottages: FIXED(1, 1),
+  medium_sized_homes: FIXED(2, 1),
+  townhomes: [[2, 1], [2, 1], [2, 1], [3, 1], [3, 1]],
+  large_homes: [[2, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+  apartments: [[2, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+  beach_houses: [[2, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  villas: FIXED(2, 2),
+  apartment_buildings: [[2, 2], [2, 2], [2, 2], [3, 2], [3, 2]],
+  condos: FIXED(2, 2),
+  mansions: [[2, 2], [2, 2], [3, 2], [3, 2], [3, 3]],
+  skyscrapers: FIXED(2, 2),
+
+  // --- Agriculture ---
+  farms: [[2, 1], [2, 1], [2, 2], [2, 2], [3, 2]],
+  farm_houses: FIXED(2, 1),
+  fields: [[2, 1], [2, 1], [2, 2], [2, 2], [3, 2]],
+  orchards: [[2, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+  groves_of_olives: [[2, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  plantations: FIXED(3, 2),
+
+  // --- Commerce & Dining ---
+  blacksmiths: FIXED(1, 1),
+  restaurants: [[1, 1], [2, 1], [2, 1], [2, 1], [2, 2]],
+  clothing_stores: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]],
+  thrift_stores: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]],
+  shoe_stores: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]],
+  cheesesteak_restaurants: FIXED(2, 1),
+  bars: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]],
+  gas_stations: [[2, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  atms: FIXED(1, 1),
+  buildings: [[2, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+  banks: FIXED(2, 2),
+  malls: [[3, 2], [3, 2], [3, 2], [3, 3], [3, 3]],
+  data_centers: [[2, 2], [2, 2], [3, 2], [3, 2], [3, 2]],
+
+  // --- Power, Waste & Industry ---
+  windmills: [[1, 1], [1, 1], [1, 1], [2, 1], [2, 1]],
+  wind_turbines: FIXED(1, 1),
+  trash_compacting_plants: FIXED(2, 1),
+  factories: [[2, 2], [2, 2], [3, 2], [3, 2], [3, 2]],
+  coal_powerplants: [[2, 2], [2, 2], [3, 2], [3, 2], [3, 2]],
+  solar_farms: [[2, 2], [2, 2], [2, 2], [3, 2], [3, 2]],
+  natural_gas_power_plants: [[2, 2], [2, 2], [3, 2], [3, 2], [3, 2]],
+  trash_burning_plants: [[2, 2], [2, 2], [3, 2], [3, 2], [3, 2]],
+  wind_farms: [[2, 2], [2, 2], [3, 2], [3, 2], [3, 3]],
+  hydro_electric_power_plants: FIXED(3, 2),
+  geothermal_power_plants: FIXED(2, 2),
+  micro_reactor_nuclear: FIXED(2, 2),
+  nuclear_power_plants: [[3, 2], [3, 2], [3, 3], [3, 3], [3, 3]],
+
+  // --- Water Utilities ---
+  wells: FIXED(1, 1),
+  water_towers: FIXED(1, 1),
+  water_places: [[1, 1], [1, 1], [2, 2], [2, 2], [2, 2]],
+  water_pumping_station: FIXED(2, 1),
+  municipal_reservoir: [[2, 2], [2, 2], [2, 2], [3, 2], [3, 2]],
+  aqueduct: [[2, 1], [2, 1], [3, 1], [3, 1], [3, 1]],
+  desalination_plant: FIXED(3, 2),
+
+  // --- Transit Stops & Depots ---
+  train_stops: [[2, 1], [2, 1], [2, 1], [3, 1], [3, 1]],
+  train_depots: [[2, 2], [2, 2], [3, 2], [3, 2], [3, 2]],
+  bus_stops: FIXED(1, 1),
+  bus_depots: [[2, 1], [2, 1], [3, 2], [3, 2], [3, 2]],
+  taxi_depots: FIXED(2, 1),
+
+  // --- Civic & Parks ---
+  little_parks: FIXED(1, 1),
+  gardens: FIXED(1, 1),
+  city_offices: [[2, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  post_offices: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 1]],
+  tax_collecting_office: FIXED(2, 1),
+  fire_department: [[2, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  community_centers: FIXED(2, 2),
+  italian_gardens: [[2, 1], [2, 1], [3, 2], [3, 2], [3, 2]],
+  courthouses: FIXED(2, 2),
+  government_buildings: [[3, 2], [3, 2], [3, 2], [3, 3], [3, 3]],
+  large_parks: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
+
+  // --- Police & Military ---
+  police_precinct: [[2, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  jails: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 2]],
+  police_departments: FIXED(2, 2),
+  prisons: [[2, 2], [2, 2], [3, 2], [3, 2], [3, 2]],
+  military_base: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
+  naval_base: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
+  swat_team_hq: FIXED(2, 2),
+  airforce_base: FIXED(3, 2),
+  submarine_base: FIXED(3, 2),
+
+  // --- Faith & Heritage ---
+  churches: [[1, 2], [1, 2], [1, 2], [2, 2], [2, 2]],
+  graveyards: [[2, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+  christian_churches: [[2, 2], [2, 2], [2, 3], [2, 3], [2, 3]],
+  monasteries: FIXED(2, 2),
+  mosques: FIXED(2, 2),
+  synagogues: FIXED(2, 2),
+  temples: FIXED(2, 2),
+  lds_temples: [[2, 2], [2, 2], [2, 3], [2, 3], [3, 3]],
+
+  // --- Maritime & Naval (Sleek Elongated Hull & Pier Aspect Ratios!) ---
+  docks: [[1, 2], [1, 2], [1, 2], [2, 2], [2, 3]],
+  boats: [[1, 1], [1, 1], [1, 2], [1, 2], [1, 2]],
+  sail_boats: [[1, 2], [1, 2], [1, 2], [1, 3], [1, 3]],
+  speed_boats: [[1, 1], [1, 2], [1, 2], [1, 2], [1, 2]],
+  ship_building_areas: [[2, 2], [2, 2], [2, 3], [2, 3], [2, 3]],
+  shipyards: [[2, 3], [2, 3], [2, 3], [3, 3], [3, 3]],
+  naval_vessels: [[1, 2], [1, 2], [1, 3], [1, 3], [1, 3]],
+  submarines: [[1, 2], [1, 2], [1, 3], [1, 3], [1, 3]],
+  aircraft_carriers: FIXED(2, 3),
+
+  // --- Nature, Water Bodies & Terrain ---
+  trees: FIXED(1, 1),
+  plants: FIXED(1, 1),
+  shrubs: FIXED(1, 1),
+  bushes: FIXED(1, 1),
+  pine_trees: FIXED(1, 1),
+  ponds: FIXED(1, 1),
+  hills: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  sand: FIXED(1, 1),
+  beaches: [[2, 1], [2, 1], [2, 1], [3, 1], [3, 1]],
+  beach_umbrellas: FIXED(1, 1),
+  lakes: [[2, 1], [2, 1], [2, 2], [3, 2], [3, 2]],
+  redwood_trees: FIXED(1, 1),
+  mountains: [[2, 2], [2, 2], [2, 2], [3, 2], [3, 3]],
+  canyons: FIXED(2, 2),
+  deserts: [[2, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+  tubbleweeds: FIXED(1, 1),
+  swamps: [[2, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+  alligators: FIXED(1, 1),
+
+  // --- World Landmarks ---
+  large_landmarks: [[2, 1], [2, 1], [3, 2], [3, 2], [3, 2]],
+  washington_monument: FIXED(2, 2),
+  white_house: FIXED(3, 2),
+  smithsonian: FIXED(3, 2),
+  eiffel_tower: FIXED(2, 2),
+  the_london_eye: FIXED(3, 2),
+  the_great_pyramids: [[2, 2], [2, 2], [3, 3], [3, 3], [3, 3]],
+};
+
 export function getStandardFootprintForLevel(
   def: CivElementDef,
   level: number,
 ): [number, number] {
   if (def.isNetwork) return [1, 1];
+  const lvIdx = Math.max(0, Math.min(4, (level | 0) - 1));
+  const custom = ELEMENT_LEVEL_SPANS[def.id];
+  if (custom) {
+    const [sx, sz] = custom[lvIdx];
+    return [Math.max(1, Math.min(3, sx)), Math.max(1, Math.min(3, sz))];
+  }
   const base = def.baseSpan ?? [1, 1];
-  const max = def.maxSpan ?? (def.stage >= 17 ? [3, 3] : def.stage >= 10 ? [3, 2] : [2, 2]);
-  const cap = (n: number) => Math.max(1, Math.min(3, n));
-  const bx = cap(base[0]);
-  const bz = cap(base[1]);
-  const mx = cap(Math.max(bx, max[0]));
-  const mz = cap(Math.max(bz, max[1]));
-  const lv = Math.max(1, Math.min(5, level | 0));
-
-  if (lv <= 1) return [bx, bz];
-  if (lv === 2) {
-    const lx = bx < mx ? Math.min(mx, bx + 1) : bx;
-    const lz = lx === bx && bz < mz ? Math.min(mz, bz + 1) : bz;
-    return [lx, lz];
-  }
-  if (lv === 3) {
-    const lx = Math.min(mx, bx + 1);
-    const lz = Math.min(mz, bz + 1);
-    return [lx, lz];
-  }
-  if (lv === 4) {
-    const lx = Math.min(mx, bx + 2);
-    const lz = Math.min(mz, bz + 1);
-    return [lx, lz];
-  }
-  return [mx, mz]; // Level 5 hits full maxSpan (at most 3x3)
+  return [Math.max(1, Math.min(3, base[0])), Math.max(1, Math.min(3, base[1]))];
 }
 
 export function getUpgradeCost(def: CivElementDef, currentLevel: number): number {
