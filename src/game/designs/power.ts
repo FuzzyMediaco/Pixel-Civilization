@@ -1762,3 +1762,719 @@ defineDesigns({
     build: buildGas,
   },
 });
+
+// =============================================================================================
+// TRASH BURNING PLANTS — waste-to-energy COMPOUND with tipping hall, boiler hall & tall stack.
+//  V0 "CopenHill" (stacked-aluminium facade, ski slope roof)  V1 Hundertwasser (patchwork facade, gold ball stack)
+//  V2 Grim industrial (grey hall, glowing furnace window)       V3 Japanese sleek (white & glass, rainbow stack)
+// =============================================================================================
+function buildTrashBurning(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const k = c.variant % 4;
+  lot(c, k === 3 ? "concrete" : "concrete2");
+  speckle(c, "concreteDark", 0.06);
+  v.box(-hx, 0, hz - 3, hx, 1, hz, "asphalt");
+
+  if (lv === 1) {
+    // backyard incinerator shed: brick furnace + chimney + bags
+    const wall = ["steelLight", "yellow", "concreteDark", "white"][k];
+    v.hollowBox(-5, 1, -6, 4, 7, 2, wall);
+    gable(v, -6, 7, -7, 5, 3, "x", k === 1 ? "blue" : "slate");
+    v.box(-2, 1, 1, 1, 4, 2, "fire", 1.4);
+    v.box(-3, 4, 1, 2, 5, 2, "iron");
+    const t = chimney(v, 1, 7, -5, 7, k === 1 ? "red" : "brickDark");
+    c.smoke(2, t, -4, k === 2 ? "dark" : "smoke");
+    for (let i = 0; i < 5; i++) v.box(-6 + i * 2, 1, 4, -5 + i * 2, 3, 5, c.pick(["charcoal", "leafDark", "blue", "black"]));
+    garbageTruck(v, 3, 1, hz - 2, "orange");
+    return;
+  }
+
+  // dims
+  const bx0 = -hx + 1;
+  const bx1 = hx - (lv >= 4 ? 12 : 2);
+  const bz0 = -hz + 2;
+  const bz1 = hz - (lv >= 3 ? 9 : 5);
+  const bh = byLvl(lv, [0, 9, 15, 18, 22]);
+  const stH = byLvl(lv, [0, 22, 34, 42, 54]);
+  const tip = F((bx1 - bx0) * 0.45) + bx0; // tipping hall / boiler split
+
+  if (k === 0) {
+    // CopenHill: sloped roof from high (back-left) down to low (front-right) with a ski slope
+    for (let x = bx0; x < bx1; x++) {
+      const top = Math.round(bh - ((x - bx0) * (bh - 4)) / Math.max(1, bx1 - bx0));
+      for (let y = 1; y < top; y++) {
+        const col = (y + F(x / 3)) % 3 === 0 ? "silver" : (y % 2 ? "steelLight" : "chrome");
+        v.put(x, y, bz1 - 1, col);
+        v.put(x, y, bz0, col);
+      }
+      for (let z = bz0; z < bz1; z++) {
+        const stripe = z === F((bz0 + bz1) / 2) || z === F((bz0 + bz1) / 2) + 1;
+        v.put(x, top, z, stripe ? "white" : (x + z) % 7 === 0 ? "leafDark" : "leafLight");
+      }
+      if (x % 5 === 0) for (let y = 3; y < top - 1; y += 3) v.put(x, y, bz1 - 1, "glass", 0.4);
+    }
+    for (let z = bz0; z < bz1; z++) {
+      v.box(bx0, 1, z, bx0 + 1, bh, z + 1, "steelLight");
+      v.box(bx1 - 1, 1, z, bx1, 4, z + 1, "steelLight");
+    }
+    // skiers & trees on the slope
+    for (let i = 0; i < lv; i++) {
+      const x = bx0 + 3 + i * F((bx1 - bx0 - 6) / lv);
+      const top = Math.round(bh - ((x - bx0) * (bh - 4)) / Math.max(1, bx1 - bx0));
+      person(v, x, top + 1, F((bz0 + bz1) / 2) + (i % 2 ? 2 : -2), ["red", "yellow", "blue", "pink", "orange"][i % 5], "charcoal");
+      if (lv >= 3) tree(v, x + 2, top + 1, bz0 + 2, "pine", 0.6);
+    }
+  } else {
+    const wall = ["", "white", "concreteDark", "white"][k];
+    v.hollowBox(bx0, 1, bz0, tip, 1 + F(bh * 0.6), bz1, wall);
+    v.hollowBox(tip, 1, bz0, bx1, 1 + bh, bz1, k === 2 ? "steelDark" : wall);
+    if (k === 1) {
+      // Hundertwasser patchwork
+      const pal = ["red", "yellow", "blue", "white", "leaf", "orange", "black"];
+      for (let x = bx0; x < bx1; x++) {
+        const top = x < tip ? F(bh * 0.6) : bh;
+        for (let y = 1; y <= top; y++) {
+          const p = pal[((F(x / 3) * 7 + F(y / 2) * 3) >>> 0) % pal.length];
+          v.put(x, y, bz1 - 1, p);
+        }
+      }
+      for (let x = bx0 + 2; x < bx1 - 2; x += 4) v.put(x, 4, bz1, "gold", 0.4);
+      // green roof with trees
+      v.box(bx0, 1 + F(bh * 0.6), bz0, tip, 2 + F(bh * 0.6), bz1, "grass");
+      tree(v, bx0 + 3, 2 + F(bh * 0.6), bz0 + 3, "round", 0.9, 1);
+      tree(v, tip - 3, 2 + F(bh * 0.6), bz1 - 3, "oak", 0.8, 2);
+      v.box(tip, 1 + bh, bz0, bx1, 2 + bh, bz1, "grass");
+      for (let x = tip + 1; x < bx1 - 1; x += 3) v.put(x, 1 + bh, bz1 - 1, "gold", 0.3);
+    } else if (k === 2) {
+      ribbonWindows(c, bx0, 1, bz0, tip, 1 + F(bh * 0.6), bz1, 3, "glassDark", 0.1, "s");
+      v.box(tip + 2, 3, bz1 - 1, bx1 - 2, 6, bz1, "fire", 1.2);
+      for (let x = tip + 2; x < bx1 - 2; x += 2) v.box(x, 3, bz1 - 1, x + 1, 6, bz1, "iron");
+      flatRoof(c, bx0, 1 + F(bh * 0.6), bz0, tip, bz1, "concreteDark", "steelDark", true);
+      flatRoof(c, tip, 1 + bh, bz0, bx1, bz1, "iron", "steelDark", false);
+      c.smoke(tip + 4, 7, bz1, "spark");
+    } else {
+      curtainWall(c, tip, 1, bz1 - 3, bx1, 1 + bh, bz1, "glass", "white", 3, 4);
+      v.box(bx0, 1 + F(bh * 0.6), bz0, tip, 2 + F(bh * 0.6), bz1, "white");
+      v.box(tip, 1 + bh, bz0, bx1, 2 + bh, bz1, "white");
+      v.box(bx0, 3, bz1 - 1, tip, 4, bz1, "cyan", 0.6);
+      flowerBed(c, bx0 + 1, bz1 + 1, bx0 + 8, bz1 + 2, 1, ["pink", "white", "magenta"]);
+    }
+  }
+  // tipping bays with ramp + trucks
+  for (let i = 0; i < 1 + (lv >= 3 ? 1 : 0); i++) {
+    const dx = bx0 + 2 + i * 7;
+    v.box(dx, 1, bz1 - 1, dx + 5, 5, bz1, "steelDark");
+    v.box(dx, 0, bz1, dx + 5, 1, hz - 3, "asphaltDark");
+    garbageTruck(v, dx + 2, 1, bz1 + 2 + (i % 2), k === 1 ? "red" : "leaf", "white");
+  }
+  // stack
+  const sx = bx1 - 4 + (k === 0 ? -2 : 0);
+  const sz = bz0 + 4;
+  if (k === 3) {
+    const cols = ["red", "orange", "yellow", "lime", "sky", "purple"];
+    for (let y = 1; y < stH; y++) v.cylinderY(sx, sz, y, y + 1, 1.6, cols[F((y / stH) * 6) % 6]);
+    v.cylinderY(sx, sz, stH, stH + 1, 1.9, "white");
+  } else {
+    v.cylinderY(sx, sz, 1, stH, k === 0 ? 1.8 : 1.6, k === 2 ? "concreteDark" : k === 1 ? "white" : "silver");
+    v.cylinderY(sx, sz, stH, stH + 1, 2, "charcoal");
+    if (k === 1) for (let y = 3; y < stH - 2; y += 4) v.cylinderY(sx, sz, y, y + 1, 1.7, y % 8 ? "blue" : "red");
+  }
+  c.smoke(sx, stH + 2, sz, k === 2 ? "dark" : "smoke");
+  if (stH > 20) c.blink(F(sx), stH + 1, F(sz), "red");
+  if (k === 1 && lv >= 3) {
+    // the golden ball
+    const by = F(stH * 0.72);
+    v.sphere(sx, by, sz, 4, 3.6, 4, "gold", 0.35);
+    for (let a = 0; a < TAU; a += TAU / 10) v.put(F(sx + Math.cos(a) * 3.8), by, F(sz + Math.sin(a) * 3.8), "blue", 0.6);
+  }
+  if (k === 3 && lv >= 5) {
+    v.sphere(sx, stH - 8, sz, 3.5, 3, 3.5, "glass", 0.6);
+    v.cylinderY(sx, sz, stH - 9, stH - 8, 3.6, "white");
+  }
+  if (lv >= 4) {
+    // flue-gas cleaning block with ductwork + ash/slag yard
+    const fx0 = bx1 + 1;
+    const fx1 = hx - 1;
+    v.box(fx0, 1, bz0, fx1, 12, bz0 + 9, k === 1 ? "leaf" : k === 3 ? "white" : "steel");
+    for (let y = 4; y < 12; y += 4) v.box(fx0, y, bz0, fx1, y + 1, bz0 + 9, "steelDark");
+    pipe(v, bx1 - 2, 10, bz0 + 3, fx0 + 1, bz0 + 5, "steelLight", false, 2);
+    tank(v, fx0 + 5, bz0 + 13, 1, 8, 3, "silver", "steelLight", k === 1 ? "red" : "steelDark");
+    heightfield(v, fx0, hz - 9, fx1, hz - 3, (x, z) => 3 - Math.hypot(x + 0.5 - (fx0 + fx1) / 2, z + 0.5 - (hz - 6)) * 0.7, () => c.pick(["ash", "charcoal", "stone"]));
+  }
+  if (lv >= 5) {
+    if (k === 0) {
+      // ski lift line up the slope + climbing wall stripe
+      for (let x = bx0 + 2; x < bx1 - 2; x += 6) {
+        const top = Math.round(bh - ((x - bx0) * (bh - 4)) / Math.max(1, bx1 - bx0));
+        v.box(x, top + 1, bz1 - 3, x + 1, top + 5, bz1 - 2, "steelDark");
+      }
+      v.box(bx0, 1, bz1 - 1, bx0 + 1, bh, bz1, "orange");
+    }
+    if (k === 2) stack(c, sx - 6, sz, 1, stH - 6, 1.6, "concreteDark", "red", "dark", true);
+    lamp(v, -2, 1, hz - 1, 6);
+    flag(v, hx - 3, 1, hz - 4, 9, k === 1 ? ["red", "yellow", "blue"] : ["leaf", "white", "leaf"]);
+  }
+}
+
+// =============================================================================================
+// HYDRO-ELECTRIC — dam wall facing +z with the reservoir upstream (-z), spillway foam & powerhouse.
+//  V0 Concrete gravity dam   V1 White curved arch dam
+//  V2 Victorian masonry dam with castle valve towers   V3 Grassy earth/rock-fill embankment with glory-hole
+// =============================================================================================
+function buildHydro(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const k = c.variant % 4;
+  lot(c, "grass2");
+  speckle(c, "grass3", 0.1);
+  const H = byLvl(lv, [6, 9, 14, 20, 27]);
+  const wl = H - 2; // water level
+  const tTop = k === 3 ? 3 : 2;
+  const tBase = k === 3 ? Math.min(hz, F(H * 0.9) + 3) : k === 1 ? 3 : Math.max(3, F(H * 0.45));
+  const zBack = -hz + F(hz * (lv <= 1 ? 0.6 : 0.7));
+  const zd = (x: number) => (k === 1 ? zBack - Math.round(4 * (1 - (x / hx) ** 2)) : zBack);
+  const thick = (y: number) => Math.max(tTop, Math.round(tBase - ((tBase - tTop) * (y - 1)) / Math.max(1, H - 1)));
+  const sw = Math.max(2, Math.min(F(hx * 0.25), 6 + lv)); // spillway half-width
+  const bank = lv >= 3 ? 4 : 3;
+
+  // reservoir (single surface layer + back skirt)
+  for (let x = -hx; x < hx; x++) {
+    const z1 = zd(x);
+    v.box(x, wl, -hz, x + 1, wl + 1, z1, "water", 0.08);
+    v.box(x, 1, -hz, x + 1, wl, -hz + 1, "waterDeep");
+  }
+  // tailrace river in front
+  const rz0 = zBack + tBase;
+  waterPlane(v, -sw - 2, rz0, sw + 2, hz, 0, "water");
+  for (let x = -sw - 2; x < sw + 2; x++) for (let z = rz0; z < Math.min(hz, rz0 + 4); z++) if (c.rand() < 0.6) v.put(x, 1, z, "foam", 0.3);
+  for (let x = -sw - 2; x < sw + 2; x++) for (let z = rz0 + 4; z < hz; z++) if (c.rand() < 0.1) v.put(x, 0, z, "foam", 0.2);
+
+  // dam wall
+  const mat = (x: number, y: number, z: number) => {
+    if (k === 0) return x % 6 === 0 ? "concreteDark" : "concrete";
+    if (k === 1) return y % 4 === 0 ? "concrete" : "marble";
+    if (k === 2) return (F(x / 2) + y) % 2 ? "stone" : "granite";
+    return z < zd(x) + 2 ? "stone" : (x + y) % 5 === 0 ? "leaf" : "grass";
+  };
+  for (let x = -hx; x < hx; x++) {
+    const inSpill = Math.abs(x + 0.5) < sw && k !== 3;
+    const top = inSpill ? H - 2 : H;
+    for (let y = 1; y <= top; y++) {
+      const t = thick(y);
+      const z0 = zd(x);
+      for (let z = z0; z < z0 + t; z++) {
+        const front = z === z0 + t - 1;
+        if (inSpill && front) v.put(x, y, z, (y + x) % 3 === 0 ? "water" : "foam", 0.35);
+        else v.put(x, y, z, mat(x, y, z));
+      }
+      // spillway steps: also cover the top step
+      if (inSpill && y === top) for (let z = z0; z < z0 + t; z++) v.put(x, y, z, "water", 0.2);
+    }
+    // parapet road on top
+    if (!inSpill) {
+      const z0 = zd(x);
+      v.box(x, H + 1, z0, x + 1, H + 2, z0 + 1, k === 2 ? "granite" : "concreteDark");
+      v.box(x, H + 1, z0 + thick(H) - 1, x + 1, H + 2, z0 + thick(H), k === 2 ? "granite" : "concreteDark");
+      if (k !== 3) for (let z = z0 + 1; z < z0 + thick(H) - 1; z++) v.put(x, H, z, "asphalt");
+    }
+  }
+  // spillway bridge piers
+  if (k !== 3) {
+    for (let x = -sw; x <= sw; x += Math.max(3, F(sw / 2))) {
+      const z0 = zd(x);
+      v.box(x, H - 1, z0, x + 1, H + 2, z0 + thick(H), k === 2 ? "granite" : "concreteDark");
+    }
+    for (let x = -sw; x < sw; x++) v.put(x, H + 1, zd(x) + 1, "steelDark");
+  }
+  // banks
+  for (const [bx0, bx1] of [[-hx, -hx + bank], [hx - bank, hx]] as [number, number][]) {
+    heightfield(v, bx0, -hz, bx1, hz, (x, z) => {
+      const zf = zBack + thick(1);
+      const base = z < zf ? H + 1 : H + 1 - (z - zf) * 1.2;
+      const edge = Math.min(x - (-hx), hx - 1 - x);
+      return Math.max(1, base - Math.max(0, edge - bank + 2) * 2);
+    }, (_x, y, _z, top) => (top ? (k === 2 ? "moss" : "grass") : y % 3 === 0 ? "granite" : "stone"));
+  }
+
+  // powerhouse at the foot, right of the river
+  const px0 = sw + 3;
+  const px1 = Math.min(hx - bank, px0 + byLvl(lv, [6, 8, 10, 12, 14]));
+  const pz0 = rz0;
+  const pz1 = Math.min(hz - 1, pz0 + 6);
+  if (lv === 1) {
+    // stone mill house + water wheel turning in the race
+    const wall = ["stone", "cream", "granite", "woodLight"][k];
+    v.hollowBox(px0, 1, pz0, px1, 6, pz1, wall);
+    gable(v, px0 - 1, 6, pz0 - 1, px1 + 1, pz1 + 1, "x", k === 1 ? "terracotta" : "slate");
+    door(v, px0 + 2, 1, pz1 - 1, "woodDark");
+    const wh = new PixelVox(3);
+    for (let a = 0; a < TAU; a += 0.15) {
+      wh.put(0, F(Math.cos(a) * 4), F(Math.sin(a) * 4), "woodDark");
+      wh.put(1, F(Math.cos(a) * 4), F(Math.sin(a) * 4), "woodDark");
+    }
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * TAU;
+      for (let t = 0; t <= 5; t += 0.5) wh.put(0, F(Math.cos(a) * t), F(Math.sin(a) * t), t > 3.5 ? "wood" : "woodDark");
+      wh.put(1, F(Math.cos(a) * 5), F(Math.sin(a) * 5), "wood");
+    }
+    c.addRotor({ vox: wh, pivot: [px0 - 2, 4, F((pz0 + pz1) / 2)], axis: "x", speed: 1.2 });
+  } else {
+    const wall = ["concrete", "white", "brick", "concrete2"][k];
+    const ph = byLvl(lv, [5, 6, 7, 8, 9]);
+    v.hollowBox(px0, 1, pz0, px1, ph, pz1, wall);
+    windows(c, px0, 1, pz0, px1, ph, pz1, { stepH: 2, h: 2, startY: 1, emit: 0.5, faces: "sw" });
+    if (k === 2) gable(v, px0 - 1, ph, pz0 - 1, px1 + 1, pz1 + 1, "x", "slate", "cream");
+    else flatRoof(c, px0, ph, pz0, px1, pz1, "concreteDark", wall, true);
+    // penstocks from dam face down to the powerhouse
+    for (let i = 0; i < Math.min(lv, 3); i++) {
+      const xx = px0 + 1 + i * 3;
+      const z0 = zd(xx);
+      for (let y = H - 3; y > 2; y--) {
+        const z = z0 + thick(y) + F((H - 3 - y) * 0.15);
+        if (z >= pz0) break;
+        v.box(xx, y, z, xx + 2, y + 1, z + 1, "steelDark");
+      }
+    }
+    // outflow foam from turbine draft tubes
+    for (let x = px0; x < px1; x += 3) v.put(x, 1, pz1, "foam", 0.4);
+  }
+  // left-side: transformers or trees
+  const lx0 = -hx + bank;
+  if (lv >= 3) {
+    substation(c, lx0, rz0 + 1, Math.min(-sw - 3, lx0 + 12), Math.min(hz - 1, rz0 + 10), 6);
+  } else {
+    tree(v, -hx + bank + 2, 1, hz - 3, "pine", 0.9);
+    tree(v, -hx + bank + 5, 1, hz - 5, "round", 0.8, 1);
+  }
+  if (lv >= 2 && k !== 3) {
+    // sluice-gate hoists on the crest
+    for (let x = -sw + 1; x < sw - 1; x += 4) {
+      const z0 = zd(x);
+      v.box(x, H + 2, z0, x + 2, H + 4, z0 + 2, "hazard");
+    }
+  }
+  if (k === 3 && lv >= 3) {
+    // morning-glory spillway in the reservoir
+    const gx = 0;
+    const gz = zd(0) - 6;
+    ring(v, gx, gz, wl - 1, wl + 1, 3.6, 2.2, "concrete");
+    v.cylinderY(gx, gz, wl, wl + 1, 2.2, "black");
+    ring(v, gx, gz, wl + 1, wl + 2, 2.3, 1.5, "foam", 0.5);
+    // outlet foam in front
+    v.box(-2, 1, rz0, 2, 3, rz0 + 2, "foam", 0.5);
+  }
+  if (k === 2 && lv >= 3) {
+    // Victorian valve towers
+    for (const tx of [-sw - 3, sw + 1]) {
+      const z0 = zd(tx);
+      v.box(tx, 1, z0 - 3, tx + 3, H + 6, z0, "granite");
+      for (let x = tx; x < tx + 3; x += 2) v.put(x, H + 6, z0 - 3, "granite");
+      v.cone(tx + 1.5, H + 6, H + 10, z0 - 1.5, 2.2, 0.5, "slate");
+      v.put(tx + 1, H + 3, z0, "warmGlow", 0.6);
+    }
+  }
+  if (lv >= 4) {
+    // intake towers + cars on the crest + pylon
+    if (k !== 2 && k !== 3) {
+      for (const tx of [-sw - 4, sw + 3]) {
+        const z0 = zd(tx);
+        v.box(tx, wl - 1, z0 - 4, tx + 3, H + 5, z0 - 1, "concrete");
+        v.box(tx, H + 5, z0 - 4, tx + 3, H + 6, z0 - 1, "steelDark");
+      }
+    }
+    if (k !== 3) {
+      car(v, -hx + bank + 3, H + 1, zd(-hx + bank + 3) + 1, "x", "red");
+      car(v, hx - bank - 8, H + 1, zd(hx - bank - 8) + 1, "x", "sky");
+    }
+    pylon(v, hx - 3, hz - 4, 20 + lv * 2);
+    c.blink(hx - 3, 21 + lv * 2, hz - 4, "red");
+  }
+  if (lv >= 5) {
+    // visitor lookout & flags
+    v.box(-hx + 1, H + 1, zBack - 6, -hx + 5, H + 6, zBack - 2, "white");
+    v.box(-hx + 1, H + 3, zBack - 6, -hx + 5, H + 5, zBack - 2, "glass", 0.5);
+    flag(v, -hx + 6, H + 2, zBack - 3, 8, ["blue", "white", "blue"]);
+    c.blink(0, H + 3, zd(0), "amber");
+  }
+}
+
+// =============================================================================================
+// GEOTHERMAL — steam wells & pipelines that sprawl into a steaming valley complex.
+//  V0 Icelandic lava field (black rock, moss, milky-blue lagoon)  V1 Yellowstone mineral terraces (orange/yellow)
+//  V2 Volcanic (glowing lava cracks, sci-fi domes)                 V3 Snowy highlands (snow, teal hot pools)
+// =============================================================================================
+function wellhead(c: Ctx, x: number, z: number, vcol: string): void {
+  const v = c.v;
+  v.box(x - 1, 1, z - 1, x + 2, 2, z + 2, "concreteDark");
+  v.box(x, 2, z, x + 1, 6, z + 1, "steelLight");
+  v.box(x - 1, 3, z, x + 2, 4, z + 1, vcol);
+  v.box(x, 5, z - 1, x + 1, 6, z + 2, vcol);
+  v.put(x, 6, z, "steelDark");
+}
+
+function buildGeothermal(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const k = c.variant % 4;
+  const g = ["basalt", "sand", "basalt", "snow"][k];
+  lot(c, g);
+  const spk = ["moss", "orange", "lava", "white"][k];
+  for (let x = -hx; x < hx; x++) for (let z = -hz; z < hz; z++) {
+    const r = c.rand();
+    if (r < (k === 2 ? 0.05 : 0.18)) v.put(x, 0, z, spk, k === 2 ? 0.9 : 0);
+    else if (k === 0 && r < 0.3) v.put(x, 0, z, "ash");
+    else if (k === 1 && r < 0.3) v.put(x, 0, z, "yellow");
+  }
+  if (k === 2) {
+    // lava cracks
+    for (let i = 0; i < 2 + lv; i++) {
+      let x = c.ri(-hx + 2, hx - 3);
+      let z = c.ri(-hz + 2, hz - 3);
+      for (let s = 0; s < 8; s++) {
+        v.put(x, 0, z, "lava", 1.3);
+        x = clamp(x + c.ri(-1, 1), -hx, hx - 1);
+        z = clamp(z + 1, -hz, hz - 1);
+      }
+    }
+  }
+  const vcol = ["red", "orange", "hazard", "red"][k];
+  const pipeC = ["silver", "silver", "steelLight", "silver"][k];
+  // fumarole mound with steam
+  const fx = -hx + 4;
+  const fz = -hz + 4;
+  heightfield(v, fx - 4, fz - 4, fx + 4, fz + 4, (x, z) => 3 - Math.hypot(x + 0.5 - fx, z + 0.5 - fz) * 0.8, (_x, _y, _z, top) => (top ? (k === 1 ? "yellow" : k === 3 ? "white" : "ash") : "basalt"));
+  v.put(fx, 3, fz, "white");
+  c.smoke(fx, 4, fz, "steam");
+
+  // wells
+  const nWells = byLvl(lv, [1, 2, 3, 4, 6]);
+  const wells: [number, number][] = [];
+  for (let i = 0; i < nWells; i++) {
+    const x = -hx + 9 + (i % 3) * 10;
+    const z = -hz + 3 + F(i / 3) * 8;
+    if (x > hx - 3) continue;
+    wellhead(c, x, z, vcol);
+    wells.push([x, z]);
+  }
+  // silencer (steam muffler) at Lv1
+  const sx = hx - 4;
+  const sz = hz - 5;
+  v.cylinderY(sx, sz, 1, 6, 2.2, "woodDark");
+  v.cylinderY(sx, sz, 6, 7, 2.4, "steelDark");
+  c.smoke(sx, 8, sz, "steam");
+  // pipelines with expansion loops (along x at a fixed z) toward the plant
+  const pz = lv >= 2 ? -hz + 11 : 0;
+  if (wells.length) {
+    pipe(v, wells[0][0], 3, pz, hx - 2, pz + 1, pipeC, true, 1);
+    for (const [wx, wz] of wells) pipe(v, wx, 3, Math.min(wz, pz), wx + 1, Math.max(wz, pz) + 1, pipeC, true, 1);
+    // expansion loop
+    const lx = F((wells[0][0] + hx) / 2);
+    v.box(lx, 3, pz, lx + 1, 7, pz + 1, pipeC);
+    v.box(lx + 4, 3, pz, lx + 5, 7, pz + 1, pipeC);
+    v.box(lx, 7, pz, lx + 5, 8, pz + 1, pipeC);
+    v.box(lx + 1, 3, pz, lx + 4, 4, pz + 1, null);
+  }
+  if (lv >= 2) {
+    // turbine shed
+    const wall = ["white", "cream", "steelLight", "red"][k];
+    const tx0 = -hx + 1;
+    const tz0 = hz - 9;
+    const tx1 = Math.min(hx - 6, tx0 + byLvl(lv, [0, 9, 12, 14, 16]));
+    v.hollowBox(tx0, 1, tz0, tx1, 7, hz - 2, wall);
+    windows(c, tx0, 1, tz0, tx1, 7, hz - 2, { stepH: 3, startY: 3, emit: 0.45, faces: "se" });
+    if (k === 2) barrelRoof(v, tx0, 7, tz0, tx1, hz - 2, "x", "steel", "cyan");
+    else gable(v, tx0 - 1, 7, tz0 - 1, tx1 + 1, hz - 1, "x", k === 3 ? "slate" : "steelDark", "white");
+    pipe(v, tx1 - 2, 3, pz, tx1 - 1, tz0, pipeC, true, 1);
+  }
+  if (lv >= 3) {
+    // cooling towers (mechanical, with spinning fan) + separator tanks
+    const nC = lv >= 4 ? 2 : 1;
+    for (let i = 0; i < nC; i++) {
+      const cx = hx - 6 - i * 9;
+      const cz = -hz + 5;
+      v.box(cx - 3, 1, cz - 3, cx + 4, 8, cz + 4, k === 2 ? "steelDark" : "concrete2");
+      for (let y = 2; y < 8; y += 2) v.box(cx - 3, y, cz + 3, cx + 4, y + 1, cz + 4, "steel");
+      ring(v, cx + 0.5, cz + 0.5, 8, 10, 3, 2, "concrete");
+      c.addRotor({ vox: fanRotor(2, "charcoal", 5), pivot: [cx + 1, 9, cz + 1], axis: "y", speed: 2.5 });
+      c.smoke(cx, 11, cz, "steam");
+    }
+    tank(v, hx - 4, 2, 1, 6, 2, "silver", "steelLight", vcol);
+  }
+  if (lv >= 4) {
+    // hot lagoon
+    const lx0 = -hx + 2;
+    const lz0 = -hz + 12 + (lv >= 5 ? 0 : 0);
+    const lcol = ["#9ad7e0", "#5fc8c0", "#58d0f0", "cyan"][k];
+    const lr = lv >= 5 ? 6 : 4;
+    const lcx = lx0 + lr + 1;
+    const lcz = lz0 + lr;
+    for (let x = lcx - lr - 1; x <= lcx + lr; x++) for (let z = lcz - lr - 1; z <= lcz + lr; z++) {
+      const d = Math.hypot(x + 0.5 - lcx, z + 0.5 - lcz);
+      if (d <= lr) v.put(x, 1, z, lcol, 0.35);
+      else if (d <= lr + 1) v.put(x, 1, z, k === 1 ? "orange" : k === 3 ? "white" : "basalt");
+    }
+    c.smoke(lcx, 2, lcz, "steam");
+    if (lv >= 5) {
+      person(v, lcx - 1, 1, lcz, "pink");
+      person(v, lcx + 2, 1, lcz - 2, "sky");
+    }
+  }
+  if (lv >= 5) {
+    // geodesic greenhouse domes + geyser
+    const dcol = k === 2 ? "cyan" : "glass";
+    for (let i = 0; i < 2; i++) {
+      const dx = hx - 6 - i * 9;
+      const dz = hz - 13;
+      v.dome(dx, 1, dz, 4, dcol, 0.4);
+      v.dome(dx, 1, dz, 3, "leaf");
+      for (let a = 0; a < TAU; a += TAU / 8) v.box(F(dx + Math.cos(a) * 3.6), 1, F(dz + Math.sin(a) * 3.6), F(dx + Math.cos(a) * 3.6) + 1, 3, F(dz + Math.sin(a) * 3.6) + 1, "white");
+    }
+    // geyser column
+    const gx = -hx + 3;
+    const gz = hz - 12;
+    ring(v, gx, gz, 1, 2, 2.4, 1.2, k === 1 ? "orange" : "white");
+    for (let y = 2; y < 16; y++) {
+      const r = 0.6 + (y > 10 ? (y - 10) * 0.3 : 0);
+      v.cylinderY(gx, gz, y, y + 1, r, y % 3 ? "foam" : "white", 0.5);
+    }
+    c.smoke(gx, 16, gz, "steam");
+    c.smoke(gx, 12, gz, "steam");
+    flag(v, 0, 1, hz - 1, 8, k === 0 ? ["blue", "white", "red"] : ["orange", "white", "orange"]);
+  }
+}
+
+// =============================================================================================
+// MICRO REACTOR — sleek modular reactor pods; a single pod grows into a micro-grid campus.
+//  V0 White capsules with cyan glow rings   V1 Military containerised (olive trailers, radiator fins)
+//  V2 Underground silos (grass berm, glowing glass hatches)  V3 Pebble-bed spheres with violet glow
+// =============================================================================================
+function microPod(c: Ctx, x: number, z: number, h: number, k: number): void {
+  const v = c.v;
+  if (k === 0) {
+    v.cylinderY(x, z, 1, 2, 3.4, "steelLight");
+    v.cylinderY(x, z, 2, 2 + h, 2.6, "white");
+    v.dome(x, 2 + h, z, 2.6, "white");
+    for (let y = 4; y < 2 + h; y += 4) v.cylinderY(x, z, y, y + 1, 2.7, "cyan", 1.2);
+    v.put(F(x), 3 + h + 2, F(z), "cyan", 1.5);
+    // fins
+    for (const [dx, dz] of [[-4, 0], [3, 0], [0, -4], [0, 3]]) v.box(F(x) + dx, 2, F(z) + dz, F(x) + dx + 1, 2 + F(h * 0.7), F(z) + dz + 1, "silver");
+  } else if (k === 1) {
+    const x0 = F(x) - 6;
+    const z0 = F(z) - 2;
+    v.box(x0, 1, z0, x0 + 12, 2, z0 + 5, "charcoal");
+    for (const wx of [x0 + 1, x0 + 9]) v.box(wx, 1, z0 - 1, wx + 2, 2, z0 + 6, "rubber");
+    v.box(x0, 2, z0, x0 + 12, 6, z0 + 5, "oliveDrab");
+    v.box(x0, 4, z0, x0 + 12, 5, z0 + 5, "camoTan");
+    for (let xx = x0 + 1; xx < x0 + 11; xx += 2) v.box(xx, 6, z0, xx + 1, 8, z0 + 5, "steelDark");
+    v.put(x0 + 11, 3, z0 + 4, "screenGreen", 1.2);
+    v.put(x0 + 10, 3, z0 + 4, "hazard", 0.6);
+  } else if (k === 2) {
+    v.cylinderY(x, z, 0, 2, 3.6, "concrete");
+    v.cylinderY(x, z, 1, 2, 2.6, "cyan", 1.6);
+    v.dome(x, 2, z, 2.6, "glass", 0.6);
+    ring(v, x, z, 2, 3, 3.6, 2.6, "steelLight");
+    v.put(F(x) + 3, 3, F(z), "hazard", 0.5);
+  } else {
+    for (const [dx, dz] of [[-2, -2], [1, -2], [-2, 1], [1, 1]]) v.box(F(x) + dx, 1, F(z) + dz, F(x) + dx + 1, 4, F(z) + dz + 1, "steelDark");
+    v.sphere(x, 4 + h * 0.35, z, 3.4, 3.4, 3.4, "white");
+    v.cylinderY(x, z, F(4 + h * 0.35), F(4 + h * 0.35) + 1, 3.5, "purple", 1.3);
+    v.put(F(x), F(4 + h * 0.35 + 3.4), F(z), "magenta", 1.4);
+  }
+}
+
+function buildMicroReactor(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const k = c.variant % 4;
+  lot(c, k === 2 ? "grass" : k === 1 ? "concrete2" : "concrete");
+  if (k === 2) speckle(c, "grass3", 0.12);
+  else speckle(c, "concreteDark", 0.05);
+  const glow = ["cyan", "screenGreen", "cyan", "purple"][k];
+  const n = byLvl(lv, [1, 1, 2, 4, 4]);
+  const h = byLvl(lv, [7, 8, 9, 10, 10]);
+  const spots: [number, number][] =
+    n === 1 ? [[-1, -2]] : n === 2 ? [[-hx + 7, -1], [hx - 7, -1]] : [[-hx + 7, -hz + 7], [hx - 7, -hz + 7], [-hx + 7, hz - 8], [hx - 7, hz - 8]];
+  // pad & glowing walkway grid
+  for (const [x, z] of spots) {
+    v.box(x - 5, 0, z - 5, x + 5, 1, z + 5, k === 2 ? "concreteDark" : "white");
+    ring(v, x, z, 0, 1, 5, 4.2, glow, 0.8);
+  }
+  for (const [x, z] of spots) microPod(c, x, z, h, k);
+  if (lv >= 2) {
+    // control module
+    const cx0 = lv === 2 ? hx - 6 : -3;
+    const cz0 = lv === 2 ? hz - 5 : lv >= 4 ? -3 : hz - 6;
+    v.box(cx0, 1, cz0, cx0 + 6, 4, cz0 + 4, k === 1 ? "oliveDrab" : "white");
+    v.box(cx0, 3, cz0 + 3, cx0 + 6, 4, cz0 + 4, glow, 0.9);
+    v.box(cx0 + 1, 2, cz0 + 3, cx0 + 5, 3, cz0 + 4, "glassDark", 0.3);
+    if (k === 1) v.box(cx0 + 2, 4, cz0 + 1, cx0 + 3, 9, cz0 + 2, "steelDark");
+    if (k === 1) c.blink(cx0 + 2, 9, cz0 + 1, "red");
+  }
+  if (lv >= 3) {
+    securityFence(v, -hx, -hz, hx, hz, 1, 3, [-3, 3]);
+    v.box(-hx + 1, 0, hz - 2, hx - 1, 1, hz - 1, glow, 0.5);
+  }
+  if (lv >= 4) {
+    // cable trays connecting pods to the hub
+    for (const [x, z] of spots) {
+      const sxx = Math.sign(-x);
+      for (let xx = x; xx !== 0; xx += sxx) v.put(xx, 1, z, glow, 0.7);
+    }
+  }
+  if (lv >= 5) {
+    // central glowing core spire with an orbiting ring
+    v.cylinderY(0, 0, 4, 6, 2.6, "white");
+    v.cone(0, 6, 20, 0, 1.6, 0.6, "white");
+    v.cylinderY(0, 0, 10, 16, 1.0, glow, 1.6);
+    v.box(-1, 20, -1, 1, 22, 1, glow, 1.8);
+    c.blink(-1, 22, -1, glow === "screenGreen" ? "lime" : "cyan");
+    const ringV = new PixelVox(4);
+    for (let a = 0; a < TAU; a += 0.06) {
+      ringV.put(F(Math.cos(a) * 5), 0, F(Math.sin(a) * 5), glow, 1.4);
+      if (Math.sin(a * 3) > 0.6) ringV.put(F(Math.cos(a) * 5), 1, F(Math.sin(a) * 5), "white");
+    }
+    c.addRotor({ vox: ringV, pivot: [0, 14, 0], axis: "y", speed: 1.2 });
+    const ring2 = new PixelVox(6);
+    for (let a = 0; a < TAU; a += 0.08) ring2.put(F(Math.cos(a) * 3.5), F(Math.sin(a) * 3.5), 0, "white", 0.6);
+    c.addRotor({ vox: ring2, pivot: [0, 13, 0], axis: "x", speed: 0.9 });
+  }
+  if (lv <= 2) hazardSign(v, -hx + 2, hz - 2, 2);
+}
+
+// =============================================================================================
+// NUCLEAR POWER PLANTS — reactor domes + hyperboloid cooling towers that SPRAWL into a giant complex.
+//  V0 Classic western (white domes, red-banded towers)   V1 French (bare concrete cylinders, huge towers)
+//  V2 Soviet VVER (box reactor halls, striped vent stack)  V3 Futuristic (glass domes, cyan glow towers)
+// =============================================================================================
+function reactorBuilding(c: Ctx, x: number, z: number, r: number, h: number, k: number): void {
+  const v = c.v;
+  if (k === 2) {
+    const s = F(r) + 1;
+    v.hollowBox(x - s, 1, z - s, x + s, h + 2, z + s, "concrete");
+    for (let y = 4; y < h + 2; y += 4) v.box(x - s, y, z - s, x + s, y + 1, z + s, "white");
+    v.box(x - s, h + 1, z - s, x + s, h + 2, z + s, "red");
+    flatRoof(c, x - s, h + 2, z - s, x + s, z + s, "concreteDark", "concrete", false);
+    v.box(x - 1, h + 3, z - 1, x + 2, h + 5, z + 2, "steelLight");
+  } else {
+    const wall = ["white", "concrete", "", "white"][k];
+    v.cylinderY(x, z, 1, h, r, wall);
+    if (k === 1) {
+      v.cylinderY(x, z, h, h + 1, r, "concreteDark");
+      v.dome(x, h, z, r * 0.7, "concrete");
+    } else if (k === 3) {
+      v.dome(x, h, z, r, "glass", 0.5);
+      v.dome(x, h, z, r - 2, "cyan", 1.2);
+      v.cylinderY(x, z, h - 1, h, r + 0.2, "cyan", 1.2);
+    } else {
+      v.dome(x, h, z, r, "white");
+      v.cylinderY(x, z, h - 2, h - 1, r + 0.1, "red");
+    }
+    v.box(F(x) - 1, 1, F(z + r) - 1, F(x) + 1, 4, F(z + r) + 1, "steelDark");
+  }
+}
+
+function buildNuclear(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const k = c.variant % 4;
+  lot(c, "grass2");
+  speckle(c, "grass3", 0.1);
+  // paved plant island
+  v.box(-hx + 1, 0, -hz + 1, hx - 1, 1, hz - 1, "concrete2");
+  const nT = byLvl(lv, [1, 2, 2, 3, 4]);
+  const nR = byLvl(lv, [1, 1, 2, 2, 3]);
+  const tR = byLvl(lv, [6, 6.5, 7, 7.5, 7.5]);
+  const tH = byLvl(lv, [26, 30, 34, 38, 42]);
+  const towerCol = ["concrete", "concrete2", "concrete", "white"][k];
+  const band = ["red", "", "white", "cyan"][k];
+  // towers along the back
+  const tz = -hz + Math.ceil(tR) + 1;
+  for (let i = 0; i < nT; i++) {
+    const tx = -hx + ((i + 0.5) * (2 * hx)) / nT;
+    coolingTower(v, tx, tz, 1, tH, tR, towerCol, band);
+    if (k === 3) v.cylinderY(tx, tz, 1, 2, tR + 0.4, "cyan", 1);
+    c.smoke(F(tx), tH + 2, tz, "steam");
+    c.smoke(F(tx) + 2, tH + 3, tz - 1, "steam");
+  }
+  // reactors in the middle row
+  const rr = byLvl(lv, [4, 4.5, 4.5, 5, 5]);
+  const rh = byLvl(lv, [10, 12, 13, 14, 15]);
+  const rz = tz + Math.ceil(tR) + Math.ceil(rr) + 2;
+  const step = (2 * hx - 18) / nR;
+  for (let i = 0; i < nR; i++) {
+    const rx = -hx + 4 + Math.ceil(rr) + i * step;
+    reactorBuilding(c, rx, rz, rr, rh, k);
+  }
+  // turbine hall in front of reactors
+  const thz0 = rz + Math.ceil(rr) + 2;
+  const thz1 = Math.min(hz - 4, thz0 + 7);
+  if (thz1 - thz0 >= 4) {
+    const tx0 = -hx + 2;
+    const tx1 = Math.min(hx - 2, tx0 + nR * step + 6);
+    const wall = ["white", "concrete", "concrete", "white"][k];
+    v.hollowBox(tx0, 1, thz0, tx1, 9, thz1, wall);
+    ribbonWindows(c, tx0, 1, thz0, tx1, 9, thz1, 3, k === 3 ? "cyan" : "glass", 0.5, "se");
+    flatRoof(c, tx0, 9, thz0, tx1, thz1, "concreteDark", wall, true);
+    v.box(tx0, 7, thz1 - 1, tx0 + 10, 8, thz1, k === 3 ? "cyan" : ["blue", "sky", "red", "cyan"][k], 0.6);
+  }
+  // Soviet vent stack / western control tower etc.
+  if (k === 2) {
+    const sx = hx - 5;
+    const sz = rz;
+    for (let y = 1; y < tH + 6; y++) v.cylinderY(sx, sz, y, y + 1, y < 4 ? 2 : 1.2, F(y / 5) % 2 ? "red" : "white");
+    c.blink(sx, tH + 6, sz, "red");
+  }
+  // perimeter security
+  securityFence(v, -hx, -hz, hx, hz, 1, 3, [-3, 3]);
+  v.box(-3, 0, hz - 1, 3, 1, hz, "asphalt");
+  hazardSign(v, 4, hz - 2, 3);
+  // switchyard on the right front
+  if (lv >= 2) {
+    substation(c, hx - 14, hz - 13, hx - 2, hz - 3, 7);
+  }
+  if (lv >= 4) {
+    pylon(v, hx - 4, rz, 26);
+    c.blink(hx - 4, 27, rz, "red");
+    // water intake/cooling canal on the left front
+    waterPlane(v, -hx + 1, hz - 4, -6, hz - 1, 0, "water");
+  }
+  if (lv >= 5) {
+    // helipad + visitor centre + beacons on towers
+    helipad(v, -hx + 7, 1, hz - 9, 4);
+    officeBox(c, 4, hz - 12, 14, hz - 5, 4, "white", k === 3 ? "cyan" : "glass");
+    for (let i = 0; i < nT; i++) c.blink(F(-hx + ((i + 0.5) * (2 * hx)) / nT), tH + 1, F(tz - tR * 0.62), "red");
+    flag(v, 1, 1, hz - 6, 10, ["blue", "white", "red"]);
+  }
+  if (lv === 1) {
+    person(v, 0, 1, hz - 3, "white", "white");
+  }
+}
+
+defineDesigns({
+  trash_burning_plants: {
+    footprints: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+    levels: ["Backyard Incinerator", "Tipping-Hall Incinerator", "Waste-to-Energy Plant", "WtE Plant with Scrubbers", "Landmark Energy Mountain"],
+    growth: "A smoky furnace shed becomes a tipping-hall plant with an ever-taller stack, then gas cleaning and an iconic landmark roof or tower.",
+    build: buildTrashBurning,
+  },
+  hydro_electric_power_plants: {
+    footprints: [[2, 1], [2, 2], [3, 2], [3, 3], [4, 3]],
+    levels: ["Water-Wheel Weir", "Run-of-River Weir", "Gravity Dam", "Great Dam & Intakes", "Mega Dam Spillway"],
+    growth: "A low weir with a water wheel rises into an ever higher, wider dam with a foaming spillway, penstocks, switchyard and lookout.",
+    build: buildHydro,
+  },
+  geothermal_power_plants: {
+    footprints: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+    levels: ["Steam Vent Wellhead", "Geothermal Pilot Plant", "Geothermal Station", "Hot-Lagoon Power Plant", "Geothermal Valley Complex"],
+    growth: "One steaming wellhead becomes a field of wells and looping pipelines, cooling fans, a hot lagoon, domes and an erupting geyser.",
+    build: buildGeothermal,
+  },
+  micro_reactor_nuclear: {
+    footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+    levels: ["Reactor Pod", "Pod & Control Module", "Twin-Pod Array", "Modular Reactor Campus", "Micro-Grid Core Hub"],
+    growth: "One glowing pod gains a control module, then twins and a four-pod campus around a spinning-ring core spire.",
+    build: buildMicroReactor,
+  },
+  nuclear_power_plants: {
+    footprints: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+    levels: ["Research Reactor", "Twin-Tower Station", "Nuclear Generating Station", "Triple-Tower Power Station", "Gigawatt Nuclear Complex"],
+    growth: "Adds cooling towers, reactor domes, a turbine hall and switchyard each level, ending in a 4-tower complex with helipad.",
+    build: buildNuclear,
+  },
+});

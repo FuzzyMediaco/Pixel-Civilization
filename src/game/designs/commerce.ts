@@ -2279,3 +2279,890 @@ defineDesigns({
     build: buildShoes,
   },
 });
+
+// =============================================================================================
+// GAS STATIONS
+// =============================================================================================
+
+/**
+ * GAS STATIONS — roadside pump → canopy station → service station & garage → truck stop & car wash → solar EV superhub.
+ *  V0 Route-66 Retro (red & white, globe pumps, googie sign)   V1 Modern Corporate (green & yellow, LED fascia)
+ *  V2 Art-Deco Streamline (cream & teal, rounded canopy)        V3 Space-Age (white & magenta flying-saucer canopy)
+ */
+function buildGas(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant % 4;
+  const main = ["red", "#1e8a3c", "#2ec4b6", "magenta"][s];
+  const second = ["white", "yellow", "cream", "white"][s];
+  const ev = lv === 5;
+  lot(c, "asphalt");
+  speckle(c, "asphaltDark", 0.08);
+
+  const pump = (x: number, z: number, elec = false) => {
+    v.box(x, 1, z, x + 3, 2, z + 2, "concrete"); // island
+    v.box(x + 1, 2, z, x + 2, 5, z + 2, elec ? "white" : main);
+    v.box(x + 1, 4, z + 1, x + 2, 5, z + 2, elec ? "screenCyan" : "screenGreen", 0.9);
+    if (s === 0 && !elec) v.put(x + 1, 5, z, "white", 0.9), v.put(x + 1, 6, z, "white", 0.9); // globe
+    v.put(x + 2, 3, z + 1, "black");
+    if (elec) v.box(x + 1, 2, z + 2, x + 2, 3, z + 3, "cyan", 1.0);
+  };
+  const canopy = (x0: number, z0: number, x1: number, z1: number, y: number) => {
+    if (s === 3 || (ev && s === 3)) {
+      // saucer canopy on one central stem
+      const cx = (x0 + x1) / 2;
+      const cz = (z0 + z1) / 2;
+      const r = Math.min(x1 - x0, z1 - z0) / 2 + 1;
+      v.cylinderY(cx, cz, 1, y, 1.2, "white");
+      v.cylinderY(cx, cz, y, y + 1, r, "white");
+      v.cylinderY(cx, cz, y + 1, y + 2, r - 1, main, 0.6);
+      v.cylinderY(cx, cz, y + 2, y + 3, r - 3, "white");
+      v.cylinderY(cx, cz, y - 1, y, r - 1, "warmGlow", 0.8);
+      return;
+    }
+    for (const px of [x0 + 1, x1 - 2]) for (const pz of [z0 + 1, z1 - 2]) v.box(px, 1, pz, px + 1, y, pz + 1, s === 2 ? "cream" : "silver");
+    v.box(x0, y, z0, x1, y + 2, z1, second);
+    v.box(x0, y + 1, z0, x1, y + 2, z1, main, s === 1 ? 0.7 : 0.3);
+    if (s === 2) {
+      // rounded streamline ends + speed stripes
+      v.clear(x0, y, z0, x0 + 1, y + 2, z0 + 1); v.clear(x1 - 1, y, z0, x1, y + 2, z0 + 1);
+      v.clear(x0, y, z1 - 1, x0 + 1, y + 2, z1); v.clear(x1 - 1, y, z1 - 1, x1, y + 2, z1);
+      for (let k = 0; k < 3; k++) v.box(x0 + 2 + k * 3, y, z1, x0 + 4 + k * 3, y + 1, z1 + 1, "teal");
+    }
+    for (let x = x0 + 2; x < x1 - 2; x += 3) for (let z = z0 + 2; z < z1 - 2; z += 3) v.put(x, y - 1, z, "white", 1.0);
+  };
+  const priceSign = (x: number, z: number, h: number) => {
+    v.box(x, 1, z, x + 1, h, z + 1, "steelDark");
+    v.box(x - 2, h, z, x + 3, h + 3, z + 1, main, 0.6);
+    v.box(x - 2, h + 3, z, x + 3, h + 6, z + 1, "black");
+    for (let r = 0; r < 3; r++) v.box(x - 1, h + 3 + r, z, x + 2, h + 4 + r, z + 1, r === 2 ? "lime" : "orange", 1.2);
+    if (s === 0) {
+      // googie starburst on top
+      v.box(x, h + 6, z, x + 1, h + 10, z + 1, "steelDark");
+      for (const [dx, dy] of [[-2, 0], [2, 0], [0, 2], [-1, 1], [1, 1], [-1, -1], [1, -1]]) v.put(x + dx, h + 10 + dy, z, "yellow", 1.2);
+    }
+  };
+  const mart = (x0: number, z0: number, x1: number, z1: number, h = 6) => {
+    shell(v, x0, 1, z0, x1, h, z1, s === 1 ? "white" : s === 2 ? "cream" : s === 3 ? "white" : "white");
+    v.box(x0 + 1, 1, z1 - 1, x1 - 1, 4, z1, "glass", 0.6);
+    v.box(Math.floor((x0 + x1) / 2) - 1, 1, z1 - 1, Math.floor((x0 + x1) / 2) + 1, 4, z1, "glassDark");
+    v.box(x0, h - 2, z1 - 1, x1, h, z1 + 1, main, 0.5);
+    flatRoof(c, x0, h, z0, x1, z1, "concreteDark", second, false);
+    v.box(x0 + 1, 1, z1, x0 + 3, 3, z1 + 1, "#00a3e0"); // ice chest
+    acUnit(v, x0 + 1, h + 1, z0 + 1);
+  };
+  const carWash = (x0: number, z0: number, x1: number, z1: number) => {
+    // tunnel along z with spinning brush rotors
+    shell(v, x0, 1, z0, x1, 8, z1, s === 0 ? "red" : "white");
+    v.clear(x0 + 1, 1, z0, x1 - 1, 7, z1);
+    v.box(x0, 8, z0, x1, 9, z1, main, 0.4);
+    for (let z = z0 + 1; z < z1; z += 3) v.put(x0 + 1, 6, z, "cyan", 0.6);
+    for (const bz of [z0 + 3, z1 - 4]) {
+      const rot = new PixelVox(11);
+      for (let yy = -2; yy <= 2; yy++) for (let a = 0; a < 6; a++) {
+        const ang = (a / 6) * Math.PI * 2;
+        rot.put(Math.round(Math.cos(ang) * 1.5), yy, Math.round(Math.sin(ang) * 1.5), a % 2 ? "blue" : "cyan");
+      }
+      c.addRotor({ vox: rot, pivot: [x0 + 2, 4, bz], axis: "y", speed: 4 });
+    }
+    car(v, Math.floor((x0 + x1) / 2), 1, Math.floor((z0 + z1) / 2), "z", c.pick([...CAR_COLORS]));
+    c.smoke(Math.floor((x0 + x1) / 2), 9, z1 - 2, "steam");
+  };
+
+  if (lv === 1) {
+    v.box(-hx + 1, 0, -hz + 1, hx - 1, 1, hz - 1, "concrete2");
+    pump(-2, -1);
+    // tiny attendant booth
+    v.box(-hx + 2, 1, -hz + 2, -hx + 7, 6, -hz + 7, second);
+    v.box(-hx + 3, 2, -hz + 6, -hx + 6, 4, -hz + 7, "glass", 0.6);
+    v.box(-hx + 1, 6, -hz + 1, -hx + 8, 7, -hz + 8, main);
+    priceSign(hx - 3, -hz + 3, 6);
+    car(v, 2, 1, 3, "x", c.pick(["sky", "yellow", "teal"]));
+    folk(c, -1, 3);
+    // oil drums
+    v.box(hx - 4, 1, hz - 3, hx - 2, 3, hz - 1, s === 1 ? "yellow" : "red");
+    return;
+  }
+  if (lv === 2) {
+    canopy(-hx + 2, -2, 6, hz - 1, 8);
+    pump(-hx + 5, 3);
+    pump(-1, 3);
+    mart(-hx + 2, -hz + 1, hx - 10, -3);
+    priceSign(hx - 4, hz - 3, 9);
+    car(v, -hx + 6, 1, 7, "x", c.pick([...CAR_COLORS]));
+    folk(c, 0, 6);
+    v.box(hx - 6, 1, -hz + 2, hx - 2, 2, -hz + 4, "steelLight"); // air pump base
+    return;
+  }
+  if (lv === 3) {
+    // service station: canopy w/ 4 pumps + mart + 2-bay garage on the right
+    canopy(-hx + 2, -1, 4, hz - 1, 8);
+    for (const px of [-hx + 4, -4]) for (const pz of [2, 8]) pump(px, pz);
+    mart(-hx + 2, -hz + 1, -2, -3);
+    // garage bays
+    shell(v, 4, 1, -hz + 1, hx - 1, 8, 2, s === 0 ? "white" : second === "yellow" ? "white" : second);
+    for (const bx of [6, 11]) {
+      v.box(bx, 1, 1, bx + 4, 6, 2, "steelLight");
+      for (let y = 2; y < 6; y += 2) v.box(bx, y, 1, bx + 4, y + 1, 2, "steelDark");
+    }
+    v.box(4, 6, 2, hx - 1, 8, 3, main, 0.5);
+    flatRoof(c, 4, 8, -hz + 1, hx - 1, 2, "concreteDark", main, false);
+    for (let i = 0; i < 4; i++) v.box(hx - 3, 1 + i, 4 + i % 2, hx - 2, 2 + i, 5 + i % 2, "rubber"); // tire stack
+    car(v, 8, 1, 6, "z", "orange");
+    priceSign(hx - 3, hz - 2, 10);
+    crowd(c, -hx + 2, 0, 4, hz - 1, 3);
+    return;
+  }
+  if (lv === 4) {
+    // TRUCK STOP: big car canopy + tall diesel canopy w/ semi + diner + car wash tunnel
+    canopy(-hx + 2, -2, 6, hz - 1, 8);
+    for (const px of [-hx + 4, -hx + 11, -1]) for (const pz of [1, 8]) pump(px, pz);
+    // diesel lane
+    const dx0 = 10;
+    for (const pz of [-2, hz - 2]) for (const px of [dx0, hx - 2]) v.box(px, 1, pz, px + 1, 12, pz + 1, "silver");
+    v.box(dx0, 12, -2, hx - 1, 14, hz - 1, main, 0.4);
+    v.box(dx0, 13, -2, hx - 1, 14, hz - 1, second);
+    pump(dx0 + 2, 4);
+    // semi truck: cab + long trailer
+    v.box(hx - 8, 1, -1, hx - 4, 6, 3, main);
+    v.box(hx - 8, 3, 2, hx - 4, 5, 3, "glassDark");
+    v.box(hx - 8, 1, 3, hx - 4, 7, hz - 2, "white");
+    v.box(hx - 8, 5, 4, hx - 4, 6, hz - 3, main);
+    // diner & mart
+    mart(-hx + 2, -hz + 1, 0, -4, 7);
+    v.box(-hx + 2, 7, -hz + 1, -hx + 8, 10, -4, s === 0 ? "silver" : second);
+    sign(-hx + 3, -hx + 9, 10, 12, -5, "yellow", 1, main);
+    carWash(2, -hz + 1, 10, -3);
+    priceSign(dx0 - 2, hz - 2, 14);
+    crowd(c, -hx + 2, -3, 0, -1, 4);
+    return;
+  }
+  // L5 SOLAR EV SUPERHUB: wavy solar canopy over rows of glowing chargers, lounge pod with green roof, wind turbine
+  const panel = (x0: number, z0: number, x1: number, z1: number, y: number) => {
+    for (const px of [x0 + 2, x1 - 3]) for (const pz of [z0 + 1, z1 - 2]) v.box(px, 1, pz, px + 1, y, pz + 1, s === 0 ? "red" : "white");
+    for (let x = x0; x < x1; x++) {
+      const wy = y + Math.round(Math.sin((x / (x1 - x0)) * Math.PI * 2) * (s === 2 ? 1 : 0.6));
+      v.box(x, wy, z0, x + 1, wy + 1, z1, "solarBlue", 0.15);
+      v.box(x, wy - 1, z0, x + 1, wy, z0 + 1, main, 0.5);
+      v.box(x, wy - 1, z1 - 1, x + 1, wy, z1, main, 0.5);
+      if (x % 3 === 0) v.box(x, wy, z0, x + 1, wy + 1, z1, "silver");
+    }
+  };
+  if (s === 3) {
+    canopy(-hx + 2, -hz + 2, hx - 18, hz - 2, 10);
+    for (let a = 0; a < 8; a++) {
+      const ang = (a / 8) * Math.PI * 2;
+      v.box(Math.round((-hx + hx - 16) / 2 + Math.cos(ang) * 8), 1, Math.round(Math.sin(ang) * 8), Math.round((-hx + hx - 16) / 2 + Math.cos(ang) * 8) + 1, 4, Math.round(Math.sin(ang) * 8) + 1, "cyan", 1.0);
+    }
+    for (let a = 0; a < 4; a++) {
+      const ang = (a / 4) * Math.PI * 2 + 0.4;
+      car(v, Math.round((-hx + hx - 16) / 2 + Math.cos(ang) * 6), 1, Math.round(Math.sin(ang) * 6), "z", c.pick(["white", "silver", "magenta", "cyan"]));
+    }
+  } else {
+    panel(-hx + 2, -hz + 2, hx - 16, -1, 9);
+    panel(-hx + 2, 2, hx - 16, hz - 1, 9);
+    for (let x = -hx + 4; x < hx - 18; x += 5) {
+      pump(x, -hz + 3, true);
+      pump(x, hz - 4, true);
+      car(v, x + 2, 1, -4, "z", c.pick(["white", "silver", "sky", "red", "charcoal"]));
+      car(v, x + 2, 1, 6, "z", c.pick(["white", "silver", "sky", "teal", "charcoal"]));
+    }
+  }
+  // lounge pod with green roof + café
+  const lx0 = hx - 14;
+  shell(v, lx0, 1, -hz + 2, hx - 2, 7, 4, "white");
+  v.box(lx0, 1, 3, hx - 2, 6, 4, "glass", 0.6);
+  v.box(lx0, 1, -hz + 2, lx0 + 1, 6, 4, "glass", 0.5);
+  v.box(lx0 - 1, 7, -hz + 1, hx - 1, 8, 5, "grass2");
+  speckle(c, "leafLight", 0.0);
+  for (let x = lx0; x < hx - 2; x += 3) bush(v, x, 8, -hz + 4, 1, "leaf", "pink");
+  cafeTable(v, lx0 + 3, 8, main);
+  cafeTable(v, lx0 + 9, 8, main);
+  // small wind turbine
+  const tx = hx - 3;
+  const tz = hz - 3;
+  v.box(tx, 1, tz, tx + 1, 22, tz + 1, "white");
+  const rot = new PixelVox(12);
+  for (let i = 1; i <= 7; i++) {
+    rot.put(0, i, 0, "white");
+    rot.put(Math.round(Math.cos(Math.PI / 6) * i), -Math.round(Math.sin(Math.PI / 6) * i), 0, "white");
+    rot.put(-Math.round(Math.cos(Math.PI / 6) * i), -Math.round(Math.sin(Math.PI / 6) * i), 0, "white");
+  }
+  rot.put(0, 0, 0, main);
+  c.addRotor({ vox: rot, pivot: [tx, 22, tz + 1], axis: "z", speed: 1.4, wind: true });
+  // drone delivery pad
+  v.box(lx0 + 2, 8, -hz + 6, lx0 + 7, 9, -hz + 11, "charcoal");
+  v.box(lx0 + 4, 9, -hz + 8, lx0 + 5, 9, -hz + 9, "white");
+  c.blink(lx0 + 4, 9, -hz + 8, "cyan");
+  priceSign(hx - 8, hz - 2, 12);
+  crowd(c, lx0, 5, hx - 4, hz - 4, 4);
+}
+
+// =============================================================================================
+// ATMS
+// =============================================================================================
+
+/**
+ * ATM — wall-slot ATM → freestanding kiosk → drive-thru ATM → 24h glass ATM lobby → Golden Cash Tower with a
+ * giant spinning coin. Stays a 1×1 street prop that levels up in detail & height.
+ *  V0 Green Savings (green & white)   V1 Crimson Express (red & silver)   V2 Crypto Neon (black & cyan, glowing)
+ *  V3 Gold Reserve (black marble & gold)
+ */
+function atmUnit(v: V, x: number, y: number, z: number, body: string, screen: string): void {
+  v.box(x, y, z, x + 3, y + 5, z + 2, body);
+  v.box(x, y + 3, z + 2, x + 3, y + 5, z + 3, body);
+  v.put(x + 1, y + 3, z + 2, screen, 1.2);
+  v.put(x + 2, y + 3, z + 2, screen, 1.2);
+  v.put(x + 1, y + 2, z + 2, "black");
+  v.put(x + 2, y + 2, z + 2, "silver");
+  v.box(x, y + 5, z, x + 3, y + 6, z + 3, body);
+}
+function buildAtm(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant % 4;
+  const body = ["#1e8a3c", "crimson", "black", "black"][s];
+  const trim = ["white", "silver", "cyan", "gold"][s];
+  const screen = ["screenCyan", "screenCyan", "screenGreen", "warmGlow"][s];
+  lot(c, s === 3 ? "marble" : "concrete2");
+  speckle(c, s === 3 ? "white" : "concrete", 0.1);
+  const dollar = (x: number, y: number, z: number, col: string) => {
+    // $ glyph 3 wide x 5 tall on +z plane
+    const g = ["111", "100", "111", "001", "111"];
+    for (let r = 0; r < 5; r++) for (let k = 0; k < 3; k++) if (g[r][k] === "1") v.put(x + k, y + 4 - r, z, col, 1.3);
+    v.put(x + 1, y + 5, z, col, 1.3);
+    v.put(x + 1, y - 1, z, col, 1.3);
+  };
+  const coinFace = (vox: V, R: number, col: string) => {
+    vox.ringZ(0, 0, 0, 1, R, 0, col, 0.4);
+    vox.ringZ(0, 0, -1, 0, R, R - 0.8, col, 0.4);
+    vox.ringZ(0, 0, 1, 2, R, R - 0.8, col, 0.4);
+    vox.ringZ(0, 0, 1, 2, R - 2, R - 2.8, col, 0.4);
+  };
+
+  if (lv === 1) {
+    // brick wall chunk with a glowing ATM slot + small canopy
+    v.box(-6, 1, -4, 6, 10, 0, s === 2 ? "charcoal" : s === 3 ? "marble" : "brick");
+    v.box(-2, 3, 0, 2, 8, 1, body);
+    v.box(-1, 6, 1, 1, 7, 1, screen, 1.2);
+    v.box(-1, 6, 0, 1, 7, 1, screen, 1.2);
+    v.box(-1, 4, 0, 1, 5, 1, "black");
+    v.box(-3, 8, 0, 3, 9, 2, trim);
+    folk(c, 0, 3);
+    return;
+  }
+  if (lv === 2) {
+    // freestanding kiosk booth
+    v.box(-4, 0, -3, 4, 1, 4, "concrete");
+    atmUnit(v, -2, 1, -1, body, screen);
+    v.box(-4, 7, -3, 4, 8, 4, trim);
+    v.box(-4, 8, -3, 4, 10, 4, body);
+    dollar(-1, 8, 4, trim);
+    v.box(-4, 1, -3, -3, 7, -2, "steelDark");
+    v.box(3, 1, -3, 4, 7, -2, "steelDark");
+    folk(c, 0, 4);
+    folk(c, 0, 6);
+    return;
+  }
+  if (lv === 3) {
+    // drive-thru ATM: lane with arrows, island + canopy, car at the window
+    v.box(-hx, 0, -hz, hx, 1, hz, "asphalt");
+    for (let z = -hz + 1; z < hz - 1; z += 4) v.box(-1, 0, z, 0, 1, z + 2, "white");
+    v.box(2, 1, -4, 6, 2, 6, "concrete");
+    atmUnit(v, 2, 2, -1, body, screen);
+    v.box(1, 1, -5, 2, 11, -4, trim);
+    v.box(6, 1, 5, 7, 11, 6, trim);
+    v.box(-4, 11, -6, 8, 12, 7, body);
+    v.box(-4, 12, -6, 8, 13, 7, trim, 0.6);
+    dollar(4, 13, 0, trim);
+    car(v, -2, 1, 2, "z", c.pick(["sky", "white", "yellow"]));
+    v.box(-6, 1, 6, -5, 3, 7, "yellow"); v.box(-6, 1, -7, -5, 3, -6, "yellow"); // bollards
+    return;
+  }
+  if (lv === 4) {
+    // 24H glass lobby pavilion with 3 ATMs, neon $, camera, bollards
+    v.box(-7, 0, -7, 7, 1, 7, s === 3 ? "black" : "concrete");
+    curtainWall(c, -6, 1, -6, 6, 11, 4, "glass", trim, 3, 10);
+    v.clear(-2, 1, 3, 2, 5, 4);
+    for (const x of [-5, -1, 3]) atmUnit(v, x, 1, -5, body, screen);
+    v.box(-7, 11, -7, 7, 12, 5, body);
+    v.box(-7, 12, -7, 7, 13, 5, trim, 0.5);
+    dollar(-1, 13, 0, screen === "warmGlow" ? "gold" : "lime");
+    v.box(-7, 13, -1, 7, 18, 0, body);
+    dollar(-1, 13, 0, screen === "warmGlow" ? "gold" : "lime");
+    v.box(-6, 14, 0, 6, 15, 1, trim, 0.9);
+    // camera
+    v.box(5, 10, 4, 6, 11, 6, "charcoal"); v.put(5, 10, 6, "red", 1.2);
+    for (const bx of [-6, -3, 2, 5]) v.box(bx, 1, 6, bx + 1, 3, 7, "yellow");
+    folk(c, -1, 5);
+    c.blink(5, 10, 6, "red");
+    return;
+  }
+  // L5 GOLDEN CASH TOWER: tall obelisk kiosk with ATMs on 2 faces, spinning giant coin on top
+  v.box(-7, 0, -7, 7, 1, 7, s === 3 ? "black" : "concrete");
+  stairs(v, -5, 5, 1, 4, 2, s === 3 ? "gold" : "marbleShade");
+  v.box(-5, 1, -5, 5, 3, 4, s === 3 ? "black" : "marble");
+  v.box(-4, 3, -4, 4, 24, 4, body);
+  for (let y = 5; y < 24; y += 3) v.box(-4, y, 3, 4, y + 1, 5, trim, 0.7);
+  atmUnit(v, -2, 3, 4, body, screen);
+  v.box(4, 6, -1, 5, 9, 2, screen, 1.2); // side ATM screen
+  v.box(-5, 24, -5, 5, 25, 5, trim, 0.6);
+  // pyramid cap like an obelisk
+  for (let k = 0; k < 4; k++) v.box(-4 + k, 25 + k, -4 + k, 4 - k, 26 + k, 4 - k, k === 3 ? trim : body);
+  const rot = new PixelVox(13);
+  coinFace(rot, 5, s === 2 ? "cyan" : s === 1 ? "silver" : "gold");
+  // $ on the coin
+  const g = ["111", "100", "111", "001", "111"];
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 3; k++) if (g[r][k] === "1") { rot.put(k - 1, 2 - r, 2, s === 2 ? "white" : "goldDark", 0.6); rot.put(k - 1, 2 - r, -1, s === 2 ? "white" : "goldDark", 0.6); }
+  c.addRotor({ vox: rot, pivot: [0, 35, 0], axis: "y", speed: 1.2 });
+  v.box(0, 29, 0, 1, 31, 1, trim);
+  c.blink(0, 42, 0, s === 2 ? "cyan" : "yellow");
+  folk(c, -1, 6);
+  folk(c, 2, 6);
+}
+
+// =============================================================================================
+// BANKS
+// =============================================================================================
+
+/** Round vault door on the +z plane */
+function vaultDoor(v: V, cx: number, cy: number, z: number, r: number): void {
+  v.ringZ(cx, cy, z, z + 1, r, 0, "steelLight");
+  v.ringZ(cx, cy, z + 1, z + 2, r, r - 0.9, "steel");
+  v.ringZ(cx, cy, z + 1, z + 2, 1.5, 0, "steelDark");
+  for (let a = 0; a < 6; a++) v.put(cx + Math.round(Math.cos(a) * (r - 1.6)) - 0.5, cy + Math.round(Math.sin(a) * (r - 1.6)) - 0.5, z + 1, "gold");
+}
+
+/** Gold charging-bull statue (toy) facing +x */
+function bull(v: V, x: number, y: number, z: number, col = "gold"): void {
+  v.box(x - 2, y + 2, z - 1, x + 3, y + 4, z + 1, col, 0.3);
+  v.box(x + 3, y + 2, z - 1, x + 5, y + 4, z + 1, col, 0.3);
+  v.put(x + 5, y + 4, z - 1, col); v.put(x + 5, y + 4, z, col);
+  v.put(x + 6, y + 5, z - 2, col); v.put(x + 6, y + 5, z + 1, col);
+  for (const lx of [x - 2, x + 2]) for (const lz of [z - 1, z]) v.box(lx, y, lz, lx + 1, y + 2, lz + 1, col);
+  v.put(x - 3, y + 4, z, col);
+}
+
+/**
+ * BANKS — teller office → columned savings bank → domed vault bank → bank tower → financial HQ skyscraper
+ * (gold crown, glowing stock ticker band, charging-bull plaza).
+ *  V0 Greek Neoclassical (marble columns, pediment)   V1 Victorian Brick (red brick, clock tower, slate)
+ *  V2 Modern Glass (blue glass, steel, logo cube)      V3 Art Deco (black granite & gold, sunburst)
+ */
+function buildBanks(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant % 4;
+  const wall = ["marble", "brick", "#4f7fb0", "#202028"][s];
+  const trim = ["marbleShade", "cream", "steelLight", "gold"][s];
+  const roofCol = ["marbleShade", "slate", "steelDark", "black"][s];
+  lot(c, s === 3 ? "#2a2a33" : "concrete2");
+  speckle(c, s === 3 ? "black" : "concrete", 0.08);
+
+  /** classical/variant facade block; returns roof top */
+  const bankHall = (x0: number, z0: number, x1: number, z1: number, h: number, grand: boolean): number => {
+    if (s === 2) {
+      curtainWall(c, x0, 1, z0, x1, h, z1, "#5fa8e0", "steelLight", 3, 4);
+      v.box(x0 - 1, h, z0 - 1, x1 + 1, h + 1, z1 + 1, "white");
+      // logo cube on a corner
+      v.box(x1 - 4, h + 1, z1 - 4, x1 - 1, h + 4, z1 - 1, "gold", 0.4);
+      door(v, Math.floor((x0 + x1) / 2) - 1, 1, z1 - 1, "glassDark", 3, 4);
+      return h + 1;
+    }
+    shell(v, x0, 1, z0, x1, h, z1, wall);
+    // steps
+    stairs(v, x0 + 1, x1 - 1, 0, z1, grand ? 3 : 2, trim);
+    if (s === 0 || (s === 3)) {
+      // column portico on the front
+      const pz = z1 - 1;
+      const step = s === 3 ? 3 : 2;
+      colonnade(v, x0 + 1, x1 - 1, pz + (grand ? 1 : 0), grand ? 2 : 1, h, "x", step, s === 3 ? "black" : "marble", s === 3 ? "gold" : "marbleShade");
+      v.box(x0, h - 1, z0, x1, h, z1 + (grand ? 2 : 1), trim);
+      if (s === 0) {
+        const top = pediment(v, x0, x1, h, z1 - 1, z1 + (grand ? 2 : 1), "marble", "marbleShade");
+        v.box(x0, h, z0, x1, h + 1, z1 - 1, "marbleShade");
+        return top;
+      }
+      // deco: stepped sunburst parapet
+      for (let k = 0; k < 3; k++) v.box(x0 + 2 + k * 2, h + k, z1 - 1, x1 - 2 - k * 2, h + k + 1, z1, "gold", 0.4);
+      flatRoof(c, x0, h, z0, x1, z1, "black", "gold", false);
+      for (let x = x0 + 2; x < x1 - 2; x += 2) v.box(x, 3, z1 - 1, x + 1, h - 1, z1, "gold", 0.3);
+      return h + 3;
+    }
+    // Victorian brick: arched windows, stone bands, mansard-ish slate roof
+    windows(c, x0, 1, z0, x1, h, z1, { stepV: 5, h: 3, w: 2, stepH: 4, emit: 0.5, sill: "cream" });
+    for (let y = 5; y < h; y += 5) v.box(x0, y, z0, x1, y + 1, z1, "cream");
+    door(v, Math.floor((x0 + x1) / 2) - 1, 1, z1 - 1, "woodDark", 3, 4);
+    v.box(Math.floor((x0 + x1) / 2) - 2, 5, z1, Math.floor((x0 + x1) / 2) + 3, 6, z1 + 1, "cream");
+    return mansard(v, x0, h, z0, x1, z1, "slate", "slateLight", "glass");
+  };
+  const sign$ = (x: number, y: number, z: number) => {
+    const g = ["111", "100", "111", "001", "111"];
+    for (let r = 0; r < 5; r++) for (let k = 0; k < 3; k++) if (g[r][k] === "1") v.put(x + k, y + 4 - r, z, s === 2 ? "white" : "gold", 1.1);
+    v.put(x + 1, y + 5, z, s === 2 ? "white" : "gold", 1.1);
+    v.put(x + 1, y - 1, z, s === 2 ? "white" : "gold", 1.1);
+  };
+
+  if (lv === 1) {
+    // TELLER OFFICE: small building, barred windows, safe through the window, $ sign
+    const z1 = hz - 5;
+    shell(v, -hx + 3, 1, -hz + 3, hx - 3, 9, z1, wall);
+    v.box(-hx + 4, 3, z1 - 1, -hx + 8, 7, z1, "glass", 0.5);
+    for (let x = -hx + 4; x < -hx + 8; x += 1) if (x % 2 === 0) v.box(x, 3, z1, x + 1, 7, z1 + 1, "iron");
+    v.box(hx - 7, 2, z1 - 1, hx - 4, 5, z1, "steelDark");
+    v.put(hx - 6, 3, z1, "gold");
+    door(v, -1, 1, z1 - 1, "woodDark", 2, 4);
+    v.box(-hx + 2, 9, -hz + 2, hx - 2, 10, z1 + 1, trim);
+    if (s === 1) gable(v, -hx + 2, 10, -hz + 2, hx - 2, z1 + 1, "x", "slate", "cream");
+    sign$(-1, 10, z1);
+    v.box(-hx, 0, z1, hx, 1, hz, "path2");
+    folk(c, 2, hz - 3);
+    return;
+  }
+  if (lv === 2) {
+    const z1 = hz - 5;
+    const top = bankHall(-hx + 4, -hz + 2, hx - 4, z1, 11, false);
+    sign$(-1, top - (s === 0 ? 3 : 0), z1 + (s === 0 ? 1 : 0));
+    flag(v, -hx + 2, 1, hz - 3, 12, s === 1 ? ["blue", "white", "red"] : ["blue", "white", "blue"]);
+    folk(c, 3, hz - 2);
+    lamp(v, hx - 3, 1, hz - 2, 5);
+    return;
+  }
+  // L3+: vault bank with dome (L3), tower (L4), HQ skyscraper (L5)
+  const x0 = -hx + 3;
+  const x1 = hx - 3;
+  const z0 = -hz + 3;
+  const z1 = hz - 7;
+  const hallH = 13;
+  const top = bankHall(x0, z0, x1, z1, hallH, true);
+  const cz = Math.floor((z0 + z1) / 2) - 1;
+  if (lv === 3) {
+    // dome + vault door showing on the +x side + armored truck
+    if (s === 2) {
+      v.dome(-0.0, hallH + 1, cz, 6, "#bfe7ff", 0.3);
+    } else {
+      cyl(v, -0.0, cz, hallH, hallH + 3, 6, trim);
+      v.dome(-0.0, hallH + 3, cz, 6, s === 1 ? "copper" : s === 3 ? "gold" : "#9fc9c0", 0.1);
+      v.box(-1, hallH + 9, cz - 1, 1, hallH + 12, cz + 1, "gold", 0.5);
+    }
+    vaultDoor(v, x1 - 7, 6, z1, 4);
+    // armored truck
+    v.box(hx - 9, 1, hz - 4, hx - 2, 5, hz - 1, "#5a6b4a");
+    v.box(hx - 3, 3, hz - 4, hx - 2, 4, hz - 1, "glassDark");
+    v.put(hx - 6, 3, hz - 1, "gold");
+    for (const sx of [-hx + 2, hx - 3]) lamp(v, sx, 1, hz - 2, 6);
+    crowd(c, -hx + 3, z1 + 3, 2, hz - 1, 4);
+    return;
+  }
+  // tower rising out of the hall
+  const H = lv === 4 ? 44 : 70;
+  const tx0 = x0 + 3;
+  const tx1 = x1 - 3;
+  const tz0 = z0;
+  const tz1 = z1 - 6;
+  let crownY = H;
+  if (s === 0) {
+    shell(v, tx0, top, tz0, tx1, H, tz1, "marble");
+    windows(c, tx0, top, tz0, tx1, H, tz1, { stepV: 3, h: 2, w: 1, stepH: 2, emit: 0.5 });
+    for (let x = tx0; x < tx1; x += 3) v.box(x, top, tz1 - 1, x + 1, H, tz1, "marbleShade");
+    colonnade(v, tx0, tx1, tz1, H - 6, H, "x", 2, "marble", "gold");
+    v.box(tx0 - 1, H, tz0 - 1, tx1 + 1, H + 1, tz1 + 1, "marbleShade");
+    // temple-crown + gold dome
+    v.dome(-0.0, H + 1, Math.floor((tz0 + tz1) / 2), 5, "gold", 0.3);
+    crownY = H + 7;
+  } else if (s === 1) {
+    shell(v, tx0, top - 2, tz0, tx1, H, tz1, "brick");
+    windows(c, tx0, top, tz0, tx1, H, tz1, { stepV: 4, h: 2, w: 1, stepH: 2, emit: 0.5, sill: "cream" });
+    for (let y = top + 3; y < H; y += 8) v.box(tx0, y, tz0, tx1, y + 1, tz1, "cream");
+    // clock tower top
+    v.box(tx0 + 1, H, tz0 + 1, tx1 - 1, H + 8, tz1 - 1, "brick");
+    const cx = Math.floor((tx0 + tx1) / 2);
+    v.ringZ(cx, H + 4, tz1 - 1, tz1, 3, 0, "white", 0.4);
+    v.box(cx, H + 4, tz1, cx + 1, H + 7, tz1 + 1, "black");
+    v.box(cx, H + 4, tz1, cx + 3, H + 5, tz1 + 1, "black");
+    crownY = gable(v, tx0, H + 8, tz0, tx1, tz1, "z", "slate", "cream") + 1;
+    v.cone(cx, crownY - 1, crownY + 8, Math.floor((tz0 + tz1) / 2), 2, 0.3, "copper");
+    crownY += 8;
+  } else if (s === 2) {
+    curtainWall(c, tx0, top, tz0, tx1, H, tz1, "#5fa8e0", "steelLight", 3, 3);
+    // twisting fins: offset slabs
+    for (let y = top + 4; y < H; y += 4) {
+      const off = Math.round(Math.sin(y * 0.15) * 2);
+      v.box(tx0 - 1 + off, y, tz0 - 1, tx1 + 1 + off, y + 1, tz1 + 1, "white");
+    }
+    v.box(tx0, H, tz0, tx1, H + 2, tz1, "white");
+    helipad(v, Math.floor((tx0 + tx1) / 2), H + 2, Math.floor((tz0 + tz1) / 2), 4);
+    crownY = H + 3;
+  } else {
+    // Art Deco black & gold: setbacks + sunburst crown
+    let a = tx0, b = tx1, za = tz0, zb = tz1, y = top;
+    const tiers = 3;
+    const tierH = Math.floor((H - top) / tiers);
+    for (let t = 0; t < tiers; t++) {
+      const y1 = t === tiers - 1 ? H : y + tierH;
+      shell(v, a, y, za, b, y1, zb, "#202028");
+      for (let x = a + 1; x < b - 1; x += 2) v.box(x, y, zb - 1, x + 1, y1, zb, c.rand() < 0.5 ? "warmGlow" : "gold", 0.4);
+      for (let z = za + 1; z < zb - 1; z += 2) v.box(b - 1, y, z, b, y1, z + 1, c.rand() < 0.5 ? "warmGlow" : "gold", 0.4);
+      v.box(a, y1 - 1, za, b, y1, zb, "gold", 0.3);
+      y = y1;
+      a += 2; b -= 2; za += 2; zb -= 2;
+    }
+    for (let k = 0; k < 5 && a + k < b - k; k++) v.box(a + k, H + k * 2, za + k, b - k, H + k * 2 + 2, zb - k, k % 2 ? "gold" : "#202028", k % 2 ? 0.5 : 0);
+    crownY = H + 10;
+    v.box(Math.floor((a + b) / 2), crownY, Math.floor((za + zb) / 2), Math.floor((a + b) / 2) + 1, crownY + 8, Math.floor((za + zb) / 2) + 1, "gold", 0.5);
+    crownY += 8;
+  }
+  if (lv === 5) {
+    // stock ticker band around the hall + bull statue plaza + flags
+    for (let x = x0; x < x1; x++) v.put(x, hallH - 3, z1 + (s === 0 || s === 3 ? 2 : 0), x % 3 === 0 ? "red" : "lime", 1.3);
+    for (let z = z0; z < z1; z++) v.put(x1, hallH - 3, z, z % 3 === 0 ? "red" : "lime", 1.3);
+    bull(v, -hx + 7, 1, hz - 3, s === 2 ? "silver" : "gold");
+    v.box(-hx + 4, 0, hz - 5, -hx + 13, 1, hz - 1, s === 3 ? "black" : "marble");
+    for (const fx of [hx - 9, hx - 5]) flag(v, fx, 1, hz - 3, 12, ["blue", "white", "red"]);
+    c.blink(Math.floor((tx0 + tx1) / 2), crownY + 1, Math.floor((tz0 + tz1) / 2), "red");
+  } else {
+    vaultDoor(v, x1 - 6, 6, z1 + (s === 0 || s === 3 ? 2 : 0), 3);
+    v.box(hx - 9, 1, hz - 4, hx - 2, 5, hz - 1, "#5a6b4a");
+  }
+  crowd(c, -hx + 3, z1 + 3, hx - 3, hz - 1, 5);
+}
+
+// =============================================================================================
+// MALLS
+// =============================================================================================
+
+/**
+ * MALLS — strip mall → enclosed mall with skylights → regional mall with anchors & food-court dome →
+ * megamall with cinema & parking garage → mega-resort mall with a rooftop Ferris wheel.
+ *  V0 '80s Americana (pastel teal & pink, neon)   V1 Glass Galleria (cream stone, iron & glass dome)
+ *  V2 Desert Luxury (white & gold, palms, fountain) V3 Asian Megamall (giant LED screens, neon blades)
+ */
+function buildMalls(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant % 4;
+  const wall = ["#9ad9cf", "cream", "white", "concrete"][s];
+  const wall2 = ["#f7a1c4", "limestone", "#e8d5a8", "charcoal"][s];
+  const accent = ["magenta", "iron", "gold", "screenCyan"][s];
+  const roof = ["#d9eeea", "slateLight", "#f4ecd8", "concreteDark"][s];
+  lot(c, "asphalt");
+  speckle(c, "asphaltDark", 0.05);
+
+  const anchor = (x0: number, z0: number, x1: number, z1: number, h: number, col: string) => {
+    shell(v, x0, 1, z0, x1, h, z1, col);
+    v.box(x0 + 2, h - 4, z1 - 1, x1 - 2, h - 1, z1, accent, 0.8);
+    v.box(Math.floor((x0 + x1) / 2) - 2, 1, z1 - 1, Math.floor((x0 + x1) / 2) + 2, 5, z1, "glass", 0.6);
+    v.box(Math.floor((x0 + x1) / 2) - 3, 5, z1 - 1, Math.floor((x0 + x1) / 2) + 3, 6, z1 + 2, wall2);
+    flatRoof(c, x0, h, z0, x1, z1, roof, col, true);
+  };
+  const skylight = (x0: number, z0: number, x1: number, z1: number, y: number) => {
+    if (s === 1) {
+      barrelRoof(v, x0, y, z0, x1, z1, x1 - x0 > z1 - z0 ? "x" : "z", "#bfe7ff", "iron");
+    } else {
+      v.roofGable(x0, y, z0, x1, z1, 3, x1 - x0 > z1 - z0 ? "x" : "z", "#bfe7ff", s === 2 ? "gold" : "steelLight");
+    }
+  };
+  const ledScreen = (x0: number, x1: number, y0: number, y1: number, z: number) => {
+    v.box(x0, y0, z, x1, y1, z + 1, "black");
+    for (let x = x0 + 1; x < x1 - 1; x++) for (let y = y0 + 1; y < y1 - 1; y++) v.put(x, y, z, ((x >> 1) + (y >> 1)) % 3 === 0 ? "magenta" : (x + y) % 5 === 0 ? "yellow" : "screenCyan", 1.0);
+  };
+  const palm = (x: number, z: number) => tree(v, x, 1, z, s === 2 || s === 0 ? "palm" : "round", 1.1, x);
+
+  if (lv === 1) {
+    // STRIP MALL: L-shaped row of 5 units + parking + pylon
+    const z0 = -hz + 2;
+    const z1 = -2;
+    for (let i = 0; i < 5; i++) {
+      const a = -hx + 2 + i * 6;
+      if (a + 6 > hx - 2) break;
+      shell(v, a, 1, z0, a + 6, 7, z1, i % 2 ? wall : wall2);
+      shopfront(v, a, a + 6, 1, z1 - 1, 4, "steelLight");
+      v.box(a, 5, z1 - 1, a + 6, 7, z1 + 1, c.pick(["red", "teal", "orange", "blue", "magenta", "lime"]), 0.6);
+    }
+    v.box(-hx + 2, 7, z0, -hx + 2 + Math.floor((2 * hx - 4) / 6) * 6, 8, z1 + 2, roof);
+    v.box(-hx + 2, 1, z1, hx - 2, 1, z1 + 2, "concrete");
+    v.box(-hx + 1, 0, z1, hx - 1, 1, z1 + 2, "concrete");
+    parking(c, -hx + 1, z1 + 3, hx - 4, hz - 1, { cars: 0.7 });
+    pylon(v, hx - 3, hz - 3, 9, 5, 7, wall2, "steelDark", accent);
+    crowd(c, -hx + 2, z1 + 1, hx - 2, z1 + 3, 4);
+    return;
+  }
+  // L2+: enclosed mall core block with skylight, anchors, parking front
+  const parkD = lv === 2 ? 12 : 14;
+  const mz1 = hz - parkD;
+  const mz0 = -hz + 2;
+  const coreX0 = lv >= 3 ? -hx + 14 : -hx + 2;
+  const coreX1 = lv >= 3 ? hx - 14 : hx - 14;
+  const H = lv >= 4 ? 13 : 10;
+  shell(v, coreX0, 1, mz0 + 2, coreX1, H, mz1, wall);
+  windows(c, coreX0, 1, mz0 + 2, coreX1, H, mz1, { faces: "s", stepV: 5, stepH: 4, w: 2, h: 2, emit: 0.5 });
+  flatRoof(c, coreX0, H, mz0 + 2, coreX1, mz1, roof, wall2, false);
+  skylight(coreX0 + 2, mz0 + 4, coreX1 - 2, mz1 - 2, H + 1);
+  // grand entrance
+  const ex = Math.floor((coreX0 + coreX1) / 2);
+  v.box(ex - 5, 1, mz1 - 1, ex + 5, H + 3, mz1 + 1, wall2);
+  v.box(ex - 3, 1, mz1, ex + 3, 6, mz1 + 1, "glass", 0.7);
+  v.box(ex - 4, H, mz1 + 1, ex + 4, H + 2, mz1 + 2, accent, 0.9);
+  if (s === 3) ledScreen(ex - 5, ex + 5, 7, H + 3, mz1 + 1);
+  // anchors
+  anchor(coreX1, mz0, hx - 2, mz1, H + 2, wall2);
+  if (lv >= 3) anchor(-hx + 2, mz0, coreX0, mz1, H + 2, s === 0 ? "#f7d58a" : wall2);
+  // parking
+  parking(c, -hx + 1, mz1 + 3, hx - 1, mz1 + 3 + 6, { cars: 0.75 });
+  if (parkD >= 14 || lv === 2) parking(c, -hx + 1, mz1 + 3 + 6, hx - 1, hz - 1, { cars: 0.6 });
+  v.box(-hx + 1, 0, mz1, hx - 1, 1, mz1 + 3, "concrete");
+  crowd(c, coreX0, mz1 + 1, coreX1, mz1 + 3, 6);
+  for (let x = -hx + 4; x < hx - 4; x += 12) palm(x, mz1 + 2);
+  pylon(v, -hx + 3, hz - 3, 12, 6, 8, wall2, "steelDark", accent);
+
+  if (lv >= 3) {
+    // food-court dome over the centre
+    const dcz = Math.floor((mz0 + mz1) / 2);
+    if (s === 1) {
+      cyl(v, ex, dcz, H, H + 3, 7, "limestone");
+      v.dome(ex, H + 3, dcz, 7, "#bfe7ff", 0.3);
+      for (let a = 0; a < 8; a++) for (let t = 0; t < 7; t += 1) v.put(ex + Math.cos(a * 0.785) * t * Math.cos(Math.asin(t / 7.5)) - 0.5, H + 3 + Math.round(Math.sqrt(Math.max(0, 49 - t * t))), dcz + Math.sin(a * 0.785) * t - 0.5, "iron");
+    } else if (s === 3) {
+      v.box(ex - 6, H, dcz - 6, ex + 6, H + 10, dcz + 6, "black");
+      ledScreen(ex - 6, ex + 6, H, H + 10, dcz + 6);
+    } else {
+      v.dome(ex, H + 1, dcz, 7, s === 2 ? "gold" : "#bfe7ff", 0.3);
+    }
+  }
+  if (lv >= 4) {
+    // CINEMA block on the back right with marquee + parking garage on the left back
+    const cx0 = hx - 16;
+    shell(v, cx0, 1, -hz + 2, hx - 2, H + 8, mz0 + 2 + 0, s === 3 ? "black" : "purpleDark");
+    v.box(cx0, H + 2, mz0 + 1, hx - 2, H + 6, mz0 + 2, "warmGlow", 1);
+    for (let x = cx0; x < hx - 2; x += 2) v.put(x, H + 1, mz0 + 2, "yellow", 1.3);
+    flatRoof(c, cx0, H + 8, -hz + 2, hx - 2, mz0 + 2, "concreteDark", "purple", false);
+    // parking garage
+    for (let y = 1; y < 15; y += 4) {
+      v.box(-hx + 2, y, -hz + 2, -hx + 14, y + 1, mz0 + 2, "concrete");
+      for (let x = -hx + 3; x < -hx + 13; x += 4) if (c.rand() < 0.7) car(v, x, y + 1, -hz + 5, "z", c.pick([...CAR_COLORS]));
+    }
+    for (const [px, pz] of [[-hx + 2, -hz + 2], [-hx + 13, -hz + 2], [-hx + 2, mz0 + 1], [-hx + 13, mz0 + 1]]) v.box(px, 1, pz, px + 1, 15, pz + 1, "concrete");
+  }
+  if (lv === 5) {
+    // ROOFTOP FERRIS WHEEL (rotor) on the right anchor + fountain plaza + more palms
+    const fx = hx - 10;
+    const fz = Math.floor((mz0 + mz1) / 2);
+    const baseY = H + 3;
+    const R = 13;
+    for (const dz of [-2, 2]) {
+      for (let i = 0; i <= R + 1; i++) {
+        v.put(fx - Math.round(i * 0.45), baseY + i, fz + dz, "white");
+        v.put(fx + Math.round(i * 0.45), baseY + i, fz + dz, "white");
+      }
+    }
+    const wheel = new PixelVox(17);
+    wheel.ringZ(0, 0, -1, 0, R, R - 1, accent === "iron" ? "red" : accent, 0.4);
+    wheel.ringZ(0, 0, 0, 1, R, R - 1, accent === "iron" ? "red" : accent, 0.4);
+    for (let a = 0; a < 12; a++) {
+      const ang = (a / 12) * Math.PI * 2;
+      for (let t = 1; t < R; t++) wheel.put(Math.round(Math.cos(ang) * t), Math.round(Math.sin(ang) * t), 0, "white");
+      const gx = Math.round(Math.cos(ang) * R);
+      const gy = Math.round(Math.sin(ang) * R);
+      wheel.box(gx - 1, gy - 2, -2, gx + 1, gy, 2, ["red", "yellow", "teal", "pink", "lime", "orange"][a % 6], 0.2);
+    }
+    c.addRotor({ vox: wheel, pivot: [fx, baseY + R + 1, fz], axis: "z", speed: 0.35 });
+    // fountain plaza in front of the entrance
+    fountain(v, ex, 1, mz1 + 4, 3, s === 2 ? "gold" : "marble");
+    c.smoke(ex, 5, mz1 + 4, "steam");
+    for (let x = -hx + 6; x < hx - 6; x += 8) palm(x, hz - 2);
+    c.blink(fx, baseY + 2 * R + 2, fz, "red");
+  }
+}
+
+// =============================================================================================
+// DATA CENTERS
+// =============================================================================================
+
+/**
+ * DATA CENTERS — server hut → colocation hall → twin data halls → server campus → hyperscale AI campus.
+ * Windowless halls with glowing rack LEDs, steaming chillers, blinking fiber towers, solar, substations.
+ *  V0 Corporate (grey & blue)    V1 Arctic (white halls on snow, ice blue)
+ *  V2 Desert Solar (sand halls, huge solar field)    V3 Bunker (earth-bermed, green roofs, blast doors)
+ */
+function buildDataCenters(c: Ctx): void {
+  const { v, lv, hx, hz } = c;
+  const s = c.variant % 4;
+  const wall = ["#c5ccd6", "white", "#e8d5a8", "concreteDark"][s];
+  const band2 = ["blue", "cyan", "orange", "lime"][s];
+  lot(c, ["concrete2", "snow", "sand", "grass2"][s]);
+  speckle(c, ["concrete", "white", "sandDark", "grass3"][s], 0.1);
+
+  const hall = (x0: number, z0: number, x1: number, z1: number, h: number) => {
+    if (s === 3) {
+      // earth berm bunker: sloped grass sides, concrete face with blast door
+      for (let k = 0; k < h; k++) v.box(x0 - (h - k) + 1, k + 1, z0 - (h - k) + 1, x1 + (h - k) - 1, k + 2, z1 - 1, k === h - 1 ? "grass2" : "grass");
+      v.box(x0, 1, z1 - 1, x1, h + 1, z1, "concreteDark");
+      const dx = Math.floor((x0 + x1) / 2);
+      v.box(dx - 2, 1, z1, dx + 2, 5, z1 + 1, "steelDark");
+      v.box(dx - 2, 3, z1, dx + 2, 4, z1 + 1, "hazard");
+      for (let x = x0 + 1; x < x1 - 1; x += 2) v.put(x, h - 1, z1 - 1, band2, 1.0);
+      for (let x = x0 + 2; x < x1 - 2; x += 4) for (let z = z0 + 1; z < z1 - 2; z += 4) { v.put(x, h + 2, z, "steelLight"); v.put(x, h + 3, z, "steelLight"); c.smoke(x, h + 4, z, "steam"); }
+      return h + 1;
+    }
+    shell(v, x0, 1, z0, x1, h, z1, wall);
+    v.box(x0, h - 2, z0, x1, h - 1, z1, band2, 0.4);
+    // rack LED slits
+    for (let x = x0 + 2; x < x1 - 2; x += 2) for (let y = 2; y < h - 3; y += 2) if (c.rand() < 0.35) v.put(x, y, z1 - 1, c.pick(["lime", "cyan", band2]), 1.2);
+    for (let z = z0 + 2; z < z1 - 2; z += 2) for (let y = 2; y < h - 3; y += 2) if (c.rand() < 0.3) v.put(x1 - 1, y, z, c.pick(["lime", "cyan", band2]), 1.2);
+    v.box(x0 + 2, 1, z1 - 1, x0 + 5, 5, z1, "steelDark");
+    flatRoof(c, x0, h, z0, x1, z1, s === 1 ? "white" : "concreteDark", wall, false);
+    // rooftop chillers with steam
+    for (let x = x0 + 2; x + 3 < x1 - 1; x += 5) {
+      v.box(x, h + 1, z0 + 2, x + 3, h + 3, z0 + 5, "silver");
+      v.cylinderY(x + 1.5, z0 + 3.5, h + 3, h + 4, 1.2, "steelDark");
+      if ((x - x0) % 10 === 2) c.smoke(x + 1, h + 4, z0 + 3, "steam");
+    }
+    if (s === 1) for (let x = x0; x < x1; x += 1) if (c.rand() < 0.5) v.put(x, h + 1, z1 - 2, "snow");
+    return h + 1;
+  };
+  const fiberTower = (x: number, z: number, h: number) => {
+    for (let y = 1; y < h; y++) {
+      const w = Math.max(0, Math.round((1 - y / h) * 2));
+      v.put(x - w, y, z - w, "steelLight"); v.put(x + w, y, z + w, "steelLight");
+      v.put(x - w, y, z + w, "steelLight"); v.put(x + w, y, z - w, "steelLight");
+    }
+    v.box(x, 1, z, x + 1, h + 2, z + 1, "steelDark");
+    v.box(x + 1, h - 3, z, x + 2, h - 1, z + 1, "white");
+    v.box(x - 1, h - 5, z, x, h - 3, z + 1, "white");
+    c.blink(x, h + 2, z, "red");
+  };
+  const generators = (x0: number, z: number, n: number) => {
+    for (let i = 0; i < n; i++) {
+      v.box(x0 + i * 5, 1, z, x0 + i * 5 + 4, 4, z + 2, s === 2 ? "orange" : "#5a6b4a");
+      v.box(x0 + i * 5 + 3, 4, z, x0 + i * 5 + 4, 6, z + 1, "steelDark");
+    }
+  };
+  const substation = (x0: number, z0: number) => {
+    v.box(x0, 0, z0, x0 + 10, 1, z0 + 8, "stone");
+    for (let i = 0; i < 3; i++) {
+      v.box(x0 + 1 + i * 3, 1, z0 + 2, x0 + 3 + i * 3, 4, z0 + 4, "steel");
+      v.box(x0 + 1 + i * 3, 4, z0 + 3, x0 + 2 + i * 3, 7, z0 + 4, "white");
+    }
+    v.box(x0, 7, z0 + 3, x0 + 10, 8, z0 + 4, "steelDark");
+    securityFence(v, x0, z0, x0 + 10, z0 + 8, 1, 3);
+  };
+  const solarField = (x0: number, z0: number, x1: number, z1: number) => {
+    for (let z = z0; z + 3 <= z1; z += 4) solarRow(v, x0, x1, 1, z, 3);
+  };
+
+  if (lv === 1) {
+    const top = hall(-hx + 3, -hz + 3, hx - 7, hz - 6, 8);
+    fiberTower(hx - 3, -hz + 4, 18);
+    generators(-hx + 3, hz - 4, 2);
+    void top;
+    if (s === 2) solarField(hx - 6, 0, hx - 1, hz - 1);
+    securityFence(v, -hx + 1, -hz + 1, hx - 1, hz - 1, 1, 3, [-2, 2]);
+    return;
+  }
+  if (lv === 2) {
+    hall(-hx + 3, -hz + 3, hx - 3, 3, 10);
+    generators(-hx + 3, 6, 4);
+    fiberTower(hx - 4, hz - 4, 22);
+    v.box(-hx + 2, 0, hz - 4, hx - 6, 1, hz - 2, "asphalt");
+    car(v, -hx + 6, 1, hz - 3, "x", "white");
+    securityFence(v, -hx + 1, -hz + 1, hx - 1, hz - 1, 1, 3, [-hx + 3, -hx + 9]);
+    return;
+  }
+  if (lv === 3) {
+    // twin halls + cooling towers + substation
+    hall(-hx + 3, -hz + 3, -2, hz - 8, 11);
+    hall(2, -hz + 3, hx - 12, hz - 8, 11);
+    for (const [tx, tz] of [[hx - 6, -hz + 7], [hx - 6, -hz + 16]]) {
+      ring(v, tx, tz, 1, 9, 3.4, 2.4, s === 1 ? "white" : "concrete");
+      v.cylinderY(tx, tz, 8, 9, 2.4, "steelDark");
+      c.smoke(tx, 10, tz, "steam");
+    }
+    substation(hx - 11, hz - 9);
+    generators(-hx + 3, hz - 5, 4);
+    fiberTower(-hx + 25 > hx - 14 ? 0 : -hx + 25, hz - 3, 24);
+    securityFence(v, -hx + 1, -hz + 1, hx - 1, hz - 1, 1, 3, [-4, 2]);
+    return;
+  }
+  // L4 / L5 campus
+  const big = lv === 5;
+  const halls = big ? 4 : 3;
+  const hw = big ? 14 : 12;
+  const rowZ1 = big ? 2 : 0;
+  for (let i = 0; i < halls; i++) {
+    const a = -hx + 3 + i * (hw + 3);
+    if (a + hw > hx - 3) break;
+    hall(a, -hz + 3, a + hw, rowZ1, big ? 14 : 12);
+  }
+  // front: cooling towers, solar field / substation, fiber towers, security fence
+  const fz0 = rowZ1 + 4;
+  const towers = big ? 4 : 2;
+  for (let i = 0; i < towers; i++) {
+    const tx = -hx + 8 + i * 10;
+    const tz = fz0 + 6;
+    if (s === 3) {
+      v.box(tx - 3, 1, tz - 3, tx + 3, 4, tz + 3, "concreteDark");
+      c.smoke(tx, 5, tz, "steam");
+    } else {
+      ring(v, tx, tz, 1, big ? 14 : 11, 4, 3, s === 1 ? "white" : "concrete");
+      v.cylinderY(tx, tz, (big ? 14 : 11) - 1, big ? 14 : 11, 3, "steelDark");
+      c.smoke(tx, (big ? 15 : 12), tz, "steam");
+      c.smoke(tx + 1, (big ? 15 : 12), tz - 1, "steam");
+    }
+  }
+  const sx0 = -hx + 8 + towers * 10;
+  solarField(sx0, fz0, hx - 3, hz - (big ? 12 : 3));
+  if (big) {
+    substation(sx0, hz - 11);
+    // satellite dish rotor
+    const dx = hx - 8;
+    const dz = hz - 7;
+    v.box(dx - 1, 1, dz - 1, dx + 1, 6, dz + 1, "steelLight");
+    const dish = new PixelVox(19);
+    for (let x = -4; x <= 4; x++) for (let y = -4; y <= 4; y++) {
+      const d = x * x + y * y;
+      if (d <= 17) dish.put(x, y + 4, Math.round(d * 0.12), "white");
+    }
+    dish.box(0, 4, -3, 1, 5, 0, "steelDark");
+    c.addRotor({ vox: dish, pivot: [dx, 6, dz], axis: "y", speed: 0.3 });
+    // AI glow: big emissive crest on hall roofs
+    for (let i = 0; i < halls; i++) {
+      const a = -hx + 3 + i * (hw + 3);
+      if (a + hw > hx - 3) break;
+      v.box(a + 1, 15, rowZ1 - 2, a + hw - 1, 16, rowZ1 - 1, band2, 1.2);
+    }
+  }
+  fiberTower(-hx + 3, hz - 3, big ? 34 : 26);
+  fiberTower(hx - 3, hz - 3, big ? 30 : 22);
+  generators(-hx + 3, fz0 + 13 > hz - 3 ? hz - 6 : fz0 + 13, 3);
+  securityFence(v, -hx + 1, -hz + 1, hx - 1, hz - 1, 1, 4, [-4, 4]);
+  v.box(-4, 0, hz - 2, 4, 1, hz, "asphalt");
+}
+
+defineDesigns({
+  gas_stations: {
+    footprints: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 2]],
+    levels: ["Roadside Pump", "Canopy Station", "Service Station & Garage", "Truck Stop & Car Wash", "Solar EV Superhub"],
+    growth: "A lone pump gains a canopy, then a repair garage, a truck stop with a spinning car wash and finally a solar-roofed EV charging hub with a wind turbine.",
+    build: buildGas,
+  },
+  atms: {
+    footprints: [[1, 1], [1, 1], [1, 1], [1, 1], [1, 1]],
+    levels: ["Wall-Slot ATM", "ATM Kiosk", "Drive-Thru ATM", "24h Glass ATM Lobby", "Golden Cash Tower"],
+    growth: "Stays a street-corner prop but levels up in style and height — from a slot in a wall to an obelisk with a giant spinning coin.",
+    build: buildAtm,
+  },
+  banks: {
+    footprints: [[1, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+    levels: ["Teller Office", "Columned Savings Bank", "Domed Vault Bank", "Bank Tower", "Financial HQ Skyscraper"],
+    growth: "Gains prestige: columns and steps, then a dome and vault, then a tower rising from the banking hall and a crowned HQ with a stock ticker and golden bull.",
+    build: buildBanks,
+  },
+  malls: {
+    footprints: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+    levels: ["Strip Mall", "Skylit Enclosed Mall", "Regional Mall & Food-Court Dome", "Megamall with Cinema", "Mega-Resort Mall"],
+    growth: "Sprawls into a compound: strip → skylit mall with an anchor → second anchor and food-court dome → cinema and parking garage → rooftop Ferris wheel and fountain plaza.",
+    build: buildMalls,
+  },
+  data_centers: {
+    footprints: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 4]],
+    levels: ["Server Hut", "Colocation Hall", "Twin Data Halls", "Server Campus", "Hyperscale AI Campus"],
+    growth: "Windowless halls multiply into a fenced campus with steaming chillers, cooling towers, solar fields, substations, blinking fiber towers and a tracking satellite dish.",
+    build: buildDataCenters,
+  },
+});
