@@ -7893,7 +7893,8 @@
     "isStarter": false,
     "stats": {
       "food": 8,
-      "recreation": 34
+      "recreation": 34,
+      "water": -1
     },
     "description": "Botanical flowerbeds, pergola trellis, and blooming hedges.",
     "usage": "Put a garden against the rear of the home to open a gate into its edible beds.",

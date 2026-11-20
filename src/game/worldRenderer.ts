@@ -1,3 +1,5 @@
+import { editedCoastline } from "./coastline";
+import { GRID_SIZE, GRID_HALF } from "./mapBounds";
 import { getTravelNetwork, travelSignature, type TravelNetwork } from "./travelNetwork";
 import { MobilityVisuals, voyagePlacement } from "./mobilityVisuals";
 import * as THREE from "three";
@@ -27,8 +29,8 @@ import {
   matchesSelectionFilter,
   worldToGrid,
 } from "./simulation";
-import { EngineeringView, maskTerrainFragment } from "./engineeringView";
-import { getTerrainCell, planInfrastructureStroke, registerRoadDemand, roadPortOpen, roadTravelOpen, surfaceTravelHeight, tileKey, type InfrastructureTool, type GridPoint } from "./terrain";
+import { EngineeringView, maskOceanFragment } from "./engineeringView";
+import { elevationFromMargin, getTerrainCell, planInfrastructureStroke, registerRoadDemand, roadPortOpen, roadTravelOpen, surfaceTravelHeight, tileKey, type InfrastructureTool, type GridPoint } from "./terrain";
 import { networkRoadProfile } from "./designs/networks";
 import { getParcelEdgeKey, getParcelEdges } from "./parcelEdges";
 import { getParcelSoils } from "./parcelGeometry";
@@ -45,6 +47,19 @@ import {
 } from "./voxelCore";
 
 export type CameraMode = "pan" | "orbit" | "walk";
+
+export interface IslandCameraView {
+  mode: CameraMode;
+  target: [number, number, number];
+  radius: number;
+  theta: number;
+  phi: number;
+  walk: [number, number, number];
+  yaw: number;
+  pitch: number;
+  fov: number;
+  autoSpin: boolean;
+}
 
 export interface BuildBrush {
   kind: "place" | "move" | "none";
@@ -272,7 +287,7 @@ export class PixelWorldRenderer {
   private skyBgColor = new THREE.Color(0xc2e9ff);
   private fogColor = new THREE.Color(0xd7f0ff);
 
-  private engineering = new EngineeringView();
+  private engineering = new EngineeringView(true);
   private worksTool:InfrastructureTool|null=null;
   private worksStroke:GridPoint[]=[];
   private worksAnchor:GridPoint|null=null;
@@ -287,6 +302,10 @@ export class PixelWorldRenderer {
   private weatherGroup = new THREE.Group();
   private fxGroup = new THREE.Group();
 
+  private coastlineTexture?:THREE.DataTexture;
+  private naturalCoastline?:Uint8Array;
+  private coastalStamp="";
+  private renderedGeography?:number;
   private oceanUniforms = { uTime: { value: 0 }, uDaylight: { value: 1 } };
   private placedEntries = new Map<string, PlacedRenderEntry>();
   private activeHeatmap: HeatmapKind = "none";
@@ -464,7 +483,7 @@ export class PixelWorldRenderer {
     pmrem.dispose();
 
     // 3. Camera
-    this.camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.5, 900);
+    this.camera = new THREE.PerspectiveCamera(44, window.innerWidth / window.innerHeight, 0.5, 2000);
     this.updateCameraTransform();
 
     // 4. Sunlit GeminIsland Lighting (modulated live by Day/Night & Weather)
@@ -521,9 +540,8 @@ export class PixelWorldRenderer {
   }
 
   private buildIslandAndOcean(): void {
-    // Sculpted pixel-stepped island mesh covering [-165..165]m
-    const segs = this.isSoftwareGl ? 96 : 144;
-    const size = 320;
+    this.renderedGeography=this.gameState.terrainVersion??1;
+    const size=GRID_SIZE*TILE_SIZE,segs=GRID_SIZE;
     const geo = new THREE.PlaneGeometry(size, size, segs, segs);
     geo.rotateX(-Math.PI / 2);
 
@@ -534,20 +552,8 @@ export class PixelWorldRenderer {
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
       const z = pos.getZ(i);
-      const margin = islandMarginAtWorld(x, z);
-
-      let y = 0;
-      if (margin >= 2.0) {
-        y = 0;
-      } else if (margin >= -7.0) {
-        // Gentle pixel-stepped sandy beach slope down to ocean
-        const t = (2.0 - margin) / 9.0;
-        const rawY = -t * 1.45;
-        y = Math.round(rawY / 0.25) * 0.25;
-      } else {
-        const deep = Math.min(1, (-7.0 - margin) / 26.0);
-        y = -1.45 - Math.round(deep * 12) * 0.45;
-      }
+      const margin=islandMarginAtWorld(x,z,this.renderedGeography);
+      const y=elevationFromMargin(margin);
       pos.setY(i, y);
 
       // Crisp pixel-checkerboard grass & warm beach sand colors
@@ -567,6 +573,14 @@ export class PixelWorldRenderer {
       colors[i * 3 + 2] = cTmp.b;
     }
 
+    // Deep seabed is hidden by opaque water. Omit its triangles on both GPU tiers.
+    const faces:number[]=[];
+    for(let iz=0;iz<segs;iz++)for(let ix=0;ix<segs;ix++){
+      const a=ix+iz*(segs+1),b=a+segs+1;
+      if(pos.getY(a)<-2&&pos.getY(a+1)<-2&&pos.getY(b)<-2&&pos.getY(b+1)<-2)continue;
+      faces.push(a,b,a+1,b,b+1,a+1);
+    }
+    geo.setIndex(faces);
     geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
 
@@ -583,7 +597,7 @@ export class PixelWorldRenderer {
     this.islandGroup.add(landMesh);
 
     // Subtle build-grid lines across the flat plateau so tile alignment is effortless
-    const gridHelper = new THREE.GridHelper(64 * TILE_SIZE, 64, 0xffffff, 0xffffff);
+    const gridHelper = new THREE.GridHelper(size, GRID_SIZE, 0xffffff, 0xffffff);
     gridHelper.position.y = 0.018;
     const gMat = gridHelper.material as THREE.Material;
     gMat.transparent = true;
@@ -592,11 +606,21 @@ export class PixelWorldRenderer {
     this.islandGroup.add(gridHelper);
 
     // Sunlit pixel-quantized turquoise ocean plane with lapping white foam
-    const oceanGeo = new THREE.PlaneGeometry(1400, 1400, 1, 1);
+    // A cached shoreline map makes foam around all islands independent of screen pixel count.
+    const coast=new Uint8Array(GRID_SIZE*GRID_SIZE);
+    for(let z=0;z<GRID_SIZE;z++)for(let x=0;x<GRID_SIZE;x++){
+      const margin=islandMarginAtWorld((x-GRID_HALF+.5)*TILE_SIZE,(z-GRID_HALF+.5)*TILE_SIZE,this.renderedGeography);
+      coast[z*GRID_SIZE+x]=Math.round(THREE.MathUtils.clamp((margin+36)/48,0,1)*255);
+    }
+    this.naturalCoastline=coast;this.coastalStamp="";
+    this.coastlineTexture=new THREE.DataTexture(coast,GRID_SIZE,GRID_SIZE,THREE.RedFormat);
+    this.coastlineTexture.minFilter=this.coastlineTexture.magFilter=THREE.LinearFilter;
+    this.coastlineTexture.needsUpdate=true;
+    const oceanGeo = new THREE.PlaneGeometry(size*4,size*4,1,1);
     oceanGeo.rotateX(-Math.PI / 2);
 
     const oceanMat = new THREE.ShaderMaterial({
-      uniforms: {...this.oceanUniforms, uWorksMask:{value:this.engineering.mask}},
+      uniforms: {...this.oceanUniforms,uCoast:{value:this.coastlineTexture}, uWorksMask:{value:this.engineering.mask}},
       transparent: true,
       vertexShader: `
         varying vec3 vWorldPos;
@@ -612,18 +636,16 @@ export class PixelWorldRenderer {
         uniform float uDaylight;
         varying vec3 vWorldPos;
 
-        float islandMargin(vec2 p) {
-          float halfE = 108.0;
-          vec2 n = abs(p) / halfE;
-          float sr = pow(pow(n.x, 3.6) + pow(n.y, 3.6), 1.0 / 3.6);
-          float ang = atan(p.y, p.x);
-          float wob = 0.045 * sin(ang * 3.0 + 0.7) + 0.03 * cos(ang * 5.0 - 1.1) + 0.02 * sin(ang * 7.0 + 2.2);
-          return (1.0 + wob - sr) * halfE;
+        uniform sampler2D uCoast;
+        float islandMargin(vec2 p){
+          vec2 uv=p/${size.toFixed(1)}+.5;
+          if(any(lessThan(uv,vec2(0.)))||any(greaterThanEqual(uv,vec2(1.))))return -36.;
+          return texture2D(uCoast,uv).r*48.-36.;
         }
 
         void main() {
           vec2 vWorksXZ=vWorldPos.xz;
-          ${maskTerrainFragment}
+          ${maskOceanFragment}
           // Pixelate ocean coordinates to 0.66m voxel cells!
           vec2 pix = floor(vWorldPos.xz / 0.666) * 0.666;
           float m = islandMargin(pix);
@@ -662,6 +684,42 @@ export class PixelWorldRenderer {
     this.islandGroup.add(oceanMesh);
   }
 
+  public getCameraView(): IslandCameraView {
+    return {
+      mode: this.cameraMode,
+      target: this.target.toArray(),
+      ...this.spherical,
+      walk: this.walkPos.toArray(),
+      yaw: this.walkYaw, pitch: this.walkPitch, fov: this.camera.fov,
+      autoSpin: this.autoSpin360,
+    };
+  }
+
+  /** Returns false for older or incomplete saves so the island can use its own starting view. */
+  public restoreCameraView(view?: IslandCameraView): boolean {
+    this.followService();
+    this.keysDown.clear();
+    const vector = (v: unknown) => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite);
+    if (!view || !["pan", "orbit", "walk"].includes(view.mode) || !vector(view.target) || !vector(view.walk) ||
+        ![view.radius, view.theta, view.phi, view.yaw, view.pitch, view.fov].every(Number.isFinite)) {
+      this.cameraMode = "pan";
+      this.autoSpin360 = false;
+      this.recentreCamera();
+      return false;
+    }
+    this.cameraMode = view.mode;
+    this.target.fromArray(view.target);
+    this.spherical = {radius:view.radius, theta:view.theta, phi:view.phi};
+    this.walkPos.fromArray(view.walk);
+    this.walkYaw = view.yaw;
+    this.walkPitch = view.pitch;
+    this.camera.fov = THREE.MathUtils.clamp(view.fov, 20, 68);
+    this.autoSpin360 = view.autoSpin === true;
+    this.camera.updateProjectionMatrix();
+    this.updateCameraTransform();
+    return true;
+  }
+
   public setCameraMode(mode: CameraMode): void {
     if (mode === "walk") this.followService();
     this.cameraMode = mode;
@@ -695,7 +753,7 @@ export class PixelWorldRenderer {
       this.camera.updateProjectionMatrix();
       return;
     }
-    this.spherical.radius = THREE.MathUtils.clamp(this.spherical.radius * factor, 5.5, 250);
+    this.spherical.radius = THREE.MathUtils.clamp(this.spherical.radius * factor, 5.5, GRID_SIZE*TILE_SIZE*1.7);
     this.updateCameraTransform();
   }
 
@@ -795,10 +853,26 @@ export class PixelWorldRenderer {
     }
   }
 
+  private clearGeography(){
+    this.islandGroup.traverse(o=>{
+      if(o instanceof THREE.Mesh||o instanceof THREE.LineSegments){
+        o.geometry.dispose();for(const mat of Array.isArray(o.material)?o.material:[o.material])mat.dispose();
+      }
+    });
+    this.islandGroup.clear();
+    this.coastlineTexture?.dispose();
+  }
   public syncState(state: GameState, selectedIds: string[]): void {
     this.gameState = state;
+    if(this.renderedGeography!==(state.terrainVersion??1)){this.clearGeography();this.buildIslandAndOcean();}
     this.selectedIds = selectedIds;
     this.engineering.sync(state);
+    const coastalStamp=(state.terrainVersion??1)+"/"+(state.infrastructure?.stamp??state.infrastructure?.revision??0);
+    if(coastalStamp!==this.coastalStamp && this.coastlineTexture && this.naturalCoastline){
+      this.coastalStamp=coastalStamp;
+      this.coastlineTexture.image.data=editedCoastline(state,this.naturalCoastline);
+      this.coastlineTexture.needsUpdate=true;
+    }
     this.activeTravel = state.mobility || state.projectOps?.calls.length ? getTravelNetwork(state) : undefined;
 
     const seenIds = new Set<string>();
@@ -946,7 +1020,7 @@ export class PixelWorldRenderer {
       return (cell.depth?cell.waterLevel:cell.elevation)+.025-VOXEL_SIZE;
     }
     if (def.domain === "water") return -0.58;
-    const m = islandMarginAtWorld(wx, wz);
+    const m = islandMarginAtWorld(wx,wz,this.gameState.terrainVersion);
     // The top of a lot's ground voxel meets the island surface. A small clearance prevents z-fighting.
     if (m >= 2.0) return 0.025 - VOXEL_SIZE;
     if (def.archetype === "bridge_span" || def.archetype === "bridge_suspension" || def.archetype === "dock_pier") {
@@ -2005,8 +2079,8 @@ export class PixelWorldRenderer {
       this.skyBgColor.lerp(new THREE.Color(0xeef6ff), this.lightningFlash * 0.78);
     }
 
-    this.scene.environmentIntensity = THREE.MathUtils.lerp(0.028, 0.28, dayFactor) * weatherDim;
-    this.renderer.toneMappingExposure = THREE.MathUtils.lerp(0.84, 0.97, dayFactor);
+    this.scene.environmentIntensity = THREE.MathUtils.lerp(0.055, 0.28, dayFactor) * weatherDim;
+    this.renderer.toneMappingExposure = THREE.MathUtils.lerp(0.90, 0.97, dayFactor);
     this.oceanUniforms.uDaylight.value = dayFactor;
     this.scene.background = this.skyBgColor;
     if (this.scene.fog instanceof THREE.FogExp2) {
@@ -2021,9 +2095,9 @@ export class PixelWorldRenderer {
     const moonCol = new THREE.Color(0x6d93d6);
     this.sunLight.color.copy(moonCol).lerp(sunDayCol, dayFactor).lerp(sunDuskCol, duskFactor * 0.7);
     this.sunLight.intensity =
-      (THREE.MathUtils.lerp(0.45, 2.25, dayFactor) + this.lightningFlash * 2.8) * weatherDim;
+      (THREE.MathUtils.lerp(0.58, 2.25, dayFactor) + this.lightningFlash * 2.8) * weatherDim;
     this.hemiLight.intensity = THREE.MathUtils.lerp(0.32, 0.88, dayFactor) * weatherDim;
-    this.hemiLight.color.copy(nightSky).lerp(new THREE.Color(0xf0f8ff), dayFactor);
+    this.hemiLight.color.setHex(0x748cba).lerp(new THREE.Color(0xf0f8ff), dayFactor);
     this.bounceLight.intensity = THREE.MathUtils.lerp(0.18, 0.42, dayFactor);
 
     // Clouds modulated by intensity & windSpeed
@@ -3030,11 +3104,11 @@ export class PixelWorldRenderer {
       return;
     }
 
-    this.spherical.radius = THREE.MathUtils.clamp(this.spherical.radius, 5.5, 250);
+    this.spherical.radius = THREE.MathUtils.clamp(this.spherical.radius, 5.5, GRID_SIZE*TILE_SIZE*1.7);
     this.spherical.phi = THREE.MathUtils.clamp(this.spherical.phi, 0.22, 1.44);
-    this.target.x = THREE.MathUtils.clamp(this.target.x, -145, 145);
+    this.target.x = THREE.MathUtils.clamp(this.target.x,-GRID_HALF*TILE_SIZE,GRID_HALF*TILE_SIZE);
     this.target.y = THREE.MathUtils.clamp(this.target.y, 0, 14);
-    this.target.z = THREE.MathUtils.clamp(this.target.z, -145, 145);
+    this.target.z = THREE.MathUtils.clamp(this.target.z,-GRID_HALF*TILE_SIZE,GRID_HALF*TILE_SIZE);
 
     const sinPhi = Math.sin(this.spherical.phi);
     this.camera.position.set(
@@ -3076,8 +3150,8 @@ export class PixelWorldRenderer {
       const right = new THREE.Vector3(-fwd.z, 0, fwd.x);
       const step = fwd.multiplyScalar(forwardInput).addScaledVector(right, rightInput).normalize().multiplyScalar(spd);
       const [x, z] = this.resolveBuildingCollision(this.walkPos.x + step.x, this.walkPos.z + step.z, 0.27);
-      this.walkPos.x = THREE.MathUtils.clamp(x, -125, 125);
-      this.walkPos.z = THREE.MathUtils.clamp(z, -125, 125);
+      this.walkPos.x = THREE.MathUtils.clamp(x,-GRID_HALF*TILE_SIZE+1,GRID_HALF*TILE_SIZE-1);
+      this.walkPos.z = THREE.MathUtils.clamp(z,-GRID_HALF*TILE_SIZE+1,GRID_HALF*TILE_SIZE-1);
       const deck = this.streetHeight(this.walkPos.x, this.walkPos.z, Math.abs(step.x) > Math.abs(step.z));
       this.walkPos.y = THREE.MathUtils.lerp(this.walkPos.y, 2.3 + deck, Math.min(1, dt * 14));
       this.updateCameraTransform();
@@ -3414,6 +3488,7 @@ export class PixelWorldRenderer {
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
+    if (document.querySelector("dialog[open]") || (e.target instanceof Element && e.target.closest("input,textarea,select,button,summary,a,[contenteditable=true]")))return;
     const tag = (e.target as HTMLElement | null)?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
     this.keysDown.add(e.code);
@@ -3447,6 +3522,7 @@ export class PixelWorldRenderer {
     if (this.ghostGroup) releaseParcelGeometry(this.ghostGroup);
     for (const entry of this.placedEntries.values()) releaseParcelGeometry(entry.group);
     this.setHeatmap("none");
+    this.clearGeography();
     this.engineering.dispose();
     this.disposed = true;
     this.canvas.removeEventListener("pointerdown", this.onPointerDown);

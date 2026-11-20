@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { effective } from "../game/cityEconomy";
+import { GRID_MIN, GRID_MAX } from "../game/mapBounds";
 import type { GameState, PlacedElement } from "../game/simulation";
 import {
   buildWaterNavigation,
@@ -21,46 +22,55 @@ type Props = {
   onToolChange: (t: InfrastructureTool | null) => void;
   onPreview: (tool: InfrastructureTool, points: GridPoint[]) => void;
   onClose: () => void;
+  onUseMap: (tool: InfrastructureTool) => void;
   selected?: PlacedElement;
   inspectPoint?: GridPoint;
 };
-const tools: [InfrastructureTool["kind"], string][] = [
-  ["canal", "Draw canal"],
-  ["river", "Draw river"],
-  ["pond", "Dig pond"],
-  ["bay", "Open bay"],
-  ["peninsula", "Reclaim land"],
-  ["paint", "Paint ground"],
-  ["raise", "Raise land"],
-  ["lower", "Lower land"],
-  ["smooth", "Smooth grade"],
-  ["mountain", "Raise mountain"],
-  ["canyon", "Cut canyon"],
-  ["spring", "Tap spring"],
-  ["lock", "Canal lock"],
-  ["dam", "Dam gate"],
-  ["aqueduct", "Lay aqueduct"],
-  ["bridge", "Span crossing"],
-  ["street", "Edit road"],
-  ["interchange", "Build interchange"],
-  ["erase", "Remove works"],
+type Kind=InfrastructureTool["kind"];
+const tools: {group:string; entries:[Kind,string,string][]}[]=[
+  {group:"Shape land",entries:[
+    ["paint","Paint ground","Change the surface material. The ground stays at its existing height."],
+    ["raise","Raise land","Lift a patch of ground. Repeated passes add elevation."],
+    ["lower","Lower land","Lower the ground. At the coast, excavating below sea level lets the sea in."],
+    ["smooth","Smooth grade","Blend the selected ground with the heights of neighboring tiles."],
+    ["mountain","Raise mountain","Build steep rock slopes. Tall peaks gain snow."],
+    ["canyon","Cut canyon","Excavate a dry, rocky channel."],
+    ["peninsula","Reclaim land","Raise dry, buildable ground from the shore and choose its surface."]]},
+  {group:"Shape water",entries:[
+    ["canal","Draw canal","Cut a freshwater channel and connect a river or spring to supply it."],
+    ["river","Draw river","Trace the river from its source toward its outlet."],
+    ["pond","Dig pond","Dig a basin. Connect a replenished source if the pond needs a steady water supply."],
+    ["bay","Open bay","Excavate a saltwater inlet at sea level."],
+    ["spring","Tap spring","Create a freshwater source to feed nearby channels."],
+    ["lock","Canal lock","Set a gate in a channel to control passage."],
+    ["dam","Dam gate","Retain freshwater upstream. Gate position controls the release."]]},
+  {group:"Crossings & utilities",entries:[
+    ["bridge","Span crossing","Drag from bank to bank, or tap one bank and then the opposite bank. Leave room for both approaches."],
+    ["aqueduct","Lay aqueduct","Trace a raised supply line from a water source toward a consumer or an outlet."]]},
+  {group:"Streets",entries:[
+    ["street","Edit road","Trace existing road tiles to change the number of lanes or operate a junction signal."],
+    ["interchange","Build interchange","Tap once to mark the center of the junction. Check the layout and affected sites in the preview."]]},
+  {group:"Maintenance",entries:[["erase","Remove works","Remove the selected construction layer from the marked tiles."]]},
 ];
-const preset: InfrastructureTool = {
-  kind: "canal",
-  radius: 0,
-  depth: 1,
-  height: 2,
-  material: "sand",
-  shape: "arch",
-  mode: "foot",
-  signal: "yield",
-  period: 12,
-  lanes: 2,
-  layout: "diamond",
-  outlet: "auto",
-  lift: "auto",
-  style: 0,
-};
+const brushKinds:Kind[]=["paint","raise","lower","smooth","mountain","canyon","peninsula","canal","river","pond","bay","spring"];
+function defaultTool(kind:Kind): InfrastructureTool {
+  switch(kind) {
+    case "bridge": return {kind,mode:"foot",shape:"arch",height:2,lift:"auto"};
+    case "aqueduct": return {kind,height:3,style:0,outlet:"auto"};
+    case "interchange": return {kind,layout:"diamond",orientation:0,lanes:2,signal:"auto",period:12};
+    case "street": return {kind,lanes:2,signal:"yield",period:12};
+    case "lock": return {kind,gate:"open"};
+    case "dam": return {kind,gate:"open",height:1};
+    case "erase": return {kind,eraseLayer:"terrain"};
+    case "spring": case "river": return {kind,radius:0,depth:1,flow:kind==="spring" ? 12 : 4};
+    case "pond": case "canal": case "bay": return {kind,radius:0,depth:1};
+    case "paint": return {kind,radius:0,material:"sand"};
+    case "peninsula": return {kind,radius:0,material:"sand",height:1};
+    case "smooth": return {kind,radius:0};
+    default: return {kind,radius:0,height:1};
+  }
+}
+const preset=defaultTool("canal");
 const field = "block w-full rounded border border-stone-300 bg-white p-1.5 text-sm text-stone-900";
 const btn =
   "rounded border border-stone-300 bg-white px-2 py-1.5 text-sm font-semibold text-stone-800 hover:bg-amber-50 disabled:opacity-45";
@@ -73,9 +83,11 @@ export function InfrastructurePanel({
   onToolChange,
   onClose,
   onPreview,
+  onUseMap,
   selected,
   inspectPoint,
 }: Props) {
+  const [draft,setDraft]=useState<InfrastructureTool>(tool??preset);
   const [coords, setCoords] = useState<GridPoint>({ gx: selected?.gx ?? 0, gz: selected?.gz ?? 0 });
   const [end, setEnd] = useState<GridPoint>({ gx: (selected?.gx ?? 0) + 3, gz: selected?.gz ?? 0 });
   const [feedback, setFeedback] = useState("");
@@ -95,7 +107,7 @@ export function InfrastructurePanel({
         ...tiles.filter(([, s]) => s.ramp).map(([, s]) => Math.min(s.startHeight, s.endHeight)),
         span.deck,
       );
-      onToolChange({
+      setDraft({
         ...preset,
         kind: "bridge",
         mode: span.mode,
@@ -104,7 +116,7 @@ export function InfrastructurePanel({
         lift: span.lift,
       });
     } else if (duct)
-      onToolChange({
+      setDraft({
         ...preset,
         kind: "aqueduct",
         style: duct.style,
@@ -112,9 +124,9 @@ export function InfrastructurePanel({
         outlet: duct.outlet,
       });
     else if (road)
-      onToolChange({ ...preset, kind: "street", lanes: road.lanes, signal: road.signal, period: road.period });
+      setDraft({ ...preset, kind: "street", lanes: road.lanes, signal: road.signal, period: road.period });
   }, [inspectPoint?.gx, inspectPoint?.gz, selected?.id]);
-  const current = tool ?? preset,
+  const current = tool ?? draft,
     kind = current.kind,
     infra = state.infrastructure,
     point = inspectPoint ?? (selected ? { gx: selected.gx, gz: selected.gz } : coords);
@@ -124,13 +136,15 @@ export function InfrastructurePanel({
     flow = waterSystem.runs.get(key),
     ground = getTerrainCell(state, point.gx, point.gz);
   const set = (patch: Partial<InfrastructureTool>) => {
-    onToolChange({ ...current, ...patch });
+    const next={...current,...patch};setDraft(next);
+    if(tool) onToolChange(next);
     setFeedback("");
   };
   const choice = <K extends keyof InfrastructureTool>(key: K, title: string, values: [string, string][]) => (
     <label key={key}>
       {title}
       <select
+        aria-label={title}
         className={field}
         value={String(current[key] ?? preset[key] ?? "")}
         onChange={(e) => set({ [key]: e.target.value })}
@@ -143,17 +157,18 @@ export function InfrastructurePanel({
       </select>
     </label>
   );
-  const num = (key: keyof InfrastructureTool, title: string, min: number, max: number, step = 1) => (
+  const num = (key: keyof InfrastructureTool, title: string, min: number, max: number, step = 1, factor = 1) => (
     <label key={key}>
       {title}
       <input
+        aria-label={title}
         className={field}
         type="number"
-        min={min}
-        max={max}
-        step={step}
-        value={Number(current[key] ?? preset[key] ?? min)}
-        onChange={(e) => set({ [key]: Math.min(max, Math.max(min, Number(e.target.value))) })}
+        min={min * factor}
+        max={max * factor}
+        step={step * factor}
+        value={Number(current[key] ?? preset[key] ?? min) * factor}
+        onChange={(e) => set({ [key]: Math.min(max, Math.max(min, Number(e.target.value) / factor)) })}
       />
     </label>
   );
@@ -166,10 +181,10 @@ export function InfrastructurePanel({
           <input
             className={field}
             type="number"
-            min="-32"
-            max="31"
+            min={GRID_MIN}
+            max={GRID_MAX}
             value={pt[axis]}
-            onChange={(e) => change({ ...pt, [axis]: Math.max(-32, Math.min(31, Number(e.target.value))) })}
+            onChange={(e) => change({ ...pt, [axis]: Math.max(GRID_MIN, Math.min(GRID_MAX, Math.round(Number(e.target.value)))) })}
           />
         </label>
       ))}
@@ -197,11 +212,12 @@ export function InfrastructurePanel({
       <label className="mt-2 block">
         Construction tool
         <select
+          aria-label="Construction tool"
           className={field}
           value={kind}
-          onChange={(e) => set({ kind: e.target.value as InfrastructureTool["kind"] })}
+          onChange={e=>{setDraft(defaultTool(e.target.value as Kind));onToolChange(null);setFeedback("");}}
         >
-          {tools.map(([type, label]) => {
+          {tools.map(group=><optgroup key={group.group} label={group.group}>{group.entries.map(([type, label]) => {
             const stage = requiredToolStage({ kind: type });
             return (
               <option key={type} value={type}>
@@ -211,20 +227,21 @@ export function InfrastructurePanel({
                   : ""}
               </option>
             );
-          })}
+          })}</optgroup>)}
         </select>
       </label>
       <div className="mt-2 grid grid-cols-2 gap-2">
-        {!["bridge", "aqueduct", "street", "interchange", "erase"].includes(kind) &&
-          num("radius", "Brush radius", 0, 3)}
+        {brushKinds.includes(kind) && <label>Brush width<select aria-label="Brush width" className={field} value={current.radius??0} onChange={e=>set({radius:Number(e.target.value)})}>
+          {[0,1,2,3].map(n=><option key={n} value={n}>{n===0 ? "Single tile" : (2*n+1)+" tiles across"}</option>)}</select></label>}
         {["canal", "pond", "bay", "river", "spring"].includes(kind) && num("depth", "Depth (m)", 0.25, 8, 0.25)}
         {["raise", "lower", "mountain", "canyon", "peninsula", "bridge", "aqueduct"].includes(kind) &&
           num(
             "height",
-            kind === "bridge" ? "Deck rise (m)" : kind === "aqueduct" ? "Support height (m)" : "Height change (m)",
+            kind === "bridge" ? "Deck rise (m)" : kind === "aqueduct" ? "Support height (m)" : kind==="canyon" ? "Cut depth (m)" : "Height change (m)",
             0.5,
             9,
             0.5,
+            kind === "mountain" || kind === "canyon" ? 2 : 1,
           )}
         {["paint", "peninsula"].includes(kind) &&
           choice("material", "Ground", groups(["grass", "sand", "clay", "rock", "wetland", "snow"] as const))}
@@ -259,20 +276,22 @@ export function InfrastructurePanel({
         )}
         {["street", "interchange"].includes(kind) && (
           <>
-            {num("lanes", "Total lanes", 2, 8, 2)}
+            <label>Total lanes<select className={field} value={current.lanes??2} onChange={e=>set({lanes:Number(e.target.value)})}>
+              {[2,4,6,8].map(n=><option key={n} value={n}>{n} lanes</option>)}</select></label>
             {choice("signal", "Signal phase", [
               ["yield", "Yield"],
               ["auto", "Timed cycle"],
               ["north", "Hold N–S green"],
               ["east", "Hold E–W green"],
             ])}
-            {num("period", "Cycle (seconds)", 4, 60)}
+            {current.signal==="auto" && num("period", "Cycle (seconds)", 4, 60)}
           </>
         )}
         {kind === "interchange" && (
           <>
             {choice("layout", "Junction", groups(["diamond", "trumpet", "directional"]))}
-            {num("orientation", "Quarter turns", 0, 3)}
+            <label>Orientation<select className={field} value={current.orientation??0} onChange={e=>set({orientation:Number(e.target.value)})}>
+              {["0°","90°","180°","270°"].map((angle,i)=><option key={i} value={i}>{angle}</option>)}</select></label>
           </>
         )}
         {state.mode === "god" && ["spring", "river"].includes(kind) && num("flow", "Source flow", 0, 100)}
@@ -290,17 +309,10 @@ export function InfrastructurePanel({
           </label>
         )}
       </div>
-      <p className="my-2">
-        {kind === "bridge"
-          ? "Drag bank to bank, or tap the first bank and then the opposite bank."
-          : kind === "interchange"
-            ? "Tap the center of the junction to place it."
-            : "Drag to trace a run or tap one tile."}
-      </p>
-      <div className="flex flex-wrap gap-1">
-        <button className={btn} onClick={() => onToolChange(tool ? null : current)}>
-          {tool ? "Put tool away" : "Use on map"}
-        </button>
+      <p className="works-hint">{tools.flatMap(group=>group.entries).find(([id])=>id===kind)?.[2]}</p>
+      <div className="works-actions">
+        <button className="works-primary" onClick={()=>{setDraft(current);onUseMap(current);}}>Use on map</button>
+        {tool && <button className={btn} onClick={()=>{setDraft(current);onToolChange(null);}}>Put tool away</button>}
         <button
           className={btn}
           disabled={!infra?.undo.length}
@@ -314,16 +326,12 @@ export function InfrastructurePanel({
         </button>
       </div>
       <details className="mt-3">
-        <summary className="cursor-pointer font-bold">Coordinates & inspection</summary>
+        <summary className="cursor-pointer font-bold">Coordinates &amp; inspection</summary>
         {cellInput("Start tile", coords, setCoords)}
-        {cellInput("End tile", end, setEnd)}
+        {kind!=="interchange" && cellInput("End tile", end, setEnd)}
         <div className="mt-1 flex gap-1">
-          <button className={btn} onClick={() => commit([coords])}>
-            Preview tile
-          </button>
-          <button className={btn} onClick={() => commit([coords, end])}>
-            Preview run
-          </button>
+          {kind!=="bridge" && <button className={btn} onClick={() => commit([coords])}>Preview tile</button>}
+          {kind!=="interchange" && <button className={btn} onClick={() => commit([coords, end])}>Preview run</button>}
         </div>
         {selected && (
           <button className={btn} onClick={() => commit([point])}>

@@ -30,9 +30,18 @@ const domains: Record<string, string> = {
 };
 const money = (n: number) => "$" + n.toLocaleString("en");
 type Picture = { image: string; caption: string; alt: string; width: number; height: number };
-type Lesson = { id: string; title: string; steps: string[]; examples: Picture[] };
+type Lesson = {
+  id: string;
+  title: string;
+  steps: string[];
+  examples: Picture[];
+  world?: string;
+  summary?: string;
+};
 type Chapter = { id: string; title: string; label: string; intro: string; cover: string; lessons: Lesson[] };
 const book: Chapter[] = chapters;
+const worlds = book.find((chapter) => chapter.id === "worlds")?.lessons ?? [];
+const playWorld = (id: string) => "./index.html#world=" + encodeURIComponent(id);
 const asset = (path: string) => "./" + path.replace(/^\//, "");
 const categories = Array.from(new Set(catalog.map((entry) => entry.categoryName)));
 const readLocation = () => new URLSearchParams(location.hash.slice(1));
@@ -321,16 +330,29 @@ function App() {
                 {current.lessons.map((l) => (
                   <section className="lesson" key={l.id} id={l.id}>
                     <h2>{l.title}</h2>
+                    {l.world && (
+                      <a className="action play-island" href={playWorld(l.world)}>
+                        Play this island <span aria-hidden="true">→</span>
+                      </a>
+                    )}
                     <ol>
                       {l.steps.map((step, i) => (
                         <li key={i}>{step}</li>
                       ))}
                     </ol>
                     <div className={l.examples.length > 1 ? "plates pair" : "plates"}>
-                      {l.examples.map((pic) => (
+                      {(l.world ? l.examples.slice(0, 3) : l.examples).map((pic) => (
                         <Plate key={pic.image} pic={pic} />
                       ))}
                     </div>
+                    {l.world && l.examples.length > 3 && (
+                      <details className="viewpoint-gallery">
+                        <summary>See all viewpoints in {l.title}</summary>
+                        <div className="plates pair">
+                          {l.examples.slice(3).map((pic) => <Plate key={pic.image} pic={pic} />)}
+                        </div>
+                      </details>
+                    )}
                   </section>
                 ))}
               </article>
@@ -342,31 +364,62 @@ function App() {
               <div className="opening-copy">
                 <h1>Island handbook</h1>
                 <p>
-                  Build a canal town where the bridge opens, the ferry calls, and the shops have people to serve.
+                  Follow a ferry to the open sea, feed a hillside farm from a mountain spring, or catch the
+                  night train.
                 </p>
-                <a className="action" href={link({ section: "tour" })}>
-                  Take the canal district tour <span>→</span>
+                <a className="action" href={link({ section: "worlds" })}>
+                  Tour the three islands <span aria-hidden="true">→</span>
                 </a>
                 <a className="inline-link" href={catalogUrl}>
                   Browse all {catalog.length} designs
                 </a>
               </div>
               <img
-                src="./handbook/travel/canal-district.jpg"
-                alt="A working lift bridge links the banks of the canal district; a mountain aqueduct crosses downstream."
+                src="./handbook/worlds/pelican-reach.webp"
+                alt="The ferry channel, road crossing and quays of Pelican Reach seen from above."
               />
+            </div>
+            <h2 className="collection-title">Playable islands</h2>
+            <div className="world-cards">
+              {worlds.map((world) => (
+                <article key={world.id}>
+                  <img
+                    src={asset("/handbook/worlds/" + world.id + ".webp")}
+                    width="960"
+                    height="600"
+                    alt=""
+                    loading="lazy"
+                  />
+                  <div>
+                    <h3>{world.title}</h3>
+                    <p>{world.summary}</p>
+                    <a className="action" href={playWorld(world.id)} aria-label={"Play " + world.title}>
+                      Play island <span aria-hidden="true">→</span>
+                    </a>
+                    <a
+                      className="inline-link"
+                      href={link({ section: "worlds", lesson: world.id })}
+                      aria-label={"View " + world.title + " tour"}
+                    >
+                      View tour
+                    </a>
+                  </div>
+                </article>
+              ))}
             </div>
             <h2 className="collection-title">Playing the island</h2>
             <div className="chapters">
-              {book.map((c) => (
-                <a key={c.id} href={link({ section: c.id })}>
-                  <img src={asset(c.cover)} loading="lazy" alt="" />
-                  <div>
-                    <h3>{c.title}</h3>
-                    <p>{c.intro}</p>
-                  </div>
-                </a>
-              ))}
+              {book
+                .filter((c) => c.id !== "worlds")
+                .map((c) => (
+                  <a key={c.id} href={link({ section: c.id })}>
+                    <img src={asset(c.cover)} loading="lazy" alt="" />
+                    <div>
+                      <h3>{c.title}</h3>
+                      <p>{c.intro}</p>
+                    </div>
+                  </a>
+                ))}
             </div>
           </>
         )}

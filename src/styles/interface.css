@@ -1,0 +1,28 @@
+@font-face {
+  font-family: "DM Sans";
+  src: url("./dm-sans-latin.woff2?inline") format("woff2");
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+}
+:root {
+  --ui-font: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --ui-ink: #19392f;
+  --ui-muted: #52665b;
+  --ui-green: #235944;
+  --ui-leaf: #dce9d8;
+  --ui-paper: #faf9f1;
+  --ui-card: #fffef9;
+  --ui-line: #bdcbbd;
+  --ui-focus: #a45312;
+  --ui-radius: 10px;
+  --ui-shadow: 0 4px 18px #142f292b;
+}
+:where(button,a,input,select,textarea,summary):focus-visible {
+  outline: 3px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+button, select, summary { touch-action: manipulation; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; }
+}

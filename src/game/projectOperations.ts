@@ -260,19 +260,46 @@ export function igniteSite(s: GameState, id: string) {
   operationsOf(s).fires++;
   return true;
 }
+function stationCrews(s: GameState, station: PlacedElement) {
+  return Math.min(station.level, Math.floor(professionalStaff(s, station)));
+}
+
+/** Station capacity and neighborhood coverage both matter as the population grows. */
+const baseFireRisk = (s: GameState) => effective(s, "risk", s.mode === "god" ? 0 : s.mode === "survival" ? 12 : 4);
+export function fireServiceReadiness(s: GameState) {
+  const authority = hasAuthority(s);
+  let crews = 0, protectedSites = 0, occupiedSites = 0;
+  for (const site of s.elements) {
+    const def = ELEMENT_BY_ID[site.defId];
+    if (!def || !site.connected || def.isNetwork || def.passiveNature) continue;
+    occupiedSites++;
+    if (site.hasFireCover) protectedSites++;
+    if (!authority || !def.fireRadius || !operational(site)) continue;
+    crews += stationCrews(s, site);
+  }
+  const required = Math.max(1, Math.ceil(s.population / 50000));
+  const coverage = occupiedSites ? protectedSites / occupiedSites : 1;
+  const readiness = Math.min(1, crews / required, coverage);
+  const base = baseFireRisk(s);
+  const chance = s.mode === "god" ? base : Math.min(100, base * (0.6 + (1 - readiness) * 3.4));
+  return { crews, required, coverage, readiness, chance };
+}
+
 const fireHull = { beam: 1.4, draft: 0.38, height: 1 };
 function routeCrew(s: GameState, c: Call, target: PlacedElement) {
   const op = operationsOf(s),
     net = getTravelNetwork(s),
-    busy = new Set(op.calls.filter((x) => x !== c && x.origin).map((x) => x.origin)),
     authority = hasAuthority(s);
+  const busy = new Map<string, number>();
+  for (const call of op.calls) {
+    if (call !== c && call.origin) busy.set(call.origin, (busy.get(call.origin) ?? 0) + 1);
+  }
   const professional = s.elements.filter(
     (el) =>
-      !busy.has(el.id) &&
       operational(el) &&
       authority &&
       (ELEMENT_BY_ID[el.defId]?.fireRadius ?? 0) > 0 &&
-      professionalStaff(s, el) >= 1,
+      stationCrews(s, el) > (busy.get(el.id) ?? 0),
   );
   const local = s.elements.filter(
     (el) =>
@@ -287,7 +314,7 @@ function routeCrew(s: GameState, c: Call, target: PlacedElement) {
       if (path) options.push({ el, kind, path });
     }
   }
-  if (!options.length && (!op.rescued || !authority || s.highestStageReached < 4)) {
+  if (!options.length && (s.highestStageReached < 4 || (!op.rescued && op.fires <= 1))) {
     for (const el of local) {
       const path = net.path(net.connectors(el, "walk"), net.connectors(target, "walk"), "walk");
       if (path) options.push({ el, kind: "volunteer", path });
@@ -402,14 +429,14 @@ export function advanceOperations(s: GameState, dt: number) {
         changed = true;
       }
     }
-    const risk = effective(s, "risk", s.mode === "god" ? 0 : s.mode === "survival" ? 12 : 4);
-    if ((s.mode === "god" || s.highestStageReached >= 4) && risk > 0) {
-      if (op.sinceBoom === undefined) {
+    if (s.mode === "god" || s.highestStageReached >= 4) {
+      const risk = baseFireRisk(s);
+      if (risk > 0 && op.sinceBoom === undefined) {
         op.sinceBoom = s.activePlaySec;
         op.nextFire = s.activePlaySec + 100;
       }
-      if (s.activePlaySec >= op.nextFire) {
-        op.nextFire = s.activePlaySec + 120 + Math.random() * 220;
+      if (risk > 0 && s.activePlaySec >= op.nextFire) {
+        op.nextFire = s.activePlaySec + 90 + Math.random() * 130;
         const vulnerable = s.elements.filter(
           (e) =>
             e.connected &&
@@ -417,9 +444,10 @@ export function advanceOperations(s: GameState, dt: number) {
             !ELEMENT_BY_ID[e.defId]?.isNetwork &&
             !ELEMENT_BY_ID[e.defId]?.passiveNature,
         );
-        if (vulnerable.length && Math.random() < risk / 100) {
+        if (vulnerable.length && Math.random() < fireServiceReadiness(s).chance / 100) {
           vulnerable.sort(
             (a, b) =>
+              3 * (Number(a.hasFireCover) - Number(b.hasFireCover)) +
               Number(b.disrepair) -
               Number(a.disrepair) +
               (ELEMENT_BY_ID[b.defId].nuisanceRadius ?? 0) -

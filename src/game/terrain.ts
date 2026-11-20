@@ -1,3 +1,4 @@
+import { cellIndex, withinMap as inBounds } from "./mapBounds";
 import { buildingCharges, effective, transfer } from "./cityEconomy";
 import { ELEMENT_BY_ID } from "./catalog";
 import type { GameState, PlacedElement } from "./simulation";
@@ -13,8 +14,7 @@ export const DIRECTIONS = [
   [-1, 0],
 ] as const;
 export const tileKey = (x: number, z: number) => x + "," + z;
-const naturalTiles = new Map<string, TerrainCell>();
-const inBounds = (x: number, z: number) => x >= -32 && z >= -32 && x < 32 && z < 32;
+const naturalTiles: TerrainCell[][] = [[], []];
 const round = (n: number) => Math.round(n * 100) / 100;
 export type Material = "grass" | "sand" | "rock" | "clay" | "wetland" | "snow";
 export interface TerrainCell {
@@ -31,7 +31,7 @@ export interface TerrainCell {
   flowDir?: number;
   excavated?: boolean;
   freeLevel?: number;
-  form?: "canal" | "river" | "lake" | "spring" | "canyon" | "bank";
+  form?: "bay" | "canal" | "river" | "lake" | "spring" | "canyon" | "bank";
 }
 export interface GridPoint {
   gx: number;
@@ -169,37 +169,79 @@ export function setFacilityControl(
   i.facilities[id] = entry;
   changed(i);
 }
-export function islandMargin(x: number, z: number): number {
+// The original coast is retained for existing cities. New games add adjoining mainland
+// headlands. Both editions can reach the outer islands and the open passage around them.
+const outerIslands = [
+  [-252, -72, 72, 97, 2.8, 0.68],
+  [208, -216, 101, 74, 3.1, 1.4],
+  [40, 248, 133, 62, 2.7, 0.8],
+  [-244, -264, 57, 40, 2.3, 2.4],
+  [280, 176, 43, 63, 2.2, 0.3],
+] as const;
+const mainHeadlands = [
+  [-130, -28, 109, 101, 2.85, 1.7],
+  [-18, -107, 102, 92, 2.65, 0.4],
+] as const;
+function landformMargin(
+  x: number,
+  z: number,
+  cx: number,
+  cz: number,
+  rx: number,
+  rz: number,
+  power: number,
+  phase: number,
+) {
+  const ax = (x - cx) / rx,
+    az = (z - cz) / rz;
+  const angle = Math.atan2(az, ax),
+    r = (Math.abs(ax) ** power + Math.abs(az) ** power) ** (1 / power);
+  return (1 + 0.052 * Math.sin(3 * angle + phase) + 0.033 * Math.cos(5 * angle - phase) - r) * Math.min(rx, rz);
+}
+export function islandMargin(x: number, z: number, terrainVersion = 1): number {
   const extent = 108,
     angle = Math.atan2(z, x);
   const r = (Math.abs(x / extent) ** 3.6 + Math.abs(z / extent) ** 3.6) ** (1 / 3.6);
-  return (
+  let margin =
     (1 + 0.045 * Math.sin(angle * 3 + 0.7) + 0.03 * Math.cos(angle * 5 - 1.1) + 0.02 * Math.sin(angle * 7 + 2.2) - r) *
-    extent
-  );
+    extent;
+  if (terrainVersion < 2 && Math.max(Math.abs(x), Math.abs(z)) <= 128) return margin;
+  const test = (shape: readonly [number, number, number, number, number, number]) => {
+    const [cx, cz, rx, rz, p, phase] = shape;
+    const coastExtent = 1.15 + 37 / Math.min(rx, rz);
+    if (Math.abs(x - cx) > rx * coastExtent || Math.abs(z - cz) > rz * coastExtent) return;
+    margin = Math.max(margin, landformMargin(x, z, cx, cz, rx, rz, p, phase));
+  };
+  if (terrainVersion >= 2) for (const shape of mainHeadlands) test(shape);
+  for (const shape of outerIslands) test(shape);
+  return margin;
 }
-export function naturalElevation(x: number, z: number): number {
-  const margin = islandMargin(x, z);
+export function elevationFromMargin(margin: number): number {
   return margin >= 2
     ? 0
     : margin >= -7
       ? Math.round(((-(2 - margin) / 9) * 1.45) / 0.25) * 0.25
       : -1.45 - Math.round(Math.min(1, (-7 - margin) / 26) * 12) * 0.45;
 }
+export function naturalElevation(x: number, z: number, terrainVersion = 1) {
+  return elevationFromMargin(islandMargin(x, z, terrainVersion));
+}
 export function getTerrainCell(
-  state: Pick<GameState, "infrastructure"> | undefined,
+  state: Pick<GameState, "infrastructure" | "terrainVersion"> | undefined,
   gx: number,
   gz: number,
 ): TerrainCell {
   const edit = state?.infrastructure?.cells[tileKey(gx, gz)];
   if (edit) return edit;
-  const key = tileKey(gx, gz),
-    cached = naturalTiles.get(key);
-  if (cached) return cached;
+  const version = state?.terrainVersion ?? 1,
+    cache = naturalTiles[version >= 2 ? 1 : 0],
+    inside = inBounds(gx, gz),
+    index = cellIndex(gx, gz);
+  if (inside && cache[index]) return cache[index];
   const x = (gx + 0.5) * TILE_SIZE,
     z = (gz + 0.5) * TILE_SIZE;
-  const elevation = naturalElevation(x, z),
-    margin = islandMargin(x, z);
+  const margin = islandMargin(x, z, version),
+    elevation = elevationFromMargin(margin);
   const depth = Math.max(0, SEA - elevation);
   const cell: TerrainCell = {
     elevation,
@@ -210,7 +252,7 @@ export function getTerrainCell(
     kind: margin >= 2.2 ? "land" : margin >= -6.5 ? "coast" : "water",
     water: depth ? "salt" : "dry",
   };
-  if (inBounds(gx, gz)) naturalTiles.set(key, cell);
+  if (inside) cache[index] = cell;
   return cell;
 }
 export const TOOL_STAGES: Record<InfrastructureTool["kind"], number> = {
@@ -358,6 +400,8 @@ export function roadPortOpen(state: GameState | undefined, x: number, z: number,
   return dir >= 0 && ((a ?? 15) & (1 << dir)) !== 0 && ((b ?? 15) & (1 << (dir + 2) % 4)) !== 0;
 }
 export function planInfrastructureStroke(state: GameState, tool: InfrastructureTool, input: GridPoint[]): WorksPreview {
+  if (input.some((p) => !inBounds(p.gx, p.gz)))
+    return { valid: false, reason: "Choose whole tiles inside the playable map.", cost: 0, points: [], affected: [] };
   let points = interpolate(input, tool.kind === "bridge");
   const fail = (reason: string): WorksPreview => ({ valid: false, reason, cost: 0, points, affected: [] });
   if (!points.length) return fail("Choose a tile.");
@@ -413,7 +457,12 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
     if (el) affected.add(el.id);
     if (tool.kind === "lock" || tool.kind === "dam") {
       if (getTerrainCell(state, p.gx, p.gz).depth <= 0) return fail("Choose a wet channel between opposite banks.");
-      if (tool.kind === "dam" && !damBanks(state, p.gx, p.gz))
+      if (
+        tool.kind === "dam" &&
+        (!["river", "canal"].includes(getTerrainCell(state, p.gx, p.gz).form ?? "") ||
+          getTerrainCell(state, p.gx, p.gz).water !== "fresh" ||
+          !damBanks(state, p.gx, p.gz))
+      )
         return fail("The dam needs two dry banks on opposite sides of a flowing channel.");
     }
     if (tool.kind === "bridge" || tool.kind === "interchange") {
@@ -493,7 +542,7 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
     affected: [...affected],
   };
 }
-function editedCell(state: GameState, p: GridPoint, tool: InfrastructureTool): TerrainCell {
+export function editedCell(state: GameState, p: GridPoint, tool: InfrastructureTool): TerrainCell {
   const cell = { ...getTerrainCell(state, p.gx, p.gz) },
     amount = clip(tool.height ?? 0.75, 0.25, 9),
     depth = clip(tool.depth ?? 1, 0.25, 8);
@@ -525,7 +574,15 @@ function editedCell(state: GameState, p: GridPoint, tool: InfrastructureTool): T
     cell.elevation = cell.waterLevel - depth;
     cell.water = tool.kind === "bay" ? "salt" : "fresh";
     cell.form =
-      tool.kind === "pond" ? "lake" : tool.kind === "spring" ? "spring" : tool.kind === "canal" ? "canal" : "river";
+      tool.kind === "bay"
+        ? "bay"
+        : tool.kind === "pond"
+          ? "lake"
+          : tool.kind === "spring"
+            ? "spring"
+            : tool.kind === "canal"
+              ? "canal"
+              : "river";
     cell.source = tool.kind === "spring" ? (tool.flow ?? 12) : tool.kind === "river" ? (tool.flow ?? 4) : 0;
     cell.material = tool.kind === "canal" ? "clay" : "sand";
   }
@@ -566,8 +623,24 @@ const surfaceAt = (state: GameState, x: number, z: number) => {
   const c = getTerrainCell(state, x, z);
   return c.depth ? c.waterLevel : c.elevation;
 };
-const conduitHeight = (state: GameState, p: GridPoint, tool: InfrastructureTool) =>
+export const conduitHeight = (state: GameState, p: GridPoint, tool: InfrastructureTool) =>
   Math.max(0, surfaceAt(state, p.gx, p.gz)) + (tool.height ?? 3);
+/** End-point elevations are shared by the bridge builder and its construction ghost. */
+export function bridgeGrade(state: GameState, points: GridPoint[], rise: number) {
+  const first = points[0],
+    last = points.at(-1)!;
+  const startBank = surfaceAt(state, first.gx, first.gz),
+    endBank = surfaceAt(state, last.gx, last.gz);
+  const deck = Math.max(startBank, endBank) + rise;
+  const ramps = Math.max(1, Math.min(Math.ceil(rise / 2), Math.floor((points.length - 1) / 2)));
+  const heightAt = (n: number) =>
+    n < ramps
+      ? startBank + ((deck - startBank) * n) / ramps
+      : n > points.length - ramps
+        ? endBank + ((deck - endBank) * (points.length - n)) / ramps
+        : deck;
+  return { deck, ramps, heightAt };
+}
 function capture(i: Infrastructure, key: string): Change {
   return {
     key,
@@ -703,11 +776,11 @@ function accountCoastalWater(state: GameState, before: Map<string, Change>) {
         if (nb?.depth && nb.gate !== "closed" && !seen.has(k)) {
           seen.add(k);
           queue.push(k);
-        } else if (!nb && getTerrainCell(undefined, x + dx, z + dz).depth > 0.1) {
+        } else if (!nb && getTerrainCell(state, x + dx, z + dz).depth > 0.1) {
           ocean = true;
           seaEdges.push(queue[n]);
         } else if (!nb || !nb.depth) {
-          lowestBank = Math.min(lowestBank, (nb ?? getTerrainCell(undefined, x + dx, z + dz)).elevation);
+          lowestBank = Math.min(lowestBank, (nb ?? getTerrainCell(state, x + dx, z + dz)).elevation);
         }
       }
     }
@@ -735,7 +808,9 @@ function accountCoastalWater(state: GameState, before: Map<string, Change>) {
       const c = i.cells[k],
         natural = c.freeLevel ?? c.waterLevel,
         freeLevel = Number.isFinite(impounded) && !ocean ? natural : undefined,
-        freshReach = (c.form === "river" || c.form === "spring") && !brackish.has(k),
+        freshReach =
+          (c.form === "spring" || (c.form === "river" && (c.source > 0 || c.flowDir !== undefined))) &&
+          !brackish.has(k),
         localLevel = freshReach && !Number.isFinite(impounded) ? Math.max(ocean ? SEA : -Infinity, natural) : level,
         depth = round(Math.max(0, localLevel - c.elevation)),
         water = depth ? (ocean && !freshReach ? "salt" : "fresh") : "dry";
@@ -778,9 +853,8 @@ export function applyInfrastructureStroke(
       });
   const axis = points.every((p) => p.gz === points[0].gz) ? "x" : "z";
   const run = selection?.run ?? "cross-" + Date.now().toString(36) + "-" + tileKey(points[0].gx, points[0].gz);
-  const deck =
-    Math.max(surfaceAt(state, points[0].gx, points[0].gz), surfaceAt(state, points.at(-1)!.gx, points.at(-1)!.gz)) +
-    (tool.height ?? 2);
+  const grade = bridgeGrade(state, points, tool.height ?? 2);
+  const { deck } = grade;
   const junction = tool.kind === "interchange" ? interchangePorts(input[0], tool) : undefined;
   const newCells = new Map<string, TerrainCell>();
   const replaceRoad = (p: GridPoint, id: string) => {
@@ -804,6 +878,19 @@ export function applyInfrastructureStroke(
     return e;
   };
   const sculptLine = isTerrain(tool) && tool.radius ? interpolate(input, false) : [];
+  const course = tool.kind === "canal" || tool.kind === "river" ? interpolate(input, false) : [];
+  const gradient = new Map<string, { dir: number; level: number }>();
+  let upstream = Infinity;
+  for (let n = 0; n < course.length; n++) {
+    const p = course[n],
+      prev = course[n - 1] ?? p,
+      next = course[n + 1];
+    const dx = next ? next.gx - p.gx : p.gx - prev.gx,
+      dz = next ? next.gz - p.gz : p.gz - prev.gz;
+    const baseline = editedCell(state, p, tool).waterLevel;
+    upstream = Math.min(baseline, upstream - 0.025);
+    gradient.set(tileKey(p.gx, p.gz), { dir: DIRECTIONS.findIndex(([x, z]) => dx === x && dz === z), level: upstream });
+  }
   points.forEach((p, j) => {
     const k = tileKey(p.gx, p.gz);
     before.set(k, capture(i, k));
@@ -815,17 +902,17 @@ export function applyInfrastructureStroke(
         localTool = { ...tool, height: Math.max(0.25, (tool.height ?? 0.75) * strength) };
       }
       const cell = editedCell(state, p, localTool);
-      const next =
-        points[j + 1] ?? (j ? { gx: p.gx + (p.gx - points[j - 1].gx), gz: p.gz + (p.gz - points[j - 1].gz) } : null);
-      if ((tool.kind === "river" || tool.kind === "canal") && next) {
-        const dir = DIRECTIONS.findIndex(([dx, dz]) => p.gx + dx === next.gx && p.gz + dz === next.gz);
-        if (dir >= 0) cell.flowDir = dir;
-        if (tool.kind === "river" && j > 0 && !(tool.radius ?? 0)) {
-          const up = newCells.get(tileKey(points[j - 1].gx, points[j - 1].gz));
-          if (up) {
-            cell.waterLevel = Math.min(up.waterLevel - 0.025, cell.waterLevel);
-            cell.elevation = cell.waterLevel - cell.depth;
-          }
+      if (course.length) {
+        const center = gradient.has(k)
+          ? p
+          : course.reduce((best, q) =>
+              (q.gx - p.gx) ** 2 + (q.gz - p.gz) ** 2 < (best.gx - p.gx) ** 2 + (best.gz - p.gz) ** 2 ? q : best,
+            );
+        const segment = gradient.get(tileKey(center.gx, center.gz))!;
+        if (segment.dir >= 0) cell.flowDir = segment.dir;
+        if (tool.kind === "river") {
+          cell.waterLevel = segment.level;
+          cell.elevation = cell.waterLevel - cell.depth;
         }
       }
       newCells.set(k, cell);
@@ -914,15 +1001,7 @@ export function applyInfrastructureStroke(
     const prev = i.spans[k];
     const direction =
       axis === "x" ? Math.sign(points.at(-1)!.gx - points[0].gx) : Math.sign(points.at(-1)!.gz - points[0].gz);
-    const ramps = Math.max(1, Math.min(Math.ceil((tool.height ?? 2) / 2), Math.floor((points.length - 1) / 2)));
-    const startBank = surfaceAt(state, points[0].gx, points[0].gz),
-      endBank = surfaceAt(state, points.at(-1)!.gx, points.at(-1)!.gz);
-    const rampHeight = (n: number) =>
-      n < ramps
-        ? startBank + ((deck - startBank) * n) / ramps
-        : n > points.length - ramps
-          ? endBank + ((deck - endBank) * (points.length - n)) / ramps
-          : deck;
+    const { ramps, heightAt: rampHeight } = grade;
     const mode = tool.mode ?? prev?.mode ?? "road",
       shape = tool.shape ?? prev?.shape ?? "arch";
     const id =
@@ -1006,6 +1085,8 @@ const sourceIds = new Set([
   "wide_rivers",
 ]);
 const receiverIds = new Set([
+  "data_centers",
+  "factories",
   "water_treatment_plant",
   "water_towers",
   "municipal_reservoir",
@@ -1087,6 +1168,15 @@ function bridgeHeadroom(s: Crossing, water: number, open = false) {
   return s.deck - water - (s.shape === "arch" ? 0.55 : 0.25) + (open && s.shape === "lift" ? LIFT_TRAVEL : 0);
 }
 export function buildWaterNavigation(state: GameState) {
+  const spans = new Map<string, { min: number; max: number }>();
+  for (const [k, s] of Object.entries(state.infrastructure?.spans ?? {})) {
+    if (s.end || s.shape !== "arch") continue;
+    const pos = Number(k.split(",")[s.axis === "x" ? 0 : 1]),
+      r = spans.get(s.run) ?? { min: pos, max: pos };
+    r.min = Math.min(r.min, pos);
+    r.max = Math.max(r.max, pos);
+    spans.set(s.run, r);
+  }
   const occ = occupiedMap(state),
     cells = new Map<string, NavigationCell>(),
     wet = new Map<string, { depth: number; level: number; salt: boolean }>();
@@ -1152,7 +1242,14 @@ export function buildWaterNavigation(state: GameState) {
     let blockedBy: string | undefined;
     if (span && !span.end) {
       clearance = bridgeHeadroom(span, w.level, opening);
-      width = Math.min(width, span.shape === "arch" ? 3.4 : width);
+      const arch = spans.get(span.run);
+      if (arch) {
+        const length = arch.max - arch.min + 1,
+          center = (arch.min + arch.max) / 2;
+        const ratio = Math.min(1, Math.abs((span.axis === "x" ? x : z) - center) / (length / 2));
+        width = Math.min(width, length * TILE_SIZE - 0.6);
+        clearance -= (span.deck - w.level - 0.4) * (1 - Math.sqrt(1 - ratio * ratio));
+      }
       blockedBy = e?.id ?? span.run;
     } else if (e && !span && w.depth > 0) {
       const id = e.defId;
@@ -1366,6 +1463,7 @@ export interface ConduitFlow {
   inlet?: number;
   upstream?: number;
   deliveries?: number;
+  waterOutlets?: number;
   target?: string;
   source?: string;
 }
@@ -1419,8 +1517,10 @@ export function hydraulics(state: GameState): Hydro {
         el = occ.get(nk);
       const d = DIRECTIONS.findIndex(([tx, tz]) => dx === tx && dz === tz);
       if (d >= 0 && ducts[nk]) ports |= 1 << d;
-      let available = base.water !== "salt" ? base.source : 0,
-        pressure = base.elevation + 7,
+      const runoff =
+        base.form === "bank" && (base.material === "rock" || base.material === "snow") && base.elevation >= 2.8;
+      let available = runoff ? Math.min(16, 1 + base.elevation * 0.9) : base.water !== "salt" ? base.source : 0,
+        pressure = runoff ? base.elevation + 0.15 : base.waterLevel + 7,
         provider = "spring:" + nk;
       if (el && sourceIds.has(el.defId) && !el.onFire) {
         let supplied = true;
@@ -1472,6 +1572,7 @@ export function hydraulics(state: GameState): Hydro {
   }
   const users = new Map<string, Set<string>>(),
     sourceCapacity = new Map<string, number>();
+  const receivingBasins = new Map<string, { source: string; flow: number }>();
   for (const [k, r] of runs) {
     if (!r.source) continue;
     sourceCapacity.set(r.source, Math.max(sourceCapacity.get(r.source) ?? 0, r.flow));
@@ -1481,8 +1582,23 @@ export function hydraulics(state: GameState): Hydro {
     const dir = ["north", "east", "south", "west"].indexOf(ducts[k].outlet);
     if (ducts[k].outlet !== "cap")
       for (const [dx, dz] of dir >= 0 ? [DIRECTIONS[dir]] : [[0, 0], ...DIRECTIONS]) {
-        const el = occ.get(tileKey(x + dx, z + dz)),
+        const nk = tileKey(x + dx, z + dz),
+          el = occ.get(nk),
           def = el && ELEMENT_BY_ID[el.defId];
+        const receiving = getTerrainCell(state, x + dx, z + dz),
+          side = DIRECTIONS.findIndex(([a, b]) => a === dx && b === dz);
+        if (
+          side >= 0 &&
+          receiving.depth > 0.15 &&
+          !ducts[nk] &&
+          r.inlet !== side &&
+          (dir >= 0 || (count <= 1 && r.inlet === undefined))
+        ) {
+          r.waterOutlets = (r.waterOutlets ?? 0) | (1 << side);
+          linked.add("basin:" + nk);
+          if (receiving.water === "fresh" && (receivingBasins.get(nk)?.flow ?? 0) < r.flow)
+            receivingBasins.set(nk, { source: r.source, flow: r.flow });
+        }
         if (
           el &&
           el.id !== r.source &&
@@ -1522,6 +1638,11 @@ export function hydraulics(state: GameState): Hydro {
       if (c.source > capacity) {
         capacity = c.source;
         source = "spring:" + k;
+      }
+      const fed = receivingBasins.get(k);
+      if (fed && fed.flow > capacity) {
+        capacity = fed.flow;
+        source = fed.source;
       }
       for (const [dx, dz] of [[0, 0], ...DIRECTIONS]) {
         const nx = x + dx,
@@ -1566,6 +1687,7 @@ export function hydraulics(state: GameState): Hydro {
     for (const k of queue) channels.set(k, capacity);
     const all = users.get(source) ?? new Set(),
       banks = bankUsers.get(source) ?? new Set();
+    if (recipients.size) for (const k of queue) all.delete("basin:" + k);
     for (const id of recipients) {
       all.add(id);
       banks.add(id);
@@ -1582,7 +1704,7 @@ export function hydraulics(state: GameState): Hydro {
     const available = (sourceCapacity.get(source) ?? 0) * (weather === "rain" || weather === "storm" ? 1.18 : 1),
       share = available / Math.max(1, targets.size);
     for (const id of targets) {
-      if (id.startsWith("spill:")) continue;
+      if (id.startsWith("spill:") || id.startsWith("basin:")) continue;
       const el = state.elements.find((e) => e.id === id);
       if (!el) continue;
       const service = services.get(id) ?? { freshwater: 0, potable: 0, irrigation: 0, stored: i?.storage[id] ?? 0 };
@@ -1686,7 +1808,7 @@ export function hydroHead(state: GameState, e: Pick<PlacedElement, "gx" | "gz" |
   for (let x = e.gx - 1; x <= e.gx + e.spanX; x++)
     for (let z = e.gz - 1; z <= e.gz + e.spanZ; z++) {
       const c = getTerrainCell(state, x, z);
-      if (c.depth <= 0.1) continue;
+      if (c.depth <= 0.1 || c.water !== "fresh" || !["river", "canal", "spring"].includes(c.form ?? "")) continue;
       top = Math.max(top, c.waterLevel);
       bottom = Math.min(bottom, c.waterLevel);
       if (c.gateKind === "dam" && c.gate === "closed") {
@@ -1695,7 +1817,7 @@ export function hydroHead(state: GameState, e: Pick<PlacedElement, "gx" | "gz" |
           downstream = getTerrainCell(state, x + dx, z + dz);
         if (upstream.depth && downstream.depth) gates = Math.max(gates, upstream.waterLevel - downstream.waterLevel);
       }
-      flow ||= c.source > 0 || c.form === "river" || c.form === "spring";
+      flow ||= c.source > 0 || (c.form === "canal" && Boolean(hydraulics(state).channels.get(tileKey(x, z))));
       banks ||= damBanks(state, x, z);
     }
   return flow && banks ? Math.max(gates, top - bottom) : 0;

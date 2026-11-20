@@ -103,36 +103,24 @@ export const TopHud: React.FC<TopHudProps> = ({
   const nextSpeed = simSpeed === 0 ? 1 : simSpeed === 1 ? 2 : simSpeed === 2 ? 4 : 0;
 
   return (
-    <header className="pointer-events-none fixed inset-x-0 top-0 z-20 flex items-start justify-end p-1.5 pl-12 pr-13 sm:p-2 sm:pl-14 sm:pr-15">
+    <header id="island-panel-status" aria-label="Island status" className="status-drawer pointer-events-none fixed inset-x-0 top-0 z-20 flex items-start justify-end p-1.5 pl-12 pr-13 sm:p-2 sm:pl-14 sm:pr-15">
       <div className="pointer-events-auto w-auto max-w-full rounded-lg border border-stone-900/15 bg-[#fcfaf5]/96 px-2 py-1 shadow-md">
-        {/* Primary Zero-Scroll Metrics Row (Right-Aligned for Right-Handed Thumb Reach) */}
-        <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-          {/* Close Top Bar on Left Edge */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded border border-stone-300 bg-white p-0.5 text-stone-600 hover:bg-stone-100"
-            title="Close Top Menu (T)"
-            aria-label="Close Top Menu"
-          >
-            <X className="h-3 w-3" />
-          </button>
-
-          {/* Stage / Mode Label on Desktop */}
-          <div className="hidden items-center gap-1.5 border-r border-stone-200 pr-2 lg:flex">
-            <span className="font-mono-num text-[11px] font-extrabold text-stone-900">
-              {state.mode === "god" ? "God Mode" : `S${stageObj.stage} · ${stageObj.name}`}
-            </span>
+        <div className="status-heading">
+          <div>
+            <h2>Island status</h2>
+            <span>{state.mode === "god" ? "God Mode" : "Stage "+stageObj.stage+" · "+stageObj.name}</span>
           </div>
-
+          <button type="button" onClick={onClose} title="Close status (T)" aria-label="Close Top Menu"><X size={16}/></button>
+        </div>
+        <div className="status-metrics">
           <button onClick={()=>onOpenScore?.("population")} className="flex items-center gap-0.5" title="Population and jobs">
-            <Users className="h-3.5 w-3.5 text-sky-700"/><b className="font-mono-num text-xs">{state.population.toLocaleString()}{economyOf(state).holds.some(h=>h.key==="population")&&" · Held"}</b>
+            <small>Population</small><Users className="h-3.5 w-3.5 text-sky-700"/><b className="font-mono-num text-xs">{state.population.toLocaleString()}{economyOf(state).holds.some(h=>h.key==="population")&&" · Held"}</b>
           </button>
           <button onClick={()=>onOpenScore?.("happiness")} className="flex items-center gap-0.5" title="Happiness and household needs">
-            <Heart className={`h-3.5 w-3.5 ${happyColor}`}/><b className={`font-mono-num text-xs ${happyColor}`}>{state.happiness}%{economyOf(state).holds.some(h=>h.key==="happiness")&&" · Held"}</b>
+            <small>Happiness</small><Heart className={`h-3.5 w-3.5 ${happyColor}`}/><b className={`font-mono-num text-xs ${happyColor}`}>{state.happiness}%{economyOf(state).holds.some(h=>h.key==="happiness")&&" · Held"}</b>
           </button>
           <button onClick={()=>onOpenScore?.("wealth")} className="flex items-center gap-0.5" title={"City wealth · treasury $"+Math.floor(state.money).toLocaleString()}>
-            <Wallet className="h-3.5 w-3.5 text-amber-700"/><b className="font-mono-num text-xs">${Math.floor(cityWealth(state)).toLocaleString()}{economyOf(state).holds.some(h=>["treasury","businesses","households"].includes(h.key))&&" · Held"}</b>
+            <small>City wealth</small><Wallet className="h-3.5 w-3.5 text-amber-700"/><b className="font-mono-num text-xs">${Math.floor(cityWealth(state)).toLocaleString()}{economyOf(state).holds.some(h=>["treasury","businesses","households"].includes(h.key))&&" · Held"}</b>
           </button>
 
           {/* Live power (solar follows the sun, wind follows the weather) */}
@@ -141,7 +129,7 @@ export const TopHud: React.FC<TopHudProps> = ({
               className="flex items-center gap-0.5"
               title={`Power ${m.powerSupply}/${m.powerDemand} · ${m.renewablePct ?? 0}% renewable · solar ${Math.round((m.solarFactor ?? 1) * 100)}% · wind ${Math.round((m.windFactor ?? 1) * 100)}%`}
             >
-              <Zap className={`h-3.5 w-3.5 ${m.powerSupply >= m.powerDemand ? "text-yellow-600" : "text-rose-600"}`} />
+              <small>Power supply</small><Zap className={`h-3.5 w-3.5 ${m.powerSupply >= m.powerDemand ? "text-yellow-600" : "text-rose-600"}`} />
               <span
                 className={`font-mono-num text-xs font-extrabold ${m.powerSupply >= m.powerDemand ? "text-stone-900" : "text-rose-700"}`}
               >
@@ -156,7 +144,7 @@ export const TopHud: React.FC<TopHudProps> = ({
               className="flex items-center gap-0.5"
               title={`Traffic: ${m.trafficTrips} trips vs ${m.trafficCapacity} road capacity · ${m.transitShare ?? 0}% on transit`}
             >
-              <Car
+              <small>Traffic</small><Car
                 className={`h-3.5 w-3.5 ${(m.congestion ?? 0) <= 70 ? "text-emerald-700" : (m.congestion ?? 0) <= 100 ? "text-amber-600" : "text-rose-600"}`}
               />
               <span
@@ -183,7 +171,7 @@ export const TopHud: React.FC<TopHudProps> = ({
                   : "Crime OFF — Tap to turn Crime ON"
               }
             >
-              <Siren
+              <small>Crime</small><Siren
                 className={`h-3.5 w-3.5 ${
                   !state.godCrimeEnabled
                     ? "text-stone-400"
@@ -216,7 +204,7 @@ export const TopHud: React.FC<TopHudProps> = ({
                     : `Crime Rate: ${m.crimeRate}%`
                 }
               >
-                <Siren className={`h-3.5 w-3.5 ${m.isNightCrimeSurge ? "text-rose-600" : "text-blue-700"}`} />
+                <small>Crime</small><Siren className={`h-3.5 w-3.5 ${m.isNightCrimeSurge ? "text-rose-600" : "text-blue-700"}`} />
                 <span
                   className={`font-mono-num text-xs font-extrabold ${
                     m.crimeRate <= 15
@@ -240,7 +228,7 @@ export const TopHud: React.FC<TopHudProps> = ({
               className="flex items-center gap-0.5 rounded px-1 py-0.5 hover:bg-stone-200/70"
               title={`Defense Readiness ${m.defenseRating}% · ${m.soldiersCount} Soldiers, ${m.tanksCount} Tanks, ${m.navalBoatsCount} Boats, ${m.copsCount} Cops, ${m.swatCount} SWAT`}
             >
-              <Shield
+              <small>Defense</small><Shield
                 className={`h-3.5 w-3.5 ${
                   m.defenseRating >= 75
                     ? "text-emerald-700"
@@ -271,7 +259,7 @@ export const TopHud: React.FC<TopHudProps> = ({
               className="flex items-center gap-1 rounded bg-rose-600 px-1.5 py-0.5 text-[11px] font-bold text-white hover:bg-rose-700"
               title="Maintain all & put out fires"
             >
-              <Wrench className="h-3 w-3" />
+              <small>Repairs</small><Wrench className="h-3 w-3" />
               <span className="font-mono-num">{urgentMaintCount}</span>
             </button>
           )}
@@ -287,7 +275,7 @@ export const TopHud: React.FC<TopHudProps> = ({
             }`}
             title="City Advisor & 20 Stages"
           >
-            <Info className="h-3 w-3" />
+            <small>City issues</small><Info className="h-3 w-3" />
             {issueCount > 0 && <span className="font-mono-num">{issueCount}</span>}
           </button>
 
@@ -301,8 +289,10 @@ export const TopHud: React.FC<TopHudProps> = ({
                 : "border-stone-300 bg-white text-stone-600 hover:bg-stone-100"
             }`}
             title={controlsOpen ? "Hide Quick Controls" : "Show Time, Speed & Camera Controls"}
+            aria-expanded={controlsOpen}
             aria-label={controlsOpen ? "Hide Quick Controls" : "Show Quick Controls"}
           >
+            <small>Quick controls</small>
             {controlsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
         </div>

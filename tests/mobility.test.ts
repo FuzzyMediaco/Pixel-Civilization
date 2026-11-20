@@ -228,5 +228,5 @@ test("cargo holds cannot board passengers who are waiting for a ferry transfer",
 test("out-of-bounds targets cannot wrap to a tile in the next row", () => {
   const s = createInitialGameState("god");
   const n = getTravelNetwork(s);
-  assert.equal(n.path([[-32, 1]], [[32, 0]], "ferry", { beam: 1, draft: 0.2, height: 0.5 }), null);
+  assert.equal(n.path([[-96, 1]], [[96, 0]], "ferry", { beam: 1, draft: 0.2, height: 0.5 }), null);
 });

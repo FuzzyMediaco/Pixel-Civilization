@@ -1,3 +1,5 @@
+import { GRID_MIN, GRID_MAX } from "./mapBounds";
+export { GRID_MIN, GRID_MAX, GRID_HALF } from "./mapBounds";
 import { hasNavigableHarbor, reliefAtStops, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
 import { advanceEconomy, buildingCharges, cityWealth, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
 import { advanceOperations, type ProjectOps } from "./projectOperations";
@@ -51,9 +53,6 @@ function isCoastalTile(gx: number, gz: number, state?: GameState): boolean {
   return false;
 }
 
-export const GRID_HALF = 32; // tiles from -32 .. +31 (64x64 grid = 256m x 256m)
-export const GRID_MIN = -GRID_HALF;
-export const GRID_MAX = GRID_HALF - 1;
 export const MAINTENANCE_INTERVAL_SEC = 300; // 5 minutes of active in-app play
 
 export type TerrainCellKind = "land" | "coast" | "water";
@@ -282,6 +281,12 @@ export interface GameEventToast {
 }
 
 export interface GameState {
+  exampleWorldId?: import("./exampleWorlds").ExampleWorldId;
+  exampleReturnMode?: GameMode;
+  exampleViewpoint?: number;
+  cameraView?: import("./worldRenderer").IslandCameraView;
+  /** Absent on original island saves. */
+  terrainVersion?: 1|2;
   playSpeed?: number;
   constructionHistory?: import("./constructionHistory").BuildingEdit[];
   economy?: Economy;
@@ -342,8 +347,8 @@ export function formatTimeOfDay(timeOfDay: number): string {
  * Island superellipse shape function shared with the 3D terrain renderer.
  * Returns > 0 on the flat grass plateau, ~0 along the beach coast, < 0 in the ocean.
  */
-export function islandMarginAtWorld(x: number, z: number): number {
-  return islandMargin(x,z);
+export function islandMarginAtWorld(x: number, z: number, terrainVersion=1): number {
+  return islandMargin(x,z,terrainVersion);
 }
 
 export function gridToWorldCenter(gx: number, gz: number, spanX = 1, spanZ = 1): [number, number] {
@@ -438,6 +443,7 @@ export function createEmptyMetrics(): CityMetrics {
 export function createInitialGameState(mode: GameMode): GameState {
   const state: GameState = {
     mode,
+    terrainVersion:2,
     money: mode === "survival" ? 2_200 : 2_800,
     population: 0,
     growthPool: 0,
@@ -468,13 +474,21 @@ export function createInitialGameState(mode: GameMode): GameState {
   return state;
 }
 
-export function isElementUnlocked(def: CivElementDef, state: GameState): boolean {
-  if (state.mode === "god" && !effective(state,"stageRules",0)) return true;
-  if (def.wealthThreshold) return Math.max(economyOf(state).peak, cityWealth(state)) >= def.wealthThreshold*effective(state,"wealthScale",100)/100;
-  if (state.highestStageReached === 1) {
-    return Boolean(def.isStarter);
+export function buildingLockReason(def: CivElementDef, state: GameState): string | undefined {
+  if (state.mode === "god" && !effective(state, "stageRules", 0)) return;
+  if (def.wealthThreshold) {
+    const threshold = Math.ceil(def.wealthThreshold * effective(state, "wealthScale", 100) / 100);
+    if (Math.max(economyOf(state).peak, cityWealth(state)) < threshold) return "Reach $" + threshold.toLocaleString() + " city wealth";
+  } else if (state.highestStageReached === 1 ? !def.isStarter : def.stage > state.highestStageReached) {
+    return "Unlocks at Stage " + def.stage;
   }
-  return def.stage <= state.highestStageReached;
+  if ((def.category === "police_military" || def.id === "fire_department") && !hasAuthority(state)) {
+    return "Staff a City Office, Government Building, Courthouse or Tax Collecting Office first";
+  }
+}
+
+export function isElementUnlocked(def: CivElementDef, state: GameState): boolean {
+  return buildingLockReason(def, state) === undefined;
 }
 
 export function buildOccupancyMap(elements: PlacedElement[], ignoreIds?: Set<string>): Map<string, PlacedElement> {
@@ -502,9 +516,8 @@ export function checkPlacementValid(
   if (gx < GRID_MIN || gz < GRID_MIN || gx + spanX - 1 > GRID_MAX || gz + spanZ - 1 > GRID_MAX) {
     return { valid: false, reason: "Outside island bounds" };
   }
-  if (!isElementUnlocked(def, state)) {
-    return {valid:false,reason:def.wealthThreshold?"Reach $"+def.wealthThreshold.toLocaleString()+" City Wealth.":`Unlocks at Stage ${def.stage}`};
-  }
+  const lock = buildingLockReason(def, state);
+  if (lock && !ignoreIds?.size) return { valid: false, reason: lock };
   const occ = buildOccupancyMap(state.elements, ignoreIds);
   let waterAccess = false;
   for (let dx = 0; dx < spanX; dx++) {
@@ -518,14 +531,11 @@ export function checkPlacementValid(
       }
       const cellKind = getTileTerrainKind(tx, tz, state);
       // Placed water tiles allow boats/bridges on them, handled via empty check above
-      if(def.domain==="coast_or_water"){
-        if(cellKind!=="land")waterAccess=true;
-        else if(state.infrastructure){
-          for(const [x,z] of [[1,0],[-1,0],[0,1],[0,-1]])if(getTerrainCell(state,tx+x,tz+z).depth>.1)waterAccess=true;
-        }
-        if(state.infrastructure)continue;
+      if (def.domain === "coast_or_water") {
+        if (cellKind !== "land" || [[1,0],[-1,0],[0,1],[0,-1]].some(([x,z]) => getTerrainCell(state,tx+x,tz+z).depth > .1)) waterAccess = true;
+        continue;
       }
-      if(def.archetype==="hydro_plant" && state.infrastructure)continue;
+      if (def.archetype === "hydro_plant") continue;
       if (!isDomainCompatible(def.domain, cellKind)) {
         if (def.domain === "land") {
           return { valid: false, reason: "Must be placed on island land" };
@@ -534,8 +544,8 @@ export function checkPlacementValid(
       }
     }
   }
-  if(def.domain==="coast_or_water"&&state.infrastructure&&!waterAccess)return {valid:false,reason:"Place the water-facing edge beside a channel or coast."};
-  if(def.archetype==="hydro_plant" && state.infrastructure && !hydroHead(state,{gx,gz,spanX,spanZ}))return {valid:false,reason:"Span a flowing river with two banks and a fall or dam gate."};
+  if(def.domain==="coast_or_water"&&!waterAccess)return {valid:false,reason:"Place the water-facing edge beside a channel or coast."};
+  if(def.archetype==="hydro_plant" && !hydroHead(state,{gx,gz,spanX,spanZ}))return {valid:false,reason:"Span a flowing river with two banks and a fall or dam gate."};
   return { valid: true };
 }
 
@@ -549,8 +559,8 @@ export function networkDeckClass(def: CivElementDef): "elevated" | "sunken" | "g
 }
 
 /** True when a tile is open water (ocean/coast terrain) or holds a placed water feature. */
-export function isWaterTile(elements: PlacedElement[] | Map<string, PlacedElement>, gx: number, gz: number): boolean {
-  if (getTileTerrainKind(gx, gz) !== "land") return true;
+export function isWaterTile(elements: PlacedElement[] | Map<string, PlacedElement>, gx: number, gz: number, state?: GameState): boolean {
+  if (getTileTerrainKind(gx, gz, state) !== "land") return true;
   const occ = elements instanceof Map ? elements : buildOccupancyMap(elements);
   const here = occ.get(`${gx},${gz}`);
   if (!here) return false;
@@ -652,9 +662,10 @@ export function planConstruction(state: GameState, selected: CivElementDef, gx: 
       (width,height)=>checkPlacementValid(state,def,gx,gz,width,height).valid);
   const [spanX, spanZ] = rotation % 2 ? [sz, sx] : [sx, sz];
   const check = network ? { valid: network.ok, reason: network.reason } : checkPlacementValid(state, def, gx, gz, spanX, spanZ);
-  if (check.valid && !isElementUnlocked(selected, state)) {
+  const lock = buildingLockReason(selected, state);
+  if (check.valid && lock) {
     check.valid = false;
-    check.reason = selected.wealthThreshold ? "Reach $" + selected.wealthThreshold.toLocaleString() + " City Wealth." : "Reach population Stage " + selected.stage + ".";
+    check.reason = lock;
   }
   if (check.valid && buildingCharges(state) && state.money < def.cost) {
     check.valid = false;
@@ -1074,7 +1085,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
   // 3. Spatial radii: Police coverage, Fire coverage, and Nuisance proximity
   const waterUnderlays = elements.flatMap(e => e.waterUnderlay ? [e.waterUnderlay] : []);
-  const layout = analyzeLayout(waterUnderlays.length ? [...elements, ...waterUnderlays] : elements, (x,z) => isCoastalTile(x,z,state),state.infrastructure?.stamp ?? state.infrastructure?.revision);
+  const layout = analyzeLayout(waterUnderlays.length ? [...elements, ...waterUnderlays] : elements, (x,z) => isCoastalTile(x,z,state),String(state.terrainVersion??1)+"/"+(state.infrastructure?.stamp ?? state.infrastructure?.revision??0));
 
   for (const el of elements) {
     el.nuisancePenalty = 0;
@@ -1219,7 +1230,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       const pk = powerKind(def);
       if (def.power > 0 && pk) {
         const live = powerOutputFactor(pk, state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * generationExposure(pk, state, el, parcelOccupancy);
-        const out = Math.round(def.power * lvMult * serviceHealth * live * (pk==="hydro"&&state.infrastructure?Math.min(1,hydroHead(state,el)/1.5):1));
+        const out = Math.round(def.power * lvMult * serviceHealth * live * (pk==="hydro"?Math.min(1,hydroHead(state,el)/1.5):1));
         m.powerSupply += out;
         if (pk === "solar" || pk === "wind" || pk === "hydro" || pk === "geo") renewableOut += out;
       }
@@ -1289,6 +1300,11 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
   // Scale citizen service demands gently against active building units so Stage 1..20 feels fair and readable
   const citizenUnits = Math.max(0, Math.ceil(state.population / 5*effective(state,"demand",100)/100));
+  // The basic household draw is already charged per building. Additional residents
+  // settling in that housing also need drinking water and electricity.
+  const additionalResidents = Math.max(0, state.population - Math.ceil(baseHousingPop));
+  m.waterDemand += Math.ceil(additionalResidents / 35);
+  m.powerDemand += Math.ceil(additionalResidents / 45);
   m.wasteDemand = Math.ceil(citizenUnits * 1.4);
   m.jobsNeeded = Math.ceil(citizenUnits * 2.2);
   m.foodDemand = Math.ceil(citizenUnits * 1.8);
@@ -1405,7 +1421,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     const economy = economyOf(state).report;
     const unemployment = 1 - Math.min(1,m.jobsAvailable/Math.max(1,m.jobsNeeded));
     const amenities = Math.min(14,m.recreationSupply/Math.max(1,m.recreationDemand)*6+economy.farms*.6+service.score*.04);
-    let rawCrime = Math.round(uncovRatio*42+(1-capRatio)*20+unemployment*17+economy.shortage*18-amenities);
+    const stress = Math.min(8, Math.max(0, 65 - state.happiness) * 0.16);
+    let rawCrime = Math.round(uncovRatio*42+(1-capRatio)*20+unemployment*17+economy.shortage*18+stress-amenities);
     if (state.mode === "survival" && state.happiness < 50) {
       rawCrime = Math.max(rawCrime, Math.round((55 - state.happiness) * 1.7));
     }
@@ -1608,11 +1625,21 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (m.landValueAvg >= 1.0) happiness += Math.min(6, Math.round((m.landValueAvg - 0.9) * 10));
   }
 
-  if (authorized && state.population>0) happiness-=Math.min(3,Math.ceil(m.govSupply/Math.max(1,state.population)));
+  if (m.connectedHouses && ledger.report.harvest > 0) {
+    happiness += Math.min(3, Math.round(3 * Math.min(1, ledger.report.harvest / Math.max(1, ledger.report.required))));
+  }
+  happiness = Math.min(100, happiness);
+  if (authorized && state.population > 0) {
+    const administration = Math.min(3, Math.max(1, Math.ceil(m.govSupply / state.population)));
+    happiness -= administration;
+    diags.push({id:"administration",severity:"info",title:"Cost of civic administration",
+      detail:"A staffed government authorizes fire, police and defense services.",
+      fixHint:"Keep the offices connected to workers.", deltaHappiness:-administration});
+  }
   state.happiness = Math.round(effective(state,"happiness",Math.max(0,Math.min(100,happiness))));
   checkAchievements(state, m);
 
-  if (diags.length === 0 && m.connectedHouses > 0) {
+  if (!diags.some(d => d.severity === "warning" || d.severity === "critical") && m.connectedHouses > 0) {
     diags.push({
       id: "thriving",
       severity: "good",
@@ -2612,7 +2639,8 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
       }
     }
 
-    if (state.happiness >= 72 && state.metrics.burningCount === 0) {
+    const essentialDeficit = Math.max(economy.shortage, economy.utilityStrain ?? 0);
+    if (state.happiness >= 72 && essentialDeficit <= 0.35 && state.metrics.burningCount === 0) {
       // Smooth thriving growth toward neighborhood settlement capacity
       const happyFactor = (state.happiness - 65) / 35;
       const employed = Math.min(1,economy.reachable/Math.max(1,economy.workers));
@@ -2621,12 +2649,13 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
       const supported=Math.max(baseHousingPop,Math.min(economy.reachable/.50,state.metrics.foodSupply/.35,state.metrics.wasteCapacity/.27));
       const arrivals=Math.min(Math.max(0,supported-state.population),growthRate*dtSec);
       if(arrivals>0){state.growthPool+=arrivals;dirty=true;}
-    } else if (state.happiness < 65) {
+    } else if (state.happiness < 65 || essentialDeficit > 0.35) {
       // Happiness below 65%: citizens leave slowly (or rapidly if < 50% in Survival / fires active!)
-      const severity = (65 - state.happiness) / 65;
+      const severity = Math.max(0, (65 - state.happiness) / 65);
       const fireAccel = state.mode === "survival" && (state.happiness < 50 || state.metrics.burningCount > 0) ? 3.4 : 1.0;
       const lossRate = Math.max(1.5, state.population * 0.025 + 4) * severity * fireAccel;
-      state.growthPool -= lossRate * dtSec;
+      const shortageLoss = state.population * Math.max(0, (essentialDeficit - 0.35) / 0.65) * (state.mode === "survival" ? 0.0024 : 0.0012);
+      state.growthPool -= Math.max(lossRate, shortageLoss) * dtSec;
       dirty = true;
     }
   }
@@ -2694,7 +2723,7 @@ export function computeHeatmapCells(state: GameState, kind: HeatmapKind): Heatma
   };
 
   if (kind === "landvalue" || kind === "pollution") {
-    const layout = analyzeLayout(state.elements, (x,z)=>isCoastalTile(x,z,state),state.infrastructure?.stamp ?? state.infrastructure?.revision);
+    const layout = analyzeLayout(state.elements, (x,z)=>isCoastalTile(x,z,state),String(state.terrainVersion??1)+"/"+(state.infrastructure?.stamp ?? state.infrastructure?.revision??0));
     const field = kind === "landvalue" ? layout.landValue : layout.pollution;
     for (let gx = GRID_MIN; gx <= GRID_MAX; gx++) {
       for (let gz = GRID_MIN; gz <= GRID_MAX; gz++) {

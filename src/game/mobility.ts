@@ -605,6 +605,7 @@ function stepVoyage(s: GameState, e: PlacedElement, v: Voyage, dt: number, net: 
         [30, -18],
         [8, -30],
         [-12, -30],
+        [36,0],[44,35],[16,38],[-75,28],[-82,-39],[-23,-65],[21,-82],[79,-29],[83,72],
       ];
       // Cycle inland harbors, drawn channels and the open-ocean ring, interspersed with home calls.
       const destinations: Point[][] = inland.map((p) => net.connectors(p, "ferry", hull));

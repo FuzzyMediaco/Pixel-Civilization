@@ -1,3 +1,6 @@
+import { editedCoastline, sharesOceanSurface } from "../src/game/coastline";
+import { GRID_SIZE, GRID_MIN, GRID_MAX, cellIndex, cellFromIndex } from "../src/game/mapBounds";
+import { getTravelNetwork } from "../src/game/travelNetwork";
 import { setEconomicControl } from "../src/game/cityEconomy";
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -333,4 +336,138 @@ test("spring intake, bend and receiving drop use their actual neighboring ports"
   assert.equal(runs.get("2,1")?.deliveries, 4);
   draw(s, { kind: "aqueduct", height: 2, outlet: "north" }, [p(1, 0)]);
   assert.ok(hydraulics(s).runs.get("1,0")?.spill);
+});
+
+test("the expanded mainland and outer islands coexist with the exact original coast in older cities", () => {
+  const fresh = createInitialGameState("god"),
+    legacy = { ...fresh, terrainVersion: undefined };
+  const old = [0, 0, 0],
+    big = [0, 0, 0];
+  const region = new Set<string>(),
+    q = [[0, 0]];
+  region.add("0,0");
+  for (let j = 0; j < q.length; j++) {
+    const [x, z] = q[j];
+    for (const [u, v] of [
+      [x - 1, z],
+      [x + 1, z],
+      [x, z - 1],
+      [x, z + 1],
+    ]) {
+      const k = u + "," + v;
+      if (!region.has(k) && getTerrainCell(fresh, u, v).kind === "land") {
+        region.add(k);
+        q.push([u, v]);
+      }
+    }
+  }
+  for (let x = GRID_MIN; x <= GRID_MAX; x++)
+    for (let z = GRID_MIN; z <= GRID_MAX; z++) {
+      const kind = getTerrainCell(fresh, x, z).kind;
+      big[kind === "land" ? 0 : kind === "coast" ? 1 : 2]++;
+      if (x >= -32 && x < 32 && z >= -32 && z < 32) {
+        const c = getTerrainCell(legacy, x, z);
+        old[c.kind === "land" ? 0 : c.kind === "coast" ? 1 : 2]++;
+        const X = (x + 0.5) * 4,
+          Z = (z + 0.5) * 4,
+          angle = Math.atan2(Z, X);
+        const edge =
+          108 *
+          (1 +
+            0.045 * Math.sin(angle * 3 + 0.7) +
+            0.03 * Math.cos(angle * 5 - 1.1) +
+            0.02 * Math.sin(angle * 7 + 2.2) -
+            (Math.abs(X / 108) ** 3.6 + Math.abs(Z / 108) ** 3.6) ** (1 / 3.6));
+        assert.equal(c.kind, edge >= 2.2 ? "land" : edge >= -6.5 ? "coast" : "water");
+      }
+    }
+  assert.equal(GRID_SIZE, 192);
+  assert.ok(region.size > 2 * old[0]);
+  assert.ok(big[0] > old[0] * 3 && big[2] > old[2] * 10);
+  assert.deepEqual(cellFromIndex(cellIndex(-95, 92)), [-95, 92]);
+  const nav = getTravelNetwork(fresh),
+    route = nav.path([[90, 70]], [[90, 90]], "ferry", { beam: 5, draft: 1, height: 2 });
+  assert.equal(route?.length, 21);
+  assert.ok(draw(fresh, { kind: "paint", material: "clay" }, [p(-60, -18)]).valid);
+});
+test("a mountain catchment delivers fresh water down an aqueduct directly into a pond and its bank farm", () => {
+  const s = createInitialGameState("god");
+  s.elements = [];
+  draw(s, { kind: "mountain", height: 3 }, [p(-2, 0)]);
+  draw(s, { kind: "pond", depth: 2 }, [p(2, 0), p(3, 0)]);
+  draw(s, { kind: "aqueduct", height: 2, style: 1 }, [p(-1, 0), p(1, 0)]);
+  const farm = site("farms", 4, 0);
+  s.elements.push(farm);
+  const h = hydraulics(s);
+  assert.equal(h.runs.get("-1,0")?.inlet, 3);
+  assert.equal(h.runs.get("1,0")?.waterOutlets, 2);
+  assert.ok(!h.runs.get("1,0")?.spill);
+  assert.ok(h.channels.get("3,0")! > 0);
+  assert.ok(readWaterService(s, farm).irrigation > 0);
+  draw(s, { kind: "aqueduct", height: 9 }, [p(0, 0)]);
+  assert.equal(readWaterService(s, farm).irrigation, 0);
+});
+test("ocean hydro never generates; a fresh river and two banks provide a working site", () => {
+  const s = createInitialGameState("god");
+  s.elements = [];
+  setEconomicControl(s, "access", 1, true);
+  const d = ELEMENT_BY_ID.hydro_electric_power_plants;
+  const e = site(d.id, 92, 92);
+  assert.ok(!checkPlacementValid(s, d, e.gx, e.gz, 1, 1).valid);
+  s.elements = [e];
+  recomputeConnectivityAndMetrics(s);
+  assert.equal(s.metrics.powerSupply, 0);
+  s.elements = [];
+  draw(s, { kind: "bay", depth: 3 }, [p(90, 92), p(94, 92)]);
+  assert.ok(!draw(s, { kind: "dam" }, [p(92, 92)]).valid);
+  assert.ok(!checkPlacementValid(s, d, e.gx, e.gz, 1, 1).valid);
+  draw(s, { kind: "river", depth: 2, waterLevel: -1.75 }, [p(0, -4), p(0, 4)]);
+  draw(s, { kind: "dam", gate: "closed", height: 2 }, [p(0, 0)]);
+  assert.ok(checkPlacementValid(s, d, 0, 0, 1, 1).valid);
+  e.gx = 0;
+  e.gz = 0;
+  s.elements = [e];
+  recomputeConnectivityAndMetrics(s);
+  assert.ok(s.metrics.powerSupply > 0);
+});
+
+test("adjacent reclaimed parcels support land and coastal works, and undo protects their foundations", () => {
+  const s = createInitialGameState("god");
+  s.elements = [];
+  // Find a genuine edge and follow the seaward normal, which also tests new-game geography.
+  let coastX = 0;
+  while (coastX < GRID_MAX && getTerrainCell(s, coastX, 2).kind !== "water") coastX++;
+  assert.ok(coastX < GRID_MAX - 4);
+  const x = coastX + 1,
+    z = 2,
+    home = ELEMENT_BY_ID.house,
+    harbor = ELEMENT_BY_ID.ferry_landings;
+  assert.ok(!checkPlacementValid(s, home, x, z, 1, 1).valid);
+  const dry = draw(s, { kind: "peninsula", height: 2, material: "sand" }, [p(x, z), p(x + 1, z)]);
+  assert.ok(dry.valid, dry.reason);
+  assert.equal(getTerrainCell(s, x, z).kind, "land");
+  assert.ok(checkPlacementValid(s, home, x, z, 1, 1).valid);
+  assert.ok(checkPlacementValid(s, harbor, x + 1, z, 1, 1).valid);
+  assert.ok(getTerrainCell(s, x + 1, z + 1).depth > 0);
+  s.elements.push(site(home.id, x, z));
+  assert.equal(undoInfrastructure(s), false);
+  s.elements = [];
+  assert.equal(undoInfrastructure(s), true);
+  assert.ok(getTerrainCell(s, x, z).depth > 0);
+});
+
+test("a dredged tidal bay shares the open ocean surface even beyond the original beach", () => {
+  const s = createInitialGameState("god");
+  const bg = new Uint8Array(GRID_SIZE * GRID_SIZE).fill(235);
+  const points = [p(16, 2), p(37, 2)];
+  assert.ok(draw(s, { kind: "bay", radius: 2, depth: 4 }, points).valid);
+  const basin = getTerrainCell(s, 17, 2);
+  assert.equal(basin.form, "bay");
+  assert.ok(sharesOceanSurface(basin));
+  assert.ok(sharesOceanSurface(getTerrainCell(s, 40, 2)));
+  const coast = editedCoastline(s, bg);
+  assert.ok(coast[cellIndex(17, 2)] < bg[cellIndex(17, 2)]);
+  assert.equal(coast[cellIndex(-72, -43)], bg[cellIndex(-72, -43)]);
+  assert.ok(draw(s, { kind: "pond", waterLevel: 2, depth: 2 }, [p(3, 4)]).valid);
+  assert.ok(!sharesOceanSurface(getTerrainCell(s, 3, 4)));
 });

@@ -135,8 +135,8 @@ export const HeatmapPanel: React.FC<HeatmapPanelProps> = ({
   const legend=activeHeatmap==="clearance"?["Ample room","Close fit","Blocked"]:activeHeatmap==="lanes"?["6–8 lanes","4 lanes","2 lanes"]:activeHeatmap==="flow"?["Flowing","Low flow","Dry"]:activeHeatmap==="transit"?["Vehicle route","Limited","Obstruction"]:["Good","Edge","Missing"];
 
   return (
-    <aside
-      className={`pointer-events-auto fixed right-13 top-14 z-30 max-w-[calc(100vw-4.5rem)] overflow-y-auto rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 p-2.5 shadow-2xl transition-all ${
+    <aside id="island-panel-layers" aria-label="Map layers"
+      className={`map-drawer pointer-events-auto fixed right-13 top-14 z-30 max-w-[calc(100vw-4.5rem)] overflow-y-auto rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 p-2.5 shadow-2xl transition-all ${
         expanded ? "max-h-[calc(100vh-8rem)] w-80 sm:w-96" : "max-h-[46vh] w-64"
       }`}
     >
@@ -176,6 +176,7 @@ export const HeatmapPanel: React.FC<HeatmapPanelProps> = ({
             <button
               key={opt.id}
               type="button"
+              aria-pressed={active}
               onClick={() => onSelectHeatmap(active ? "none" : opt.id)}
               className={`flex flex-col items-start rounded-md border px-2 py-1.5 text-left transition-colors ${
                 active

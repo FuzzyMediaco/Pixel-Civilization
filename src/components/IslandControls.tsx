@@ -145,6 +145,7 @@ interface GodProps {
   onPause: () => void;
   onStep: () => void;
   onDistrict: () => void;
+  onExamples: () => void;
 }
 export function GodControls({
   s,
@@ -160,6 +161,7 @@ export function GodControls({
   onPause,
   onStep,
   onDistrict,
+  onExamples,
 }: GodProps) {
   const [scope, setScope] = useState<"island" | "district" | "item">("island"),
     [radius, setRadius] = useState(4);
@@ -262,6 +264,7 @@ export function GodControls({
           Apply to scope
         </button>
       </fieldset>
+      <button type="button" onClick={onExamples}>Example islands</button>
       <fieldset>
         <legend>Experiment snapshots</legend>
         <div className="island-actions">

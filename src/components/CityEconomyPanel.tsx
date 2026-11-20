@@ -1,3 +1,4 @@
+import { fireServiceReadiness } from "../game/projectOperations";
 import React, { useEffect, useState } from "react";
 import {
   ELEMENT_BY_ID,
@@ -96,6 +97,7 @@ export function CityEconomyPanel({
     nextStage = STAGES[s.currentStage],
     total = cityWealth(s),
     authority = hasAuthority(s);
+  const fireService = tab === "safety" ? fireServiceReadiness(s) : undefined;
   const scopeTargets = site
     ? scope === "district"
       ? s.elements.filter((x) => closeSites(x, site, 4) && !ELEMENT_BY_ID[x.defId]?.isNetwork)
@@ -283,7 +285,7 @@ export function CityEconomyPanel({
               [
                 "Routine fires",
                 s.mode === "god"
-                  ? "Manual triggers"
+                  ? (fireService!.chance ? "Sandbox risk enabled" : "Manual triggers")
                   : s.highestStageReached < 4
                     ? "At Boomtown"
                     : s.activePlaySec - (op.sinceBoom ?? s.activePlaySec) < 100
@@ -306,6 +308,9 @@ export function CityEconomyPanel({
                   ).length,
                 ),
               ],
+              ["Fire crews / needed", fireService!.crews + " / " + fireService!.required],
+              ["Sites in station range", Math.round(100 * fireService!.coverage) + "%"],
+              ["Fire chance per check", Math.round(fireService!.chance) + "%"],
               ["Crime / defense", n(m.crimeRate) + "% / " + n(m.defenseRating) + "%"],
             ]}
           />

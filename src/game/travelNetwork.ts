@@ -1,3 +1,4 @@
+import { GRID_SIZE, cellIndex, cellFromIndex, withinMap } from "./mapBounds";
 import { parcelAccessSteps, PARCEL_SIDES, type AccessStep } from "./parcelEdges";
 import { ELEMENT_BY_ID } from "./catalog";
 import { roadPortOpen, buildWaterNavigation } from "./terrain";
@@ -69,14 +70,17 @@ export function perimeter(e: PlacedElement): Point[] {
   for (let i = 0; i < e.spanZ; i++) result.push([e.gx - 1, e.gz + i], [e.gx + e.spanX, e.gz + i]);
   return result;
 }
-export const tileKey = (x: number, z: number) => (z + 32) * 64 + x + 32;
-const point = (id: number): Point => [(id % 64) - 32, Math.floor(id / 64) - 32];
-const inside = (x: number, z: number) => x >= -32 && x < 32 && z >= -32 && z < 32;
+export const tileKey = cellIndex;
+const point = cellFromIndex;
+const inside = withinMap;
 type PathMode = TravelMode | "walk";
 export class TravelNetwork {
   readonly occupancy;
   readonly byId;
   readonly water;
+  private routeParents?: Int32Array;
+  private routeVisits?: Uint32Array;
+  private routeGeneration = 0;
   private crossings = new Map<number, number>();
   private walking = new Map<string, Set<string>>();
   private walkEdges = new Map<string, AccessStep[]>();
@@ -131,8 +135,7 @@ export class TravelNetwork {
     }
     const candidates = perimeter(e);
     if (hull) {
-      for (let x = e.gx; x < e.gx + e.spanX; x++)
-        for (let z = e.gz; z < e.gz + e.spanZ; z++) candidates.push([x, z]);
+      for (let x = e.gx; x < e.gx + e.spanX; x++) for (let z = e.gz; z < e.gz + e.spanZ; z++) candidates.push([x, z]);
     }
     return candidates.filter(([x, z]) => {
       if (!this.canUse(x, z, mode, hull)) return false;
@@ -153,42 +156,66 @@ export class TravelNetwork {
   }
   path(starts: Point[], ends: Point[], mode: PathMode, hull?: Hull): Point[] | null {
     if (!starts.length || !ends.length) return null;
-    const goals = new Set(ends.filter(([x, z]) => this.canUse(x, z, mode, hull)).map(([x, z]) => tileKey(x, z)));
-    if (!goals.size) return null;
-    // Keep arrival axis at a grade-separated crossing so distinct decks cannot exchange vehicles.
-    const parents = new Int32Array(8192).fill(-2);
-    const queue: number[] = [];
-    for (const [x, z] of starts)
-      if (this.canUse(x, z, mode, hull)) {
-        const id = tileKey(x, z) * 2;
-        if (parents[id] === -2) {
-          parents[id] = -1;
-          queue.push(id);
+    // Search from both ends. A blocked inland berth exhausts its small basin without
+    // enumerating the entire ocean. Each frontier remembers the arrival axis at tight turns.
+    const sideSize = GRID_SIZE * GRID_SIZE * 2;
+    const parents = (this.routeParents ??= new Int32Array(sideSize * 2));
+    const visits = (this.routeVisits ??= new Uint32Array(parents.length));
+    if (++this.routeGeneration >= 0xffffffff) {
+      visits.fill(0);
+      this.routeGeneration = 1;
+    }
+    const generation = this.routeGeneration,
+      frontier: [number[], number[]] = [[], []];
+    for (const side of [0, 1] as const)
+      for (const [x, z] of side === 0 ? starts : ends) {
+        if (!this.canUse(x, z, mode, hull)) continue;
+        const node = side * sideSize + tileKey(x, z) * 2;
+        if (visits[node] === generation) continue;
+        visits[node] = generation;
+        parents[node] = -1;
+        frontier[side].push(node);
+      }
+    const stitch = (a: number, b: number) => {
+      const route: Point[] = [];
+      for (let n = a; n >= 0; n = parents[n]) route.push(point(n % sideSize >> 1));
+      route.reverse();
+      for (let n = parents[b]; n >= 0; n = parents[n]) route.push(point(n % sideSize >> 1));
+      return route;
+    };
+    while (frontier[0].length && frontier[1].length) {
+      const side = frontier[0].length <= frontier[1].length ? 0 : 1;
+      const wave = frontier[side];
+      frontier[side] = [];
+      for (const id of wave) {
+        const cell = id % sideSize >> 1,
+          [x, z] = point(cell);
+        const tight = hull ? Boolean(hull.turningWidth && !this.canTurn(x, z, hull)) : this.crossings.has(cell);
+        const opposite = (1 - side) * sideSize + cell * 2;
+        for (let axis = 0; axis < 2; axis++) {
+          const other = opposite + axis;
+          if (visits[other] !== generation) continue;
+          if (tight && parents[id] !== -1 && parents[other] !== -1 && (id & 1) !== axis) continue;
+          return side === 0 ? stitch(id, other) : stitch(other, id);
         }
-      }
-    for (let head = 0; head < queue.length; head++) {
-      const id = queue[head],
-        cell = id >> 1,
-        [x, z] = point(cell);
-      if (goals.has(cell)) {
-        const route: Point[] = [];
-        for (let n = id; n >= 0; n = parents[n]) route.push(point(n >> 1));
-        return route.reverse();
-      }
-      for (const [dx, dz] of sides) {
-        const nx = x + dx,
-          nz = z + dz;
-        if (!this.canUse(nx, nz, mode, hull)) continue;
-        if (!hull && mode !== "rail" && !roadPortOpen(this.state, x, z, dx, dz)) continue;
-        if (hull && !this.water.canStep(x, z, nx, nz, hull)) continue;
-        const axis = dx === 0 ? 0 : 1;
-        if (!hull && parents[id] !== -1 && this.crossings.has(cell) && (id & 1) !== axis) continue;
-        if (hull?.turningWidth && parents[id] !== -1 && (id & 1) !== axis && !this.canTurn(x, z, hull)) continue;
-        const next = tileKey(nx, nz);
-        const node = next * 2 + (hull?.turningWidth || (!hull && this.crossings.has(next)) ? axis : 0);
-        if (parents[node] !== -2) continue;
-        parents[node] = id;
-        queue.push(node);
+        for (const [dx, dz] of sides) {
+          const axis = dx === 0 ? 0 : 1,
+            nx = x + dx,
+            nz = z + dz;
+          if (tight && parents[id] !== -1 && (id & 1) !== axis) continue;
+          if (!this.canUse(nx, nz, mode, hull)) continue;
+          if (
+            hull ? !this.water.canStep(x, z, nx, nz, hull) : mode !== "rail" && !roadPortOpen(this.state, x, z, dx, dz)
+          )
+            continue;
+          const next = tileKey(nx, nz);
+          const node =
+            side * sideSize + next * 2 + (hull?.turningWidth || (!hull && this.crossings.has(next)) ? axis : 0);
+          if (visits[node] === generation) continue;
+          visits[node] = generation;
+          parents[node] = id;
+          frontier[side].push(node);
+        }
       }
     }
     return null;
@@ -241,8 +268,7 @@ export class TravelNetwork {
             el = this.occupancy.get(nx + "," + nz);
           if (!el) continue;
           if (ELEMENT_BY_ID[el.defId]?.isRoadNetwork) addStreet(nx, nz, steps + 1);
-          else if (!reached.has(el.id) && this.access(el).some((e) => e.gx === x && e.gz === z))
-            addSite(el, steps + 1);
+          else if (!reached.has(el.id) && this.access(el).some((e) => e.gx === x && e.gz === z)) addSite(el, steps + 1);
         }
       }
     }
@@ -307,7 +333,9 @@ export function travelSignature(s: GameState): string {
     s.elements.some((e) => e.defId === "canal_boat_lift") &&
     (s.mode === "god" || (s.metrics.powerSupply > 0 && s.metrics.powerSupply >= s.metrics.powerDemand));
   return (
-    [cells ? terrainCopies.get(cells) : 0, s.infrastructure?.revision ?? 0, Number(lifted)].join(".") +
+    [s.terrainVersion ?? 1, cells ? terrainCopies.get(cells) : 0, s.infrastructure?.revision ?? 0, Number(lifted)].join(
+      ".",
+    ) +
     "|" +
     s.elements
       .map((e) =>

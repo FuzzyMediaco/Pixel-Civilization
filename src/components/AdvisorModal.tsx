@@ -1,3 +1,4 @@
+import { GameDialog } from "./GameDialog";
 import React, { useState } from "react";
 import { Activity, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Info, Layers, Trophy, X } from "lucide-react";
 import { ELEMENTS, STAGES } from "../game/catalog";
@@ -76,7 +77,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
   ];
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-stone-950/60 p-4">
+    <GameDialog label="Island civilization report" onDismiss={onClose} className="island-modal fixed inset-0 z-40 flex items-center justify-center bg-stone-950/60 p-4">
       <div
         className={`flex w-full flex-col overflow-hidden rounded-xl border border-stone-900/20 bg-[#fcfaf5] shadow-2xl transition-all ${
           expanded ? "max-h-[92vh] max-w-5xl" : "max-h-[72vh] max-w-2xl"
@@ -89,8 +90,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
               Island Civilization Report
             </h2>
             <p className="text-xs font-medium text-stone-500">
-              {ELEMENTS.length} Base Elements · 5 Levels · 4 Visual Variants (
-              {(ELEMENTS.length * 5 * 4).toLocaleString()} Unique Pixel Creations)
+              Current needs, service trends and population milestones
             </p>
           </div>
           <div className="flex items-center gap-1.5">
@@ -106,6 +106,8 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
             <button
               type="button"
               onClick={onClose}
+              aria-label="Close island civilization report"
+              data-dialog-focus
               className="rounded-md border border-stone-300 bg-white p-1.5 text-stone-600 hover:bg-stone-100"
             >
               <X className="h-4 w-4" />
@@ -117,6 +119,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
         <div className="grid grid-cols-4 gap-1 border-b border-stone-200 bg-stone-100/80 px-3 py-2 sm:px-5">
           <button
             type="button"
+            aria-pressed={tab === "needs"}
             onClick={() => setTab("needs")}
             className={`flex items-center justify-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-bold ${
               tab === "needs"
@@ -130,6 +133,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
           </button>
           <button
             type="button"
+            aria-pressed={tab === "trends"}
             onClick={() => setTab("trends")}
             className={`flex items-center justify-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-bold ${
               tab === "trends"
@@ -143,6 +147,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
           </button>
           <button
             type="button"
+            aria-pressed={tab === "stages"}
             onClick={() => setTab("stages")}
             className={`flex items-center justify-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-bold ${
               tab === "stages"
@@ -156,6 +161,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
           </button>
           <button
             type="button"
+            aria-pressed={tab === "rules"}
             onClick={() => setTab("rules")}
             className={`flex items-center justify-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-bold ${
               tab === "rules"
@@ -537,6 +543,6 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
           )}
         </div>
       </div>
-    </div>
+    </GameDialog>
   );
 };

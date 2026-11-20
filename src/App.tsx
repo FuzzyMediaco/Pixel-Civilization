@@ -8,6 +8,9 @@ import { MobilityPanel } from "./components/MobilityPanel";
 import { InfrastructurePanel } from "./components/InfrastructurePanel";
 import { CityEconomyPanel } from "./components/CityEconomyPanel";
 import { applyInfrastructureStroke, applyLandformPlacement, planInfrastructureStroke, type GridPoint, type InfrastructureTool } from "./game/terrain";
+import { ExampleIslands, WorldGuide } from "./components/ExampleIslands";
+import { EXAMPLE_WORLDS, createExampleWorld, type ExampleWorldId } from "./game/exampleWorlds";
+import { loadModeState, persistMode, resumeIsland } from "./game/activeIsland";
 import { createCanalDistrict } from "./game/canalDistrict";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertOctagon, Flame, Menu, RotateCcw, ShieldAlert, Sparkles, X } from "lucide-react";
@@ -16,7 +19,8 @@ import { BottomDock } from "./components/BottomDock";
 import { type CursorBehavior, CursorControlButton } from "./components/CursorControlButton";
 import { HamburgerMenuModal } from "./components/HamburgerMenuModal";
 import { HeatmapPanel } from "./components/HeatmapPanel";
-import { RightIconRail } from "./components/RightIconRail";
+import { RightIconRail, type IslandPanel } from "./components/RightIconRail";
+import { GameDialog } from "./components/GameDialog";
 import { SaveSlotsModal } from "./components/SaveSlotsModal";
 import { TopHud } from "./components/TopHud";
 import { ViewEnvPanel, type ViewEnvTab } from "./components/ViewEnvPanel";
@@ -65,72 +69,33 @@ import {
   PixelWorldRenderer,
 } from "./game/worldRenderer";
 
-const SAVE_PREFIX = "pixel_civ_save_v1_";
-
-function loadModeState(mode: GameMode): GameState {
-  try {
-    const raw = localStorage.getItem(`${SAVE_PREFIX}${mode}`);
-    if (raw) {
-      const parsed = JSON.parse(raw) as GameState;
-      if (parsed && Array.isArray(parsed.elements) && parsed.mode === mode) {
-        for (const el of parsed.elements) {
-          el.animProgress = 0;
-        }
-        parsed.toasts = [];
-        if (typeof parsed.timeOfDay !== "number") parsed.timeOfDay = 10.5;
-        if (typeof parsed.timeLocked !== "boolean") parsed.timeLocked = false;
-        if (!parsed.weather) parsed.weather = "clear";
-        if (typeof parsed.weatherLocked !== "boolean") parsed.weatherLocked = false;
-        if (typeof parsed.weatherIntensity !== "number") parsed.weatherIntensity = 1.0;
-        if (typeof parsed.windSpeed !== "number") parsed.windSpeed = 1.0;
-        if (typeof parsed.weatherTimerSec !== "number") parsed.weatherTimerSec = 55;
-        if (typeof parsed.crimeCooldownSec !== "number") parsed.crimeCooldownSec = 12;
-        if (typeof parsed.godCrimeEnabled !== "boolean") {
-          parsed.godCrimeEnabled = false;
-          parsed.crimeIncidents = [];
-        }
-        if (!Array.isArray(parsed.crimeIncidents)) parsed.crimeIncidents = [];
-        if (parsed.activeAttack === undefined) parsed.activeAttack = null;
-        if (parsed.activeAttack) {
-          if (!Array.isArray(parsed.activeAttack.defenders)) parsed.activeAttack.defenders = [];
-          if (typeof parsed.activeAttack.severity !== "number") parsed.activeAttack.severity = 1;
-        }
-        recomputeConnectivityAndMetrics(parsed);
-        return parsed;
-      }
-    }
-  } catch {
-    // Ignore storage read issues
-  }
-  return createInitialGameState(mode);
-}
-
-function lastMode(): GameMode {
-  try {const mode=localStorage.getItem("pixel_civ_last_mode");return mode==="real"||mode==="survival"?mode:"god";}catch{return "god";}
-}
-function persistMode(state: GameState): boolean {
-  try {
-    const slim: GameState = {
-      ...state,
-      toasts: [],
-    };
-    localStorage.setItem(`${SAVE_PREFIX}${state.mode}`, JSON.stringify(slim));
-    localStorage.setItem("pixel_civ_last_mode",state.mode);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<PixelWorldRenderer | null>(null);
 
-  const [gameState, setGameState] = useState<GameState>(() => loadModeState(lastMode()));
+  const [gameState, setGameState] = useState<GameState>(() => resumeIsland(location.hash));
   const stateRef = useRef<GameState>(gameState);
+  const [examplesOpen,setExamplesOpen] = useState(false);
   const [saveError,setSaveError]=useState(false);
   const [slotError,setSlotError]=useState("");
   const saveModeState=useCallback((s:GameState)=>{const ok=persistMode(s);setSaveError(!ok);return ok;},[]);
+  const captureView = useCallback((state: GameState) => {
+    const view = rendererRef.current?.getCameraView();
+    if (view) state.cameraView = view;
+  }, []);
+  const saveActiveMode = useCallback((state: GameState) => {
+    captureView(state);
+    return saveModeState(state);
+  }, [captureView, saveModeState]);
+
+
+  useEffect(() => {
+    const route = new URLSearchParams(location.hash.slice(1));
+    if (!gameState.exampleWorldId && !route.has("world")) return;
+    if (gameState.exampleWorldId) route.set("world", gameState.exampleWorldId);
+    else route.delete("world");
+    history.replaceState(null, "", "#" + route.toString());
+  }, [gameState.exampleWorldId]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedIdsRef = useRef<string[]>(selectedIds);
@@ -162,13 +127,24 @@ export const App: React.FC = () => {
   const [hasSnapshot,setHasSnapshot]=useState(()=>{try{return !!localStorage.getItem("pixel_civ_lab_snapshot");}catch{return false;}});
   const [cameraMode, setCameraMode] = useState<CameraMode>("pan");
   const [autoSpin, setAutoSpin] = useState(false);
+  const restoreIslandView = useCallback((state: GameState) => {
+    const world = rendererRef.current;
+    if (!world) return;
+    const restored = world.restoreCameraView(state.cameraView);
+    if (!restored) {
+      const example = EXAMPLE_WORLDS.find(w => w.id === state.exampleWorldId);
+      const point = example && (example.viewpoints[state.exampleViewpoint ?? -1] ?? example.camera);
+      if (point) world.focusGrid(point.gx, point.gz, point.zoom);
+    }
+    setCameraMode(restored ? state.cameraView!.mode : "pan");
+    setAutoSpin(restored && state.cameraView!.autoSpin === true);
+  }, []);
+
 
   // Default layout: all menus start closed as compact right-side icons + standalone hamburger button
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
-  const [topMenuOpen, setTopMenuOpen] = useState(false);
-  const [bottomMenuOpen, setBottomMenuOpen] = useState(false);
-  const [heatmapsOpen, setHeatmapsOpen] = useState(false);
-  const [viewEnvOpen, setViewEnvOpen] = useState(false);
+  const [overlay,setOverlay] = useState<IslandPanel|null>(null);
+  const topMenuOpen=overlay==="status", bottomMenuOpen=overlay==="build", heatmapsOpen=overlay==="layers", viewEnvOpen=overlay==="view";
   const [viewEnvTab, setViewEnvTab] = useState<ViewEnvTab>("weather");
   const [activeHeatmap, setActiveHeatmap] = useState<HeatmapKind>("none");
   const [attackSeverity, setAttackSeverity] = useState<number>(2);
@@ -189,20 +165,21 @@ export const App: React.FC = () => {
     reason?: string;
   } | null>(null);
 
-  const collapseOverlayMenus = useCallback(() => {
-    setTopMenuOpen(false);
-    setBottomMenuOpen(false);
-    setHeatmapsOpen(false);
-    setViewEnvOpen(false);
-  }, []);
+  const collapseOverlayMenus = useCallback(()=>setOverlay(null),[]);
+  const revealOverlay = useCallback((panel:IslandPanel,toggle=false)=>{
+    setDesk(null);setFolded(false);setPendingWorks(null);setWorksTool(null);setDispatchTarget(undefined);
+    setOverlay(current=>toggle && current===panel ? null : panel);
+  },[]);
+  const navigation=useRef({overlay,desk,pendingWorks,dispatchTarget});
+  navigation.current={overlay,desk,pendingWorks,dispatchTarget};
 
   const commitState = useCallback((mutator: (draft: GameState) => void) => {
     const next: GameState = structuredClone(stateRef.current);
     mutator(next);
     stateRef.current = next;
     setGameState(next);
-    saveModeState(next);
-  }, []);
+    saveActiveMode(next);
+  }, [saveActiveMode]);
 
   const setSimSpeed=(v:number)=>commitState(d=>{d.playSpeed=v;simSpeedRef.current=v;});
 
@@ -329,7 +306,7 @@ export const App: React.FC = () => {
       onTileMoveCommit: handleTileMoveCommit,
       onSelectElement: handleSelectElement,
       onFollowChange: setFollowedService,
-      onSelectService:id=>{setSelectedIds([]);setReturnLine(id);setDesk("transit");setFolded(false);setBottomMenuOpen(false);setWorksTool(null);},
+      onSelectService:id=>{setSelectedIds([]);setReturnLine(id);setDesk("transit");setFolded(false);setOverlay(null);setWorksTool(null);},
       onHoverInfo: setHoverInfo,
       onInspectTile: (gx,gz)=>{
         setInspectPoint({gx,gz});
@@ -339,13 +316,14 @@ export const App: React.FC = () => {
       onInfrastructureStroke: (tool,points)=>setPendingWorks({tool:{...tool},points:points.map(p=>({...p}))}),
     });
     rendererRef.current = world;
+    restoreIslandView(stateRef.current);
     (window as unknown as { __pixelWorld?: PixelWorldRenderer }).__pixelWorld = world;
 
     return () => {
       world.dispose();
       rendererRef.current = null;
     };
-  }, [handleTilePlace, handleTileMoveCommit, handleSelectElement,commitState]);
+  }, [handleTilePlace, handleTileMoveCommit, handleSelectElement, commitState, restoreIslandView]);
 
   // Sync game state & selection into 3D renderer
   useEffect(() => {
@@ -376,7 +354,7 @@ export const App: React.FC = () => {
   // Simulation loop (250ms tick, pauses active Survival timers when tab is hidden)
   useEffect(() => {
     let lastMs = performance.now(), lastSave=lastMs;
-    const flush=()=>saveModeState(stateRef.current);
+    const flush=()=>saveActiveMode(stateRef.current);
     const visibility=()=>{if(document.hidden)flush();};
     window.addEventListener("pagehide",flush);
     document.addEventListener("visibilitychange",visibility);
@@ -406,7 +384,7 @@ export const App: React.FC = () => {
         next.elements.some((e) => e.animProgress > 0)
       ) {
         setGameState(next);
-        if(now-lastSave>=5000){saveModeState(next);lastSave=now;}
+        if(now-lastSave>=5000){saveActiveMode(next);lastSave=now;}
       } else {
         // Still sync animProgress & clock smoothly to rendererRef
         rendererRef.current?.syncState(next, selectedIdsRef.current);
@@ -419,26 +397,31 @@ export const App: React.FC = () => {
   // Keyboard controls for selection, building and view.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement | null)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-
-      if (e.key === "Escape") {
-        setDispatchTarget(undefined);
-        setPendingWorks(null);setWorksTool(null); setDesk(null); rendererRef.current?.followService();
-        setBrush((b) => ({ ...b, kind: "none", defId: undefined, movingElementId: undefined }));
-        setSelectedIds((prev) => (prev.length === 2 ? [prev[0]] : prev));
-        setHeatmapsOpen(false);
-        setViewEnvOpen(false);
-      } else if (e.code === "KeyT") {
-        setTopMenuOpen((o) => !o);
-      } else if (e.code === "KeyB") {
-        setBottomMenuOpen((o) => !o);
-      } else if (e.code === "KeyH") {
-        setHeatmapsOpen((o) => !o);
-        setViewEnvOpen(false);
-      } else if (e.code === "KeyV") {
-        setViewEnvOpen((o) => !o);
-        setHeatmapsOpen(false);
+      if(e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || document.querySelector("dialog[open]")) return;
+      const target=e.target instanceof HTMLElement ? e.target : undefined;
+      if(e.key==="Escape") {
+        const ui=navigation.current;
+        if(ui.pendingWorks || ui.dispatchTarget) {
+          setPendingWorks(null);setDispatchTarget(undefined);setFolded(false);return;
+        }
+        if(ui.overlay) {
+          setOverlay(null);
+          document.querySelector<HTMLButtonElement>('[data-panel-toggle="'+ui.overlay+'"]')?.focus({preventScroll:true});
+          return;
+        }
+        if(ui.desk){
+          setWorksTool(null);setDesk(null);setFolded(false);
+          requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>(".island-launch")?.focus({preventScroll:true}));
+          return;
+        }
+        rendererRef.current?.followService();
+        setBrush(b=>({...b,kind:"none",defId:undefined,movingElementId:undefined}));
+        setSelectedIds([]);
+      } else if(target?.closest('input,textarea,select,[contenteditable="true"]')) return;
+      else if(e.repeat && ["KeyB","KeyT","KeyV","KeyH","KeyR"].includes(e.code)) return;
+      else if (["KeyB","KeyT","KeyH","KeyV"].includes(e.code)) {
+        const keys:Record<string,IslandPanel>={KeyT:"status",KeyB:"build",KeyH:"layers",KeyV:"view"};
+        revealOverlay(keys[e.code],true);
       } else if (e.key === "=" || e.key === "+") {
         rendererRef.current?.zoomBy(0.8);
       } else if (e.key === "-" || e.key === "_") {
@@ -483,14 +466,15 @@ export const App: React.FC = () => {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [commitBuildingEdit]);
+  }, [commitBuildingEdit,revealOverlay]);
 
   // UI Handlers
   const handleSwitchMode = (mode: GameMode) => {
     setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
-    if(!saveModeState(stateRef.current))return;
+    if(!saveActiveMode(stateRef.current))return false;
     const loaded = loadModeState(mode);
-    saveModeState(loaded);
+    if (!saveModeState(loaded)) return false;
+    restoreIslandView(loaded);
     stateRef.current = loaded;
     setGameState(loaded);
     setSelectedIds([]);
@@ -501,6 +485,7 @@ export const App: React.FC = () => {
       variantMode: -1,
       rotation: 0,
     });
+    return true;
   };
 
   const handleSelectBrushDef = (defId: string | null) => {
@@ -623,7 +608,10 @@ export const App: React.FC = () => {
 
   const handleResetCurrentIsland = () => {
     setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
-    const fresh = createInitialGameState(stateRef.current.mode);
+    const previous = stateRef.current;
+    const fresh = previous.exampleWorldId ? createExampleWorld(previous.exampleWorldId) : createInitialGameState(previous.mode);
+    fresh.exampleReturnMode = previous.exampleReturnMode;
+    restoreIslandView(fresh);
     stateRef.current = fresh;
     setGameState(fresh);
     saveModeState(fresh);
@@ -632,6 +620,7 @@ export const App: React.FC = () => {
   };
 
   const handleSaveToSlot = (slotIndex: number, name: string) => {
+    captureView(stateRef.current);
     let updated:typeof saveSlots;
     try{updated=saveCivilizationToSlot(slotIndex,name,stateRef.current);setSlotError("");}catch{setSlotError("The slot could not be saved. Free browser storage and try again.");return;}
     setSaveSlots(updated);
@@ -651,7 +640,7 @@ export const App: React.FC = () => {
     setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
     const slot = saveSlots[slotIndex];
     if (!slot) return;
-    if(!saveModeState(stateRef.current))return;
+    if(!saveActiveMode(stateRef.current))return;
     const restored = cloneGameStateSnapshot(slot.state);
     pushToast(
       restored,
@@ -659,6 +648,7 @@ export const App: React.FC = () => {
       `Loaded "${slot.name}"`,
       `Restored Slot #${slotIndex + 1} · ${restored.population.toLocaleString()} pop`,
     );
+    restoreIslandView(restored);
     stateRef.current = restored;
     setGameState(restored);
     saveModeState(restored);
@@ -783,7 +773,7 @@ export const App: React.FC = () => {
   const editCity=(fn:(draft:GameState)=>void)=>commitState(draft=>{fn(draft);recomputeConnectivityAndMetrics(draft);});
   const openDesk=(tab:DeskTab)=>{
     setPendingWorks(null);setDispatchTarget(undefined);
-    setDesk(tab);setFolded(false);setBottomMenuOpen(false);setTopMenuOpen(false);setHeatmapsOpen(false);setViewEnvOpen(false);
+    setDesk(tab);setFolded(false);setOverlay(null);
     if(tab!=="works")setWorksTool(null);
     setBrush(b=>({...b,kind:"none",defId:undefined,movingElementId:undefined}));
   };
@@ -795,11 +785,34 @@ export const App: React.FC = () => {
   };
   const activateSandbox=(s:GameState)=>{
     s.mode="god";s.gameOver=false;s.gameOverReason="";s.toasts=[];
-    recomputeConnectivityAndMetrics(s);stateRef.current=s;setGameState(s);saveModeState(s);
+    recomputeConnectivityAndMetrics(s);restoreIslandView(s);stateRef.current=s;setGameState(s);saveModeState(s);
     setSelectedIds([]);setActiveSlotIndex(null);setWorksTool(null);rendererRef.current?.followService();openDesk("god");
   };
+  const activeExample = EXAMPLE_WORLDS.find(world => world.id === gameState.exampleWorldId);
+  const openExamples = () => { setHamburgerOpen(false); setOverlay(null); setExamplesOpen(true); };
+  const visitExample = (id: ExampleWorldId) => {
+    const previous = stateRef.current;
+    if (!saveActiveMode(previous)) return;
+    const next = previous.exampleWorldId === id ? previous : loadModeState("god", id);
+    next.exampleReturnMode = previous.exampleReturnMode ?? previous.mode;
+    if (!saveModeState(next)) return;
+    stateRef.current = next;
+    setGameState(next);
+    setExamplesOpen(false);
+    setDesk(null); setOverlay(null); setFolded(false); setPendingWorks(null); setWorksTool(null);
+    setReturnLine(undefined); setDispatchTarget(undefined); setSelectedIds([]); setActiveSlotIndex(null);
+    setBrush(b => ({...b, kind:"none", defId:undefined, movingElementId:undefined}));
+    restoreIslandView(next);
+  };
+  const visitViewpoint = (index: number) => {
+    if (!activeExample) return;
+    const point = activeExample.viewpoints[index] ?? activeExample.camera;
+    setCameraMode("pan"); rendererRef.current?.setCameraMode("pan");
+    rendererRef.current?.focusGrid(point.gx,point.gz,point.zoom);
+    commitState(draft => { draft.exampleViewpoint = index; });
+  };
   const copyIsland=()=>{
-    const current=stateRef.current;if(!saveModeState(current))return;
+    const current=stateRef.current;if(!saveActiveMode(current))return;
     if(!snapshot(loadModeState("god")))return;
     activateSandbox(cloneGameStateSnapshot(current));
   };
@@ -807,12 +820,9 @@ export const App: React.FC = () => {
   const worksPreview=pendingWorks?planInfrastructureStroke(gameState,pendingWorks.tool,pendingWorks.points):null;
   const passagePreview=useMemo(()=>pendingWorks?previewWaterPassage(stateRef.current,pendingWorks.tool,pendingWorks.points):[],[pendingWorks,gameState.infrastructure?.stamp,gameState.elements.length]);
   const savedCount = saveSlots.filter(Boolean).length;
-  const issueCount = gameState.diagnostics.filter(
-    (d) => d.severity === "critical" || d.severity === "warning",
-  ).length;
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]">
+    <main className="island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]">
       {/* Full-Viewport 3D Sunlit Pixel-Voxel Island Canvas */}
       <canvas
         ref={canvasRef}
@@ -820,6 +830,10 @@ export const App: React.FC = () => {
         aria-label="Pixel Civilization 3D Voxel Island"
       />
 
+      {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
+        error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
+      {activeExample && !overlay && (!desk || folded) && !pendingWorks && !dispatchTarget &&
+        <WorldGuide key={activeExample.id} world={activeExample} selected={gameState.exampleViewpoint} onVisit={visitViewpoint} onBrowse={openExamples}/>}
       {saveError&&<p className="storage-notice" role="alert">This island could not be saved in browser storage. Keep the game open while you free space.</p>}
       {dispatchTarget&&<div className="works-confirm" role="status">Tap the water where you want this vessel to sail.<button onClick={()=>{setDispatchTarget(undefined);setFolded(false);}}>Cancel voyage</button></div>}
       {pendingWorks&&worksPreview&&<div className="works-confirm" role="status"><strong>{pendingWorks.tool.kind} · {worksPreview.points.length} tiles</strong>
@@ -833,22 +847,22 @@ export const App: React.FC = () => {
         <header><h2>{tabs[desk]}</h2><div className="island-actions"><button aria-label="Fold tools to view the map" onClick={()=>setFolded(true)}>View map</button><button aria-label="Close island tools" onClick={closeDesk}>×</button></div></header>
         <nav aria-label="Island tool sections">{(Object.keys(tabs) as DeskTab[]).filter(t=>(t!=="god"||gameState.mode==="god")&&(t!=="connections"||selected)).map(t=><button key={t} aria-current={desk===t} onClick={()=>openDesk(t)}>{tabs[t]}</button>)}</nav>
         {desk==="works"&&returnLine&&<button className="desk-back" onClick={()=>openDesk("transit")}>← Back to {returnLine.replace("line-","service #")}</button>}
-        {desk==="works"&&<div className="desk-works"><InfrastructurePanel state={gameState} mutate={editCity} selected={selected} onPreview={(tool,points)=>{setPendingWorks({tool,points});setFolded(true);}} inspectPoint={inspectPoint} tool={worksTool} onToolChange={t=>{setPendingWorks(null);setWorksTool(t);}} onClose={closeDesk}/></div>}
+        {desk==="works"&&<div className="desk-works"><InfrastructurePanel onUseMap={t=>{setWorksTool(t);setFolded(true);}} state={gameState} mutate={editCity} selected={selected} onPreview={(tool,points)=>{setPendingWorks({tool,points});setFolded(true);}} inspectPoint={inspectPoint} tool={worksTool} onToolChange={t=>{setPendingWorks(null);setWorksTool(t);}} onClose={closeDesk}/></div>}
         {desk==="transit"&&<MobilityPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} onPickDestination={id=>{setDispatchTarget(id);setFolded(true);}} onFollow={id=>rendererRef.current?.followService(id)} following={followedService} focusLine={returnLine} onGrid={(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openDesk("works");}}/>}
         {desk==="city"&&<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel={score}/>}
         {desk==="connections"&&<Connections s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("site");openDesk(tab);}}/>}
         {desk==="god"&&gameState.mode==="god"&&<GodControls s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("controls");openDesk(tab);}} paused={simSpeed===0} onPause={()=>setSimSpeed(simSpeed?0:1)}
           onStep={()=>{setSimSpeed(0);commitState(s=>{stepSimulation(s,1,true);recomputeConnectivityAndMetrics(s);});}}
-          onWeather={()=>{closeDesk();setViewEnvTab("weather");setViewEnvOpen(true);}} onDefense={()=>{closeDesk();setViewEnvTab("defense");setViewEnvOpen(true);}}
+          onWeather={()=>{closeDesk();setViewEnvTab("weather");revealOverlay("view");}} onDefense={()=>{closeDesk();setViewEnvTab("defense");revealOverlay("view");}}
           onSave={()=>{if(snapshot(stateRef.current))commitState(s=>pushToast(s,"stage","Snapshot saved","Restore it from God controls at any time."));}}
           canRestore={hasSnapshot} onRestore={()=>{try{const raw=localStorage.getItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{commitState(s=>pushToast(s,"alert","Unable to restore snapshot","The saved data could not be opened."));}}}
-          onDistrict={()=>{const district=createCanalDistrict();if(snapshot(stateRef.current)){activateSandbox(district);openDesk("transit");setFolded(true);rendererRef.current?.focusGrid(0,-1,74);}}}/>}
+          onExamples={openExamples} onDistrict={()=>{const current=stateRef.current; const district=createCanalDistrict();if(saveActiveMode(current) && snapshot(current.exampleWorldId ? loadModeState("god") : current)){activateSandbox(district);openDesk("transit");setFolded(true);rendererRef.current?.focusGrid(0,-1,74);}}}/>}
       </aside>}
       {/* Standalone Top-Left 3-Line Hamburger Menu Button */}
       <button
         type="button"
         onClick={() => setHamburgerOpen(true)}
-        className="pointer-events-auto fixed left-2.5 top-2 z-35 flex h-9 w-9 items-center justify-center rounded-lg border border-stone-900/20 bg-[#fcfaf5]/95 text-stone-900 shadow-md hover:bg-white"
+        className="game-menu-trigger pointer-events-auto fixed left-2.5 top-2 z-35 flex h-9 w-9 items-center justify-center rounded-lg border border-stone-900/20 bg-[#fcfaf5]/95 text-stone-900 shadow-md hover:bg-white"
         title="Open Game Menu & Modes"
         aria-label="Open Game Menu"
       >
@@ -856,46 +870,7 @@ export const App: React.FC = () => {
       </button>
 
       {/* Right-Edge Compact Icon Rail (Always Accessible in Every Mode) */}
-      <RightIconRail
-        state={gameState}
-        topMenuOpen={topMenuOpen}
-        bottomMenuOpen={bottomMenuOpen}
-        heatmapsOpen={heatmapsOpen}
-        viewEnvOpen={viewEnvOpen}
-        activeHeatmap={activeHeatmap}
-        autoSpin={autoSpin}
-        savedCount={savedCount}
-        issueCount={issueCount}
-        onToggleTopMenu={() => setTopMenuOpen((o) => !o)}
-        onToggleBottomMenu={() => setBottomMenuOpen((o) => !o)}
-        onToggleHeatmaps={() => {
-          setHeatmapsOpen((o) => !o);
-          setViewEnvOpen(false);
-        }}
-        onToggleWeatherStudio={() => {
-          setHeatmapsOpen(false);
-          if (viewEnvOpen && viewEnvTab !== "defense") {
-            setViewEnvOpen(false);
-          } else {
-            setViewEnvTab("weather");
-            setViewEnvOpen(true);
-          }
-        }}
-        onToggleDefensePanel={() => {
-          setHeatmapsOpen(false);
-          if (viewEnvOpen && viewEnvTab === "defense") {
-            setViewEnvOpen(false);
-          } else {
-            setViewEnvTab("defense");
-            setViewEnvOpen(true);
-          }
-        }}
-        onToggleAutoSpin={() => setAutoSpin((s) => !s)}
-        onLaunchAttack={() => handleLaunchAttack(attackSeverity)}
-        onOpenAdvisor={() => setAdvisorOpen(true)}
-        onOpenSaves={() => setSavesModalOpen(true)}
-        onHideAllMenus={collapseOverlayMenus}
-      />
+      <RightIconRail active={overlay} onToggle={id=>revealOverlay(id,true)} />
 
       {/* Persistent Bottom-Right Cursor & Layer Click Filter Control */}
       <CursorControlButton
@@ -910,7 +885,7 @@ export const App: React.FC = () => {
       {/* Active Heatmap Quick Pill when panel is collapsed */}
       {activeHeatmap !== "none" && !heatmapsOpen && (
         <div
-          className={`pointer-events-auto fixed left-13 z-25 flex items-center gap-1.5 rounded-lg border border-stone-900/20 bg-[#fcfaf5]/95 px-2.5 py-1 text-[11px] font-bold text-stone-900 shadow-md ${
+          className={`active-layer-pill pointer-events-auto fixed left-13 z-25 flex items-center gap-1.5 rounded-lg border border-stone-900/20 bg-[#fcfaf5]/95 px-2.5 py-1 text-[11px] font-bold text-stone-900 shadow-md ${
             topMenuOpen ? "top-13" : "top-2"
           }`}
         >
@@ -918,7 +893,7 @@ export const App: React.FC = () => {
           <span className="capitalize">{activeHeatmap}</span>
           <button
             type="button"
-            onClick={() => setHeatmapsOpen(true)}
+            onClick={() => revealOverlay("layers")}
             className="rounded bg-stone-200 px-1.5 py-0.5 text-[10px] font-bold hover:bg-stone-300"
           >
             Switch
@@ -927,7 +902,7 @@ export const App: React.FC = () => {
             type="button"
             onClick={() => setActiveHeatmap("none")}
             className="rounded p-0.5 text-stone-600 hover:bg-stone-200"
-            title="Clear Heat Map"
+            aria-label="Clear heat map" title="Clear Heat Map"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -983,21 +958,21 @@ export const App: React.FC = () => {
         onZoomOut={() => rendererRef.current?.zoomBy(1.3)}
         onRecentre={() => rendererRef.current?.recentreCamera()}
         onOpenWeatherStudio={() => {
-          setHeatmapsOpen(false);
+
           setViewEnvTab("weather");
-          setViewEnvOpen(true);
+          revealOverlay("view");
         }}
         onToggleDayNight={handleToggleDayNight}
         onToggleGodCrime={handleToggleGodCrime}
         onOpenDefenseTab={() => {
-          setHeatmapsOpen(false);
+
           setViewEnvTab("defense");
-          setViewEnvOpen(true);
+          revealOverlay("view");
         }}
         onOpenAdvisor={() => setAdvisorOpen(true)}
         onOpenScore={openScore}
         onMaintainAll={handleMaintainAll}
-        onClose={() => setTopMenuOpen(false)}
+        onClose={() => setOverlay(null)}
       />
 
       {/* Heat Maps Panel */}
@@ -1006,7 +981,7 @@ export const App: React.FC = () => {
         activeHeatmap={activeHeatmap}
         state={gameState}
         onSelectHeatmap={setActiveHeatmap}
-        onClose={() => setHeatmapsOpen(false)}
+        onClose={() => setOverlay(null)}
       />
 
       {/* Folded Studio Drawer: Weather Studio | 360 Cam | Defense & Attack */}
@@ -1040,13 +1015,13 @@ export const App: React.FC = () => {
         onClearAttack={handleClearAttack}
         onToggleGodCrime={handleToggleGodCrime}
         onTriggerCrime={handleTriggerCrime}
-        onClose={() => setViewEnvOpen(false)}
+        onClose={() => setOverlay(null)}
       />
 
       {/* Floating Event Toasts (Positioned clear of the Right Icon Rail) */}
       {gameState.toasts.length > 0 && (
         <div
-          className={`pointer-events-none fixed right-16 z-30 flex w-80 max-w-[calc(100vw-5rem)] flex-col gap-2 ${
+          className={`event-toasts pointer-events-none fixed right-16 z-30 flex w-80 max-w-[calc(100vw-5rem)] flex-col gap-2 ${
             topMenuOpen ? "top-20" : "top-4"
           }`}
         >
@@ -1093,7 +1068,7 @@ export const App: React.FC = () => {
         onClearSelection={() => {
           setSelectedIds([]);
         }}
-        onClose={() => setBottomMenuOpen(false)}
+        onClose={() => setOverlay(null)}
       />
 
       {/* City Info / Advisor & 20 Stages Modal */}
@@ -1103,7 +1078,7 @@ export const App: React.FC = () => {
         onShowMetric={id=>{setAdvisorOpen(false);if(["traffic","transit"].includes(id)){openDesk("transit");return;}
           if(["wealth","money","fire","jobs","econ","recovery","crime"].includes(id)){setScore(["fire","crime"].includes(id)?"safety":id==="jobs"?"population":"wealth");openDesk("city");return;}
           const map:Record<string,HeatmapKind>={edu:"education",food:"food",parks:"parks",water:"water",waste:"waste",power:"power",defense:"defense",pollution:"pollution"};
-          if(map[id]){setActiveHeatmap(map[id]);setHeatmapsOpen(true);}else openDesk("city");}}
+          if(map[id]){setActiveHeatmap(map[id]);revealOverlay("layers");}else openDesk("city");}}
         onClose={() => setAdvisorOpen(false)}
       />
 
@@ -1117,18 +1092,18 @@ export const App: React.FC = () => {
         onChangeMode={handleSwitchMode}
         onChangeSimSpeed={setSimSpeed}
         onOpenWeatherStudio={() => {
-          setHeatmapsOpen(false);
+
           setViewEnvTab("weather");
-          setViewEnvOpen(true);
+          revealOverlay("view");
         }}
         onOpenHeatmaps={() => {
-          setViewEnvOpen(false);
-          setHeatmapsOpen(true);
+
+          revealOverlay("layers");
         }}
         onOpenAdvisor={() => setAdvisorOpen(true)}
         onOpenSaves={() => setSavesModalOpen(true)}
         onToggleGodCrime={handleToggleGodCrime}
-        onOpenIsland={openDesk} onCopyIsland={copyIsland}
+        onOpenIsland={openDesk} onCopyIsland={copyIsland} onOpenExamples={openExamples}
         onResetIsland={() => setConfirmResetOpen(true)}
       />
 
@@ -1148,7 +1123,7 @@ export const App: React.FC = () => {
 
       {/* Reset Island Confirmation Modal */}
       {confirmResetOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4">
+        <GameDialog label="Reset current island" onDismiss={()=>setConfirmResetOpen(false)} className="island-modal fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4">
           <div className="w-full max-w-sm rounded-xl border border-stone-900/20 bg-[#fcfaf5] p-5 shadow-2xl">
             <h3 className="font-display text-base font-extrabold text-stone-900">
               Reset {gameState.mode === "god" ? "God Mode" : gameState.mode === "real" ? "Real Mode" : "Survival"} Island?
@@ -1160,7 +1135,7 @@ export const App: React.FC = () => {
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                onClick={() => setConfirmResetOpen(false)}
+                onClick={() => setConfirmResetOpen(false)} data-dialog-focus
                 className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-bold text-stone-700 hover:bg-stone-100"
               >
                 Cancel
@@ -1174,12 +1149,12 @@ export const App: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </GameDialog>
       )}
 
       {/* Survival Mode Game Over Modal */}
       {gameState.gameOver && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 p-4">
+        <GameDialog label="Civilization collapsed" className="island-modal fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 p-4">
           <div className="w-full max-w-md rounded-xl border border-rose-500/40 bg-[#fcfaf5] p-6 text-center shadow-2xl">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-rose-100 text-rose-700">
               <AlertOctagon className="h-7 w-7" />
@@ -1208,7 +1183,7 @@ export const App: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </GameDialog>
       )}
     </main>
   );

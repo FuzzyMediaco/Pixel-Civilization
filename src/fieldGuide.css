@@ -1,5 +1,6 @@
+@import "./styles/interface.css";
 :root {
-  font-family: "Outfit", "Segoe UI", sans-serif;
+  font-family: var(--ui-font);
   color: #173931;
   background: #f6f3e9;
   font-synthesis: none;
@@ -14,7 +15,7 @@ header a { color: inherit; font-size: 14px; text-decoration: none; }
 .brand { display: flex; align-items: center; gap: 13px; font-size: 18px; font-weight: 700; }
 .brand i { width: 8px; height: 8px; background: #a2ca70; box-shadow: 9px 0 #66b9d0, 0 9px #f1bf63, 9px 9px #d98063; margin: -7px 8px 0 0; }
 main { max-width: 1460px; margin: 0 auto; padding: clamp(16px,3vw,44px); display: grid; grid-template-columns: minmax(190px, 245px) minmax(0, 1fr); gap: clamp(16px,3vw,44px); }
-aside h1, h2, h3 { font-family: "Georgia", serif; font-weight: 500; letter-spacing: -.04em; margin: 0; }
+aside h1, h2, h3 { font-family: var(--ui-font); font-weight: 650; letter-spacing: -.045em; margin: 0; }
 aside h1 { font-size: 34px; margin: 0 0 20px; }
 aside input, aside select { width: 100%; border: 1px solid #bdc8b5; border-radius: 5px; padding: 9px 10px; background: #fffdf6; margin-bottom: 7px; }
 .matches { padding: 10px 0; font-size: 12px; color: #51665a; }
@@ -30,7 +31,7 @@ nav button[aria-current] { font-weight: 700; }
 .viewport canvas { display: block; width: 100%; height: 100%; }
 .caption, .light { position: absolute; z-index: 1; top: 15px; }
 .caption { left: 20px; pointer-events: none; }
-.caption span, .entry-title span, .steps small { font-size: 11px; font-family: "JetBrains Mono", Consolas, monospace; }
+.caption span, .entry-title span, .steps small { font-size: 11px; font-family: var(--ui-font); font-variant-numeric: tabular-nums; }
 .caption span { text-transform: uppercase; letter-spacing: .09em; }
 h2 { font-size: clamp(25px, 3vw, 48px); margin-top: 1px; line-height: 1.05; }
 .light, .variants button { background: #f8fbecdf; border: 1px solid #a0b6a3; color: #244137; border-radius: 20px; font-size: 13px; padding: 5px 12px; }

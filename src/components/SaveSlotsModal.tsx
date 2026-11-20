@@ -1,3 +1,4 @@
+import { GameDialog } from "./GameDialog";
 import React, { useEffect, useState } from "react";
 import { Check, ChevronDown, ChevronUp, FolderOpen, Pencil, Save, Trash2, X } from "lucide-react";
 import { type GameMode } from "../game/catalog";
@@ -71,7 +72,7 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
   const filledCount = slots.filter(Boolean).length;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-stone-950/60 p-4">
+    <GameDialog label="Saved civilizations" onDismiss={onClose} className="island-modal fixed inset-0 z-40 flex items-center justify-center bg-stone-950/60 p-4">
       <div
         className={`flex w-full flex-col overflow-hidden rounded-xl border border-stone-900/20 bg-[#fcfaf5] shadow-2xl transition-all ${
           expanded ? "max-h-[92vh] max-w-4xl" : "max-h-[70vh] max-w-xl"
@@ -100,6 +101,8 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
             <button
               type="button"
               onClick={onClose}
+              aria-label="Close saved civilizations"
+              data-dialog-focus
               className="rounded-md border border-stone-300 bg-white p-1.5 text-stone-600 hover:bg-stone-100"
             >
               <X className="h-4 w-4" />
@@ -157,6 +160,7 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
                           prev.map((v, i) => (i === idx ? e.target.value : v)),
                         )
                       }
+                      aria-label={`Island name for slot ${idx + 1}`}
                       placeholder={`Civilization ${idx + 1}`}
                       className="mt-1 w-full max-w-xs rounded-md border border-stone-300 bg-white px-2.5 py-1 text-sm font-bold text-stone-900 focus:border-stone-900 focus:outline-none"
                     />
@@ -208,6 +212,7 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
                           type="text"
                           value={draftName}
                           maxLength={36}
+                          aria-label={`Rename island in slot ${idx + 1}`}
                           autoFocus
                           onChange={(e) =>
                             setDraftNames((prev) =>
@@ -215,6 +220,12 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
                             )
                           }
                           onKeyDown={(e) => {
+                            if (e.key === "Escape") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setEditingIdx(null);
+                              setDraftNames(names => names.map((value, index) => index === idx ? slot.name : value));
+                            }
                             if (e.key === "Enter") {
                               onRenameSlot(idx, draftName);
                               setEditingIdx(null);
@@ -294,6 +305,6 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
           })}
         </div>
       </div>
-    </div>
+    </GameDialog>
   );
 };

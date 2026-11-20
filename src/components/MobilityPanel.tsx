@@ -1,3 +1,4 @@
+import { GRID_MIN, GRID_MAX } from "../game/mapBounds";
 import React, { useEffect, useState } from "react";
 import { ELEMENT_BY_ID } from "../game/catalog";
 import type { GameState, PlacedElement } from "../game/simulation";
@@ -372,12 +373,12 @@ export function MobilityPanel({
                     <input
                       aria-label={"Destination " + name}
                       type="number"
-                      min="-32"
-                      max="31"
+                      min={GRID_MIN}
+                      max={GRID_MAX}
                       value={waypoint[i]}
                       onChange={(e) => {
                         const p: Point = [...waypoint];
-                        p[i] = clamp(Math.round(Number(e.target.value)), -32, 31);
+                        p[i] = clamp(Math.round(Number(e.target.value)), GRID_MIN, GRID_MAX);
                         setWaypoint(p);
                       }}
                     />

@@ -33,6 +33,7 @@ import { SYNERGY_RULES } from "../game/cityDynamics";
 import {
   MAINTENANCE_INTERVAL_SEC,
   type GameState,
+  buildingLockReason,
   isElementUnlocked,
 } from "../game/simulation";
 import { type BuildBrush } from "../game/worldRenderer";
@@ -144,7 +145,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
   if (!open && !showInspector && !showInvalidHint) return null;
 
   return (
-    <section className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-end gap-1 p-1.5 pr-13 sm:p-2 sm:pr-15">
+    <section onKeyDown={e=>{if(e.key==="Escape" && (searchOpen || catMenuOpen)){
+      e.stopPropagation();setSearchOpen(false);setSearchQuery("");setCatMenuOpen(false);
+    }}} id="island-panel-build" aria-label="Build palette" className="build-dock pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-end gap-1 p-1.5 pr-13 sm:p-2 sm:pr-15">
       {/* Hover placement status hint */}
       {showInvalidHint && hoverInfo?.reason && (
         <div className="rounded-md border border-rose-500/40 bg-rose-950/92 px-2 py-0.5 text-[10.5px] font-bold text-rose-100 shadow-md">
@@ -154,7 +157,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
 
       {/* Right-Handed Compact Selected Element Inspector */}
       {primaryEl && primaryDef && (
-        <div className="pointer-events-auto relative flex w-auto max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 rounded-lg border border-stone-900/20 bg-[#fcfaf5]/96 px-2 py-1 shadow-lg">
+        <div className="selection-inspector pointer-events-auto relative flex w-auto max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 rounded-lg border border-stone-900/20 bg-[#fcfaf5]/96 px-2 py-1 shadow-lg">
           <button type="button" onClick={onInspectSystems} className="rounded bg-emerald-900 px-2 py-1 text-xs font-bold text-white">Connections</button>
           {/* Element Identity (Favicon + Tiny Color Square + Name & Micro Metadata) */}
           <div className="flex min-w-0 items-center gap-1.5">
@@ -352,7 +355,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
 
       {/* Compact Right-Aligned Builder Tab (Strictly 1-Row Skinny Strip by Default) */}
       {open && (
-        <div className="pointer-events-auto w-full max-w-3xl rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 shadow-xl">
+        <div className="build-palette pointer-events-auto w-full max-w-3xl rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 shadow-xl">
           {/* Header Row: Utility Icons on Left, Primary Controls (Category & Select) Flush Right for Right Thumb */}
           <div className="flex flex-wrap items-center justify-between gap-1 border-b border-stone-200 px-1.5 py-1">
             <button type="button" className="rounded bg-emerald-900 px-2 py-1 text-xs font-bold text-white" onClick={onOpenWorks}>Terrain &amp; transport</button>
@@ -363,7 +366,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               <div className="flex min-w-0 flex-1 items-center gap-1">
                 <Search className="h-3.5 w-3.5 shrink-0 text-stone-500" />
                 <input
-                  type="text"
+                  type="search" aria-label="Find a building"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -474,7 +477,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                         ? "border-emerald-700 bg-emerald-700 text-white"
                         : "border-stone-300 bg-white text-stone-800 hover:bg-stone-100"
                     }`}
-                    title="Browse all 14 element categories"
+                    aria-expanded={catMenuOpen} aria-label={"Choose building category: "+activeCatLabel} title="Browse element categories"
                   >
                     <Grid2x2 className="h-3 w-3 shrink-0" />
                     <span className="max-w-[84px] truncate sm:max-w-[140px]">{activeCatLabel}</span>
@@ -532,7 +535,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
           <div
             className={
               expanded
-                ? "grid max-h-[36vh] grid-cols-3 gap-1 overflow-y-auto overflow-x-hidden px-1.5 py-1.5 sm:grid-cols-4 md:grid-cols-5"
+                ? "build-grid grid max-h-[36vh] grid-cols-2 gap-1 overflow-y-auto overflow-x-hidden px-1.5 py-1.5 sm:grid-cols-4 md:grid-cols-5"
                 : "flex flex-nowrap items-center gap-1.5 overflow-x-auto overflow-y-hidden px-1.5 py-1 touch-pan-x"
             }
           >
@@ -542,7 +545,8 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               </div>
             ) : (
               filteredElements.map((def) => {
-                const unlocked = isElementUnlocked(def, state);
+                const lock = buildingLockReason(def, state);
+                const unlocked = !lock;
                 const selected = brush.kind === "place" && brush.defId === def.id;
                 const canAfford = !buildingCharges(state) || state.money >= def.cost;
 
@@ -552,8 +556,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                     type="button"
                     disabled={!unlocked}
                     onClick={() => onSelectBrushDef(selected ? null : def.id)}
-                    title={`${def.name} — ${def.description}`}
-                    className={`flex h-[34px] min-w-0 items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-left transition-colors ${
+                    title={lock ?? `${def.name} — ${def.description}`}
+                    aria-pressed={selected}
+                    className={`build-element flex h-[34px] min-w-0 items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-left transition-colors ${
                       expanded ? "w-full" : "w-[114px] shrink-0"
                     } ${
                       !unlocked
@@ -563,7 +568,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                           : "border-stone-200 bg-white text-stone-900 hover:border-stone-400 hover:bg-stone-50"
                     }`}
                   >
-                    {/* Tiny Level-1 Voxel Favicon */}
+                    {/* Illustrated design */}
                     <ElementFavicon def={def} className="h-[22px] w-[22px] shrink-0" />
 
                     {/* Skinny Compact Info Stack: Tiny Color Square + Name + Stat */}
@@ -572,7 +577,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                         <svg className="h-1.5 w-1.5 shrink-0" viewBox="0 0 6 6" aria-hidden="true">
                           <rect width="6" height="6" rx="1" fill={def.accentHex} />
                         </svg>
-                        <span className="truncate text-[9.5px] font-extrabold leading-tight">
+                        <span className="build-name truncate text-[9.5px] font-extrabold leading-tight">
                           {def.name}
                         </span>
                       </div>
@@ -585,7 +590,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                         {!unlocked ? (
                           <span className="font-mono-num inline-flex shrink-0 items-center gap-0.5 text-stone-400">
                             <Lock className="h-2 w-2" />
-                            {def.wealthThreshold ? "$"+def.wealthThreshold.toLocaleString()+" wealth" : "S"+def.stage}
+                            {lock?.startsWith("Staff") ? "City office" : def.wealthThreshold ? lock?.replace("Reach ", "") : "S"+def.stage}
                           </span>
                         ) : buildingCharges(state) ? (
                           <span

@@ -1,5 +1,200 @@
 [
   {
+    "id": "worlds",
+    "label": "Worlds",
+    "title": "Three playable islands",
+    "intro": "Each island opens as an editable example. Use its guided viewpoints to find a working system, change it and watch what happens.",
+    "cover": "/handbook/worlds/pelican-reach.webp",
+    "lessons": [
+      {
+        "id": "pelican-reach",
+        "title": "Pelican Reach",
+        "world": "pelican-reach",
+        "summary": "Take a ferry through an opening bridge and follow a submarine into the open sea.",
+        "steps": [
+          "Start at The lift at Marina Cut. Follow the passenger ferry in Transit & harbor and watch the road deck open for the boat. Move the lift back to Automatic after experimenting with it.",
+          "Visit Admiralty Quay. Follow the submarine, send it to the deep-water waypoint at (38, 0), and use Recall to bring it home. The small boat can fit through the western canal and boat lift into the raised pond at (−6, 8).",
+          "Use the viewpoint selector to visit Calder airfield or the chapel and churchyard. Inspect a building to see its operations or the boundaries it shares with its neighbors."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/pelican-reach-1.webp",
+            "caption": "The road lift crosses the ferry channel. Motor traffic waits while the raised deck lets taller boats pass.",
+            "alt": "Marina Cut in the playable Pelican Reach example. The road lift crosses the ferry channel. Motor traffic waits while the raised deck lets taller boats pass.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/pelican-reach-2.webp",
+            "caption": "The naval and submarine bases share a sheltered deep-water quay. The patrol can leave the estuary for the open sea.",
+            "alt": "Admiralty Quay in the playable Pelican Reach example. The naval and submarine bases share a sheltered deep-water quay. The patrol can leave the estuary for the open sea.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/pelican-reach-3.webp",
+            "caption": "A narrow canal and boat lift connect the raised pond to the estuary. Send the small boat through the chamber.",
+            "alt": "The upper pond in the playable Pelican Reach example. A narrow canal and boat lift connect the raised pond to the estuary. Send the small boat through the chamber.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/pelican-reach-4.webp",
+            "caption": "Calder airfield dispatches passenger flights from the road behind the quay.",
+            "alt": "The air terminal and control tower beside the quay road.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/pelican-reach-5.webp",
+            "caption": "The naval patrol crosses Pelican Shoal. Submarines can use the same deep water.",
+            "alt": "A white patrol vessel underway beside a submarine in blue offshore water.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/pelican-reach-6.webp",
+            "caption": "Extend the sand spit into the bay with Peninsula. Undo the work to recover this beach.",
+            "alt": "An irregular sandy spit lined with a boardwalk and beach planting.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/pelican-reach-7.webp",
+            "caption": "The chapel and its graveyard share a boundary and a walk to the ferry.",
+            "alt": "The chapel, pale grave markers and a continuous quayside walkway.",
+            "width": 960,
+            "height": 600
+          }
+        ]
+      },
+      {
+        "id": "copper-gorge",
+        "title": "Copper Gorge",
+        "world": "copper-gorge",
+        "summary": "Trace a mountain spring across a canyon to five fields and a reservoir.",
+        "steps": [
+          "Start at The blue crossing. Open Land & water and inspect the aqueduct. Read the flow at the bend, across the canyon and at the farm outlets.",
+          "Visit Five Fields Farm. Select the farmhouse and its five neighbors. Compare each field’s irrigation and harvest with the grocer’s meals sold. A bus connects the farm district to the mine on the opposite rim.",
+          "At The millrace, inspect the dam and hydro plant, open the gate, and compare the available head and power. Use Undo to restore it. Visit Gorge gates to see the paired depots transfer passengers across the canyon."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/copper-gorge-1.webp",
+            "caption": "Spring water crosses the gorge on raised supports while the road follows its own deck.",
+            "alt": "The canyon crossing in the playable Copper Gorge example. Spring water crosses the gorge on raised supports while the road follows its own deck.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/copper-gorge-2.webp",
+            "caption": "Five adjoining fields receive irrigation and contribute their harvests to the local food supply.",
+            "alt": "Five Fields Farm in the playable Copper Gorge example. Five adjoining fields receive irrigation and contribute their harvests to the local food supply.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/copper-gorge-3.webp",
+            "caption": "The millrace and closed dam provide a height difference for the hydroelectric plant.",
+            "alt": "The millrace in the playable Copper Gorge example. The millrace and closed dam provide a height difference for the hydroelectric plant.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/copper-gorge-4.webp",
+            "caption": "At Sandstone Lane, the cottage sits on two adjoining desert plots. Paint sand beyond the last field to extend the dry ground.",
+            "alt": "A cottage beside a dirt lane on pale sand between two planted plots.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/copper-gorge-5.webp",
+            "caption": "Copperbank mine cuts terraces into the western rim. Select the pit to inspect its workforce and exports.",
+            "alt": "The ochre open pit and its concentrator on the high side of the gorge.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/copper-gorge-6.webp",
+            "caption": "The two Gorge Gates transfer paying passengers between the canyon rims. Inspect either depot to find its partner.",
+            "alt": "A teleportation depot on a curved road near the eastern farm district.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/copper-gorge-7.webp",
+            "caption": "The western spring feeds the aqueduct below the mountain. Open a side outlet to see where its water falls.",
+            "alt": "A spring high in the rocky rim above the elevated aqueduct.",
+            "width": 960,
+            "height": 600
+          }
+        ]
+      },
+      {
+        "id": "switchyard-city",
+        "title": "Switchyard City",
+        "world": "switchyard-city",
+        "summary": "Ride the night train, inspect a giant cheesesteak restaurant and watch a research rocket launch.",
+        "steps": [
+          "Start at Cheesesteak Row. Select the Level 5 Cheesesteak Spot, inspect the joined townhouses across the street, and visit Market and cashpoint to find the ATM facing the bank.",
+          "Use Night train to find the railway platforms. In Transit & harbor, follow the passenger train, bus or taxi. Visit Northgate interchange to inspect the freeway lanes and traffic signals.",
+          "At Rocket works, open the Spaceport’s selected-site report to see a crew and its mission. Check Accounts after it returns. Open Fire & safety to follow the engine responding to the shop fire, then repair and reopen the shop after containment."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/switchyard-city-2.webp",
+            "caption": "The Level 5 Cheesesteak Spot is shaped like a giant sandwich. The surrounding homes and shops share a working street.",
+            "alt": "Cheesesteak Row in the playable Switchyard City example. The Level 5 Cheesesteak Spot is shaped like a giant sandwich. The surrounding homes and shops share a working street.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/switchyard-city-4.webp",
+            "caption": "A staffed, funded Spaceport sends a research crew into flight. The mission pays the business account after completion.",
+            "alt": "The Spaceport in the playable Switchyard City example. A staffed, funded Spaceport sends a research crew into flight. The mission pays the business account after completion.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/switchyard-city-7.webp",
+            "caption": "The station and shop share a road route. A supplied engine can reach the incident, contain it, and return to the station.",
+            "alt": "Engine company in the playable Switchyard City example. The station and shop share a road route. A supplied engine can reach the incident, contain it, and return to the station.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/switchyard-city-1.webp",
+            "caption": "Visit the night market to follow money from households to shops, the bank and its cashpoint.",
+            "alt": "Lit market stalls and the bank along a neighborhood street at night.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/switchyard-city-3.webp",
+            "caption": "At Night Train, follow a passenger train past the market platforms. Compare late train, bus and taxi departures.",
+            "alt": "The tracks and lit station at the edge of the night market.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/switchyard-city-5.webp",
+            "caption": "Northgate carries local streets over the freeway. Inspect a ramp and compare the next traffic queue after changing a signal.",
+            "alt": "A grade-separated road interchange with curved ramps and traffic signals.",
+            "width": 960,
+            "height": 600
+          },
+          {
+            "image": "/handbook/worlds/switchyard-city-6.webp",
+            "caption": "Inspect Private Gardens to see the rear gate, planted beds and the driveways on the street side of the homes.",
+            "alt": "A planted residential garden between a street-facing house and its neighbors.",
+            "width": 960,
+            "height": 600
+          }
+        ]
+      }
+    ]
+  },
+  {
     "id": "tour",
     "label": "Canal tour",
     "title": "A first trip through the canal district",
@@ -68,6 +263,68 @@
     "intro": "Read the banks, follow the water, and check the clearance before committing a span.",
     "cover": "/handbook/works/aqueduct-branches.webp",
     "lessons": [
+      {
+        "id": "works-gallery",
+        "title": "Engineering tool gallery",
+        "steps": [
+          "For a brush or a waterway, choose its width and depth first. Use on map lets you trace a bend. Expand the coordinate controls to preview a precise tile or a straight run. Review the price and affected sites, then apply the work.",
+          "Open a bay by connecting its cut to the sea. Use a river, spring or pond for fresh water. A canal can serve boats, irrigation or both when it has a freshwater supply.",
+          "To water a high field, start the aqueduct beside a mountain spring or working pump. A branch above the available pressure runs dry. End the channel beside a receiving pond or building, or leave a side spout open.",
+          "Begin and end a bridge on opposite dry banks. Height controls clearance and ramp length. A footbridge carries walkers, rail carries trains and the road decks carry vehicles. An automatic lift holds its traffic while a taller vessel passes.",
+          "Use the street tool on an existing road. Apply a junction template on clear, dry ground. Select the affected layer when removing works, and use Undo last works immediately to recover the change."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/works/archipelago-map.webp",
+            "caption": "The two new headlands join the original plateau. From the eastern coast, a vessel can reach North Sound, South Island and Beacon Key through the open sea.",
+            "alt": "Map of the 192 by 192 tile archipelago with numbered coordinates for its eight regions and the dashed boundary of the original playable area.",
+            "width": 868,
+            "height": 636
+          },
+          {
+            "image": "/handbook/works/tool-gallery-land.webp",
+            "caption": "Six land tools change the grade, surface, and shape of a parcel.",
+            "alt": "Raised grass, a cut, a smoothed slope, a sand lot with a house, a snowy peak and a rocky canyon.",
+            "width": 1020,
+            "height": 448
+          },
+          {
+            "image": "/handbook/works/tool-gallery-water.webp",
+            "caption": "Waterway cuts can form a sheltered bay, a navigable canal, or a freshwater pond.",
+            "alt": "Six terrain cuts show a pond, flowing river, masonry canal, ocean inlet, sandy peninsula and spring.",
+            "width": 1020,
+            "height": 448
+          },
+          {
+            "image": "/handbook/works/tool-gallery-waterworks.webp",
+            "caption": "Compare the gate opening, dam, mountain intake, receiving pond and two aqueduct outlets.",
+            "alt": "Closed and open canal gates, stepped river dam, mountain-fed aqueduct to a farm pond, spilling spout and capped channel.",
+            "width": 1020,
+            "height": 448
+          },
+          {
+            "image": "/handbook/works/tool-gallery-bridges.webp",
+            "caption": "Match the deck to the crossing. A raised lift lets tall vessels through and a high fixed deck needs a longer approach.",
+            "alt": "Pedestrian stone arch, red road truss, railway viaduct, suspension highway, raised freeway lift and extended bank ramps.",
+            "width": 1020,
+            "height": 448
+          },
+          {
+            "image": "/handbook/works/tool-gallery-junctions.webp",
+            "caption": "Paint lane counts and signals on existing streets, or lay a complete interchange on dry land.",
+            "alt": "A signalized road crossing and the diamond, trumpet and directional interchange layouts.",
+            "width": 680,
+            "height": 448
+          },
+          {
+            "image": "/handbook/works/tool-gallery-removal.webp",
+            "caption": "Removal affects the selected layer. Removing the bridge leaves the channel underneath open.",
+            "alt": "Separate examples remove a deck, an aqueduct segment, lane controls and the middle of a sand brushstroke.",
+            "width": 680,
+            "height": 448
+          }
+        ]
+      },
       {
         "id": "land-and-coasts",
         "title": "Shape a coastline and cut a canyon",
@@ -335,7 +592,8 @@
           "Routine fires begin at Stage 4 (45,000 residents), after a 100-second settling period. Early emergencies can draw volunteers.",
           "A staffed City Office, Government Building, Courthouse or Tax Collecting Office authorizes a staffed fire department. Keep a drivable route or a navigable waterfront approach open.",
           "Select the burning site and dispatch a crew. An engine needs local fresh water at its station or incident. Clear weather requires eight seconds of water application. A volunteer takes twenty.",
-          "When the call is contained, select Repair and reopen to return the site to service."
+          "When the call is contained, select Repair and reopen to return the site to service.",
+          "In City accounts, open Fire & safety to compare staffed fire crews with the number your residents need. Each 50,000 residents needs one crew. An upgraded station supports more crews when it has enough workers. Areas outside station range increase the chance of a fire."
         ],
         "examples": [
           {
@@ -355,7 +613,8 @@
           "Feed crops with a well turnout or flowing freshwater. Use Selected site to read farm water, food in store, production and local service.",
           "Open Wellbeing for meals harvested, imported, eaten and spoiled. A grocer can buy an affordable shortfall. Restaurant counters advance when the restaurant sells food.",
           "Open Accounts to inspect Treasury, Household savings and Business cash. Wages, shopping and taxes redistribute money between these accounts. Local exports and visitors bring in outside money. Imports and upkeep send it out.",
-          "Meeting a wealth threshold permanently unlocks that project tier in Real or Survival. Construction and upgrades spend treasury funds."
+          "Meeting a wealth threshold permanently unlocks that project tier in Real or Survival. Construction and upgrades spend treasury funds.",
+          "Gardens and farms use city water. Farm gates can feed a district directly, while a grocery store adds distribution capacity and can buy imports. A sustained shortage of meals, drinking water or electricity causes households to leave even if other amenities keep happiness high."
         ],
         "examples": [
           {

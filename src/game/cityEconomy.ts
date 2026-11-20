@@ -93,6 +93,7 @@ export interface Economy {
     required: number;
     consumed: number;
     shortage: number;
+    utilityStrain?: number;
     imports: number;
     harvest: number;
     spoiled: number;
@@ -333,6 +334,7 @@ const skilledIds = new Set([
 const industry = (id: string) =>
   [
     "factories",
+    "data_centers",
     "open_pit_mine",
     "materials_foundry",
     "freight_rail_terminal",
@@ -519,6 +521,7 @@ export function evaluateEconomy(
     a.exportRate *= trafficFactor * (0.8 + Math.min(2, el.landValue ?? 0.5) * 0.3);
     if (edge) a.exportRate *= 1 + edge.commerce;
   }
+  let accessibleHarvest = 0;
   const rawReachable = r.reachable;
   r.reachable = Math.round(effective(s, "jobs", rawReachable));
   const hiring = rawReachable ? r.reachable / rawReachable : 0;
@@ -543,12 +546,15 @@ export function evaluateEconomy(
       (ELEMENT_BY_ID[el.defId].education ?? ELEMENT_BY_ID[el.defId].recreation ?? 0) * el.level,
     );
     r.harvest += a.yieldRate;
+    if (residents > 0) accessibleHarvest += a.yieldRate;
     r.exports += a.exportRate;
   }
   m.jobsAvailable = r.reachable;
   m.jobsNeeded = r.workers;
   r.required = s.population / 95;
-  const foodCap = r.shopping + Math.min(r.harvest * 8, Math.max(8, s.population * 0.15));
+  // Farm gates distribute 35% of their harvest directly. Convert those meals per second
+  // into the same resident supply units as the food demand shown on the HUD.
+  const foodCap = r.shopping + accessibleHarvest * 0.35 * (r.required > 0 ? m.foodDemand / r.required : 0);
   m.foodSupply = Math.round(effective(s, "food", foodCap));
   r.potable = potable;
   m.waterSupply = effective(
@@ -654,7 +660,9 @@ export function advanceEconomy(s: GameState, dt: number) {
       spoil += spoiled;
     }
   }
-  transfer(s, "outside", "businesses", r.exports * t, "Local exports");
+  // Vacancies already reduce export capacity. Resident confidence and crime affect what outside buyers spend.
+  const tradeIncome = r.exports * t * (0.75 + 0.25 * s.happiness / 100) * (1 - 0.20 * s.metrics.crimeRate / 100);
+  transfer(s, "outside", "businesses", tradeIncome, "Local exports");
   // A connected shop can obtain working capital from the public treasury; it only imports an affordable shortfall.
   const importPrice = (0.8 * effective(s, "imports", 100)) / 100;
   let imported = 0,
@@ -664,7 +672,7 @@ export function advanceEconomy(s: GameState, dt: number) {
   const taxFraction = effective(s, "tax", 15) / 100;
   let taxes =
     transfer(s, "households", "treasury", wages * taxFraction, "Payroll tax") +
-    transfer(s, "businesses", "treasury", r.exports * t * taxFraction, "Trade tax");
+    transfer(s, "businesses", "treasury", tradeIncome * taxFraction, "Trade tax");
   for (const g of groups.values()) {
     if (!g.people) continue;
     const need = (g.people / 95) * t;
@@ -726,6 +734,11 @@ export function advanceEconomy(s: GameState, dt: number) {
     const sale = transfer(s, "households", "businesses", portion * 0.65, "Household groceries");
     taxes += transfer(s, "businesses", "treasury", sale * 0.04, "Sales tax");
   }
+  const m = s.metrics;
+  const utilityDeficit = Math.max(0, m.waterDemand ? 1 - m.waterSupply / m.waterDemand : 0,
+    m.powerDemand ? 1 - m.powerSupply / m.powerDemand : 0);
+  const previousStrain = r.utilityStrain ?? 0;
+  r.utilityStrain = previousStrain + (utilityDeficit - previousStrain) * (1 - Math.exp(-t / 24));
   r.spoiled = spoil / t;
   r.consumed = consumed / t;
   r.imports = imported / t;

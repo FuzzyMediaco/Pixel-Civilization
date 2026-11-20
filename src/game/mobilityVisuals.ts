@@ -17,12 +17,25 @@ type ModelKind =
   | "engine"
   | "fireboat"
   | "volunteer"
-  | "passenger";
+  | "passenger"
+  | "wake"
+  | "bubbles";
 type RoadMesh = (kind: "bus" | "train" | "taxi", seed: number) => THREE.BufferGeometry;
 function model(kind: ModelKind) {
   const v = new PixelVox(51);
   const box = solidVoxels(v);
-  if (["ferry", "freight", "gondola", "fireboat"].includes(kind)) {
+  if (kind === "wake" || kind === "bubbles") {
+    // Stepped crests extend aft; a diving hull leaves a narrower trail of surface bubbles.
+    for (let step = 0; step < 4; step++) {
+      const width = kind === "wake" ? 2 + step * 2 : 1 + (step % 2);
+      const z = -2 - 3 * step;
+      for (const side of [-1, 1]) {
+        box(side * width, 0, z, side * width, 0, z + (kind === "wake" ? 2 : 0),
+          step % 2 === 0 ? "#a9e1d8" : "#81c7c3", 0.12);
+      }
+    }
+    if (kind === "bubbles") box(0, 0, 4, 0, 1, 4, "#b7ddd6");
+  } else if (["ferry", "freight", "gondola", "fireboat"].includes(kind)) {
     const wide = kind !== "gondola",
       length = wide ? 10 : 7,
       w = wide ? 3 : 1;
@@ -135,6 +148,15 @@ export class MobilityVisuals {
     mesh.rotation.y += Math.atan2(Math.sin(delta), Math.cos(delta)) * (1 - Math.exp(-dt * 16));
     return mesh;
   }
+  private trail(id: string, source: string, x: number, z: number, height: number, heading: number,
+    stern: number, submerged: boolean, dt: number, clock: number) {
+    const offset = stern + Math.sin(clock * 2.5) * 0.09;
+    const mesh = this.draw(id + "-wake", submerged ? "bubbles" : "wake", source,
+      x - Math.sin(heading) * offset, height + 0.065, z - Math.cos(heading) * offset, heading, dt);
+    mesh.castShadow = false;
+    mesh.scale.setScalar(submerged ? 0.9 : 0.92 + 0.12 * Math.sin(clock * 2.5));
+    return mesh;
+  }
   update(s: GameState, dt: number, nav?: TravelNetwork) {
     this.used.clear();
     for (const l of s.mobility?.lines ?? []) {
@@ -151,6 +173,9 @@ export class MobilityVisuals {
       const xx = (fx + 0.5) * TILE_SIZE - curb * Math.cos(l.heading),
         zz = (fz + 0.5) * TILE_SIZE + curb * Math.sin(l.heading);
       this.draw(l.id, l.mode, l.depot, xx, y + 0.12, zz, l.heading, dt).userData.serviceId = l.id;
+      if (water && l.path.length > 1 && l.dwell <= 0 && !l.blocked && !/waiting|following/i.test(l.status)) {
+        this.trail(l.id, l.depot, xx, zz, y, l.heading, l.mode === "gondola" ? 1 : 1.85, false, dt, s.activePlaySec).userData.serviceId = l.id;
+      }
       if (l.at && l.dwell > 0 && l.mode !== "freight") {
         const stop = s.elements.find((e) => e.id === l.at);
         if (!stop) continue;
@@ -171,6 +196,12 @@ export class MobilityVisuals {
           );
         }
       }
+    }
+    for (const voyage of Object.values(s.mobility?.voyages ?? {})) {
+      if (voyage.dwell > 0 || !voyage.path.length || !["Under way", "Submerged"].includes(voyage.status)) continue;
+      const point = voyagePlacement(s, voyage.position, false, nav);
+      this.trail(voyage.origin, voyage.origin, point.x, point.z, point.y, voyage.heading, 2.0,
+        voyage.status === "Submerged", dt, s.activePlaySec);
     }
     for (const a of getProjectActors(s)) {
       const cell = getTerrainCell(s, Math.floor(a.gx), Math.floor(a.gz));

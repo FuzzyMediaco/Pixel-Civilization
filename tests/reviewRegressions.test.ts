@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { Mesh, Scene, BoxGeometry } from "three";
+import type { IslandCameraView } from "../src/game/worldRenderer";
+import { loadModeState, persistMode, resumeIsland } from "../src/game/activeIsland";
 import catalog from "../src/handbook/catalog.json";
 import { relatedLessons } from "../src/handbook/relatedLessons";
 import chapters from "../src/handbook/chapters.json";
@@ -97,4 +99,53 @@ test("every design leads to a playable lesson and the spaceport links directly t
   }
   assert.equal(relatedLessons("spaceport", "wealth_projects")[0].id, "city-rocket");
   assert.ok(relatedLessons("farm_houses", "agriculture").some((lesson) => lesson.id === "neighbor-farmstead"));
+});
+
+
+test("visiting sample islands, reloading and opening a shared link preserve the player's three original modes", () => {
+  const overview: IslandCameraView = {
+    mode:"orbit", target:[46, 1.2, -89], radius:32, theta:2.7, phi:1.1,
+    walk:[29,2.3,-20], yaw:1.4, pitch:-0.22, fov:44, autoSpin:false,
+  };
+  const data = new Map<string,string>();
+  const previous = Object.getOwnPropertyDescriptor(globalThis,"localStorage");
+  Object.defineProperty(globalThis,"localStorage",{configurable:true,value:{
+    getItem:(k:string)=>data.get(k) ?? null,
+    setItem:(k:string,v:string)=>data.set(k,v)
+  }});
+  try {
+    for (const mode of ["god","real","survival"] as const) {
+      const own = createInitialGameState(mode);
+      own.playSpeed = 0;
+      if (mode === "survival") own.cameraView = overview;
+      if (mode === "real") delete own.terrainVersion;
+      assert.ok(persistMode(own));
+    }
+    const first = resumeIsland("#world=pelican-reach");
+    assert.equal(first.exampleReturnMode,"survival");
+    first.exampleViewpoint = 2;
+    assert.ok(persistMode(first));
+    const second = resumeIsland("#world=copper-gorge");
+    assert.equal(second.exampleWorldId,"copper-gorge");
+    assert.equal(second.exampleReturnMode,"survival");
+    second.exampleViewpoint=3;
+    second.cameraView = {...overview,target:[-245,0.6,-68],radius:16,theta:-1.8};
+    assert.ok(persistMode(second));
+    const restored = resumeIsland();
+    assert.equal(restored.exampleViewpoint,3);
+    assert.deepEqual(restored.cameraView,second.cameraView);
+    assert.deepEqual(loadModeState(restored.exampleReturnMode!).cameraView,overview);
+    assert.equal(loadModeState("god","pelican-reach").exampleViewpoint,2);
+    for (const mode of ["god","real","survival"] as const) {
+      const own = loadModeState(mode);
+      assert.equal(own.exampleWorldId,undefined);
+      assert.equal(own.elements.length,0);
+      if (mode === "real") assert.equal(own.terrainVersion, undefined);
+      assert.deepEqual(own.cameraView,mode === "survival" ? overview : undefined);
+      assert.equal(own.playSpeed,0);
+    }
+  } finally {
+    if (previous) Object.defineProperty(globalThis,"localStorage",previous);
+    else Reflect.deleteProperty(globalThis,"localStorage");
+  }
 });

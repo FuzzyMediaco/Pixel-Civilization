@@ -20,6 +20,7 @@ import {
 import {
   advanceOperations,
   dispatchFire,
+  fireServiceReadiness,
   getProjectActors,
   igniteSite,
   operationsOf,
@@ -28,6 +29,7 @@ import {
 import { cloneGameStateSnapshot } from "../src/game/saveSlots";
 import {
   createInitialGameState,
+  buildingLockReason,
   isElementUnlocked,
   maintainElement,
   recomputeConnectivityAndMetrics as recalc,
@@ -603,4 +605,57 @@ test("a held island food limit is shared between separate districts", () => {
     stores.reduce((sum, a) => sum + a.served, 0),
     1,
   );
+});
+
+
+test("growth raises household utility demand, gardens draw water and connected crops can feed a neighborhood", () => {
+  const town = neighborhood();
+  const starting = {water: town.metrics.waterDemand, power: town.metrics.powerDemand};
+  town.growthPool += 100;
+  recalc(town);
+  assert.ok(town.metrics.waterDemand > starting.water && town.metrics.powerDemand > starting.power);
+  const water = town.metrics.waterDemand;
+  put(town, "gardens", 1, -1);
+  recalc(town);
+  assert.equal(town.metrics.waterDemand, water + 1);
+  for (const x of [2,3,4,5]) put(town, "farms", x, -1).level = 3;
+  recalc(town);
+  assert.ok(town.metrics.foodSupply >= town.metrics.foodDemand);
+});
+
+test("public safety needs a government and its crew requirement follows residents, staffing and coverage", () => {
+  for (const mode of ["real","survival"] as const) {
+    const town = neighborhood(mode);
+    town.highestStageReached = 20;
+    for (const id of ["fire_department","police_departments","military_base"]) {
+      assert.match(buildingLockReason(ELEMENT_BY_ID[id],town) ?? "", /Staff a City Office/);
+    }
+    put(town,"city_offices",1,-1);
+    const station = put(town, "fire_department",2,-1);
+    recalc(town);
+    assert.equal(buildingLockReason(ELEMENT_BY_ID.fire_department,town),undefined);
+    const supported = fireServiceReadiness(town);
+    assert.equal(supported.crews,1);
+    town.population = 150000;
+    const crowded = fireServiceReadiness(town);
+    assert.equal(crowded.required,3);
+    assert.ok(crowded.chance > supported.chance);
+    station.disrepair = true;
+    recalc(town);
+    assert.equal(fireServiceReadiness(town).crews,0);
+  }
+  assert.equal(buildingLockReason(ELEMENT_BY_ID.fire_department, createInitialGameState("god")),undefined);
+});
+
+test("even happy households leave after an extended loss of essentials in Real and Survival", () => {
+  for (const mode of ["real","survival"] as const) {
+    const town = neighborhood(mode);
+    town.growthPool = 25;
+    recalc(town);
+    const before = town.growthPool;
+    town.happiness = 96;
+    economyOf(town).report.shortage = 0.9;
+    stepSimulation(town, 0.1, true);
+    assert.ok(town.growthPool < before, mode);
+  }
 });

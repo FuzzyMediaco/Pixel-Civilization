@@ -6,7 +6,13 @@ The island has 173 buildable elements and four visual styles for each. The field
 
 ## Illustrated player handbook
 
-Open **Game menu → Illustrated player handbook** to follow seven illustrated chapters. The **Design atlas** lets you search every element, compare all twenty modeled appearances on one sheet, check its footprint and requirements, and open the same design in the rotatable field guide. On a running server you can also visit `/handbook.html` directly.
+Open **Game menu → Illustrated player handbook** to explore the illustrated chapters. The **Design atlas** lets you search every element, compare all twenty modeled appearances on one sheet, check its footprint and requirements, and open the same design in the rotatable field guide. On a running server you can also visit `/handbook.html` directly.
+
+## Explore the three islands
+
+Open **Game menu → Example islands** in any mode. Pelican Reach has a working harbor and a navigable estuary. Copper Gorge follows freshwater from mountain springs to farms and hydropower. Switchyard City has night trains, a fire response and a working spaceport. Each island has seven guided stops and saves separately.
+
+The expanded map is 192 × 192 tiles. For a hands-on tour, see [the feature checklist and three island playthroughs](island-playchecks.md). The **Worlds** and **Land & water** chapters include photographs of the game and labeled engineering examples.
 
 ## Try the canal district
 

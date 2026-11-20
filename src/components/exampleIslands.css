@@ -1,0 +1,34 @@
+.example-islands, .world-guide { font-family: var(--font-sans, system-ui), sans-serif; color: #263936; }
+.example-islands {
+  margin: auto; border: 1px solid #b9c9bf; border-radius: 16px; padding: 0;
+  width: min(800px, calc(100vw - 28px)); max-height: min(86dvh, 820px); overflow: auto;
+  background: #faf9f3; box-shadow: 0 18px 64px #102c2840;
+}
+.example-islands::backdrop { background: #172c2db5; }
+.example-islands header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 20px 14px; }
+.example-islands h2 { font-size: 1.32rem; font-weight: 750; margin: 0 0 3px; }
+.example-islands header p, .world-stops p { margin: 0; font-size: .85rem; line-height: 1.45; }
+.example-islands header>button { padding: 7px; border-radius: 7px; }
+.world-cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; padding: 0 20px 20px; }
+.world-card { text-align: left; display: flex; flex-direction: column; border: 1px solid #c1cbbf; border-radius: 9px; overflow: hidden; background: white; }
+.world-card:hover, .world-card:focus-visible { border-color: #285e4f; }
+.world-card img { display: block; width: 100%; aspect-ratio: 1.6; object-fit: cover; height: auto; background: #dce8dd; }
+.world-card>span { display: grid; grid-template-rows: auto 1fr auto; flex: 1; gap: 6px; padding: 10px 12px; font-size: .83rem; line-height: 1.4; }
+.world-card strong { font-size: 1rem; }
+.world-card b { color: #245b4c; }
+.example-islands footer { padding: 0 20px 16px; }
+.example-islands footer button, .world-stops button { display:inline-flex;align-items:center;gap:5px; background:#fff;border:1px solid #bac8bd;border-radius:6px;padding:6px 9px;font-size:.78rem;font-weight:650; }
+.world-guide { position: absolute; z-index: 12; left: 50%; bottom: max(14px,env(safe-area-inset-bottom)); transform: translateX(-50%); max-width: calc(100vw - 36px); border: 1px solid #b1c1b5; border-radius: 9px; background: #fbfaf3; box-shadow: 0 2px 12px #21342b33; }
+.world-guide-toggle { border-radius: 8px; color:white; background:#20493f; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:8px 10px; white-space:nowrap; font-size:.82rem; }
+.world-guide-toggle span { opacity:.85; }
+.world-stops { min-width:min(320px,calc(100vw - 60px)); max-width:400px; padding:10px 12px; }
+.world-stops label {display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:.8rem;font-weight:650;}
+.world-stops select {max-width:100%;border:1px solid #bec9bd;border-radius:6px;padding:3px 5px; background:white; flex:1; }
+.world-stops p { margin: 6px 0 8px; }
+.world-stops>div {display:flex;gap:6px;}
+@media (max-width: 600px) {
+  .world-cards { grid-template-columns: 1fr; gap:8px; padding:0 12px 12px; }
+  .world-card { display:grid;grid-template-columns:32% 1fr;align-items:stretch; }
+  .world-card img {height:100%;min-height:100px;aspect-ratio:auto;}
+  .example-islands header {padding:14px 12px 10px;}
+}

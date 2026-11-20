@@ -1,6 +1,12 @@
+import { sharesOceanSurface } from "./coastline";
+import { GRID_SIZE, GRID_HALF, cellIndex } from "./mapBounds";
+import { TILE_SIZE } from "./voxelCore";
 import * as THREE from "three";
 import {
   DIRECTIONS,
+  bridgeGrade,
+  conduitHeight,
+  editedCell,
   getTerrainCell,
   hydraulics,
   liftProgress,
@@ -63,13 +69,17 @@ class Blocks {
     return new THREE.Mesh(geo, mat);
   }
 }
-export const maskTerrainFragment = `vec2 worksUV=(vWorksXZ+vec2(128.0))/256.0;
- if(all(greaterThanEqual(worksUV,vec2(0.0)))&&all(lessThan(worksUV,vec2(1.0)))&&texture2D(uWorksMask,worksUV).r>0.5) discard;`;
+function maskFragment(channel: "r" | "g") {
+  return `vec2 worksUV=(vWorksXZ+vec2(${(GRID_HALF * TILE_SIZE).toFixed(1)}))/${(GRID_SIZE * TILE_SIZE).toFixed(1)};
+ if(all(greaterThanEqual(worksUV,vec2(0.0)))&&all(lessThan(worksUV,vec2(1.0)))&&texture2D(uWorksMask,worksUV).${channel}>0.5) discard;`;
+}
+export const maskTerrainFragment = maskFragment("r");
+export const maskOceanFragment = maskFragment("g");
 export class EngineeringView {
   readonly group = new THREE.Group();
   readonly preview = new THREE.Group();
   readonly mask: THREE.DataTexture;
-  private pixels = new Uint8Array(64 * 64 * 4);
+  private pixels = new Uint8Array(GRID_SIZE * GRID_SIZE * 4);
   private material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.87, side: THREE.DoubleSide });
   private previewMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
@@ -84,8 +94,8 @@ export class EngineeringView {
   private weights = new Map<string, THREE.Mesh>();
   private streamMarks: THREE.InstancedMesh | null = null;
   private currentPoints: { x: number; y: number; z: number; dx: number; dz: number; phase: number }[] = [];
-  constructor() {
-    this.mask = new THREE.DataTexture(this.pixels, 64, 64);
+  constructor(private readonly drawOceanWithWaves = false) {
+    this.mask = new THREE.DataTexture(this.pixels, GRID_SIZE, GRID_SIZE);
     this.mask.magFilter = THREE.NearestFilter;
     this.mask.minFilter = THREE.NearestFilter;
     this.mask.needsUpdate = true;
@@ -116,6 +126,8 @@ export class EngineeringView {
   sync(state: GameState) {
     const infra = state.infrastructure;
     const stamp =
+      (state.terrainVersion ?? 1) +
+      "|" +
       (infra?.stamp ?? infra?.revision ?? 0) +
       "|" +
       Object.keys(infra?.cells ?? {}).length +
@@ -153,7 +165,10 @@ export class EngineeringView {
       const [gx, gz] = k.split(",").map(Number),
         x = gx * 4,
         z = gz * 4;
-      this.pixels[((gz + 32) * 64 + gx + 32) * 4] = 255;
+      const maskPixel = cellIndex(gx, gz) * 4;
+      const tidal = this.drawOceanWithWaves && sharesOceanSurface(cell);
+      this.pixels[maskPixel] = 255; // Edited ground gets its own geometry.
+      this.pixels[maskPixel + 1] = tidal ? 0 : 255; // Fresh or dry edits hide the ocean underneath.
       // Each edited cell owns its ground. Untouched coast retains the original island mesh.
       const dry = !cell.depth,
         base = cell.elevation;
@@ -177,7 +192,7 @@ export class EngineeringView {
           ])
             if (ox || oz) {
               const nb = infra.cells[tileKey(gx + ox, gz + oz)];
-              if (!nb) return naturalElevation(x + coords[ix], z + coords[iz]);
+              if (!nb) return naturalElevation(x + coords[ix], z + coords[iz], state.terrainVersion);
               total += nb.elevation;
               count++;
             }
@@ -186,6 +201,12 @@ export class EngineeringView {
       );
       for (let rz = 0; rz < 3; rz++)
         for (let rx = 0; rx < 3; rx++) {
+          // Match the natural seabed cutoff so a dredged tile cannot tint the waves at its outer edge.
+          if (
+            tidal &&
+            Math.max(heights[rz][rx], heights[rz + 1][rx], heights[rz][rx + 1], heights[rz + 1][rx + 1]) < -2
+          )
+            continue;
           const vert = (i: number, j: number) => [x + coords[i], heights[j][i], z + coords[j]];
           const rockFace = heights[rz][rx] + heights[rz + 1][rx + 1];
           const rockPalette = [0x918777, 0x978d7a, 0xa39983, 0x8e8c7e];
@@ -242,24 +263,75 @@ export class EngineeringView {
             const [ax, ay, az] = local(0.42, 0, cell.waterLevel + 0.2);
             solid.box(ax - 0.08, ay, az - 0.08, 0.16, 0.28, 0.16, 0x4d5550);
           }
-        } else
-          solid.face(
-            local(0, 0.04, cell.waterLevel + 0.03),
-            local(1, 0.04, cell.waterLevel + 0.03),
-            local(1, 0.18, cell.waterLevel + 0.03),
-            local(0, 0.18, cell.waterLevel + 0.03),
-            0xa1ddd9,
-          );
+        }
+      }
+      const naturalWater = cell.depth > 0 && cell.form !== "canal";
+      const canyon = cell.form === "canyon";
+      if (naturalWater || canyon) {
+        // Clip exposed corners inside the owning tile. Shared wet edges stay open from bank to bank.
+        const exposed = neighbors.map((n) =>
+          canyon ? n.form !== "canyon" && n.elevation > base + 0.1 : n.depth === 0,
+        );
+        const level = naturalWater ? cell.waterLevel : base + 0.02;
+        const center = [x + 2, level, z + 2];
+        const waterColor = cell.water === "salt" ? 0x40aebc : 0x56b2c3;
+        const boundary: { outer: number[]; edge: number[]; hasBank: boolean }[] = [];
+        for (let j = 0; j < 4; j++) {
+          const prev = (j + 3) % 4;
+          const [vx, vz] = corners[j],
+            [pnx, pnz] = DIRECTIONS[prev],
+            [nx, nz] = DIRECTIONS[j];
+          // The shared vertex supplies the same offset on either side of a tile seam.
+          const wave = 0.5 + 0.5 * Math.sin(vx * 0.77 + vz * 0.51),
+            lip = 0.14 + 0.16 * wave,
+            cut = (canyon ? 0.95 : 0.72) + wave * 0.45;
+          const cornerBank = Math.max(level + 0.025, heights[j >= 2 ? 3 : 0][j === 1 || j === 2 ? 3 : 0]);
+          const add = (dx: number, dz: number, hasBank = exposed[j]) =>
+            boundary.push({ outer: [vx, cornerBank + 0.01, vz], edge: [vx + dx, level, vz + dz], hasBank });
+          if (exposed[prev] && exposed[j]) {
+            add(-pnx * lip - nx * cut, -pnz * lip - nz * cut);
+            add(-pnx * cut - nx * lip, -pnz * cut - nz * lip);
+          } else
+            add(
+              -(exposed[prev] ? pnx * lip : 0) - (exposed[j] ? nx * lip : 0),
+              -(exposed[prev] ? pnz * lip : 0) - (exposed[j] ? nz * lip : 0),
+            );
+          if (exposed[j]) {
+            const end = corners[(j + 1) % 4],
+              mx = (vx + end[0]) / 2,
+              mz = (vz + end[1]) / 2;
+            const shift =
+              (canyon ? 0.29 : 0.16) + (0.5 + 0.5 * Math.sin(mx * 0.46 + mz * 0.84)) * (canyon ? 0.5 : 0.27);
+            boundary.push({
+              outer: [mx, Math.max(level + 0.03, neighbors[j].elevation) + 0.008, mz],
+              edge: [mx - nx * shift, level, mz - nz * shift],
+              hasBank: true,
+            });
+          }
+        }
+        const beach = canyon ? [0xab9277, 0xb49e83, 0xa98d72] : [0xc6b57e, 0xcab98f, 0xb6ab7b];
+        for (let j = 0; j < boundary.length; j++) {
+          const a = boundary[j],
+            b = boundary[(j + 1) % boundary.length];
+          if (naturalWater && !tidal) solid.face(center, b.edge, a.edge, center, waterColor);
+          if (!a.hasBank) continue;
+          const band = (v: { outer: number[]; edge: number[] }) =>
+            v.outer.map((coord, n) => v.edge[n] + (coord - v.edge[n]) * 0.45);
+          const am = band(a),
+            bm = band(b);
+          solid.face(a.outer, b.outer, bm, am, beach[Math.abs(gx + gz + j) % 3]);
+          solid.face(am, bm, b.edge, a.edge, canyon ? 0x9a8271 : 0x9fbea7);
+        }
       }
       if (cell.depth) {
-        const c = cell.water === "salt" ? 0x40aebc : cell.form === "canal" ? 0x369b98 : 0x56b2c3;
-        solid.face(
-          [x, cell.waterLevel, z],
-          [x, cell.waterLevel, z + 4],
-          [x + 4, cell.waterLevel, z + 4],
-          [x + 4, cell.waterLevel, z],
-          c,
-        );
+        if (!naturalWater && !tidal)
+          solid.face(
+            [x, cell.waterLevel, z],
+            [x, cell.waterLevel, z + 4],
+            [x + 4, cell.waterLevel, z + 4],
+            [x + 4, cell.waterLevel, z],
+            0x369b98,
+          );
         if (hydro.channels.has(k) && cell.flowDir !== undefined) {
           const [dx, dz] = DIRECTIONS[cell.flowDir];
           this.currentPoints.push({
@@ -272,7 +344,7 @@ export class EngineeringView {
           });
         }
         const glimmer = cell.water === "salt" ? 0x6bc1c9 : 0x72c0c5;
-        for (let n = 0; n < 2; n++) {
+        for (let n = 0; !tidal && n < 2; n++) {
           const off = ((((gx * 13 + gz * 7 + n * 11) % 13) + 13) % 13) * 0.2;
           solid.box(
             x + 0.35 + off * 0.35,
@@ -458,12 +530,12 @@ export class EngineeringView {
           this.currentPoints.push({ x: cx, y: h + 0.09, z: cz, dx, dz, phase: (gx * 3 + gz * 5) * 0.21 });
         }
         const feed = r.inlet === side,
-          delivery = Boolean((r.deliveries ?? 0) & (1 << side));
+          delivery = Boolean(((r.deliveries ?? 0) | (r.waterOutlets ?? 0)) & (1 << side));
         if (!feed && !delivery) continue;
         // Intake and drop pipe reach the receiving edge so water visibly enters the actual site.
         const sample = getTerrainCell(state, gx + dx, gz + dz),
           bottom = (sample.depth ? sample.waterLevel : sample.elevation) + 0.06;
-        const reach = feed ? 2.55 : 2.1,
+        const reach = feed || (r.waterOutlets ?? 0) & (1 << side) ? 2.55 : 2.1,
           tx = cx + dx * reach,
           tz = cz + dz * reach;
         const metal = feed ? 0x587878 : 0x9d7958;
@@ -476,7 +548,11 @@ export class EngineeringView {
           Math.abs(tz - cz) + 0.3,
           metal,
         );
-        solid.box(tx - 0.16, bottom, tz - 0.16, 0.32, Math.max(0.25, h - bottom), 0.32, metal);
+        solid.box(tx - 0.16, Math.min(bottom, h), tz - 0.16, 0.32, Math.max(0.25, Math.abs(h - bottom)), 0.32, metal);
+        if (feed && sample.form === "bank" && sample.elevation > 2.8) {
+          solid.box(tx - 0.48, bottom - 0.12, tz - 0.48, 0.96, 0.2, 0.96, 0x958675);
+          solid.box(tx - 0.31, bottom + 0.08, tz - 0.31, 0.62, 0.09, 0.62, 0x74c7cd);
+        }
         solid.box(tx - 0.23, bottom, tz - 0.23, 0.46, 0.25, 0.46, feed ? 0x637b74 : 0xaf9a72);
         for (let d = 0.7; d < reach; d += 0.66)
           solid.box(cx + dx * d - 0.19, h - 0.17, cz + dz * d - 0.19, 0.38, 0.32, 0.38, 0xd5af79);
@@ -540,7 +616,16 @@ export class EngineeringView {
           s.axis === "x" ? width : len,
           color,
         );
-      const width = s.mode === "foot" ? 1.95 : s.mode === "rail" ? 2.45 : 3.65;
+      const width =
+        s.mode === "foot"
+          ? 1.95
+          : s.mode === "rail"
+            ? 2.45
+            : s.mode === "freeway"
+              ? 3.9
+              : s.mode === "highway"
+                ? 3.5
+                : 2.8;
       const [lo, hi] = runs.get(s.run) ?? [0, 0],
         coordinate = s.axis === "x" ? gx : gz;
       const bridgeColor = s.shape === "arch" ? 0xae9679 : s.shape === "truss" ? 0x974f37 : 0x587d83;
@@ -577,6 +662,20 @@ export class EngineeringView {
           along(g, -2 + n * 0.5, y + 0.01, -0.62, 0.51, 0.08, 0.1, 0xaeb8bb);
           along(g, -2 + n * 0.5, y + 0.01, 0.52, 0.51, 0.08, 0.1, 0xaeb8bb);
         } else if (s.mode !== "foot" && n % 4 < 2) along(g, -2 + n * 0.5, y + 0.01, -0.045, 0.5, 0.025, 0.09, 0xe6cb74);
+        if ((s.mode === "highway" || s.mode === "freeway") && n % 4 < 2) {
+          for (const side of [-1, 1])
+            for (let lane = 1; lane < (s.mode === "freeway" ? 3 : 2); lane++)
+              along(
+                g,
+                -2 + n * 0.5,
+                y + 0.015,
+                (side * width * 0.5 * lane) / (s.mode === "freeway" ? 3 : 2),
+                0.5,
+                0.025,
+                0.045,
+                0xe9e3d1,
+              );
+        }
         for (const edge of [-1, 1]) {
           const z = edge * (width / 2 - 0.08);
           along(g, -2 + n * 0.5, y + 0.24, z, 0.51, 0.08, 0.1, s.shape === "arch" ? 0xd2c5a8 : 0x8caaa9);
@@ -820,15 +919,66 @@ export class EngineeringView {
     this.clear(this.preview);
     if (!plan) return;
     const blocks = new Blocks();
-    for (const p of plan.points) {
+    const col = plan.valid ? 0xf6ce70 : 0xf07962;
+    const ports = new Set(plan.points.map((p) => tileKey(p.gx, p.gz)));
+    const first = plan.points[0],
+      last = plan.points.at(-1);
+    const grade =
+      tool?.kind === "bridge" && first && last ? bridgeGrade(state, plan.points, tool.height ?? 2) : undefined;
+    for (const [n, p] of plan.points.entries()) {
       const c = getTerrainCell(state, p.gx, p.gz),
         x = p.gx * 4,
-        z = p.gz * 4,
-        y = (c.depth ? c.waterLevel : c.elevation) + 0.06;
-      const col = plan.valid ? 0xf6ce70 : 0xf07962;
+        z = p.gz * 4;
+      const y = (c.depth ? c.waterLevel : c.elevation) + 0.06;
       blocks.box(x + 0.08, y, z + 0.08, 3.84, 0.035, 3.84, col);
-      if (tool?.kind === "bridge" || tool?.kind === "aqueduct")
-        blocks.box(x + 0.16, y + (tool.height ?? 2), z + 1.6, 3.68, 0.06, 0.8, col);
+      if (tool?.kind === "aqueduct") {
+        const h = conduitHeight(state, p, tool);
+        blocks.box(x + 1.61, h, z + 1.61, 0.78, 0.09, 0.78, col);
+        for (const [dx, dz] of DIRECTIONS) {
+          const k = tileKey(p.gx + dx, p.gz + dz);
+          if (!ports.has(k) && !state.infrastructure?.conduits[k]) continue;
+          blocks.box(
+            x + 2 + (dx < 0 ? -2 : dx > 0 ? 0 : -0.39),
+            h,
+            z + 2 + (dz < 0 ? -2 : dz > 0 ? 0 : -0.39),
+            dx ? 2 : 0.78,
+            0.09,
+            dz ? 2 : 0.78,
+            col,
+          );
+        }
+      } else if (grade && first && last) {
+        const horizontal = first.gz === last.gz,
+          forward = horizontal ? last.gx >= first.gx : last.gz >= first.gz;
+        const start = grade.heightAt(forward ? n : n + 1) + 0.1,
+          end = grade.heightAt(forward ? n + 1 : n) + 0.1;
+        const width =
+          tool?.mode === "foot"
+            ? 1.95
+            : tool?.mode === "rail"
+              ? 2.45
+              : tool?.mode === "highway"
+                ? 3.5
+                : tool?.mode === "freeway"
+                  ? 3.9
+                  : 2.8;
+        const a = 2 - width / 2,
+          b = 2 + width / 2;
+        if (horizontal)
+          blocks.face([x, start, z + a], [x + 4, end, z + a], [x + 4, end, z + b], [x, start, z + b], col);
+        else blocks.face([x + a, start, z], [x + b, start, z], [x + b, end, z + 4], [x + a, end, z + 4], col);
+      } else if (tool && ["raise", "mountain", "peninsula", "lower", "canyon", "smooth"].includes(tool.kind)) {
+        const next = editedCell(state, p, tool);
+        const h = next.elevation + 0.12;
+        if (Math.abs(h - y) > 0.14) {
+          blocks.box(x + 0.2, h, z + 0.2, 3.6, 0.055, 3.6, col);
+          for (const [dx, dz] of [
+            [0.22, 0.22],
+            [3.72, 3.72],
+          ])
+            blocks.box(x + dx, Math.min(y, h), z + dz, 0.075, Math.abs(h - y), 0.075, col);
+        }
+      }
     }
     this.preview.add(blocks.mesh(this.previewMat));
   }

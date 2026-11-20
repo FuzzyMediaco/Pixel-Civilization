@@ -1575,6 +1575,7 @@ export const ELEMENTS: CivElementDef[] = [
     domain: "land",
     recreation: 34,
     food: 8,
+    water: -1,
     needsMaintenance: true,
     accentHex: "#ec8db0",
     description: "Botanical flowerbeds, pergola trellis, and blooming hedges.",

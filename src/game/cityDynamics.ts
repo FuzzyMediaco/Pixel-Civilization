@@ -17,8 +17,9 @@
 import { type CivElementDef, ELEMENT_BY_ID } from "./catalog";
 import type { PlacedElement } from "./simulation";
 
-export const FIELD_MIN = -32;
-export const FIELD_N = 64;
+import { GRID_MIN, GRID_SIZE } from "./mapBounds";
+export const FIELD_MIN=GRID_MIN;
+export const FIELD_N=GRID_SIZE;
 
 export function fieldIndex(gx: number, gz: number): number {
   const ix = gx - FIELD_MIN;
@@ -215,6 +216,7 @@ export interface LayoutAnalysis {
 }
 
 let cached: LayoutAnalysis | null = null;
+let coastalMask:{key:string|number,values:Uint8Array}|undefined;
 
 function layoutKey(elements: PlacedElement[]): string {
   let s = "";
@@ -272,15 +274,19 @@ export function analyzeLayout(
     if (des) splat(landValue, cx, cz, des[0] * (1 + (e.level - 1) * 0.2), des[1] + (e.level - 1) * 0.5);
   }
 
+  // Ordinary construction changes the pollution field, while the much larger coastline rarely changes.
+  if(!coastalMask||coastalMask.key!==terrainRevision){
+    const values=new Uint8Array(FIELD_N*FIELD_N);
+    for(let x=0;x<FIELD_N;x++)for(let z=0;z<FIELD_N;z++)values[x*FIELD_N+z]=Number(isCoastal(x+FIELD_MIN,z+FIELD_MIN));
+    coastalMask={key:terrainRevision,values};
+  }
   // Coast & water adjacency bonus, pollution penalty
   for (let ix = 0; ix < FIELD_N; ix++) {
     for (let iz = 0; iz < FIELD_N; iz++) {
       const idx = ix * FIELD_N + iz;
       if (pollution[idx] < 0) pollution[idx] *= 0.6;
       pollution[idx] = Math.max(-2, Math.min(12, pollution[idx]));
-      const gx = ix + FIELD_MIN;
-      const gz = iz + FIELD_MIN;
-      if (isCoastal(gx, gz)) landValue[idx] += 0.25;
+      if(coastalMask.values[idx])landValue[idx]+=.25;
       landValue[idx] -= Math.max(0, pollution[idx]) * 0.11;
       landValue[idx] += Math.max(0, -pollution[idx]) * 0.05;
       landValue[idx] = Math.max(0, Math.min(2, landValue[idx]));

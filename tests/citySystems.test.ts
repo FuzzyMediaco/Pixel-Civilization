@@ -30,11 +30,22 @@ test("a small legacy lot preserves the complete wheel and every moving part", ()
 });
 
 test("sea-facing placement respects the player's heading in open water", () => {
-  const st = createInitialGameState("god");
-  assert.equal(getTileTerrainKind(-31, -31), "water");
-  for (const id of ["docks", "water_pumping_station"]) {
-    const plan = planConstruction(st, ELEMENT_BY_ID[id], -31, -31, 1, 3);
-    assert.ok(plan.valid);
-    assert.equal(plan.rotation, 3);
+  const current = createInitialGameState("god");
+  const legacy = { ...current, terrainVersion: undefined };
+  for (const city of [current, legacy]) {
+    assert.equal(getTileTerrainKind(-87, -87, city), "water");
+    for (const id of ["docks", "water_pumping_station"]) {
+      for (let heading = 0; heading < 4; heading++) {
+        const plan = planConstruction(city, ELEMENT_BY_ID[id], -87, -87, 1, heading);
+        assert.ok(plan.valid);
+        assert.equal(plan.rotation, heading);
+      }
+    }
   }
+  // The northern headland turns this original offshore site into a north-facing shore.
+  assert.equal(getTileTerrainKind(-31, -31, legacy), "water");
+  assert.equal(getTileTerrainKind(-31, -31, current), "coast");
+  assert.equal(planConstruction(legacy, ELEMENT_BY_ID.docks, -31, -31, 1, 3).rotation, 3);
+  assert.equal(planConstruction(current, ELEMENT_BY_ID.docks, -31, -31, 1, 3).rotation, 2);
+  assert.equal(planConstruction(current, ELEMENT_BY_ID.water_pumping_station, -31, -31, 1, 3).rotation, 0);
 });
