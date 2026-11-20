@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import catalog from "./catalog.json";
 import chapters from "./chapters.json";
+import { relatedLessons } from "./relatedLessons";
 import "./style.css";
 
 const labels: Record<string, string> = {
@@ -28,7 +29,7 @@ const domains: Record<string, string> = {
   any: "Land or water",
 };
 const money = (n: number) => "$" + n.toLocaleString("en");
-type Picture = { image: string; caption: string; alt: string };
+type Picture = { image: string; caption: string; alt: string; width: number; height: number };
 type Lesson = { id: string; title: string; steps: string[]; examples: Picture[] };
 type Chapter = { id: string; title: string; label: string; intro: string; cover: string; lessons: Lesson[] };
 const book: Chapter[] = chapters;
@@ -42,7 +43,7 @@ function Plate({ pic }: { pic: Picture }) {
   return (
     <figure>
       <a href={asset(pic.image)} target="_blank" rel="noreferrer" aria-label={"Enlarge image · " + pic.alt}>
-        <img src={asset(pic.image)} loading="lazy" alt={pic.alt} />
+        <img src={asset(pic.image)} width={pic.width} height={pic.height} loading="lazy" alt={pic.alt} />
       </a>
       <figcaption>{pic.caption}</figcaption>
     </figure>
@@ -57,7 +58,7 @@ function App() {
   const query = route.get("q") ?? "",
     category = route.get("category") ?? "";
   const lastPage = useRef(section + "|" + (entry?.id ?? ""));
-  const [jump, setJump] = useState("");
+  const jump = current?.lessons.find((lesson) => lesson.id === route.get("lesson"))?.id;
   useEffect(() => {
     const sync = () => setRoute(readLocation());
     window.addEventListener("hashchange", sync);
@@ -69,12 +70,12 @@ function App() {
       (entry?.name ?? current?.title ?? (section === "catalog" ? "Design atlas" : "Island handbook")) +
       " · Pixel Civilization";
     if (lastPage.current !== key) {
-      setJump("");
       window.scrollTo(0, 0);
       main.current?.focus({ preventScroll: true });
       lastPage.current = key;
     }
-  }, [section, entry, current]);
+    if (jump) document.getElementById(jump)?.scrollIntoView({ block: "start" });
+  }, [section, entry, current, jump]);
   function filter(text: string, group: string) {
     const url = link({ section: "catalog", q: text, category: group });
     history.replaceState(null, "", url);
@@ -163,6 +164,14 @@ function App() {
                 <h2>On the island</h2>
                 <p>{entry.usage}</p>
                 <p>{entry.growth}</p>
+                <h3>See it in play</h3>
+                <ul>
+                  {relatedLessons(entry.id, entry.category).map((lesson) => (
+                    <li key={lesson.id}>
+                      <a href={link({ section: lesson.section, lesson: lesson.id })}>{lesson.title}</a>
+                    </li>
+                  ))}
+                </ul>
                 <h3>Building requirements</h3>
                 <dl className="facts">
                   <dt>Site</dt>
@@ -301,12 +310,7 @@ function App() {
                 {current.lessons.map((l) => (
                   <a
                     key={l.id}
-                    href={"#" + l.id}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setJump(l.id);
-                      document.getElementById(l.id)?.scrollIntoView({ block: "start" });
-                    }}
+                    href={link({ section: current.id, lesson: l.id })}
                     aria-current={jump === l.id ? "location" : undefined}
                   >
                     {l.title}

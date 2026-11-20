@@ -298,6 +298,7 @@ h3 {
 }
 .plates img,
 .full-plate img {
+  height: auto;
   display: block;
   width: 100%;
   border-radius: 6px;

@@ -17,7 +17,9 @@
           {
             "image": "/handbook/travel/canal-district.jpg",
             "caption": "The canal district has two walkable banks. A road lift and an aqueduct cross the same water used by the ferry.",
-            "alt": "The canal district has two walkable banks. A road lift and an aqueduct cross the same water used by the ferry."
+            "alt": "The canal district has two walkable banks. A road lift and an aqueduct cross the same water used by the ferry.",
+            "width": 1220,
+            "height": 780
           }
         ]
       },
@@ -33,7 +35,9 @@
           {
             "image": "/handbook/works/lift-crossings.webp",
             "caption": "A moving span can give a tall vessel headroom while road traffic waits.",
-            "alt": "A moving span can give a tall vessel headroom while road traffic waits."
+            "alt": "A moving span can give a tall vessel headroom while road traffic waits.",
+            "width": 900,
+            "height": 505
           }
         ]
       },
@@ -49,7 +53,9 @@
           {
             "image": "/handbook/city/food-accounts.webp",
             "caption": "A producing farm and a stocked grocer do different jobs in the same food supply.",
-            "alt": "A producing farm and a stocked grocer do different jobs in the same food supply."
+            "alt": "A producing farm and a stocked grocer do different jobs in the same food supply.",
+            "width": 1160,
+            "height": 410
           }
         ]
       }
@@ -74,7 +80,9 @@
           {
             "image": "/handbook/works/graded-coast.webp",
             "caption": "A canyon reaches a tidal bay below a mountain ridge. A reclaimed sand spit extends into the water on the right.",
-            "alt": "Isometric terrain cutaway with a snow-tipped ridge, rock-cut inlet and sandy headland entering the sea."
+            "alt": "Isometric terrain cutaway with a snow-tipped ridge, rock-cut inlet and sandy headland entering the sea.",
+            "width": 900,
+            "height": 505
           }
         ]
       },
@@ -91,7 +99,9 @@
           {
             "image": "/handbook/works/aqueduct-branches.webp",
             "caption": "The intake pipe on the left lifts spring water into the arcade. The near branch feeds the farm. The short branch at the back spills from an open spout.",
-            "alt": "Terracotta aqueduct bends around a green field, with a spring intake, a fork, a falling stream and an outlet at a crop farm."
+            "alt": "Terracotta aqueduct bends around a green field, with a spring intake, a fork, a falling stream and an outlet at a crop farm.",
+            "width": 900,
+            "height": 505
           }
         ]
       },
@@ -107,7 +117,9 @@
           {
             "image": "/handbook/works/lift-crossings.webp",
             "caption": "A sailboat approaches the raised roadway. Behind it, a low stone footbridge provides a second crossing for walkers.",
-            "alt": "Teal bridge towers hold an elevated road over a sailboat, with a lower stone pedestrian crossing farther up the canal."
+            "alt": "Teal bridge towers hold an elevated road over a sailboat, with a lower stone pedestrian crossing farther up the canal.",
+            "width": 900,
+            "height": 505
           }
         ]
       },
@@ -123,7 +135,9 @@
           {
             "image": "/handbook/works/diamond-interchange.webp",
             "caption": "A raised highway passes above a local street. Four slip roads connect the two routes at the marked junctions.",
-            "alt": "Diamond interchange seen from above, with four stepped ramps, an elevated center crossing, and a small bus stop."
+            "alt": "Diamond interchange seen from above, with four stepped ramps, an elevated center crossing, and a small bus stop.",
+            "width": 900,
+            "height": 505
           }
         ]
       },
@@ -139,7 +153,9 @@
           {
             "image": "/handbook/works/dam-head.webp",
             "caption": "The service gantry crosses a closed dam. The higher upstream pool on the right drops into the lower river on the left.",
-            "alt": "Concrete gated dam between rocky riverbanks, with deep water upstream and falling water below the gate."
+            "alt": "Concrete gated dam between rocky riverbanks, with deep water upstream and falling water below the gate.",
+            "width": 900,
+            "height": 505
           }
         ]
       },
@@ -155,7 +171,9 @@
           {
             "image": "/handbook/works/canal-boat-lift.webp",
             "caption": "A small launch waits at the lower entrance. The operating lift connects this canal to the reach on the right, 2.3 m higher.",
-            "alt": "Yellow launch at the lower canal entrance, with a water-filled lift cradle and a steel gantry spanning two different water levels."
+            "alt": "Yellow launch at the lower canal entrance, with a water-filled lift cradle and a steel gantry spanning two different water levels.",
+            "width": 900,
+            "height": 505
           }
         ]
       },
@@ -171,7 +189,9 @@
           {
             "image": "/handbook/works/naval-harbor.webp",
             "caption": "A naval vessel under way beyond the crane and finger piers of its home base. Its plotted course leads into deeper open water.",
-            "alt": "Naval vessel sailing clear of a coastal base, with small craft moored at its three finger piers and a yellow dockside crane."
+            "alt": "Naval vessel sailing clear of a coastal base, with small craft moored at its three finger piers and a yellow dockside crane.",
+            "width": 900,
+            "height": 505
           }
         ]
       }
@@ -196,12 +216,16 @@
           {
             "image": "/handbook/travel/bus.webp",
             "caption": "A teal city bus calls at a curbside stop between homes and shops.",
-            "alt": "A teal city bus calls at a curbside stop between homes and shops."
+            "alt": "A teal city bus calls at a curbside stop between homes and shops.",
+            "width": 900,
+            "height": 540
           },
           {
             "image": "/handbook/travel/taxi.webp",
             "caption": "A yellow cab serves a rank on the same local street.",
-            "alt": "A yellow cab serves a rank on the same local street."
+            "alt": "A yellow cab serves a rank on the same local street.",
+            "width": 900,
+            "height": 540
           }
         ]
       },
@@ -217,7 +241,9 @@
           {
             "image": "/handbook/travel/rail.webp",
             "caption": "The red-and-cream train is at a platform beside continuous track.",
-            "alt": "The red-and-cream train is at a platform beside continuous track."
+            "alt": "The red-and-cream train is at a platform beside continuous track.",
+            "width": 900,
+            "height": 540
           }
         ]
       },
@@ -233,7 +259,9 @@
           {
             "image": "/handbook/travel/ferry.webp",
             "caption": "A passenger ferry calls at the waterfront landing.",
-            "alt": "A passenger ferry calls at the waterfront landing."
+            "alt": "A passenger ferry calls at the waterfront landing.",
+            "width": 900,
+            "height": 540
           }
         ]
       },
@@ -249,7 +277,9 @@
           {
             "image": "/handbook/travel/harbor.webp",
             "caption": "A sailboat under way in an excavated channel. An open water connection lets it continue offshore.",
-            "alt": "A sailboat under way in an excavated channel. An open water connection lets it continue offshore."
+            "alt": "A sailboat under way in an excavated channel. An open water connection lets it continue offshore.",
+            "width": 900,
+            "height": 540
           }
         ]
       },
@@ -265,7 +295,9 @@
           {
             "image": "/handbook/travel/service-desk.jpg",
             "caption": "The transit desk shows the actual service and its stops alongside the island.",
-            "alt": "The transit desk shows the actual service and its stops alongside the island."
+            "alt": "The transit desk shows the actual service and its stops alongside the island.",
+            "width": 1030,
+            "height": 710
           }
         ]
       }
@@ -290,7 +322,9 @@
           {
             "image": "/handbook/catalog/thumbs/banks.webp",
             "caption": "Banks support the local economy. A neighboring ATM can open a useful retail frontage.",
-            "alt": "Banks support the local economy. A neighboring ATM can open a useful retail frontage."
+            "alt": "Banks support the local economy. A neighboring ATM can open a useful retail frontage.",
+            "width": 256,
+            "height": 256
           }
         ]
       },
@@ -307,7 +341,9 @@
           {
             "image": "/handbook/city/fire-response.webp",
             "caption": "The engine reached the grocer, waited for water, then extinguished the fire after a working well was added.",
-            "alt": "Two views of the same street show the fire engine leaving its station and later waiting outside the grocer."
+            "alt": "Two views of the same street show the fire engine leaving its station and later waiting outside the grocer.",
+            "width": 1160,
+            "height": 410
           }
         ]
       },
@@ -325,7 +361,9 @@
           {
             "image": "/handbook/city/food-accounts.webp",
             "caption": "After 12 active seconds this farm harvested 244 meals and this grocer sold 80. The ledger closed at $2,949 total wealth, comprising $2,668 treasury, $277 household savings and $4 business cash (rounded).",
-            "alt": "The farm and its working well appear beside the grocer from the same district. Captions show their measured harvest and sales."
+            "alt": "The farm and its working well appear beside the grocer from the same district. Captions show their measured harvest and sales.",
+            "width": 1160,
+            "height": 410
           }
         ]
       },
@@ -341,7 +379,9 @@
           {
             "image": "/handbook/city/earned-upgrade.webp",
             "caption": "This field harvested 14 of the required 12 meals, then advanced to Level 2 for $95.",
-            "alt": "The same field before and after the paid expansion shows its new crop rows and field layout."
+            "alt": "The same field before and after the paid expansion shows its new crop rows and field layout.",
+            "width": 1160,
+            "height": 410
           }
         ]
       },
@@ -357,7 +397,9 @@
           {
             "image": "/handbook/city/staffing-hold.webp",
             "caption": "Holding crew staffing at zero disabled professional coverage. Releasing the hold restored authority and made 48 station workers available in this example.",
-            "alt": "The first panel shows the connected office and fire department. The second shows the same station after releasing the staffing hold."
+            "alt": "The first panel shows the connected office and fire department. The second shows the same station after releasing the staffing hold.",
+            "width": 1160,
+            "height": 410
           }
         ]
       }
@@ -382,7 +424,9 @@
           {
             "image": "/handbook/city/plane.webp",
             "caption": "24 passengers completed the illustrated regional airport journey.",
-            "alt": "Boarding and taxiing at left and climbing off the runway at right. The callouts identify the live aircraft actor."
+            "alt": "Boarding and taxiing at left and climbing off the runway at right. The callouts identify the live aircraft actor.",
+            "width": 1160,
+            "height": 410
           }
         ]
       },
@@ -398,7 +442,9 @@
           {
             "image": "/handbook/city/rocket.webp",
             "caption": "6 researchers completed the illustrated spaceport journey.",
-            "alt": "On the pad at left and climbing through launch altitude at right. The callouts identify the live rocket actor."
+            "alt": "On the pad at left and climbing through launch altitude at right. The callouts identify the live rocket actor.",
+            "width": 1160,
+            "height": 410
           }
         ]
       },
@@ -414,7 +460,9 @@
           {
             "image": "/handbook/city/airTaxi.webp",
             "caption": "4 passengers completed the illustrated flying-car depot journey.",
-            "alt": "Boarding at the origin at left and approaching the partner pad at right. The callouts identify the live sky taxi actor."
+            "alt": "Boarding at the origin at left and approaching the partner pad at right. The callouts identify the live sky taxi actor.",
+            "width": 1160,
+            "height": 410
           }
         ]
       },
@@ -430,7 +478,9 @@
           {
             "image": "/handbook/city/teleport.webp",
             "caption": "12 passengers completed the illustrated teleportation depot journey.",
-            "alt": "Charging at the origin at left and arriving at the partner gate at right. The callouts identify the live passenger actor."
+            "alt": "Charging at the origin at left and arriving at the partner gate at right. The callouts identify the live passenger actor.",
+            "width": 1160,
+            "height": 410
           }
         ]
       },
@@ -445,12 +495,16 @@
           {
             "image": "/handbook/catalog/thumbs/open_pit_mine.webp",
             "caption": "An open-pit mine grows outward as its terraces deepen.",
-            "alt": "An open-pit mine grows outward as its terraces deepen."
+            "alt": "An open-pit mine grows outward as its terraces deepen.",
+            "width": 256,
+            "height": 256
           },
           {
             "image": "/handbook/catalog/thumbs/canal_boat_lift.webp",
             "caption": "A powered canal lift gives boats a way between water levels.",
-            "alt": "A powered canal lift gives boats a way between water levels."
+            "alt": "A powered canal lift gives boats a way between water levels.",
+            "width": 256,
+            "height": 256
           }
         ]
       }
@@ -475,7 +529,9 @@
           {
             "image": "/handbook/catalog/thumbs/farm_houses.webp",
             "caption": "A farmhouse can share a working enclosure with neighboring fields.",
-            "alt": "A farmhouse can share a working enclosure with neighboring fields."
+            "alt": "A farmhouse can share a working enclosure with neighboring fields.",
+            "width": 256,
+            "height": 256
           }
         ]
       },
@@ -490,7 +546,9 @@
           {
             "image": "/handbook/catalog/thumbs/cheesesteak_restaurants.webp",
             "caption": "The mature Cheesesteak Spot is a walk-in sandwich with a counter along its side.",
-            "alt": "The mature Cheesesteak Spot is a walk-in sandwich with a counter along its side."
+            "alt": "The mature Cheesesteak Spot is a walk-in sandwich with a counter along its side.",
+            "width": 256,
+            "height": 256
           }
         ]
       },
@@ -504,7 +562,9 @@
           {
             "image": "/handbook/neighbors/backyard.webp",
             "alt": "A kitchen garden behind the house",
-            "caption": "House + Garden"
+            "caption": "House + Garden",
+            "width": 690,
+            "height": 420
           }
         ]
       },
@@ -518,7 +578,9 @@
           {
             "image": "/handbook/neighbors/driveway.webp",
             "alt": "A driveway meets the front road",
-            "caption": "Medium Sized Home + Roads"
+            "caption": "Medium Sized Home + Roads",
+            "width": 690,
+            "height": 420
           }
         ]
       },
@@ -532,7 +594,9 @@
           {
             "image": "/handbook/neighbors/townhouse-row.webp",
             "alt": "A continuous townhouse row",
-            "caption": "Townhome"
+            "caption": "Townhome",
+            "width": 690,
+            "height": 420
           }
         ]
       },
@@ -546,7 +610,9 @@
           {
             "image": "/handbook/neighbors/cashpoint.webp",
             "alt": "An ATM facing the bank",
-            "caption": "ATM + Bank"
+            "caption": "ATM + Bank",
+            "width": 690,
+            "height": 420
           }
         ]
       },
@@ -560,7 +626,9 @@
           {
             "image": "/handbook/neighbors/farmstead.webp",
             "alt": "One farmhouse, five fields",
-            "caption": "Farm House + Fields"
+            "caption": "Farm House + Fields",
+            "width": 690,
+            "height": 420
           }
         ]
       },
@@ -574,7 +642,9 @@
           {
             "image": "/handbook/neighbors/churchyard.webp",
             "alt": "A gate between church and graveyard",
-            "caption": "Church + Graveyard"
+            "caption": "Church + Graveyard",
+            "width": 690,
+            "height": 420
           }
         ]
       },
@@ -588,7 +658,9 @@
           {
             "image": "/handbook/neighbors/platform.webp",
             "alt": "A platform beside the main line",
-            "caption": "Train Stop + Train Tracks"
+            "caption": "Train Stop + Train Tracks",
+            "width": 690,
+            "height": 420
           }
         ]
       },
@@ -602,7 +674,9 @@
           {
             "image": "/handbook/neighbors/bus-curb.webp",
             "alt": "A shelter on the curb",
-            "caption": "Bus Stop + Two Lane Road"
+            "caption": "Bus Stop + Two Lane Road",
+            "width": 690,
+            "height": 420
           }
         ]
       },
@@ -616,7 +690,9 @@
           {
             "image": "/handbook/neighbors/taxi-rank.webp",
             "alt": "Taxi dispatch beside a through street",
-            "caption": "Taxi Rank + Two Lane Road"
+            "caption": "Taxi Rank + Two Lane Road",
+            "width": 690,
+            "height": 420
           }
         ]
       },
@@ -630,7 +706,9 @@
           {
             "image": "/handbook/neighbors/ferry-pier.webp",
             "alt": "A ferry landing and its berth",
-            "caption": "Ferry Landing + Boat"
+            "caption": "Ferry Landing + Boat",
+            "width": 690,
+            "height": 420
           }
         ]
       }
@@ -655,7 +733,9 @@
           {
             "image": "/handbook/travel/sandbox.jpg",
             "caption": "The sandbox controls keep time, systems, local actions and snapshots in one place.",
-            "alt": "The sandbox controls keep time, systems, local actions and snapshots in one place."
+            "alt": "The sandbox controls keep time, systems, local actions and snapshots in one place.",
+            "width": 1030,
+            "height": 710
           }
         ]
       },
@@ -671,7 +751,9 @@
           {
             "image": "/handbook/travel/night.jpg",
             "caption": "The same canal district after dark, with lit windows and street lamps.",
-            "alt": "The same canal district after dark, with lit windows and street lamps."
+            "alt": "The same canal district after dark, with lit windows and street lamps.",
+            "width": 1030,
+            "height": 710
           }
         ]
       },
@@ -687,7 +769,9 @@
           {
             "image": "/handbook/travel/map-layers.jpg",
             "caption": "The aqueduct flow layer follows the water network through the district.",
-            "alt": "The aqueduct flow layer follows the water network through the district."
+            "alt": "The aqueduct flow layer follows the water network through the district.",
+            "width": 1030,
+            "height": 710
           }
         ]
       }

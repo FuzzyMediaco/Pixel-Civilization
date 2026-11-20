@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { Mesh, Scene, BoxGeometry } from "three";
+import catalog from "../src/handbook/catalog.json";
+import { relatedLessons } from "../src/handbook/relatedLessons";
 import chapters from "../src/handbook/chapters.json";
 import { createCanalDistrict } from "../src/game/canalDistrict";
 import { MobilityVisuals } from "../src/game/mobilityVisuals";
@@ -87,4 +89,12 @@ test("every handbook chapter and lesson opens a real illustrated example", () =>
     if (name.endsWith(".webp")) assert.equal(contents.toString("ascii", 8, 12), "WEBP");
     else assert.equal(contents.readUInt16BE(0), 0xffd8);
   }
+});
+
+test("every design leads to a playable lesson and the spaceport links directly to its launch instructions", () => {
+  for (const entry of catalog) {
+    assert.ok(relatedLessons(entry.id, entry.category).length > 0, entry.id);
+  }
+  assert.equal(relatedLessons("spaceport", "wealth_projects")[0].id, "city-rocket");
+  assert.ok(relatedLessons("farm_houses", "agriculture").some((lesson) => lesson.id === "neighbor-farmstead"));
 });
