@@ -2445,7 +2445,14 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     if (state.happiness >= 72 && state.metrics.burningCount === 0) {
       // Smooth thriving growth toward neighborhood settlement capacity
       const happyFactor = (state.happiness - 65) / 35;
-      const growthRate = Math.max(1.2, baseHousingPop * 0.28) * happyFactor;
+      // God Mode is an open sandbox: residents should arrive quickly enough to
+      // test advanced buildings, even when only a few houses have been placed.
+      // Real/Survival still grow gradually through housing and services.
+      const growthRate = (
+        state.mode === "god"
+          ? Math.max(25, baseHousingPop * 0.9)
+          : Math.max(1.8, baseHousingPop * 0.42)
+      ) * happyFactor;
       state.growthPool += growthRate * dtSec;
       dirty = true;
     } else if (state.happiness < 65) {
