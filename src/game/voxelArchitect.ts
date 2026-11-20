@@ -691,7 +691,8 @@ function buildNetworkElement(
   const isWalking = def.id === "walking_paths";
   const isSidewalk = def.id === "side_walks";
   const isPretty = def.id === "pretty_roads";
-  const isTwoLane = def.id === "two_lane_roads" || def.id === "roads";
+  const isTownBoulevard = def.id === "two_lane_roads";
+  const isTwoLane = isTownBoulevard || def.id === "roads";
   const isHighway = def.id === "highways";
   const isFreeway = def.id === "freeways";
   const isUnderpass = def.id === "underpasses";
@@ -770,7 +771,7 @@ function buildNetworkElement(
             ? "marble"
             : "concrete";
 
-  const halfW = isFreeway ? 7 : isHighway ? 6 : isTwoLane ? Math.min(6, 4 + Math.floor((level - 1) / 4)) : isBoardwalk ? 4 : isDirtRoad ? Math.min(4, 2 + Math.floor((level - 1) / 5)) : 3;
+  const halfW = isFreeway ? 7 : isHighway ? 6 : isTownBoulevard ? Math.min(7, 5 + Math.floor((level - 1) / 5)) : isTwoLane ? Math.min(6, 4 + Math.floor((level - 1) / 4)) : isBoardwalk ? 4 : isDirtRoad ? Math.min(4, 2 + Math.floor((level - 1) / 5)) : 3;
   const apronW = Math.max(1, halfW - 1);
 
   const armN = n || (!anyConn && !bE && !bW);
@@ -946,6 +947,19 @@ function buildNetworkElement(
     const stripeCol = isTwoLane ? "busYellow" : level >= 3 ? "busYellow" : "white";
 
     if (isTwoLane) {
+      // Four-lane boulevard gets outer lane dividers; starter road begins as two lanes.
+      if (isTownBoulevard) {
+        for (let c = -7; c < 8; c += 3) {
+          if (armN && c < 0) {
+            v.box(-3, 0, c, -2, 1, Math.min(0, c + 1), "white");
+            v.box(2, 0, c, 3, 1, Math.min(0, c + 1), "white");
+          }
+          if (armS && c >= 0) {
+            v.box(-3, 0, c, -2, 1, Math.min(8, c + 1), "white");
+            v.box(2, 0, c, 3, 1, Math.min(8, c + 1), "white");
+          }
+        }
+      }
       const stopGap = isIntersection ? halfW : 0;
       if (armN) v.box(-1, 0, -8, 1, 1, -stopGap, "busYellow");
       if (armS) v.box(-1, 0, stopGap, 1, 1, 8, "busYellow");
