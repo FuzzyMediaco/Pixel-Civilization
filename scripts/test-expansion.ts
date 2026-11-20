@@ -3,6 +3,7 @@ import { ELEMENT_BY_ID, getElementMaxLevel, getRoadLaneCount } from "../src/game
 import { analyzeFarmNetworks, getFarmAdjacencyMask } from "../src/game/farmNetworks";
 import { analyzeDistrictSynergies, getDistrictEdgeMasks } from "../src/game/districtSynergies";
 import { analyzeTraffic } from "../src/game/trafficModel";
+import { cloneGameStateSnapshot } from "../src/game/saveSlots";
 import {
   createInitialGameState, recomputeConnectivityAndMetrics,
   upgradeElementDirect, stepSimulation, type PlacedElement,
@@ -99,3 +100,40 @@ const owned = analyzeFarmNetworks(twoAnchors.elements, new Set(["a", "b"]));
 assert.equal(owned.ownerByModuleId.size, 1, "Shared field cannot be double-counted");
 
 console.log("Pixel Civilization expansion simulations: PASS");
+
+
+/**
+ * Loading a pre-expansion save must retain old elements and levels, then
+ * regenerate the new traffic, farm and district metrics without mutating
+ * the persisted legacy record.
+ */
+for (const mode of ["god", "real", "survival"] as const) {
+  const legacy = createInitialGameState(mode);
+  legacy.elements.push(
+    place(`${mode}-street`, "roads", 0, 0, 5),
+    place(`${mode}-house`, "house", 1, 0, 3),
+    place(`${mode}-farm`, "farms", 0, 1, 2),
+    place(`${mode}-field`, "fields", 1, 1, 3),
+  );
+  // Simulate JSON records saved before the expansion introduced new metrics.
+  const oldJson = JSON.parse(JSON.stringify(legacy)) as typeof legacy;
+  const oldMetrics = oldJson.metrics as unknown as Record<string, unknown>;
+  for (const key of [
+    "farmModuleCount", "farmNetworkCount", "districtSynergyCount",
+    "specializedSchoolJobs", "specializedSchoolIncome",
+    "trafficCapacity", "trafficDemand", "trafficCongestion", "congestedRoads",
+  ]) delete oldMetrics[key];
+
+  const restored = cloneGameStateSnapshot(oldJson);
+  assert.equal(restored.elements.length, 4, `${mode}: legacy element count preserved`);
+  assert.deepEqual(
+    restored.elements.map(el => [el.id, el.defId, el.level]),
+    oldJson.elements.map(el => [el.id, el.defId, el.level]),
+    `${mode}: existing IDs, building types and upgrade levels preserved`,
+  );
+  assert.equal(restored.elements[1].connected, true, `${mode}: older homes reconnect`);
+  assert.equal(restored.elements[3].connected, true, `${mode}: older fields inherit farm access`);
+  assert.ok(Number.isFinite(restored.metrics.trafficCapacity), `${mode}: new road metrics initialized`);
+  assert.ok(restored.metrics.foodSupply > 0, `${mode}: older farms still produce food`);
+  assert.equal(oldMetrics.trafficCapacity, undefined, `${mode}: original save input untouched`);
+}
