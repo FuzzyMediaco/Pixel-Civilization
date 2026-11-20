@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "tsc --noEmit",
     "test:expansion": "tsx scripts/test-expansion.ts",
+    "test:voxels": "tsx scripts/test-voxel-expansion.ts",
     "start": "NODE_ENV=production node server.ts"
   },
   "dependencies": {
