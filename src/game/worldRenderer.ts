@@ -24,6 +24,8 @@ import {
   worldToGrid,
 } from "./simulation";
 import { buildPlacedGroupFromAsset, getOrBuildElementAsset } from "./voxelArchitect";
+import { getFarmAdjacencyMask } from "./farmNetworks";
+import { analyzeDistrictSynergies, getDistrictEdgeMasks } from "./districtSynergies";
 import {
   PixelVox,
   TILE_SIZE,
@@ -725,13 +727,18 @@ export class PixelWorldRenderer {
     this.selectedIds = selectedIds;
 
     const seenIds = new Set<string>();
+    const districtEdgeMasks = getDistrictEdgeMasks(state.elements, analyzeDistrictSynergies(state.elements).active);
 
     for (const el of state.elements) {
       seenIds.add(el.id);
       const def = ELEMENT_BY_ID[el.defId];
       if (!def) continue;
 
-      const connMask = def.isNetwork ? getNetworkConnMask(state.elements, el) : 0;
+      const connMask = def.isNetwork
+        ? getNetworkConnMask(state.elements, el)
+        : def.category === "agriculture"
+          ? getFarmAdjacencyMask(state.elements, el)
+          : districtEdgeMasks.get(el.id) ?? 0;
       const oddRot = el.rotation % 2 === 1;
       const localSpanX = def.isNetwork || !oddRot ? el.spanX : el.spanZ;
       const localSpanZ = def.isNetwork || !oddRot ? el.spanZ : el.spanX;
