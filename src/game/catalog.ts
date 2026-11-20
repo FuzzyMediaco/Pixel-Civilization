@@ -1302,7 +1302,7 @@ export const ELEMENTS: CivElementDef[] = [
   },
   {
     id: "two_lane_roads",
-    name: "Two Lane Road",
+    name: "Town Boulevard",
     category: "roads_transit",
     stage: 4,
     cost: 18,
@@ -1312,7 +1312,7 @@ export const ELEMENTS: CivElementDef[] = [
     isRoadNetwork: true,
     passiveNature: true,
     accentHex: "#434854",
-    description: "Striped arterial avenue with crisp curbs and streetlights.",
+    description: "Four-lane town boulevard, a wider urban alternative to the two-lane starter street.",
   },
   {
     id: "pretty_roads",
@@ -2766,7 +2766,7 @@ export function getElementMaxLevel(def: CivElementDef): number {
 /** Road capacity deliberately changes with level, not only the paint and lane markings. */
 export function getRoadLaneCount(def: CivElementDef, level: number): number {
   if (!isVehicleRoad(def)) return 0;
-  const baseLanes = def.id === "freeways" ? 6 : def.id === "highways" ? 4 : 2;
+  const baseLanes = def.id === "freeways" ? 6 : def.id === "highways" || def.id === "two_lane_roads" ? 4 : 2;
   return Math.min(12, baseLanes + 2 * Math.floor((Math.max(1, level) - 1) / 2));
 }
 
