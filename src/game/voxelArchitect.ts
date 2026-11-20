@@ -1,5 +1,6 @@
 import * as THREE from "three";
-import { type CivElementDef, ELEMENT_BY_ID } from "./catalog";
+import { type CivElementDef, ELEMENT_BY_ID, getMaxElementLevel } from "./catalog";
+import { applyParcelAppearance, type ParcelAppearance } from "./parcelGeometry";
 import { getDesign } from "./designs/registry";
 import { type SmokeKind, makeCtx } from "./designs/kit";
 import {
@@ -31,6 +32,7 @@ export interface BuiltVoxelAsset {
   bobOnWater?: boolean;
   topY: number;
   voxelCount?: number;
+  siteSpecific?: boolean;
 }
 
 export function buildDesignAsset(
@@ -40,6 +42,7 @@ export function buildDesignAsset(
   spanX: number,
   spanZ: number,
   connMask: number,
+  appearance: ParcelAppearance = {},
 ): BuiltVoxelAsset {
   const design = getDesign(def.id);
   if (!design) throw new Error(`Missing civilization design: ${def.id}`);
@@ -50,6 +53,7 @@ export function buildDesignAsset(
   const unit = VOXEL_SIZE * fit;
   const groundShift = def.domain === "land" ? VOXEL_SIZE - unit : 0;
   const c = makeCtx(def.id, lv, variant, designX, designZ, connMask);
+  c.parcelEdges = appearance.edges;
   try {
     design.build(c);
   } catch (err) {
@@ -57,13 +61,23 @@ export function buildDesignAsset(
     c.v.box(-c.hx + 2, 0, -c.hz + 2, c.hx - 2, 6, c.hz - 2, "magenta");
   }
   trimLandscapeEdge(def, c.v, c.hx, c.hz);
+  applyParcelAppearance(c, appearance);
   clampVoxToFootprint(c.v, c.hx, c.hz);
-  const baseGeo = buildVoxelGeometry(c.v, unit);
+  const mesh = (v: PixelVox) => {
+    const geometry = buildVoxelGeometry(v, unit);
+    const boost = appearance.lighting === "dark" ? 0 : appearance.lighting === "lit" ? 2.1 : def.id === "bars" ? 1.8 : 1;
+    if (boost !== 1) {
+      const emission = geometry.getAttribute("aEmit");
+      for (let i = 0; i < emission.count; i++) emission.setX(i, Math.min(3, emission.getX(i) * boost));
+    }
+    return geometry;
+  };
+  const baseGeo = mesh(c.v);
   if (groundShift) baseGeo.translate(0, groundShift, 0);
   baseGeo.computeBoundingBox();
   let topY = baseGeo.boundingBox?.max.y ?? 1;
   const rotors: BuiltRotor[] = c.rotors.map((r) => {
-    const geo = buildVoxelGeometry(r.vox, unit);
+    const geo = mesh(r.vox);
     geo.computeBoundingBox();
     const pivot: [number, number, number] = [r.pivot[0] * fit, r.pivot[1] * fit + groundShift / VOXEL_SIZE, r.pivot[2] * fit];
     topY = Math.max(topY, pivot[1] * VOXEL_SIZE + (geo.boundingBox?.max.y ?? 0));
@@ -76,7 +90,7 @@ export function buildDesignAsset(
     bobOnWater: c.floating || def.domain === "water",
     rotors,
     smokePoints: c.smokePoints.map(([x, y, z, k]) => [x * unit, y * unit + groundShift, z * unit, k]),
-    blinkers: c.blinkers.map(([x, y, z, col]) => [(x + 0.5) * unit, (y + 0.5) * unit + groundShift, (z + 0.5) * unit, col]),
+    blinkers: (appearance.lighting === "dark" ? [] : c.blinkers).map(([x, y, z, col]) => [(x + 0.5) * unit, (y + 0.5) * unit + groundShift, (z + 0.5) * unit, col]),
   };
 }
 
@@ -132,11 +146,17 @@ export function getOrBuildElementAsset(
   spanX: number,
   spanZ: number,
   connMask = 0,
+  appearance: ParcelAppearance = {},
 ): BuiltVoxelAsset {
   const def = ELEMENT_BY_ID[elementId];
-  const clampedLv = Math.max(1, Math.min(5, level | 0));
+  const clampedLv = Math.max(1, Math.min(getMaxElementLevel(elementId), level | 0));
   const clampedVar = ((variant | 0) % 4 + 4) % 4;
   const key = `${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
+  if (def && (appearance.edges?.length || appearance.soils?.length || (appearance.lighting && appearance.lighting !== "auto"))) {
+    const asset = buildDesignAsset(def, clampedLv, clampedVar, spanX, spanZ, connMask, appearance);
+    asset.siteSpecific = true;
+    return asset;
+  }
   const existing = assetCache.get(key);
   if (existing) return existing;
 
@@ -159,6 +179,7 @@ export function buildPlacedGroupFromAsset(
   validGhost = true,
 ): THREE.Group {
   const group = new THREE.Group();
+  group.userData.siteSpecific = Boolean(asset.siteSpecific);
   const mat = ghost ? getGhostPreviewMaterial(validGhost) : getPixelVoxelMaterial();
   const baseMesh = new THREE.Mesh(asset.baseGeo, mat);
   baseMesh.castShadow = !ghost;
@@ -186,4 +207,12 @@ export function buildPlacedGroupFromAsset(
   group.userData.bobOnWater = Boolean(asset.bobOnWater);
   group.userData.topY = asset.topY;
   return group;
+}
+
+/** Joined lots and previews belong to one placed group. Shared catalog meshes stay cached. */
+export function releaseParcelGeometry(group: THREE.Group): void {
+  if (!group.userData.siteSpecific) return;
+  group.traverse(o => {
+    if (o instanceof THREE.Mesh && o.userData.isVoxelMesh) o.geometry.dispose();
+  });
 }

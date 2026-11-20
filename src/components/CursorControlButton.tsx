@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Building2,
   Droplets,
-  GitMerge,
   Hammer,
   Layers,
   MousePointer,
@@ -18,13 +17,12 @@ import { ELEMENT_BY_ID } from "../game/catalog";
 import { type SelectionFilter } from "../game/simulation";
 import { type BuildBrush } from "../game/worldRenderer";
 
-export type CursorBehavior = "auto" | "select" | "place" | "merge";
+export type CursorBehavior = "auto" | "select" | "place";
 
 interface CursorControlButtonProps {
   brush: BuildBrush;
   cursorBehavior: CursorBehavior;
   selectionFilter: SelectionFilter;
-  pairSelectMode: boolean;
   onReturnToSelect: () => void;
   onChangeCursorBehavior: (mode: CursorBehavior) => void;
   onChangeSelectionFilter: (filter: SelectionFilter) => void;
@@ -39,7 +37,6 @@ const BEHAVIOR_OPTIONS: {
   { id: "auto", label: "Auto Bounce", hint: "Buildings bounce to Select; Roads stay continuous", icon: Sparkles },
   { id: "select", label: "Always Select", hint: "Every placement returns straight to Select", icon: MousePointer },
   { id: "place", label: "Multi-Place", hint: "Keep building brush active after placing", icon: Hammer },
-  { id: "merge", label: "Merge Mode", hint: "Tap two matching neighbors to merge", icon: GitMerge },
 ];
 
 const FILTER_OPTIONS: {
@@ -59,7 +56,6 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
   brush,
   cursorBehavior,
   selectionFilter,
-  pairSelectMode,
   onReturnToSelect,
   onChangeCursorBehavior,
   onChangeSelectionFilter,
@@ -81,15 +77,11 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
   const activeBrushDef = brush.kind === "place" && brush.defId ? ELEMENT_BY_ID[brush.defId] : undefined;
   const isPlacing = brush.kind === "place";
   const isMoving = brush.kind === "move";
-  const isMergingCursor = pairSelectMode || cursorBehavior === "merge";
-  const isBusyTool = isPlacing || isMoving || isMergingCursor;
+  const isBusyTool = isPlacing || isMoving;
   const filterActive = selectionFilter !== "all";
 
   const handlePrimaryClick = () => {
     if (isBusyTool) {
-      if (cursorBehavior === "merge") {
-        onChangeCursorBehavior("auto");
-      }
       onReturnToSelect();
       return;
     }
@@ -100,17 +92,13 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
     ? Move
     : isPlacing
       ? Hammer
-      : isMergingCursor
-        ? GitMerge
-        : MousePointer;
+      : MousePointer;
 
   const buttonLabel = isMoving
     ? "Moving"
     : isPlacing
       ? activeBrushDef?.name ?? "Build"
-      : isMergingCursor
-        ? "Merge"
-        : "Select";
+      : "Select";
 
   return (
     <div ref={containerRef} className="pointer-events-auto fixed bottom-2.5 right-2 z-35 flex flex-col items-end">
@@ -139,9 +127,6 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
             <button
               type="button"
               onClick={() => {
-                if (cursorBehavior === "merge") {
-                  onChangeCursorBehavior("auto");
-                }
                 onReturnToSelect();
                 setPopoverOpen(false);
               }}
@@ -252,9 +237,7 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
           className={`relative flex h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border px-2.5 text-xs font-extrabold shadow-xl transition-colors ${
             isPlacing || isMoving
               ? "border-amber-500 bg-amber-500 text-stone-950 hover:bg-amber-400"
-              : isMergingCursor
-                ? "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-                : popoverOpen
+              : popoverOpen
                   ? "border-emerald-600 bg-stone-800 text-white ring-2 ring-emerald-500/50"
                   : "border-stone-900 bg-stone-900 text-white hover:bg-stone-800"
           }`}

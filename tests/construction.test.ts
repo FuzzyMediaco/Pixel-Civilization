@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import "../src/game/designs/index";
 import { ELEMENT_BY_ID as defs, getStandardFootprintForLevel, getUpgradeCost } from "../src/game/catalog";
+import { siteOf,activityRule } from "../src/game/cityEconomy";
 import { networkRoadProfile } from "../src/game/designs/networks";
-import { createInitialGameState, getConnectedRailCoordSet, getNetworkConnMask, mergeElementsInState,
+import { createInitialGameState, getConnectedRailCoordSet, getNetworkConnMask,
   planConstruction, recomputeConnectivityAndMetrics, relocatePlacedElement, removePlacedElements,
   upgradeElementDirect, type PlacedElement } from "../src/game/simulation";
 
@@ -22,6 +23,9 @@ test("paid upgrades reserve the actual lot and keep the architectural style", ()
   st.highestStageReached = 20;
   const farm = piece("farms", 0, 0);
   st.elements = [farm, piece("roads", -1, 0), piece("roads", 1, 0), piece("roads", 0, -1), piece("roads", 0, 1)];
+  // The farm already earned its expansion. Geometry must still fit before funds leave the treasury.
+  farm.connected=true;
+  siteOf(st,farm).work=activityRule(farm).goal;
   const balance = st.money, original = structuredClone(farm);
   assert.equal(upgradeElementDirect(st, farm.id).ok, false);
   assert.deepEqual(farm, original);
@@ -32,14 +36,12 @@ test("paid upgrades reserve the actual lot and keep the architectural style", ()
   assert.equal(st.money, balance - getUpgradeCost(defs.farms, 1));
 });
 
-test("a vertical farm merge uses the two plots and preserves the original style", () => {
-  const st = createInitialGameState("god");
-  const a = piece("farms", 2, 0), b = piece("farms", 2, 1);
-  st.elements.push(a, b);
-  assert.ok(mergeElementsInState(st, a.id, b.id).ok);
-  assert.equal(st.elements.length, 1);
-  const merged = st.elements[0];
-  assert.deepEqual([merged.gx, merged.gz, merged.spanX, merged.spanZ, merged.rotation % 2, merged.variant], [2, 0, 1, 2, 1, 2]);
+test("two neighboring fields retain their identities when one farm upgrades", () => {
+  const st=createInitialGameState("god");
+  const a=piece("farms",2,0), b=piece("farms",2,1);
+  st.elements.push(a,b);
+  assert.ok(upgradeElementDirect(st,a.id).ok);
+  assert.deepEqual(st.elements.map(e=>[e.id,e.level,e.variant]),[[a.id,2,2],[b.id,1,2]]);
 });
 
 test("a bridge keeps its river's services and restores the original river when moved or demolished", () => {
@@ -80,8 +82,8 @@ test("locked routes stay locked over water and auto-bridges use the price of the
 test("a grade-separated crossing connects straight through on each level", () => {
   const st = createInitialGameState("real");
   const center = piece("over_passes", 0, 0);
-  const house = piece("house", -2, 0), shop = piece("shops", 0, 2);
-  st.elements = [center, piece("over_passes", -1, 0), piece("over_passes", 1, 0), piece("roads", 0, -1), piece("roads", 0, 1), house, shop];
+  const house = piece("house", -3, 0,1), shop = piece("shops", 0, 2,2);
+  st.elements = [center, piece("roads",-2,0), piece("over_passes", -1, 0), piece("over_passes", 1, 0), piece("roads", 0, -1), piece("roads", 0, 1), house, shop];
   const profile = networkRoadProfile(center.defId, getNetworkConnMask(st.elements, center));
   assert.equal(profile?.elevatedAxis, 1);
   recomputeConnectivityAndMetrics(st);
@@ -97,7 +99,8 @@ test("rail activates at a train facility, without attaching to bus stops or hous
   assert.equal(getNetworkConnMask([rail, track, bus], rail) & 8, 0);
   assert.equal(getConnectedRailCoordSet([rail, track, bus]).size, 0);
   const station = piece("train_stops", 2, 1);
-  assert.equal(getNetworkConnMask([rail, track, station], rail) & 2, 2);
+  station.rotation = 1; // rear platform faces the track on its west side
+  assert.equal(getNetworkConnMask([rail, track, station], rail) & 2, 0);
   assert.equal(getConnectedRailCoordSet([rail, track, station]).size, 2);
 });
 

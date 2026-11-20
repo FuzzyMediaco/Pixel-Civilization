@@ -1,11 +1,21 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { rememberBuildingEdit, undoBuildingEdit } from "./game/constructionHistory";
+import { dispatchFire } from "./game/projectOperations";
+import { dispatchVessel, previewWaterPassage } from "./game/mobility";
+import { buildingCharges, transfer } from "./game/cityEconomy";
+import "./islandDesk.css";
+import { CityBar, Connections, GodControls, tabs, type DeskTab } from "./components/IslandControls";
+import { MobilityPanel } from "./components/MobilityPanel";
+import { InfrastructurePanel } from "./components/InfrastructurePanel";
+import { CityEconomyPanel } from "./components/CityEconomyPanel";
+import { applyInfrastructureStroke, applyLandformPlacement, planInfrastructureStroke, type GridPoint, type InfrastructureTool } from "./game/terrain";
+import { createCanalDistrict } from "./game/canalDistrict";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertOctagon, Flame, Menu, RotateCcw, ShieldAlert, Sparkles, X } from "lucide-react";
 import { AdvisorModal } from "./components/AdvisorModal";
 import { BottomDock } from "./components/BottomDock";
 import { type CursorBehavior, CursorControlButton } from "./components/CursorControlButton";
 import { HamburgerMenuModal } from "./components/HamburgerMenuModal";
 import { HeatmapPanel } from "./components/HeatmapPanel";
-import { MergeDock } from "./components/MergeDock";
 import { RightIconRail } from "./components/RightIconRail";
 import { SaveSlotsModal } from "./components/SaveSlotsModal";
 import { TopHud } from "./components/TopHud";
@@ -13,6 +23,7 @@ import { ViewEnvPanel, type ViewEnvTab } from "./components/ViewEnvPanel";
 import {
   ELEMENT_BY_ID,
   type GameMode,
+  getMaxElementLevel,
   getStandardFootprintForLevel,
 } from "./game/catalog";
 import {
@@ -40,7 +51,6 @@ import {
   maintainAllElements,
   maintainElement,
   makeElementId,
-  mergeElementsInState,
   pushToast,
   randomVariant,
   recomputeConnectivityAndMetrics,
@@ -111,8 +121,6 @@ export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<PixelWorldRenderer | null>(null);
 
-  // Default to Real Mode or God Mode — let's start in Real Mode with clean Mode tabs right at top-left, or God Mode?
-  // Let's start in God Mode? Let's check: in God Mode all 148+ elements are immediately selectable & placeable on first click, AND Real Mode & Survival Mode are 1-click away in the top bar!
   const [gameState, setGameState] = useState<GameState>(() => loadModeState("god"));
   const stateRef = useRef<GameState>(gameState);
   stateRef.current = gameState;
@@ -120,10 +128,6 @@ export const App: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedIdsRef = useRef<string[]>(selectedIds);
   selectedIdsRef.current = selectedIds;
-
-  const [pairSelectMode, setPairSelectMode] = useState(false);
-  const pairSelectModeRef = useRef(pairSelectMode);
-  pairSelectModeRef.current = pairSelectMode;
 
   const [brush, setBrush] = useState<BuildBrush>({
     kind: "none",
@@ -138,6 +142,16 @@ export const App: React.FC = () => {
   const simSpeedRef = useRef<number>(simSpeed);
   simSpeedRef.current = simSpeed;
 
+  const [desk,setDesk]=useState<DeskTab|null>(null);
+  const [folded,setFolded]=useState(false);
+  const [score,setScore]=useState<"population"|"happiness"|"wealth"|"safety"|"site"|"controls">("wealth");
+  const [returnLine,setReturnLine]=useState<string>();
+  const [dispatchTarget,setDispatchTarget]=useState<string>();
+  const targetRef=useRef<string|undefined>(undefined);targetRef.current=dispatchTarget;
+  const [inspectPoint,setInspectPoint]=useState<GridPoint>();
+  const [pendingWorks,setPendingWorks]=useState<{tool:InfrastructureTool;points:GridPoint[]}|null>(null);
+  const [worksTool,setWorksTool]=useState<InfrastructureTool|null>(null);
+  const [hasSnapshot,setHasSnapshot]=useState(()=>{try{return !!localStorage.getItem("pixel_civ_lab_snapshot");}catch{return false;}});
   const [cameraMode, setCameraMode] = useState<CameraMode>("pan");
   const [autoSpin, setAutoSpin] = useState(false);
 
@@ -175,16 +189,30 @@ export const App: React.FC = () => {
   }, []);
 
   const commitState = useCallback((mutator: (draft: GameState) => void) => {
-    const next: GameState = {
-      ...stateRef.current,
-      elements: stateRef.current.elements.map((e) => ({ ...e })),
-      toasts: [...stateRef.current.toasts],
-    };
+    const next: GameState = structuredClone(stateRef.current);
     mutator(next);
     stateRef.current = next;
     setGameState(next);
     saveModeState(next);
   }, []);
+
+  const commitBuildingEdit = useCallback((label:string, mutate:(draft:GameState)=>void) => {
+    const before=stateRef.current;
+    commitState(draft=>{
+      mutate(draft);
+      rememberBuildingEdit(before,draft,label);
+    });
+  },[commitState]);
+
+  const handleUndoBuilding = () => {
+    commitState(draft=>{
+      const result=undoBuildingEdit(draft);
+      if(result.ok) {
+        setSelectedIds(ids=>ids.filter(id=>draft.elements.some(e=>e.id===id)));
+        pushToast(draft,"stage","Building edit undone",result.refunded ? "Treasury refunded $" + result.refunded.toLocaleString() + "." : result.label ?? "");
+      } else pushToast(draft,"alert","Undo unavailable",result.reason??"");
+    });
+  };
 
   // Place tile callback from 3D canvas
   const handleTilePlace = useCallback(
@@ -197,9 +225,9 @@ export const App: React.FC = () => {
       const cur = stateRef.current;
       if (cur.gameOver) return;
 
-      const plan = planConstruction(cur, brushDef, gx, gz, curBrush.level, curBrush.rotation);
+      const plan = planConstruction(cur, brushDef, gx, gz, curBrush.level, curBrush.rotation, curBrush.faceManually);
       if (!plan.valid) {
-        if (cur.mode !== "god" && cur.money < plan.def.cost) {
+        if (buildingCharges(cur) && cur.money < plan.def.cost) {
           commitState(draft => pushToast(draft, "alert", "Insufficient Treasury", `Need $${plan.def.cost.toLocaleString()} to build ${plan.def.name}.`));
         }
         return;
@@ -210,10 +238,8 @@ export const App: React.FC = () => {
           ? curBrush.variantMode
           : randomVariant();
 
-      commitState((draft) => {
-        if (draft.mode !== "god") {
-          draft.money -= def.cost;
-        }
+      commitBuildingEdit("Place "+def.name,(draft) => {
+        if (buildingCharges(draft)) transfer(draft,"treasury","outside",def.cost,"Construction");
         const placed: PlacedElement = {
           id: makeElementId(),
           defId: def.id,
@@ -234,12 +260,14 @@ export const App: React.FC = () => {
           animProgress: 1.0,
           animKind: "place",
           ...(overWater ? { overWater: true } : {}),
+          ...(plan.pedestrianDeck ? { pedestrianDeck: true } : {}),
         };
         if (replaceId) {
           placed.waterUnderlay = draft.elements.find(e => e.id === replaceId);
           draft.elements = draft.elements.filter(e => e.id !== replaceId);
         }
         draft.elements.push(placed);
+        applyLandformPlacement(draft,placed);
         if (def.id !== brushDef.id && !draft.achievements?.includes("bridge_builder")) {
           pushToast(draft, "merge", `Auto-Bridge: ${def.name}`, "Roads dragged across water become bridges automatically.");
         }
@@ -256,7 +284,7 @@ export const App: React.FC = () => {
         }));
       }
     },
-    [commitState],
+    [commitState,commitBuildingEdit],
   );
 
   // Move commit callback (God Mode relocation)
@@ -267,48 +295,19 @@ export const App: React.FC = () => {
       if (!el) return;
       if (!planRelocation(cur, el, gx, gz).valid) return;
 
-      commitState((draft) => {
+      commitBuildingEdit("Move "+ELEMENT_BY_ID[el.defId].name,(draft) => {
         const target = draft.elements.find(e => e.id === elementId);
         if (target && relocatePlacedElement(draft, target, gx, gz)) recomputeConnectivityAndMetrics(draft);
       });
 
       setBrush((b) => ({ ...b, kind: "none", movingElementId: undefined }));
     },
-    [commitState],
+    [commitBuildingEdit],
   );
 
-  // Selection callback (supports Shift+Click, Pair-Select toggle, or Merge cursor mode)
-  const handleSelectElement = useCallback(
-    (elementId: string | null, additiveShift: boolean) => {
-      if (!elementId) {
-        setSelectedIds([]);
-        setPairSelectMode(false);
-        return;
-      }
-
-      const isMergeCursor = cursorBehaviorRef.current === "merge";
-      const wantPair = additiveShift || pairSelectModeRef.current || isMergeCursor;
-      const curSelected = selectedIdsRef.current;
-
-      if (wantPair && curSelected.length >= 1 && curSelected[0] !== elementId) {
-        setPairSelectMode(false);
-        collapseOverlayMenus();
-        setSelectedIds([curSelected[0], elementId]);
-        return;
-      }
-
-      if (isMergeCursor) {
-        setPairSelectMode(true);
-        collapseOverlayMenus();
-        setSelectedIds([elementId]);
-        return;
-      }
-
-      setPairSelectMode(false);
-      setSelectedIds([elementId]);
-    },
-    [collapseOverlayMenus],
-  );
+  const handleSelectElement = useCallback((elementId: string | null) => {
+    setSelectedIds(elementId ? [elementId] : []);
+  }, []);
 
   // Initialize Three.js renderer once
   useEffect(() => {
@@ -320,6 +319,12 @@ export const App: React.FC = () => {
       onTileMoveCommit: handleTileMoveCommit,
       onSelectElement: handleSelectElement,
       onHoverInfo: setHoverInfo,
+      onInspectTile: (gx,gz)=>{
+        setInspectPoint({gx,gz});
+        const target=targetRef.current;
+        if(target){commitState(s=>dispatchVessel(s,target,"sail",[gx,gz]));setDispatchTarget(undefined);setDesk("transit");setFolded(false);}
+      },
+      onInfrastructureStroke: (tool,points)=>setPendingWorks({tool:{...tool},points:points.map(p=>({...p}))}),
     });
     rendererRef.current = world;
     (window as unknown as { __pixelWorld?: PixelWorldRenderer }).__pixelWorld = world;
@@ -328,13 +333,14 @@ export const App: React.FC = () => {
       world.dispose();
       rendererRef.current = null;
     };
-  }, [handleTilePlace, handleTileMoveCommit, handleSelectElement]);
+  }, [handleTilePlace, handleTileMoveCommit, handleSelectElement,commitState]);
 
   // Sync game state & selection into 3D renderer
   useEffect(() => {
     rendererRef.current?.syncState(gameState, selectedIds);
   }, [gameState, selectedIds]);
 
+  useEffect(()=>{rendererRef.current?.setInfrastructureTool(worksTool);},[worksTool]);
   // Sync brush into 3D renderer
   useEffect(() => {
     rendererRef.current?.setBrush(brush);
@@ -394,15 +400,16 @@ export const App: React.FC = () => {
     return () => window.clearInterval(timer);
   }, []);
 
-  // Keyboard shortcuts (Esc, T/B/H/V menus, R rotate, M merge, +/- zoom, Delete demolish)
+  // Keyboard controls for selection, building and view.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
       if (e.key === "Escape") {
+        setDispatchTarget(undefined);
+        setPendingWorks(null);setWorksTool(null); setDesk(null); rendererRef.current?.followService();
         setBrush((b) => ({ ...b, kind: "none", defId: undefined, movingElementId: undefined }));
-        setPairSelectMode(false);
         setSelectedIds((prev) => (prev.length === 2 ? [prev[0]] : prev));
         setHeatmapsOpen(false);
         setViewEnvOpen(false);
@@ -422,10 +429,10 @@ export const App: React.FC = () => {
         rendererRef.current?.zoomBy(1.24);
       } else if (e.code === "KeyR") {
         if (brushRef.current.kind === "place") {
-          setBrush((b) => ({ ...b, rotation: (b.rotation + 1) % 4 }));
+          setBrush((b) => ({ ...b, rotation: (b.rotation + 1) % 4, faceManually:true }));
         } else if (stateRef.current.mode === "god" && selectedIdsRef.current.length === 1) {
           const id = selectedIdsRef.current[0];
-          commitState((draft) => {
+          commitBuildingEdit("Rotate building",(draft) => {
             const el = draft.elements.find((item) => item.id === id);
             if (!el) return;
             const nextRot = (el.rotation + 1) % 4;
@@ -442,22 +449,15 @@ export const App: React.FC = () => {
             } else {
               el.rotation = nextRot;
             }
+            recomputeConnectivityAndMetrics(draft);
           });
         }
-      } else if (e.code === "KeyM" && selectedIdsRef.current.length === 2) {
-        const [a, b] = selectedIdsRef.current;
-        let mergedId: string | undefined;
-        commitState((draft) => {
-          const res = mergeElementsInState(draft, a, b);
-          if (res.ok) mergedId = res.mergedId;
-        });
-        if (mergedId) setSelectedIds([mergedId]);
       } else if (
         (e.key === "Delete" || e.key === "Backspace") &&
         selectedIdsRef.current.length > 0
       ) {
         const toDel = new Set(selectedIdsRef.current);
-        commitState((draft) => {
+        commitBuildingEdit("Remove building",(draft) => {
           removePlacedElements(draft, toDel);
           recomputeConnectivityAndMetrics(draft);
         });
@@ -467,16 +467,16 @@ export const App: React.FC = () => {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [commitState]);
+  }, [commitBuildingEdit]);
 
   // UI Handlers
   const handleSwitchMode = (mode: GameMode) => {
+    setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
     saveModeState(stateRef.current);
     const loaded = loadModeState(mode);
     stateRef.current = loaded;
     setGameState(loaded);
     setSelectedIds([]);
-    setPairSelectMode(false);
     setActiveSlotIndex(null);
     setBrush({
       kind: "none",
@@ -487,20 +487,18 @@ export const App: React.FC = () => {
   };
 
   const handleSelectBrushDef = (defId: string | null) => {
+    setWorksTool(null);setDesk(null);
     if (!defId) {
       setBrush((b) => ({ ...b, kind: "none", defId: undefined, movingElementId: undefined }));
       return;
     }
-    if (cursorBehaviorRef.current === "merge") {
-      setCursorBehavior("auto");
-    }
     setSelectedIds([]);
-    setPairSelectMode(false);
     setBrush((b) => ({
       ...b,
       kind: "place",
       defId,
-      level: stateRef.current.mode === "god" ? b.level : 1,
+      faceManually:false,
+      level: stateRef.current.mode === "god" ? Math.min(b.level, getMaxElementLevel(defId)) : 1,
       movingElementId: undefined,
     }));
   };
@@ -512,16 +510,12 @@ export const App: React.FC = () => {
       defId: undefined,
       movingElementId: undefined,
     }));
-    setPairSelectMode(false);
     setSelectedIds((prev) => (prev.length === 2 ? [prev[0]] : prev));
-    if (cursorBehaviorRef.current === "merge") {
-      setCursorBehavior("auto");
-    }
   };
 
   const handleChangeCursorBehavior = (mode: CursorBehavior) => {
     setCursorBehavior(mode);
-    if (mode === "select" || mode === "merge") {
+    if (mode === "select") {
       setBrush((b) => ({
         ...b,
         kind: "none",
@@ -529,30 +523,10 @@ export const App: React.FC = () => {
         movingElementId: undefined,
       }));
     }
-    if (mode !== "merge") {
-      setPairSelectMode(false);
-    }
-  };
-
-  const handleMergeSelectedPair = () => {
-    if (selectedIds.length !== 2) return;
-    let newId: string | undefined;
-    commitState((draft) => {
-      const res = mergeElementsInState(draft, selectedIds[0], selectedIds[1]);
-      if (res.ok) {
-        newId = res.mergedId;
-      } else if (res.reason) {
-        pushToast(draft, "alert", "Cannot Merge Pair", res.reason);
-      }
-    });
-    if (newId) {
-      setSelectedIds([newId]);
-      setPairSelectMode(false);
-    }
   };
 
   const handleUpgradeSelected = (id: string) => {
-    commitState((draft) => {
+    commitBuildingEdit("Upgrade building",(draft) => {
       const res = upgradeElementDirect(draft, id);
       if (!res.ok && res.reason) {
         pushToast(draft, "alert", "Upgrade Unavailable", res.reason);
@@ -562,7 +536,11 @@ export const App: React.FC = () => {
 
   const handleMaintainSelected = (id: string) => {
     commitState((draft) => {
-      maintainElement(draft, id);
+      if(draft.elements.find(e=>e.id===id)?.onFire) {
+        dispatchFire(draft,id);
+        setScore("safety");
+        openDesk("city");
+      } else maintainElement(draft, id);
     });
   };
 
@@ -584,7 +562,7 @@ export const App: React.FC = () => {
     id: string,
     patch: { level?: number; variant?: number; rotation?: number },
   ) => {
-    commitState((draft) => {
+    commitBuildingEdit("Change building",(draft) => {
       const el = draft.elements.find((item) => item.id === id);
       if (!el) return;
       if (patch.level !== undefined) {
@@ -619,21 +597,20 @@ export const App: React.FC = () => {
 
   const handleDeleteSelected = () => {
     const ids = new Set(selectedIds);
-    commitState((draft) => {
+    commitBuildingEdit("Remove building",(draft) => {
       removePlacedElements(draft, ids);
       recomputeConnectivityAndMetrics(draft);
     });
     setSelectedIds([]);
-    setPairSelectMode(false);
   };
 
   const handleResetCurrentIsland = () => {
+    setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
     const fresh = createInitialGameState(stateRef.current.mode);
     stateRef.current = fresh;
     setGameState(fresh);
     saveModeState(fresh);
     setSelectedIds([]);
-    setPairSelectMode(false);
     setConfirmResetOpen(false);
   };
 
@@ -653,6 +630,7 @@ export const App: React.FC = () => {
   };
 
   const handleLoadSlot = (slotIndex: number) => {
+    setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
     const slot = saveSlots[slotIndex];
     if (!slot) return;
     saveModeState(stateRef.current);
@@ -667,7 +645,6 @@ export const App: React.FC = () => {
     setGameState(restored);
     saveModeState(restored);
     setSelectedIds([]);
-    setPairSelectMode(false);
     setActiveSlotIndex(slotIndex);
     setBrush({
       kind: "none",
@@ -687,22 +664,6 @@ export const App: React.FC = () => {
     if (activeSlotIndex === slotIndex) {
       setActiveSlotIndex(null);
     }
-  };
-
-  const handleTogglePairSelectMode = () => {
-    setPairSelectMode((prev) => {
-      const next = !prev;
-      if (next) {
-        collapseOverlayMenus();
-        setBrush((b) => ({ ...b, kind: "none", defId: undefined, movingElementId: undefined }));
-      }
-      return next;
-    });
-  };
-
-  const handleCancelMerge = () => {
-    setPairSelectMode(false);
-    setSelectedIds((prev) => (prev.length >= 1 ? [prev[0]] : []));
   };
 
   const handleSetTimeOfDay = (hour: number) => {
@@ -800,11 +761,37 @@ export const App: React.FC = () => {
     });
   };
 
+  const selected=gameState.elements.find(e=>e.id===selectedIds[0]);
+  const editCity=(fn:(draft:GameState)=>void)=>commitState(draft=>{fn(draft);recomputeConnectivityAndMetrics(draft);});
+  const openDesk=(tab:DeskTab)=>{
+    setPendingWorks(null);setDispatchTarget(undefined);
+    setDesk(tab);setFolded(false);setBottomMenuOpen(false);setTopMenuOpen(false);setHeatmapsOpen(false);setViewEnvOpen(false);
+    if(tab!=="works")setWorksTool(null);
+    setBrush(b=>({...b,kind:"none",defId:undefined,movingElementId:undefined}));
+  };
+  const openScore=(id:"population"|"happiness"|"wealth")=>{setScore(id);openDesk("city");};
+  const focusSite=(id:string)=>{setSelectedIds([id]);rendererRef.current?.focusElement(id);};
+  const snapshot=(s:GameState)=>{
+    try{localStorage.setItem("pixel_civ_lab_snapshot",JSON.stringify({...s,toasts:[]}));setHasSnapshot(true);return true;}
+    catch{commitState(d=>pushToast(d,"alert","Snapshot could not be saved","Free a save slot or browser storage, then try again."));return false;}
+  };
+  const activateSandbox=(s:GameState)=>{
+    s.mode="god";s.gameOver=false;s.gameOverReason="";s.toasts=[];
+    recomputeConnectivityAndMetrics(s);stateRef.current=s;setGameState(s);saveModeState(s);
+    setSelectedIds([]);setActiveSlotIndex(null);setWorksTool(null);rendererRef.current?.followService();openDesk("god");
+  };
+  const copyIsland=()=>{
+    const current=stateRef.current;saveModeState(current);
+    if(!snapshot(loadModeState("god")))return;
+    activateSandbox(cloneGameStateSnapshot(current));
+  };
+  const closeDesk=()=>{setReturnLine(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);setFolded(false);};
+  const worksPreview=pendingWorks?planInfrastructureStroke(gameState,pendingWorks.tool,pendingWorks.points):null;
+  const passagePreview=useMemo(()=>pendingWorks?previewWaterPassage(stateRef.current,pendingWorks.tool,pendingWorks.points):[],[pendingWorks,gameState.infrastructure?.stamp,gameState.elements.length]);
   const savedCount = saveSlots.filter(Boolean).length;
   const issueCount = gameState.diagnostics.filter(
     (d) => d.severity === "critical" || d.severity === "warning",
   ).length;
-  const isMerging = pairSelectMode || selectedIds.length === 2;
 
   return (
     <main className="relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]">
@@ -815,6 +802,29 @@ export const App: React.FC = () => {
         aria-label="Pixel Civilization 3D Voxel Island"
       />
 
+      {dispatchTarget&&<div className="works-confirm" role="status">Tap the water where you want this vessel to sail.<button onClick={()=>{setDispatchTarget(undefined);setFolded(false);}}>Cancel voyage</button></div>}
+      {pendingWorks&&worksPreview&&<div className="works-confirm" role="status"><strong>{pendingWorks.tool.kind} · {worksPreview.points.length} tiles</strong>
+        <span>{worksPreview.valid?("$"+worksPreview.cost+" · "+worksPreview.affected.length+" affected sites"):worksPreview.reason}</span>
+        {worksPreview.valid&&passagePreview.length>0&&<small>{passagePreview.join(" ")}</small>}
+        <button disabled={!worksPreview.valid} onClick={()=>{const edit=pendingWorks;editCity(st=>{const p=applyInfrastructureStroke(st,edit.tool,edit.points);if(!p.valid)pushToast(st,"alert","Public works",p.reason);});setPendingWorks(null);}}>Apply works</button>
+        <button onClick={()=>setPendingWorks(null)}>Cancel</button></div>}
+      {!topMenuOpen&&<CityBar s={gameState} onOpen={openScore}/>}
+      {(!desk||folded)&&<button className="island-launch" onClick={()=>{if(desk)setFolded(false);else openDesk("works");}}>{folded?"Return to "+tabs[desk!]:"Island tools"}</button>}
+      {desk&&!folded&&<aside className="island-desk" aria-label="Island tools">
+        <header><h2>{tabs[desk]}</h2><div className="island-actions"><button aria-label="Fold tools to view the map" onClick={()=>setFolded(true)}>View map</button><button aria-label="Close island tools" onClick={closeDesk}>×</button></div></header>
+        <nav aria-label="Island tool sections">{(Object.keys(tabs) as DeskTab[]).filter(t=>(t!=="god"||gameState.mode==="god")&&(t!=="connections"||selected)).map(t=><button key={t} aria-current={desk===t} onClick={()=>openDesk(t)}>{tabs[t]}</button>)}</nav>
+        {desk==="works"&&returnLine&&<button className="desk-back" onClick={()=>openDesk("transit")}>← Back to {returnLine.replace("line-","service #")}</button>}
+        {desk==="works"&&<div className="desk-works"><InfrastructurePanel state={gameState} mutate={editCity} selected={selected} onPreview={(tool,points)=>{setPendingWorks({tool,points});setFolded(true);}} inspectPoint={inspectPoint} tool={worksTool} onToolChange={t=>{setPendingWorks(null);setWorksTool(t);}} onClose={closeDesk}/></div>}
+        {desk==="transit"&&<MobilityPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} onPickDestination={id=>{setDispatchTarget(id);setFolded(true);}} onFollow={id=>rendererRef.current?.followService(id)} focusLine={returnLine} onGrid={(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openDesk("works");}}/>}
+        {desk==="city"&&<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel={score}/>}
+        {desk==="connections"&&<Connections s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("site");openDesk(tab);}}/>}
+        {desk==="god"&&gameState.mode==="god"&&<GodControls s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("controls");openDesk(tab);}} paused={simSpeed===0} onPause={()=>setSimSpeed(simSpeed?0:1)}
+          onStep={()=>{setSimSpeed(0);commitState(s=>{stepSimulation(s,1,true);recomputeConnectivityAndMetrics(s);});}}
+          onWeather={()=>{closeDesk();setViewEnvTab("weather");setViewEnvOpen(true);}} onDefense={()=>{closeDesk();setViewEnvTab("defense");setViewEnvOpen(true);}}
+          onSave={()=>{if(snapshot(stateRef.current))commitState(s=>pushToast(s,"stage","Snapshot saved","Restore it from God controls at any time."));}}
+          canRestore={hasSnapshot} onRestore={()=>{try{const raw=localStorage.getItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{commitState(s=>pushToast(s,"alert","Unable to restore snapshot","The saved data could not be opened."));}}}
+          onDistrict={()=>{const district=createCanalDistrict();if(snapshot(stateRef.current)){activateSandbox(district);openDesk("transit");setFolded(true);rendererRef.current?.focusGrid(0,-1,74);}}}/>}
+      </aside>}
       {/* Standalone Top-Left 3-Line Hamburger Menu Button */}
       <button
         type="button"
@@ -837,7 +847,6 @@ export const App: React.FC = () => {
         autoSpin={autoSpin}
         savedCount={savedCount}
         issueCount={issueCount}
-        isMerging={isMerging}
         onToggleTopMenu={() => setTopMenuOpen((o) => !o)}
         onToggleBottomMenu={() => setBottomMenuOpen((o) => !o)}
         onToggleHeatmaps={() => {
@@ -874,7 +883,6 @@ export const App: React.FC = () => {
         brush={brush}
         cursorBehavior={cursorBehavior}
         selectionFilter={selectionFilter}
-        pairSelectMode={pairSelectMode}
         onReturnToSelect={handleReturnToSelect}
         onChangeCursorBehavior={handleChangeCursorBehavior}
         onChangeSelectionFilter={setSelectionFilter}
@@ -944,7 +952,7 @@ export const App: React.FC = () => {
 
       {/* Top HUD (Skinny single bar without Mode selector) */}
       <TopHud
-        open={topMenuOpen && !isMerging}
+        open={topMenuOpen}
         state={gameState}
         simSpeed={simSpeed}
         autoSpin={autoSpin}
@@ -968,13 +976,14 @@ export const App: React.FC = () => {
           setViewEnvOpen(true);
         }}
         onOpenAdvisor={() => setAdvisorOpen(true)}
+        onOpenScore={openScore}
         onMaintainAll={handleMaintainAll}
         onClose={() => setTopMenuOpen(false)}
       />
 
       {/* Heat Maps Panel */}
       <HeatmapPanel
-        open={heatmapsOpen && !isMerging}
+        open={heatmapsOpen}
         activeHeatmap={activeHeatmap}
         state={gameState}
         onSelectHeatmap={setActiveHeatmap}
@@ -983,7 +992,7 @@ export const App: React.FC = () => {
 
       {/* Folded Studio Drawer: Weather Studio | 360 Cam | Defense & Attack */}
       <ViewEnvPanel
-        open={viewEnvOpen && !isMerging}
+        open={viewEnvOpen}
         activeTab={viewEnvTab}
         state={gameState}
         cameraMode={cameraMode}
@@ -1046,45 +1055,36 @@ export const App: React.FC = () => {
       {/* Bottom Build Palette & Selection Dock */}
       <BottomDock
         open={bottomMenuOpen}
-        isMerging={isMerging}
         state={gameState}
         brush={brush}
         selectedIds={selectedIds}
-        pairSelectMode={pairSelectMode}
         hoverInfo={hoverInfo}
         onSelectBrushDef={handleSelectBrushDef}
         onUpdateBrushSettings={(patch) => setBrush((b) => ({ ...b, ...patch }))}
         onStartMoveSelected={(id) =>
           setBrush((b) => ({ ...b, kind: "move", movingElementId: id, defId: undefined }))
         }
-        onTogglePairSelectMode={handleTogglePairSelectMode}
-        onMergeSelectedPair={handleMergeSelectedPair}
+        onInspectSystems={()=>openDesk("connections")}
+        onOpenWorks={()=>openDesk("works")}
         onUpgradeSelected={handleUpgradeSelected}
         onMaintainSelected={handleMaintainSelected}
         onGodMutateSelected={handleGodMutateSelected}
         onDeleteSelected={handleDeleteSelected}
+        onUndoBuilding={handleUndoBuilding}
         onClearSelection={() => {
           setSelectedIds([]);
-          setPairSelectMode(false);
         }}
         onClose={() => setBottomMenuOpen(false)}
       />
-
-      {/* Dedicated Bottom Merge Dock (Shown while merging with top & bottom menus auto-collapsed) */}
-      {isMerging && (
-        <MergeDock
-          state={gameState}
-          selectedIds={selectedIds}
-          pairSelectMode={pairSelectMode}
-          onMergeNow={handleMergeSelectedPair}
-          onCancelMerge={handleCancelMerge}
-        />
-      )}
 
       {/* City Info / Advisor & 20 Stages Modal */}
       <AdvisorModal
         state={gameState}
         open={advisorOpen}
+        onShowMetric={id=>{setAdvisorOpen(false);if(["traffic","transit"].includes(id)){openDesk("transit");return;}
+          if(["wealth","money","fire","jobs","econ","recovery","crime"].includes(id)){setScore(["fire","crime"].includes(id)?"safety":id==="jobs"?"population":"wealth");openDesk("city");return;}
+          const map:Record<string,HeatmapKind>={edu:"education",food:"food",parks:"parks",water:"water",waste:"waste",power:"power",defense:"defense",pollution:"pollution"};
+          if(map[id]){setActiveHeatmap(map[id]);setHeatmapsOpen(true);}else openDesk("city");}}
         onClose={() => setAdvisorOpen(false)}
       />
 
@@ -1109,6 +1109,7 @@ export const App: React.FC = () => {
         onOpenAdvisor={() => setAdvisorOpen(true)}
         onOpenSaves={() => setSavesModalOpen(true)}
         onToggleGodCrime={handleToggleGodCrime}
+        onOpenIsland={openDesk} onCopyIsland={copyIsland}
         onResetIsland={() => setConfirmResetOpen(true)}
       />
 

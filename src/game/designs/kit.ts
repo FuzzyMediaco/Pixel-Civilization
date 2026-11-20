@@ -30,6 +30,7 @@ export interface RotorSpec {
 }
 
 export interface Ctx {
+  parcelEdges?: readonly import("../parcelEdges").ParcelEdge[];
   v: PixelVox;
   id: string;
   /** level 1..5 */
@@ -1009,4 +1010,10 @@ export function clamp(n: number, lo: number, hi: number): number {
 /** Linear interpolation by level: lvl(c, [l1, l2, l3, l4, l5]) */
 export function byLv<T>(c: Ctx, arr: readonly [T, T, T, T, T]): T {
   return arr[clamp(c.lv, 1, 5) - 1];
+}
+
+/** Paint both end voxels of a beam, plank or other thin component. */
+export function solidVoxels(v: PixelVox) {
+  return (x0:number,y0:number,z0:number,x1:number,y1:number,z1:number,color:string,emit=0) =>
+    v.box(Math.min(x0,x1),Math.min(y0,y1),Math.min(z0,z1),Math.max(x0,x1)+1,Math.max(y0,y1)+1,Math.max(z0,z1)+1,color,emit);
 }

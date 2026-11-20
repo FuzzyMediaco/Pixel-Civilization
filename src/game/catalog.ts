@@ -1,3 +1,4 @@
+import { WEALTH_PROJECTS } from "./wealthProjects";
 import { getDesign, getLevelName } from "./designs/registry";
 import { ELEMENT_LEVEL_SPANS } from "./levelSpans";
 
@@ -18,7 +19,8 @@ export type ElementCategory =
   | "faith"
   | "maritime"
   | "nature_terrain"
-  | "landmarks";
+  | "landmarks"
+  | "wealth_projects";
 
 export type PlacementDomain = "land" | "water" | "coast_or_water" | "any";
 
@@ -137,6 +139,7 @@ export interface CivElementDef {
   name: string;
   category: Exclude<ElementCategory, "starter">;
   isStarter?: boolean;
+  wealthThreshold?: number;
   stage: number;
   cost: number;
   archetype: VoxelArchetype;
@@ -188,9 +191,13 @@ export const CATEGORY_META: { id: ElementCategory; label: string }[] = [
   { id: "maritime", label: "Maritime" },
   { id: "nature_terrain", label: "Nature & Land" },
   { id: "landmarks", label: "Landmarks" },
+  { id: "wealth_projects", label: "Wealth Projects" },
 ];
 
 export const ELEMENTS: CivElementDef[] = [
+  { id:"ferry_landings",name:"Ferry Landing",category:"maritime",stage:6,cost:100,archetype:"dock_pier",domain:"coast_or_water",jobs:6,recreation:8,accentHex:"#287e79",description:"A waterside landing with a walkable entrance. Connect two landings to run passenger boats." },
+  { id:"taxi_ranks",name:"Taxi Rank",category:"roads_transit",stage:8,cost:50,archetype:"transit_stop",domain:"land",jobs:3,accentHex:"#dbb552",description:"A compact curbside pickup point for routes from a taxi depot." },
+
   // ===================== STAGE 1: THE 10 STARTERS =====================
   {
     id: "house",
@@ -1366,7 +1373,7 @@ export const ELEMENTS: CivElementDef[] = [
     id: "train_depots",
     name: "Train Depot",
     category: "roads_transit",
-    stage: 6,
+    stage: 5,
     cost: 340,
     archetype: "transit_depot",
     domain: "land",
@@ -1442,7 +1449,7 @@ export const ELEMENTS: CivElementDef[] = [
     id: "bus_depots",
     name: "Bus Depot",
     category: "roads_transit",
-    stage: 8,
+    stage: 7,
     cost: 290,
     archetype: "transit_depot",
     domain: "land",
@@ -2537,6 +2544,7 @@ export const ELEMENTS: CivElementDef[] = [
     accentHex: "#f4c44e",
     description: "Eternal stepped limestone pyramids crowned in gleaming gold.",
   },
+  ...WEALTH_PROJECTS,
 ];
 
 export const ELEMENT_BY_ID: Record<string, CivElementDef> = Object.fromEntries(
@@ -2559,6 +2567,10 @@ export const CRIME_UNLOCK_MIN_POP: number =
 export const MAX_FOOTPRINT = 4;
 
 /** Local tile dimensions before the player rotates an element. Networks always tile one square. */
+export function getMaxElementLevel(id: string): number {
+  return id === "bus_stops" ? 3 : 5;
+}
+
 export function getStandardFootprintForLevel(
   def: CivElementDef,
   level: number,

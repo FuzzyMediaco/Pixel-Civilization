@@ -463,6 +463,32 @@ function buildShops(c: Ctx): void {
     shoppingBag(v, -1, top + 1, Math.floor((z0 + z1) / 2), "red", 12);
     for (const fx of [x0 + 1, x1 - 2]) flag(v, fx, top + 1, z1 - 2, 6, ["red", "white", "blue"]);
   }
+  // Open the building to the actual shopping street. The separate wings retain their
+  // original display windows, upper-floor detailing and individual corner landmarks.
+  const portalW = [5,8,4,6][s], portalH = [12,18,13,top+2][s];
+  for (let x=-portalW;x<portalW;x++) {
+    const arch = s===3 ? portalH : portalH-Math.floor((x+0.5)**2/portalW);
+    v.clear(x,1,z0-1,x+1,arch,z1+4);
+    v.box(x,arch,z0,x+1,arch+1,z1+1,st.trim);
+    v.box(x,0,z0,x+1,1,hz,s===1 ? "marble" : "path2");
+  }
+  for (const x of [-portalW-1,portalW]) {
+    v.box(x,1,z0,x+1,portalH,z1,wallCol);
+    for (let z=z0+2;z<z1-2;z+=5) v.box(x,2,z,x+1,6,z+3,"glass",.45);
+  }
+  if(s===3) {
+    // Two lantern-lined bridges leave daylight between the two fashion halls.
+    for(const y of [12,25]) {
+      v.box(-portalW,y,-5,portalW,y+1,1,"steelDark");
+      for(const z of [-5,0]) v.box(-portalW,y+1,z,portalW,y+4,z+1,"glass",.33);
+      v.box(-portalW,y+4,-5,portalW,y+5,1,"magenta",.6);
+    }
+    // The sign rests on the wider western wing.
+    v.clear(-8,top+2,-11,8,top+25,5);
+    shoppingBag(v,-13,top+1,-6,"magenta",8);
+  } else if(s===2) {
+    for(let z=z0+3;z<z1;z+=6) v.box(-portalW,portalH-4,z,portalW,portalH-3,z+1,"woodDark");
+  }
   // street front: taxis, shoppers with bags, lamps
   sidewalk(c, z1, hz, "iron", "path2");
   car(v, -hx + 5, 1, hz - 2, "x", "busYellow");
@@ -1450,32 +1476,59 @@ function buildCheesesteak(c: Ctx): void {
     lamp(v, -2, 1, hz - 3, 6, "iron", neonA);
     return;
   }
-  // L5 CHEESESTEAK PALACE — 3-storey neon block, giant spinning hoagie on a tower, queue snaking round
-  const x0 = -hx + 2;
-  const x1 = hx - 2;
-  const z0 = -hz + 2;
-  const z1 = hz - 7;
-  const top = shopBox(x0, z0, x1, z1, 16);
-  // neon chevrons up the facade
-  for (let y = 10; y < 15; y += 2) neonTube(x0 + 2, x1 - 2, y, z1);
-  // tower + rotating hoagie
-  const tx = 0;
-  const tz = Math.floor((z0 + z1) / 2);
-  v.box(tx - 1, top, tz - 1, tx + 1, top + 12, tz + 1, "steelDark");
-  for (let y = top + 1; y < top + 12; y += 2) v.put(tx, y, tz + 1, neonA, 1.3);
-  const rot = new PixelVox(3);
-  cheesesteak(rot, 0, 0, 0, 8, 2);
-  c.addRotor({ vox: rot, pivot: [tx, top + 12, tz], axis: "y", speed: 0.6 });
-  // rooftop seating & searchlight blink
-  for (const [bx, bz] of [[x0 + 3, z0 + 3], [x1 - 6, z0 + 3]]) cafeTable(v, bx, bz, neonA, top);
-  c.blink(x0 + 1, top + 1, z1 - 2, neonA);
-  c.blink(x1 - 2, top + 1, z1 - 2, neonB);
-  // queue snakes along the sidewalk
-  v.box(-hx, 0, z1, hx, 1, hz, "path2");
-  for (let x = -hx + 2; x < hx - 2; x += 1) if (x % 2 === 0) folk(c, x, z1 + 3);
-  for (let x = -hx + 2; x < 0; x += 2) folk(c, x, z1 + 5);
-  if (s === 3) truck(v, hx - 6, 1, hz - 2, "x", "yellow", "red");
-  else car(v, hx - 5, 1, hz - 2, "x", "busYellow");
+  // The restaurant itself is a sliced hoagie: tapered heel, charred filling, melting cheese
+  // and a split golden roll. The ordering hatches occupy the exposed steak layer.
+  const bread = ["#d89649", "#d0863f", "#bc8548", "#de9a49"][s];
+  const toast = ["#a55f32", "#af6630", "#925431", "#be7538"][s];
+  const width = hx - 1, deep = Math.min(hz - 5, 7), centerZ = -1;
+  for (let x = -width; x < width; x++) {
+    const t = (x + 0.5) / width;
+    const half = Math.max(1, Math.round(deep * Math.sqrt(Math.max(0, 1 - t ** 4))));
+    const end = Math.min(1, (1 - Math.abs(t)) * 5);
+    for (let z = -half; z < half; z++) {
+      const wz = centerZ + z, across = Math.abs((z + 0.5) / half);
+      const crown = Math.sqrt(Math.max(0, 1 - across * across)) * end;
+      const split = across < 0.16 ? 2 : 0;
+      const roof = Math.max(11, 11 + Math.round(crown * (s === 1 ? 5 : 4)) - split);
+      v.box(x, 1, wz, x + 1, 4, wz + 1, across > 0.78 ? toast : bread);
+      v.put(x, 4, wz, "#f4cb85");
+      v.box(x, 5, wz, x + 1, 9, wz + 1, (x * 7 + z * 3) % 5 ? "#794328" : "#aa6134");
+      if (z===half-1 || z===-half) {
+        const fold=5+Math.abs((x*3+z)%3);
+        v.put(x,fold,wz+Math.sign(z),"#ae6b43");
+        if(x%5===0) v.put(x,fold+1,wz+Math.sign(z), "#dcaa71");
+      }
+      v.put(x, 9, wz, "#ffb722");
+      v.put(x, 10, wz, "#fae0a2");
+      v.box(x, 11, wz, x + 1, roof + 1, wz + 1, bread);
+      if (across < 0.18 || ((x + z + 48) % 8 < 2 && z > 1 && z < half - 2))
+        v.put(x, roof, wz, across < 0.18 ? "#b87c46" : "#ffdc94");
+      if ((z === half - 1 || z === -half) && Math.abs(x) < width - 2) {
+        const out = wz + (z < 0 ? -1 : 1);
+        if ((x + width) % 7 < 3) v.box(x, 7 + Math.abs(x % 3), out, x + 1, 10, out + 1, "yellow");
+        else v.put(x, 8, out, (x & 1) ? "leaf" : "terracotta");
+      }
+    }
+    if (Math.abs(t) < 0.7 && x % 7 !== 0) {
+      const facade = centerZ + half;
+      v.box(x, 5, facade, x + 1, 8, facade + 1, s === 2 ? "glassDark" : "warmGlow", 0.55);
+      v.put(x, 4, facade + 1, s === 3 ? "white" : "steelLight");
+    }
+  }
+  const doorZ = centerZ + deep;
+  v.box(-1, 1, doorZ, 2, 7, doorZ + 1, "steelDark");
+  v.box(0, 2, doorZ, 2, 6, doorZ + 1, "glassDark", 0.28);
+  v.box(-3, 7, doorZ, 4, 8, doorZ + 3, neonA, 0.75);
+  const patio = hz - 3;
+  for (const x of [-hx + 4, hx - 5]) {
+    cafeTable(v, x, patio, neonA, 1);
+    if (s === 3) v.box(x - 3, 6, patio - 1, x + 3, 7, patio + 2, x < 0 ? "teal" : "magenta");
+  }
+  if (s === 0) stringLights(v, -hx + 2, hx - 2, 6, patio, ["red", "amber", "warmGlow"]);
+  if (s === 1) v.box(-hx + 1, 1, patio - 1, -hx + 3, 6, patio, "brickDark");
+  if (s === 2) flag(v, hx - 3, 1, patio, 10, ["tealDark", "white", "silver"]);
+  c.smoke(-6, 16, centerZ - 3, "steam");
+
 }
 
 // =============================================================================================
@@ -1719,7 +1772,7 @@ defineDesigns({
   cheesesteak_restaurants: {
     footprints: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
     levels: ["Sidewalk Grill Cart", "Walk-Up Steak Window", "Corner Steak Joint", "Rival Neon Corner", "Cheesesteak Palace"],
-    growth: "A smoking grill cart becomes a walk-up window, a corner joint with picnic tables, a neon rivalry across the plaza and a palace with a spinning giant hoagie.",
+    growth: "A smoking grill cart becomes a walk-up window, a corner joint with picnic tables, a neon rivalry across the plaza and a walk-in hoagie with glowing order windows between its toasted rolls.",
     build: buildCheesesteak,
   },
   bars: {
@@ -2770,6 +2823,21 @@ function buildAtm(c: Ctx): void {
   const screen = ["screenCyan", "screenCyan", "screenGreen", "warmGlow"][s];
   lot(c, s === 3 ? "marble" : "concrete2");
   speckle(c, s === 3 ? "white" : "concrete", 0.1);
+  if(lv<=2 && c.parcelEdges?.some(e=>e.kind==="arcade" && e.side==="front")) {
+    // Inside a shopping frontage the cashpoint becomes a wall niche and shares the
+    // common paved forecourt, with the bright screen facing arriving pedestrians.
+    v.box(-6,1,-1,6,8,1,s===3 ? "marbleShade":s===1 ? "brick":"concrete");
+    atmUnit(v,-2,1,1,body,screen);
+    v.box(-4,7,-1,4,8,4,trim);
+    v.box(-3,6,2,3,7,3,screen,.65);
+    v.box(-2,0,4,2,1,hz,"limestone");
+    if(lv===2) {
+      for(const x of [-5,4]) v.box(x,1,3,x+1,8,4,"steelDark");
+      v.box(-6,8,-1,6,9,5,body);
+      folk(c,2,5);
+    }
+    return;
+  }
   const dollar = (x: number, y: number, z: number, col: string) => {
     // $ glyph 3 wide x 5 tall on +z plane
     const g = ["111", "100", "111", "001", "111"];
@@ -3397,6 +3465,30 @@ function buildDataCenters(c: Ctx): void {
   const sx0 = -hx + 8 + towers * 10;
   solarField(sx0, fz0, hx - 3, hz - (big ? 12 : 3));
   if (big) {
+    for(let i=0;i<halls;i++) {
+      const x=-hx+3+i*(hw+3), back=-hz+3;
+      if(x+hw>hx-3) break;
+      if(s===0) {
+        for(const z of [back+6,back+16]) {
+          v.cone(x+hw/2,15,22,z,4,2.2,"steelDark");
+          ring(v,x+hw/2,z,22,24,2.8,1.3,"silver");
+          c.smoke(x+hw/2,24,z,"steam");
+        }
+      } else if(s===1) {
+        for(let z=back+2;z<rowZ1-2;z+=6)
+          for(let step=0;step<5;step++) v.box(x,15+step,z+step,x+hw,16+step,z+step+1,step===4 ? "glass" : "white");
+      } else if(s===2) {
+        for(let k=0;k<6;k++) {
+          const y=16+Math.floor(k*.7);
+          for(const px of [x+k,x+hw-1-k]) v.box(px,y,back,px+1,y+1,rowZ1,"solarBlue");
+        }
+      } else {
+        for(let t=0;t<3;t++) {
+          v.box(x+t*2,15+t*2,back+t*2,x+hw-t*2,17+t*2,rowZ1-t*2,"woodDark");
+          v.box(x+t*2,16+t*2,back+t*2,x+hw-t*2,17+t*2,rowZ1-t*2,t%2 ? "olive" : "leaf");
+        }
+      }
+    }
     substation(sx0, hz - 11);
     // satellite dish rotor
     const dx = hx - 8;

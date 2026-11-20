@@ -12,3 +12,6 @@ import "./maritime";
 import "./nature";
 import "./landmarks";
 import "./networks";
+import "./projects";
+
+import "./landings";

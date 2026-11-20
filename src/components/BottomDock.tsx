@@ -1,3 +1,4 @@
+import { buildingCharges } from "../game/cityEconomy";
 import React, { useMemo, useState } from "react";
 import {
   ArrowDownCircle,
@@ -5,7 +6,6 @@ import {
   ChevronDown,
   ChevronUp,
   Flame,
-  GitMerge,
   Grid2x2,
   Lock,
   MousePointer,
@@ -23,6 +23,7 @@ import {
   ELEMENTS,
   ELEMENT_BY_ID,
   type ElementCategory,
+  getMaxElementLevel,
   getElementGrowthNote,
   getElementLevelName,
   getStandardFootprintForLevel,
@@ -32,7 +33,6 @@ import { SYNERGY_RULES } from "../game/cityDynamics";
 import {
   MAINTENANCE_INTERVAL_SEC,
   type GameState,
-  canMergePair,
   isElementUnlocked,
 } from "../game/simulation";
 import { type BuildBrush } from "../game/worldRenderer";
@@ -40,22 +40,21 @@ import { ElementFavicon } from "./ElementFavicon";
 
 interface BottomDockProps {
   open: boolean;
-  isMerging: boolean;
   state: GameState;
   brush: BuildBrush;
   selectedIds: string[];
-  pairSelectMode: boolean;
   hoverInfo: { gx: number; gz: number; valid: boolean; reason?: string } | null;
   onSelectBrushDef: (defId: string | null) => void;
   onUpdateBrushSettings: (patch: Partial<BuildBrush>) => void;
   onStartMoveSelected: (id: string) => void;
-  onTogglePairSelectMode: () => void;
-  onMergeSelectedPair: () => void;
   onUpgradeSelected: (id: string) => void;
   onMaintainSelected: (id: string) => void;
   onGodMutateSelected: (id: string, patch: { level?: number; variant?: number; rotation?: number }) => void;
   onDeleteSelected: () => void;
+  onUndoBuilding: () => void;
   onClearSelection: () => void;
+  onInspectSystems: () => void;
+  onOpenWorks: () => void;
   onClose: () => void;
 }
 
@@ -86,22 +85,18 @@ function formatElementStatSummary(def: CivElementDef): string {
 
 export const BottomDock: React.FC<BottomDockProps> = ({
   open,
-  isMerging,
   state,
   brush,
   selectedIds,
-  pairSelectMode,
   hoverInfo,
   onSelectBrushDef,
   onUpdateBrushSettings,
   onStartMoveSelected,
-  onTogglePairSelectMode,
-  onMergeSelectedPair,
   onUpgradeSelected,
   onMaintainSelected,
   onGodMutateSelected,
-  onDeleteSelected,
-  onClearSelection,
+  onDeleteSelected, onUndoBuilding,
+  onClearSelection, onInspectSystems, onOpenWorks,
   onClose,
 }) => {
   const [activeCat, setActiveCat] = useState<ElementCategory | "all">("starter");
@@ -117,7 +112,10 @@ export const BottomDock: React.FC<BottomDockProps> = ({
         return (
           el.name.toLowerCase().includes(q) ||
           el.description.toLowerCase().includes(q) ||
-          el.category.toLowerCase().includes(q)
+          el.category.toLowerCase().includes(q) ||
+          (q.includes("feed") && (el.food ?? 0)>0) ||
+          ((q.includes("span") || q.includes("cross river")) && el.archetype.startsWith("bridge")) ||
+          ((q.includes("passenger") || q.includes("commut")) && ["roads_transit","maritime"].includes(el.category))
         );
       }
       if (activeCat === "all") return true;
@@ -135,19 +133,11 @@ export const BottomDock: React.FC<BottomDockProps> = ({
   const primaryEl = selectedIds[0]
     ? state.elements.find((e) => e.id === selectedIds[0])
     : undefined;
-  const secondaryEl = selectedIds[1]
-    ? state.elements.find((e) => e.id === selectedIds[1])
-    : undefined;
-
   const primaryDef = primaryEl ? ELEMENT_BY_ID[primaryEl.defId] : undefined;
-  const mergeCheck =
-    primaryEl && secondaryEl ? canMergePair(state, primaryEl.id, secondaryEl.id) : null;
-
   const activeBrushDef = brush.kind === "place" && brush.defId ? ELEMENT_BY_ID[brush.defId] : undefined;
   const activeCatLabel =
     ALL_CATEGORIES.find((c) => c.id === activeCat)?.label ?? "Starter 10";
 
-  if (isMerging) return null;
 
   const showInspector = Boolean(primaryEl && primaryDef);
   const showInvalidHint = Boolean(brush.kind !== "none" && hoverInfo && !hoverInfo.valid && hoverInfo.reason);
@@ -165,6 +155,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
       {/* Right-Handed Compact Selected Element Inspector */}
       {primaryEl && primaryDef && (
         <div className="pointer-events-auto relative flex w-auto max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 rounded-lg border border-stone-900/20 bg-[#fcfaf5]/96 px-2 py-1 shadow-lg">
+          <button type="button" onClick={onInspectSystems} className="rounded bg-emerald-900 px-2 py-1 text-xs font-bold text-white">Connections</button>
           {/* Element Identity (Favicon + Tiny Color Square + Name & Micro Metadata) */}
           <div className="flex min-w-0 items-center gap-1.5">
             <ElementFavicon def={primaryDef} className="h-5 w-5 shrink-0" />
@@ -180,7 +171,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               </div>
               <div className="truncate text-[10px] font-bold italic text-amber-800" title={getElementGrowthNote(primaryDef) ?? ""}>
                 “{getElementLevelName(primaryDef, primaryEl.level)}”
-                {primaryEl.level < 5 && (
+                {primaryEl.level < getMaxElementLevel(primaryEl.defId) && (
                   <span className="font-semibold not-italic text-stone-400">
                     {" "}→ {getElementLevelName(primaryDef, primaryEl.level + 1)}
                     {!primaryDef.isNetwork && ` (${getStandardFootprintForLevel(primaryDef, primaryEl.level + 1).join("×")})`}
@@ -265,7 +256,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               <Trash2 className="h-3.5 w-3.5" />
             </button>
 
-            {state.mode === "god" && !secondaryEl && (
+            {state.mode === "god" && (
               <>
                 {!primaryDef.isNetwork && (
                   <button
@@ -310,48 +301,15 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                 type="button"
                 onClick={() => onMaintainSelected(primaryEl.id)}
                 className="flex h-6.5 w-6.5 items-center justify-center rounded bg-amber-500 text-stone-950 hover:bg-amber-400"
-                title={primaryEl.onFire ? "Extinguish Fire" : "Maintain Building"}
-                aria-label={primaryEl.onFire ? "Extinguish Fire" : "Maintain Building"}
+                title={primaryEl.onFire ? "Dispatch fire crew" : "Maintain Building"}
+                aria-label={primaryEl.onFire ? "Dispatch fire crew" : "Maintain Building"}
               >
                 {primaryEl.onFire ? <Flame className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
               </button>
             )}
 
-            {primaryEl.level < 5 && !secondaryEl && (
-              <button
-                type="button"
-                onClick={onTogglePairSelectMode}
-                className={`flex h-6.5 w-6.5 items-center justify-center rounded border transition-colors ${
-                  pairSelectMode
-                    ? "border-emerald-600 bg-emerald-600 text-white"
-                    : "border-stone-300 bg-white text-stone-800 hover:bg-stone-100"
-                }`}
-                title="Select adjacent twin to Merge"
-                aria-label="Merge with twin"
-              >
-                <GitMerge className="h-3.5 w-3.5" />
-              </button>
-            )}
-
-            {secondaryEl && (
-              <button
-                type="button"
-                disabled={!mergeCheck?.ok}
-                onClick={onMergeSelectedPair}
-                className={`flex h-6.5 items-center gap-1 whitespace-nowrap rounded px-2 text-[10.5px] font-extrabold ${
-                  mergeCheck?.ok
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                    : "cursor-not-allowed bg-stone-200 text-stone-400"
-                }`}
-                title={`Confirm Merge to Level ${primaryEl.level + 1}`}
-              >
-                <GitMerge className="h-3.5 w-3.5" />
-                <span>Lv.{primaryEl.level + 1}</span>
-              </button>
-            )}
-
             {/* Direct Level-Down & Level-Up Twin Buttons (Rightmost for Right-Handed Thumb Reach) */}
-            {state.mode === "god" && !secondaryEl && (
+            {state.mode === "god" && (
               <button
                 type="button"
                 disabled={primaryEl.level <= 1}
@@ -370,15 +328,15 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               </button>
             )}
 
-            {!secondaryEl && (
+            {(
               <button
                 type="button"
-                disabled={primaryEl.level >= 5}
+                disabled={primaryEl.level >= getMaxElementLevel(primaryEl.defId)}
                 onClick={() => onUpgradeSelected(primaryEl.id)}
                 className="flex h-6.5 w-6.5 items-center justify-center rounded bg-stone-900 text-amber-300 transition-opacity hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-35"
                 title={
-                  primaryEl.level >= 5
-                    ? "Max Level (Lv.5)"
+                  primaryEl.level >= getMaxElementLevel(primaryEl.defId)
+                    ? "Fully upgraded"
                     : state.mode === "god"
                       ? `Level Up to Lv.${primaryEl.level + 1}`
                       : `Upgrade to Lv.${primaryEl.level + 1} “${getElementLevelName(primaryDef, primaryEl.level + 1)}” ($${getUpgradeCost(primaryDef, primaryEl.level)})`
@@ -397,6 +355,10 @@ export const BottomDock: React.FC<BottomDockProps> = ({
         <div className="pointer-events-auto w-full max-w-3xl rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 shadow-xl">
           {/* Header Row: Utility Icons on Left, Primary Controls (Category & Select) Flush Right for Right Thumb */}
           <div className="flex flex-wrap items-center justify-between gap-1 border-b border-stone-200 px-1.5 py-1">
+            <button type="button" className="rounded bg-emerald-900 px-2 py-1 text-xs font-bold text-white" onClick={onOpenWorks}>Terrain &amp; transport</button>
+            <button type="button" onClick={onUndoBuilding} disabled={!state.constructionHistory?.length}
+              className="rounded border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-800 disabled:opacity-40"
+              title={state.constructionHistory?.at(-1)?.label}>Undo building edit</button>
             {searchOpen ? (
               <div className="flex min-w-0 flex-1 items-center gap-1">
                 <Search className="h-3.5 w-3.5 shrink-0 text-stone-500" />
@@ -463,7 +425,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                   {brush.kind === "place" && activeBrushDef && !activeBrushDef.isNetwork && (
                     <button
                       type="button"
-                      onClick={() => onUpdateBrushSettings({ rotation: (brush.rotation + 1) % 4 })}
+                      onClick={() => onUpdateBrushSettings({ rotation: (brush.rotation + 1) % 4, faceManually:true })}
                       className="flex h-6 w-6 items-center justify-center rounded border border-stone-300 bg-white text-stone-700 hover:bg-stone-100"
                       title="Rotate 90° (R)"
                       aria-label="Rotate 90 degrees"
@@ -491,9 +453,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                       </span>
                       <button
                         type="button"
-                        disabled={brush.level >= 5}
+                        disabled={brush.level >= getMaxElementLevel(brush.defId ?? "")}
                         onClick={() =>
-                          onUpdateBrushSettings({ level: Math.min(5, brush.level + 1) })
+                          onUpdateBrushSettings({ level: Math.min(getMaxElementLevel(brush.defId ?? ""), brush.level + 1) })
                         }
                         className="flex h-5 w-5 items-center justify-center rounded bg-stone-900 text-amber-300 hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-35"
                         title="Increase Placement Level"
@@ -582,7 +544,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               filteredElements.map((def) => {
                 const unlocked = isElementUnlocked(def, state);
                 const selected = brush.kind === "place" && brush.defId === def.id;
-                const canAfford = state.mode === "god" || state.money >= def.cost;
+                const canAfford = !buildingCharges(state) || state.money >= def.cost;
 
                 return (
                   <button
@@ -623,9 +585,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                         {!unlocked ? (
                           <span className="font-mono-num inline-flex shrink-0 items-center gap-0.5 text-stone-400">
                             <Lock className="h-2 w-2" />
-                            S{def.stage}
+                            {def.wealthThreshold ? "$"+def.wealthThreshold.toLocaleString()+" wealth" : "S"+def.stage}
                           </span>
-                        ) : state.mode !== "god" ? (
+                        ) : buildingCharges(state) ? (
                           <span
                             className={`font-mono-num shrink-0 font-bold ${
                               selected

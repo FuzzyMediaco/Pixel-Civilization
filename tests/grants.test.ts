@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CITY_GRANTS, grantProgress, payEarnedGrants } from "../src/game/cityGrants";
+import { addLine,stepMobility } from "../src/game/mobility";
 import { cloneGameStateSnapshot } from "../src/game/saveSlots";
 import {
   createInitialGameState,
@@ -21,7 +22,7 @@ function building(defId: string, gx: number, gz: number): PlacedElement {
     spanZ,
     level: 1,
     variant: 0,
-    rotation: 0,
+    rotation: gz>0?2:0,
     connected: false,
     hasPoliceCover: false,
     hasFireCover: false,
@@ -73,7 +74,7 @@ test("late grants are attainable from connected services and displayed requireme
     ...Array(5).fill("grocery_store"),
     ...Array(8).fill("businesses"),
   ];
-  const north = [...Array(9).fill("solar_panels"), ...Array(8).fill("bus_stops")];
+  const north = [...Array(9).fill("solar_panels"), "bus_depots", "bus_stops", "bus_stops", "bus_stops"];
   for (const [row, side] of [
     [south, 1],
     [north, -1],
@@ -82,11 +83,18 @@ test("late grants are attainable from connected services and displayed requireme
     for (const id of row) {
       const el = building(id, x, 0);
       el.gz = side === 1 ? 1 : -el.spanZ;
+      el.rotation = side === 1 ? 2 : 0;
       city.elements.push(el);
       x += el.spanX;
     }
   }
   for (let x = -15; x <= 15; x++) city.elements.push(building("roads", x, 0));
+  recomputeConnectivityAndMetrics(city);
+  assert.equal(city.metrics.transitTrips,0);
+  const depot=city.elements.find(el=>el.defId==="bus_depots")!;
+  const stops=city.elements.filter(el=>el.defId==="bus_stops").map(el=>el.id);
+  for(let i=0;i<4;i++)addLine(city,"bus",depot.id,stops);
+  for(let t=0;t<150;t+=.5){city.activePlaySec+=.5;stepMobility(city,.5);}
   recomputeConnectivityAndMetrics(city);
   assert.deepEqual(
     payEarnedGrants(city)

@@ -1,0 +1,275 @@
+.city-pulse {
+  position: fixed;
+  top: 8px;
+  left: 54px;
+  display: flex;
+  gap: 0;
+  z-index: 21;
+  background: #faf8ecf2;
+  border: 1px solid #abae97;
+  border-radius: 10px;
+  box-shadow: 0 2px 7px #264b3433;
+  overflow: hidden;
+}
+.city-pulse button {
+  padding: 3px 12px;
+  display: grid;
+  text-align: left;
+  line-height: 1.15;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid #d6d9c8;
+}
+.city-pulse button:last-child {
+  border: 0;
+}
+.city-pulse span {
+  font-size: 10px;
+  color: #4c6357;
+}
+.city-pulse b {
+  font-size: 14px;
+  color: #143d30;
+  font-variant-numeric: tabular-nums;
+}
+.island-launch {
+  position: fixed;
+  left: 9px;
+  top: 59px;
+  z-index: 23;
+  background: #1f514a;
+  color: #fff9e5;
+  font-weight: 700;
+  font-size: 13px;
+  border: 1px solid #e3e2c9;
+  border-radius: 7px;
+  padding: 8px 13px;
+  box-shadow: 0 2px 6px #122d3330;
+}
+.island-desk {
+  position: fixed;
+  z-index: 38;
+  left: 8px;
+  top: 56px;
+  width: min(390px, calc(100vw - 16px));
+  max-height: calc(100dvh - 126px);
+  overflow: auto;
+  background: #f9f8ed;
+  color: #203930;
+  border: 1px solid #92a397;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px #142b3d3d;
+  overscroll-behavior: contain;
+  text-align: left;
+  font:
+    14px/1.4 "Barlow",
+    "Segoe UI",
+    sans-serif;
+}
+.island-desk > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  color: #fffce9;
+  background: #204b40;
+}
+.island-desk > header h2 {
+  font-size: 19px;
+  font-weight: 700;
+}
+.island-desk > header button {
+  color: #fffce9;
+  background: transparent;
+  border: 1px solid #8ca799;
+  border-radius: 5px;
+  padding: 3px 8px;
+}
+.island-desk nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  background: #e8eddf;
+  padding: 7px 9px;
+}
+.island-desk nav button {
+  font-size: 12px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  border: 1px solid #c1ceba;
+}
+.island-desk nav button[aria-current="true"],
+.island-content button[aria-pressed="true"] {
+  color: white;
+  background: #24574a;
+}
+.island-content {
+  padding: 12px;
+}
+.island-content h3 {
+  font-size: 20px;
+  font-weight: 650;
+}
+.island-content p {
+  margin: 6px 0 10px;
+}
+.island-content fieldset,
+.island-content details {
+  border: 1px solid #becab9;
+  border-radius: 7px;
+  padding: 8px;
+  margin: 8px 0;
+}
+.island-content legend,
+.island-content summary {
+  font-weight: 700;
+}
+.island-content label {
+  display: grid;
+  gap: 3px;
+  color: #345747;
+  margin: 6px 0;
+}
+.island-content select,
+.island-content input {
+  min-width: 0;
+  max-width: 100%;
+  background: #fffef6;
+  color: #203a30;
+  font: inherit;
+  border: 1px solid #a0b09c;
+  padding: 5px;
+  border-radius: 5px;
+}
+.island-content button {
+  background: #fffdf3;
+  color: #244b3d;
+  border: 1px solid #a3b6a0;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.island-content button:disabled {
+  opacity: 0.45;
+}
+.island-actions,
+.stop-picker,
+.island-stats {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.island-actions label {
+  flex: 1 1 75px;
+}
+.stop-picker {
+  max-height: 155px;
+  overflow: auto;
+}
+.island-stats {
+  align-items: stretch;
+}
+.island-stats div {
+  flex: 1 1 70px;
+  background: #e4ecdc;
+  border-radius: 6px;
+  padding: 6px;
+}
+.island-stats strong,
+.island-stats small {
+  display: block;
+}
+.island-stats strong {
+  font-size: 18px;
+}
+.island-content a {
+  color: #227563;
+  text-decoration: underline;
+}
+.island-desk .desk-works > section {
+  position: static;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  box-shadow: none;
+  border: 0;
+  background: transparent;
+}
+.island-desk .desk-works > section > header {
+  display: none;
+}
+@media (max-width: 650px) {
+  .island-desk {
+    top: auto;
+    bottom: 5px;
+    left: 5px;
+    width: calc(100vw - 10px);
+    max-height: 58dvh;
+  }
+  .city-pulse {
+    left: 47px;
+  }
+  .city-pulse button {
+    padding: 4px 9px;
+  }
+  .island-launch {
+    top: 54px;
+    font-size: 12px;
+  }
+  .island-desk button,
+  .island-content select,
+  .island-content input {
+    min-height: 33px;
+  }
+  .island-desk nav button {
+    min-height: 30px;
+  }
+}
+
+.works-confirm {
+  position: fixed;
+  z-index: 44;
+  bottom: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 94vw;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: #fbf7e6;
+  border: 1px solid #7d957d;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px #19382640;
+  font-size: 13px;
+}
+.works-confirm button {
+  padding: 4px 9px;
+  background: #265a46;
+  color: white;
+  border-radius: 4px;
+}
+.works-confirm button:disabled {
+  opacity: 0.45;
+}
+@media (max-width: 650px) {
+  .works-confirm {
+    top: 100px;
+    bottom: auto;
+    width: max-content;
+  }
+}
+
+.desk-back {
+  display: block;
+  margin: 0.5rem 0.75rem;
+  text-align: left;
+  color: #165a4e;
+  text-decoration: underline;
+  font-weight: 700;
+}
+
+.works-confirm small { flex-basis: 100%; font-size: 12px; }

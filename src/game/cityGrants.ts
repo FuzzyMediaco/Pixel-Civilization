@@ -1,3 +1,4 @@
+import {transfer} from "./cityEconomy";
 import type { CityMetrics, GameState } from "./simulation";
 
 interface GrantTarget {
@@ -79,7 +80,7 @@ export function payEarnedGrants(state: GameState): CityGrant[] {
   );
   if (earned.length) {
     state.awardedGrants = alreadyPaid.concat(earned.map((grant) => grant.id));
-    state.money += earned.reduce((sum, grant) => sum + grant.reward, 0);
+    for (const grant of earned) transfer(state,"outside","treasury",grant.reward,grant.name+" grant");
   }
   return earned;
 }

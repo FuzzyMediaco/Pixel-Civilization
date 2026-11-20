@@ -236,8 +236,9 @@ function footprintGap(a: PlacedElement, b: PlacedElement): number {
 export function analyzeLayout(
   elements: PlacedElement[],
   isCoastal: (gx: number, gz: number) => boolean,
+  terrainRevision: string | number = 0,
 ): LayoutAnalysis {
-  const key = layoutKey(elements);
+  const key = terrainRevision + "|" + layoutKey(elements);
   if (cached && cached.key === key) return cached;
 
   const pollution = new Float32Array(FIELD_N * FIELD_N);
@@ -389,7 +390,7 @@ export type PowerKind = "solar" | "wind" | "hydro" | "fossil" | "nuclear" | "geo
 
 export function powerKind(def: CivElementDef): PowerKind | null {
   if ((def.power ?? 0) <= 0) return null;
-  if (def.id === "solar_panels" || def.id === "solar_farms") return "solar";
+  if (def.id === "solar_panels" || def.id === "solar_farms" || def.id === "solar_canopy_orchard") return "solar";
   if (def.id === "windmills" || def.id === "wind_turbines" || def.id === "wind_farms") return "wind";
   if (def.id === "hydro_electric_power_plants") return "hydro";
   if (def.id === "nuclear_power_plants" || def.id === "micro_reactor_nuclear") return "nuclear";

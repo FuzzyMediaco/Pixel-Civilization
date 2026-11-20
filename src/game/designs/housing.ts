@@ -1475,7 +1475,8 @@ function buildTownhomes(c: Ctx): void {
   lot(c, s === 2 ? "concrete2" : "grass2");
   const floors = byLv5(lv, [2, 3, 3, 4, 4]);
   const unitW = s === 2 ? 7 : 8;
-  const corner = hz > 8;
+  const party = c.parcelEdges?.filter(e => e.kind === "party") ?? [];
+  const corner = hz > 8 && !party.some(e => e.side === "right");
   // front row
   const zf = hz - 5;
   const z0 = corner ? zf - 11 : -hz + 1;
@@ -1492,7 +1493,9 @@ function buildTownhomes(c: Ctx): void {
   const startX = corner ? -hx : -Math.floor((n * unitW) / 2);
   for (let i = 0; i < n; i++) {
     const ux0 = startX + i * unitW;
-    townUnit(c, ux0, ux0 + unitW, z0, zf, floors, s, i + s * 2 + lv, lv);
+    const left = i === 0 && party.some(e => e.side === "left") ? -hx : ux0;
+    const right = i === n - 1 && party.some(e => e.side === "right") ? hx : ux0 + unitW;
+    townUnit(c, left, right, z0, zf, floors, s, i + s * 2 + lv, lv);
   }
   if (corner) {
     // corner terrace: a second row facing +x down the side street, around a garden square
@@ -2015,6 +2018,28 @@ function buildApartments(c: Ctx): void {
   if (s === 3) {
     for (let x = x1 - 9; x < x1 - 4; x += 2) {
       v.box(x, 1, zf + 1, x + 1, 2, zf + 3, c.pick(["silver", "red", "blue", "white"]));
+    }
+  }
+  if(lv===5) {
+    // The street can see and enter the garden court. The corner wings step down to
+    // occupied terraces instead of concealing the courtyard behind a six-storey wall.
+    const opening=s===1 ? 5 : 4;
+    for(let x=-opening;x<opening;x++) {
+      const arch=s===3 ? 14 : 13-Math.floor((x+.5)**2/opening);
+      v.clear(x,1,2,x+1,arch,zf+3);
+      v.box(x,0,2,x+1,1,zf+3,s===0 ? "brickDark":"path2");
+      v.box(x,arch,2,x+1,arch+1,zf+1,s===0 ? "limestone":"concrete");
+    }
+    const wing = s===2 ? x0 : x1-9;
+    const terraceTop=top-(s===1 ? 9:6);
+    v.clear(wing,terraceTop,zf-10,wing+9,top+9,zf+2);
+    v.box(wing,terraceTop-1,zf-10,wing+9,terraceTop,zf+1,"woodLight");
+    v.box(wing,terraceTop,zf,wing+9,terraceTop+1,zf+1,"leafDark");
+    v.box(wing,terraceTop,zf-10,wing+9,top,zf-9,s===0?"brick":"glass");
+    for(let x=wing+1;x<wing+8;x+=3) v.put(x,terraceTop+1,zf,s%2?"pink":"amber");
+    if(s===3) {
+      for(const x of [wing,wing+7]) v.box(x,terraceTop,zf-3,x+1,terraceTop+5,zf-2,"woodDark");
+      for(let x=wing;x<wing+9;x+=2) v.box(x,terraceTop+5,zf-9,x+1,terraceTop+6,zf+1,"wood");
     }
   }
   if (lv >= 4) folk(c, 2, hz - 3);

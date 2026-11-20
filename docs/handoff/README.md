@@ -1,8 +1,22 @@
-# Pixel Civilization redesign
+# Pixel Civilization · Connected Island
 
-The playable catalog has 149 models, each with five growth stages and four visual styles. From the game menu, open **Island field guide** to inspect any model, rotate it, compare stages and footprints, or switch to night lighting. Selecting a building on the island also gives you a link to its current level and style.
+The island has 173 buildable elements and four visual styles for each. The field guide shows every modeled stage, its footprint, moving parts and a real neighbor you can add beside it. Bus stops stay on one tile and finish upgrading at level three. Existing cities keep their older level-four and level-five shelters.
 
-![Waterfront district in the game](../previews/waterfront.jpg)
+![The playable canal district](../previews/canal-district.jpg)
+
+## Try the canal district
+
+1. Open **Island tools → God controls → Explore the canal district**. The game saves your current sandbox as a snapshot. The district opens with two working quays, a mountain aqueduct, a lift bridge and three transit services.
+2. Open **Transit & harbor**, expand the passenger ferry and choose **Follow vehicle**. Its passengers count toward the transit score when they reach their destination. The harbor master can send a boat to a point on the water or call it home.
+3. Open **Land & water**. Select the bridge or enter its middle tile at **0, 0**, choose a low stone arch and preview the work. The preview identifies vessels and services affected by the change. Reopen the passage with a lift, raise the deck, or choose **Undo last works**.
+4. Tap **City wealth** to see where money is held, how it moves and which of the 22 projects your city can build. Select a farmhouse, garden or grocery store to see its local workers, water, production or stock. The **Connections** inspector identifies its working entrances and neighboring parcels.
+5. Use **God controls** to pause and step the clock, set or hold a value, start an incident, or restore your earlier snapshot. The main menu can also open a separate God-mode copy of a Real or Survival city.
+
+## Growing a town
+
+In Real and Survival modes, give homes and workplaces usable entrances. Put a garden at a back gate, join fields around a farmhouse, and connect food, water and employment to the people who need them. Revenue, wages, spending and upkeep change three balances. Wealth milestones unlock projects, while construction comes out of the treasury. Open the selected building's site panel to see what its next level needs and how much space it will take.
+
+Terrain tools unlock with the settlement. Roads, footways and rail can cross a channel on separate decks. Vessel beam, draft, mast height and turning space determine where a boat can travel. Powered pumps, springs, gates, aqueduct outlets, channel banks and reservoirs govern freshwater delivery. A transit line needs reachable stops and a suitable depot or landing. Fire cover depends on civic authority, crews, water and an actual route to the incident.
 
 ## Running the game
 

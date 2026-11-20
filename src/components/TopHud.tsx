@@ -1,3 +1,4 @@
+import {cityWealth, economyOf} from "../game/cityEconomy";
 import React, { useState } from "react";
 import {
   Car,
@@ -46,6 +47,7 @@ interface TopHudProps {
   onToggleGodCrime?: () => void;
   onOpenDefenseTab: () => void;
   onOpenAdvisor: () => void;
+  onOpenScore?: (tab:"population"|"happiness"|"wealth")=>void;
   onMaintainAll: () => void;
   onClose: () => void;
 }
@@ -67,6 +69,7 @@ export const TopHud: React.FC<TopHudProps> = ({
   onToggleGodCrime,
   onOpenDefenseTab,
   onOpenAdvisor,
+  onOpenScore,
   onMaintainAll,
   onClose,
 }) => {
@@ -122,40 +125,15 @@ export const TopHud: React.FC<TopHudProps> = ({
             </span>
           </div>
 
-          {/* Population */}
-          <div className="flex items-center gap-0.5" title="Population">
-            <Users className="h-3.5 w-3.5 text-sky-700" />
-            <span className="font-mono-num text-xs font-extrabold text-stone-900">
-              {state.population.toLocaleString()}
-            </span>
-          </div>
-
-          {/* Happiness */}
-          <div className="flex items-center gap-0.5" title="Happiness">
-            <Heart className={`h-3.5 w-3.5 ${happyColor}`} />
-            <span className={`font-mono-num text-xs font-extrabold ${happyColor}`}>
-              {state.happiness}%
-            </span>
-          </div>
-
-          {/* Treasury + live cash flow */}
-          <div
-            className="flex items-center gap-0.5"
-            title={`Treasury · income $${m.grossIncomePerTick ?? 0}/tick − upkeep $${m.upkeepPerTick ?? 0}/tick`}
-          >
-            <Wallet className="h-3.5 w-3.5 text-amber-700" />
-            <span className="font-mono-num text-xs font-extrabold text-stone-900">
-              {state.mode === "god" ? "∞" : `$${Math.floor(state.money).toLocaleString()}`}
-            </span>
-            {state.mode !== "god" && (
-              <span
-                className={`font-mono-num text-[10px] font-bold ${(m.netIncomePerTick ?? 0) >= 0 ? "text-emerald-700" : "text-rose-700"}`}
-              >
-                {(m.netIncomePerTick ?? 0) >= 0 ? "+" : ""}
-                {Math.round(m.netIncomePerTick ?? 0)}
-              </span>
-            )}
-          </div>
+          <button onClick={()=>onOpenScore?.("population")} className="flex items-center gap-0.5" title="Population and jobs">
+            <Users className="h-3.5 w-3.5 text-sky-700"/><b className="font-mono-num text-xs">{state.population.toLocaleString()}{economyOf(state).holds.some(h=>h.key==="population")&&" · Held"}</b>
+          </button>
+          <button onClick={()=>onOpenScore?.("happiness")} className="flex items-center gap-0.5" title="Happiness and household needs">
+            <Heart className={`h-3.5 w-3.5 ${happyColor}`}/><b className={`font-mono-num text-xs ${happyColor}`}>{state.happiness}%{economyOf(state).holds.some(h=>h.key==="happiness")&&" · Held"}</b>
+          </button>
+          <button onClick={()=>onOpenScore?.("wealth")} className="flex items-center gap-0.5" title={"City wealth · treasury $"+Math.floor(state.money).toLocaleString()}>
+            <Wallet className="h-3.5 w-3.5 text-amber-700"/><b className="font-mono-num text-xs">${Math.floor(cityWealth(state)).toLocaleString()}{economyOf(state).holds.some(h=>["treasury","businesses","households"].includes(h.key))&&" · Held"}</b>
+          </button>
 
           {/* Live power (solar follows the sun, wind follows the weather) */}
           {m.powerDemand > 0 && (

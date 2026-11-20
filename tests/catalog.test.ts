@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 import "../src/game/designs/index";
-import { ELEMENTS, getStandardFootprintForLevel } from "../src/game/catalog";
+import { ELEMENTS, getMaxElementLevel, getStandardFootprintForLevel } from "../src/game/catalog";
 import { DESIGNS } from "../src/game/designs/registry";
 import { makeCtx } from "../src/game/designs/kit";
 import { PixelVox } from "../src/game/voxelCore";
@@ -26,12 +26,13 @@ test("the catalog and the design registry cover the same elements", () => {
 });
 
 for (const def of ELEMENTS) {
-  test(def.name + " has five buildable stages in four distinct styles", () => {
+  test(def.name + " has all buildable stages in four distinct styles", () => {
     const d = DESIGNS[def.id];
     assert.ok(d);
-    assert.equal(new Set(d.levels).size, 5);
+    const cap = getMaxElementLevel(def.id);
+    assert.equal(new Set(d.levels.slice(0, cap)).size, cap);
     const states = new Map<string, string>();
-    for (let level = 1; level <= 5; level++) {
+    for (let level = 1; level <= cap; level++) {
       const [sx, sz] = d.footprints[level - 1];
       assert.deepEqual(getStandardFootprintForLevel(def, level), [sx, sz]);
       assert.ok([sx, sz].every(n => Number.isInteger(n) && n >= 1 && n <= 4));

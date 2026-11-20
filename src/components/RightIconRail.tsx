@@ -25,7 +25,6 @@ interface RightIconRailProps {
   autoSpin: boolean;
   savedCount: number;
   issueCount: number;
-  isMerging: boolean;
   onToggleTopMenu: () => void;
   onToggleBottomMenu: () => void;
   onToggleHeatmaps: () => void;
@@ -95,7 +94,6 @@ export const RightIconRail: React.FC<RightIconRailProps> = ({
   autoSpin,
   savedCount,
   issueCount,
-  isMerging,
   onToggleTopMenu,
   onToggleBottomMenu,
   onToggleHeatmaps,
@@ -116,7 +114,6 @@ export const RightIconRail: React.FC<RightIconRailProps> = ({
     >
       <RailButton
         active={topMenuOpen}
-        disabled={isMerging}
         label={topMenuOpen ? "Close Top Menu (T)" : "Open Top Menu (T)"}
         onClick={onToggleTopMenu}
       >
@@ -125,7 +122,6 @@ export const RightIconRail: React.FC<RightIconRailProps> = ({
 
       <RailButton
         active={bottomMenuOpen}
-        disabled={isMerging}
         label={bottomMenuOpen ? "Close Elements Menu (B)" : "Open Elements Menu (B)"}
         onClick={onToggleBottomMenu}
       >
@@ -134,7 +130,6 @@ export const RightIconRail: React.FC<RightIconRailProps> = ({
 
       <RailButton
         active={heatmapsOpen || activeHeatmap !== "none"}
-        disabled={isMerging}
         badge={activeHeatmap !== "none" ? "ON" : undefined}
         label="Civilization Heat Maps (H)"
         onClick={onToggleHeatmaps}
@@ -144,7 +139,6 @@ export const RightIconRail: React.FC<RightIconRailProps> = ({
 
       <RailButton
         active={viewEnvOpen}
-        disabled={isMerging}
         label="Weather Studio & 360° View (V)"
         onClick={onToggleWeatherStudio}
       >

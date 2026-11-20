@@ -33,6 +33,11 @@ const HEATMAP_OPTIONS: {
   icon: React.ComponentType<{ className?: string }>;
   getSummary: (s: GameState) => string;
 }[] = [
+  {id:"transit",label:"Passenger routes",icon:Car,getSummary:s=>(s.mobility?.lines.length??0)+" services"},
+  {id:"neighbors",label:"Shared edges",icon:Trees,getSummary:()=>"Linked parcel entrances"},
+  {id:"flow",label:"Aqueduct flow",icon:Droplets,getSummary:s=>Object.keys(s.infrastructure?.conduits??{}).length+" segments"},
+  {id:"clearance",label:"Ferry clearance",icon:Droplets,getSummary:()=>"Ferry draft, beam & height"},
+  {id:"lanes",label:"Road lanes",icon:Car,getSummary:()=>"2 to 8 lanes"},
   {
     id: "landvalue",
     label: "Land Value",

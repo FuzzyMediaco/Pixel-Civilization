@@ -1,3 +1,4 @@
+import { WEALTH_PROJECTS } from "./wealthProjects";
 export type Footprint = [number, number];
 export type LevelSpanTuple = [Footprint, Footprint, Footprint, Footprint, Footprint];
 
@@ -5,6 +6,10 @@ const fixed = (x: number, z: number): LevelSpanTuple => [[x, z], [x, z], [x, z],
 
 /** Intrinsic tile dimensions without loading voxel artwork. Indexed by ID and level minus one. */
 export const ELEMENT_LEVEL_SPANS: Record<string, LevelSpanTuple> = {
+  ...Object.fromEntries(WEALTH_PROJECTS.map(p => [p.id, p.footprints])),
+
+  ferry_landings: [[1,1],[1,1],[1,2],[2,2],[2,3]],
+  taxi_ranks: fixed(1, 1),
 
   // Village starters
   house: [[1, 1], [1, 1], [2, 1], [2, 2], [3, 2]],

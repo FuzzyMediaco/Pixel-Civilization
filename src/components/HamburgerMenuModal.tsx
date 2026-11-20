@@ -30,6 +30,8 @@ interface HamburgerMenuModalProps {
   onOpenHeatmaps: () => void;
   onOpenAdvisor: () => void;
   onOpenSaves: () => void;
+  onOpenIsland: (tab: "works"|"transit"|"city"|"god") => void;
+  onCopyIsland: () => void;
   onToggleGodCrime?: () => void;
   onResetIsland: () => void;
 }
@@ -44,7 +46,7 @@ const MODE_CARDS: {
     id: "god",
     title: "God Mode",
     badge: "Sandbox",
-    desc: "All 148+ elements, 5 levels & 4 variants unlocked, infinite treasury, and custom invasion severity.",
+    desc: "Build freely, shape land and water, run services and experiment with the live economy.",
   },
   {
     id: "real",
@@ -56,7 +58,7 @@ const MODE_CARDS: {
     id: "survival",
     title: "Survival Mode",
     badge: "Hardcore",
-    desc: "5-min maintenance timers, unrest fires under 50% happiness, stage-scaled raids & stage-floor Game Over.",
+    desc: "Manage essential reserves, fire response and defense with a recovery period for sustained shortages.",
   },
 ];
 
@@ -71,7 +73,7 @@ export const HamburgerMenuModal: React.FC<HamburgerMenuModalProps> = ({
   onOpenWeatherStudio,
   onOpenHeatmaps,
   onOpenAdvisor,
-  onOpenSaves,
+  onOpenSaves, onOpenIsland, onCopyIsland,
   onToggleGodCrime,
   onResetIsland,
 }) => {
@@ -253,6 +255,9 @@ export const HamburgerMenuModal: React.FC<HamburgerMenuModalProps> = ({
             <a href="./field-guide.html" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white p-2 text-xs font-bold text-stone-800 hover:bg-stone-50">
               <Layers className="h-4 w-4 text-emerald-700" /> Island field guide ↗
             </a>
+            {(["works","transit","city", ...(state.mode==="god"?["god"]:[])] as const).map(id=><button key={id} className="rounded-xl border border-stone-300 bg-white px-3 py-3 text-left text-xs font-extrabold" onClick={()=>{onClose();onOpenIsland(id as "works"|"transit"|"city"|"god");}}>{{works:"Land & public works",transit:"Transit & harbor",city:"City ledger & services",god:"God controls"}[id]}</button>)}
+            {state.mode!=="god"&&<button className="rounded-xl border border-emerald-700 bg-white p-3 text-left text-xs font-bold" onClick={()=>{onClose();onCopyIsland();}}>Experiment in a God-mode copy</button>}
+
             <button
               type="button"
               onClick={() => {

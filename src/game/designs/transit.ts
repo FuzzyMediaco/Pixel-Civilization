@@ -191,129 +191,43 @@ function train(v: PixelVox, x0: number, x1: number, z: number, kind: TrainKind, 
 //  V2 Eco Modern (white swoosh canopy, green roof, e-bus) V3 Tropical (bamboo & thatch, palms, colourful bus)
 // =============================================================================================
 function buildBusStop(c: Ctx): void {
-  const { v, lv, hx, hz } = c;
-  const s = c.variant % 4;
-  lot(c, s === 3 ? "sand" : "concrete2");
-  speckle(c, s === 3 ? "sandDark" : "concrete", 0.08);
-  const frame = ["red", "woodDark", "white", "#b7a26a"][s];
-  const roof = ["redDark", "tealDark", "leaf", "#c9a85a"][s];
-  const busBody = ["red", "cream", "teal", "orange"][s];
-  const busStripe = ["yellow", "tealDark", "white", "pink"][s];
-  // kerb / road edge at the front
-  v.box(-hx, 0, hz - 5, hx, 1, hz, "asphalt");
-  v.box(-hx, 0, hz - 6, hx, 1, hz - 5, "white");
-  if (lv >= 3) {
-    for (let x = -hx + 1; x < hx - 1; x += 2) v.put(x, 0, hz - 1, "hazard");
-    v.box(-5, 0, hz - 4, 6, 1, hz - 3, "asphalt");
-    for (let k = 0; k < 3; k++) v.box(-4 + k * 4, 0, hz - 4, -2 + k * 4, 1, hz - 3, "hazard");
-  }
-
-  // stop pole with roundel
-  const pole = (px: number, pz: number, h: number) => {
-    v.box(px, 1, pz, px + 1, h + 1, pz + 1, frame);
-    if (s === 0) {
-      v.ringZ(px + 0.5, h + 1.5, pz, pz + 1, 2.5, 1.2, "red");
-      v.box(px - 2, h + 1, pz, px + 3, h + 2, pz + 1, "blueDark");
-    } else if (s === 1) {
-      v.box(px - 2, h, pz, px + 3, h + 1, pz + 1, "woodDark");
-      v.box(px - 2, h - 2, pz, px, h, pz + 1, "cream");
-      v.put(px, h + 1, pz, "gold");
-    } else if (s === 2) {
-      v.box(px - 1, 2, pz, px + 2, h, pz + 1, "steelDark");
-      v.box(px - 1, 4, pz + 1, px + 1, h, pz + 2, "screenCyan", 0.7);
-      solarRow(v, px - 2, px + 2, h + 1, pz - 1);
-    } else {
-      for (let n = 0; n < 2; n++) {
-        const dx = n === 0 ? -2 : 0;
-        v.box(px + dx, h - 2 * n, pz, px + dx + 3, h + 2 - 2 * n, pz + 1, n ? "teal" : "orange");
-        v.put(px + dx + (n ? 3 : -1), h - 2 * n, pz, n ? "teal" : "orange");
-      }
-    }
-  };
-
-  if (lv === 1) {
-    pole(hx - 3, hz - 7, 7);
-    bench(v, -3, 1, hz - 8, "x", frame === "white" ? "woodLight" : frame);
-    v.box(-hx + 2, 1, hz - 8, -hx + 3, 3, hz - 7, "steelDark");
-    person(v, -1, 1, hz - 7, c.pick(SHIRTS), "blueDark");
-    tree(v, -hx + 3, 1, -hz + 3, s === 3 ? "palm" : "round", 1, 1);
-    bush(v, hx - 3, 1, -hz + 3, 1.2, "leaf", s === 3 ? "pink" : undefined);
-    return;
-  }
-
-  // ---- shelter ----
-  const sw = lv === 2 ? 5 : lv === 3 ? 6 : 7;
-  const sz0 = lv >= 4 ? -hz + 2 : hz - 11;
-  const sz1 = hz - 6;
-  const sh = lv >= 4 ? 8 : 6;
-  const x0 = -sw;
-  const x1 = sw;
-  if (s === 0) {
-    v.box(x0, 1, sz0, x1, sh, sz0 + 1, "glass", 0.2);
-    v.box(x0, 1, sz0, x0 + 1, sh, sz1, "glass", 0.2);
-    for (const px of [x0, x1 - 1]) v.box(px, 1, sz0, px + 1, sh, sz0 + 1, frame);
-    v.box(x0 + 1, 2, sz0 + 1, x0 + 4, sh - 1, sz0 + 2, "screenCyan", 0.8); // ad panel
-    v.box(x0 - 1, sh, sz0, x1 + 1, sh + 1, sz1 + 1, roof);
-    v.box(x0 - 1, sh, sz1, x1 + 1, sh + 1, sz1 + 1, frame);
-  } else if (s === 1) {
-    for (const [px, pz] of [[x0, sz0], [x1 - 1, sz0], [x0, sz1 - 1], [x1 - 1, sz1 - 1]]) v.box(px, 1, pz, px + 1, sh, pz + 1, frame);
-    v.box(x0, 1, sz0, x1, 4, sz0 + 1, "cream");
-    gable(v, x0 - 1, sh, sz0 - 1, x1 + 1, sz1 + 1, "x", roof, "white");
-    for (let x = x0; x < x1; x += 2) v.put(x, sh - 1, sz1, "white");
-  } else if (s === 2) {
-    // swoosh canopy: slab rising from back to front + single back fin
-    v.box(x0, 1, sz0, x1, sh - 1, sz0 + 1, "glass", 0.2);
-    v.box(x0 - 1, sh - 1, sz0, x1 + 1, sh, sz1 - 1, "white");
-    v.box(x0 - 1, sh, sz1 - 2, x1 + 1, sh + 1, sz1 + 1, "white");
-    v.box(x0, sh, sz0, x1, sh + 1, sz1 - 2, "leaf");
-    v.box(x0, 1, sz0, x0 + 1, sh, sz0 + 3, "white");
-    v.box(x1 - 1, 1, sz0, x1, sh, sz0 + 3, "white");
+  const { v, hz, variant: style } = c;
+  const level = Math.min(3, c.lv);
+  const front = hz - 1, back = hz - 5;
+  const frame = ["red", "woodDark", "white", "woodLight"][style];
+  const accent = ["red", "tealDark", "solarBlue", "terracotta"][style];
+  v.box(-7, 0, back, 7, 1, hz, style === 3 ? "woodLight" : "concrete");
+  bench(v, -3, 1, back + 1, "x", style === 2 ? "teal" : "wood");
+  v.box(5, 1, back + 1, 6, 9, back + 2, frame);
+  if (style === 0) {
+    v.ringZ(5.5, 8.5, back + 1, back + 2, 2.4, 1.15, "red");
+    v.box(3, 8, back + 1, 8, 9, back + 2, "blueDark");
+  } else if (style === 1) {
+    v.box(3, 7, back + 1, 7, 9, back + 2, "cream");
+    v.put(5, 9, back + 1, "gold");
+  } else if (style === 2) {
+    v.box(4, 5, back + 1, 7, 9, back + 2, "charcoal");
+    v.box(4, 6, back + 2, 6, 8, back + 3, "screenGreen", 0.8);
   } else {
-    for (const [px, pz] of [[x0, sz0], [x1 - 1, sz0], [x0, sz1 - 1], [x1 - 1, sz1 - 1]]) v.box(px, 1, pz, px + 1, sh, pz + 1, frame);
-    hip(v, x0 - 2, sh, sz0 - 2, x1 + 2, sz1 + 2, roof, "#a88c4a", 3);
-    for (let x = x0 - 2; x < x1 + 2; x += 2) v.put(x, sh - 1, sz1 + 1, "#a88c4a");
+    v.box(3, 8, back + 1, 7, 9, back + 2, "orange");
+    v.put(7, 8, back + 1, "orange");
+    v.box(3, 6, back + 1, 6, 7, back + 2, "teal");
   }
-  bench(v, -2, 1, sz0 + 2, "x", s === 2 ? "woodLight" : "wood");
-  pole(x1 + 1, sz1 - 1, 8);
-  crowd(c, x0 + 1, sz0 + 3, x1 - 1, sz1, lv);
-
-  if (lv >= 3) bus(v, -1, 1, hz - 3, "x", busBody, busStripe, s === 0 && lv >= 4, s === 2 ? "leaf" : "white");
-  if (s === 2 && lv >= 3) {
-    // e-bus charging mast over the bay
-    v.box(hx - 2, 1, hz - 6, hx - 1, 9, hz - 5, "silver");
-    v.box(hx - 6, 8, hz - 6, hx - 1, 9, hz - 3, "silver");
-  }
-  if (lv === 2) {
-    tree(v, -hx + 2, 1, -hz + 3, s === 3 ? "palm" : "round", 1, 1);
-    flowerBed(c, 2, -hz + 2, hx - 1, -hz + 4);
-  }
-  if (lv === 3) {
-    v.box(-hx + 1, 1, -hz + 2, -hx + 3, 6, -hz + 3, "steelDark");
-    v.box(-hx + 1, 3, -hz + 3, -hx + 3, 6, -hz + 4, "white", 0.4);
-    tree(v, hx - 3, 1, -hz + 3, s === 3 ? "palm" : "birch", 1, 1);
-  }
-  if (lv >= 4) {
-    // ticket kiosk + departures board + bike rack
-    v.box(hx - 5, 1, -hz + 1, hx - 1, 6, -hz + 5, s === 1 ? "cream" : s === 3 ? "#c9a85a" : "white");
-    v.box(hx - 5, 3, -hz + 4, hx - 1, 5, -hz + 5, "glass", 0.5);
-    v.box(hx - 6, 6, -hz, hx, 7, -hz + 6, roof);
-    v.box(-3, sh - 3, sz1 - 1, 3, sh - 1, sz1, "black");
-    for (let x = -2; x < 3; x++) v.put(x, sh - 2, sz1, x & 1 ? "amber" : "screenGreen", 1.1);
-    for (let i = 0; i < 3; i++) v.box(-hx + 1, 1, -hz + 2 + i * 2, -hx + 4, 2, -hz + 3 + i * 2, c.pick(["red", "blue", "lime"]));
-  }
-  if (lv >= 5) {
-    // landmark totem with clock & beacon
-    const tx = -hx + 2;
-    const tz = hz - 8;
-    v.box(tx - 1, 1, tz - 1, tx + 2, 16, tz + 2, frame === "white" ? "silver" : frame);
-    v.box(tx - 1, 12, tz + 2, tx + 2, 15, tz + 3, "white", 0.3);
-    clockFace(v, tx, 13, tz + 3, 1);
-    v.box(tx - 1, 16, tz - 1, tx + 2, 17, tz + 2, roof);
-    c.blink(tx, 17, tz, "amber");
-    for (const px of [x0 - 1, x1]) {
-      v.box(px, sh + 1, sz1, px + 1, sh + 3, sz1 + 1, "warmGlow", 1);
+  if (level >= 2) {
+    for (const x of [-6, 2]) v.box(x, 1, back, x + 1, 7, back + 1, frame);
+    v.box(-5, 2, back, 2, 6, back + 1, style === 1 || style === 3 ? "woodLight" : "glass");
+    if (style === 1 || style === 3) gable(v, -7, 7, back, 4, front + 1, "x", accent, frame);
+    else {
+      v.box(-7, 7, back, 4, 8, front + 1, accent);
+      if (style === 2) v.box(-7, 8, back, 4, 9, back + 2, "solarBlue");
     }
-    v.box(x0, sh + 1, sz1, x1, sh + 2, sz1 + 1, "screenCyan", 0.9);
+  }
+  if (level >= 3) {
+    for (let x = -7; x < 7; x++) v.put(x, 0, front, x % 3 ? "hazard" : "goldDark");
+    v.box(-5, 5, back + 1, 0, 7, back + 2, "black");
+    for (let x = -5; x < 0; x += 2) v.put(x, 6, back + 2, "amber", 1.3);
+    v.put(5, 3, back + 2, "screenCyan", 0.9);
+    v.put(1, 6, back + 1, "warmGlow", 1.1);
   }
 }
 
@@ -332,27 +246,14 @@ function buildTrainStop(c: Ctx): void {
   const wall = ["brick", "white", "cream", "white"][s];
   const wall2 = ["brickDark", "woodDark", "teal", "silver"][s];
   const roofC = ["leafDark", "woodDark", "tealDark", "steelLight"][s];
-  const tBody = ["leafDark", "red", "silver", "white"][s];
-  const tStripe = ["cream", "white", "teal", "blue"][s];
-  const kind: TrainKind = (["diesel", "heritage", "diesel", "electric"] as const)[s];
-
-  // tracks at the back
-  const tz = -hz + 4;
-  trackX(v, -hx, hx, tz);
-  const twoTracks = lv >= 5 && hz >= 16;
-  if (twoTracks) trackX(v, -hx, hx, tz + 7);
-  // platform
-  const pz0 = twoTracks ? tz + 11 : tz + 4;
+  // Trains remain on the real neighboring track. The raised platform meets its ballast.
+  const tz = -hz;
+  const pz0 = -hz;
   const pz1 = pz0 + (lv >= 3 ? 5 : 4);
   const px0 = lv === 1 ? -6 : -hx + 1;
   const px1 = lv === 1 ? 6 : hx - 1;
   v.box(px0, 0, pz0, px1, 2, pz1, "concrete");
   v.box(px0, 2, pz0, px1, 3, pz0 + 1, "hazard");
-  if (twoTracks) {
-    // island platform between the tracks
-    v.box(-hx + 1, 0, tz + 3, hx - 1, 2, tz + 4, "concrete");
-  }
-
   if (lv === 1) {
     v.box(-3, 2, pz1 - 1, -2, 8, pz1, "steelDark");
     v.box(-5, 8, pz1 - 1, 0, 10, pz1, ["leaf", "red", "teal", "blue"][s]);
@@ -423,8 +324,6 @@ function buildTrainStop(c: Ctx): void {
     v.box(bx0, 0, bz1, bx1, 1, hz, "path");
     v.box(Math.floor((bx0 + bx1) / 2) - 3, bh - 3, bz1, Math.floor((bx0 + bx1) / 2) + 4, bh - 1, bz1 + 1, ["leafDark", "red", "tealDark", "blue"][s], 0.6);
 
-    // train at the platform
-    train(v, -hx - 2, hx - (lv >= 4 ? 4 : 6), tz, kind, tBody, tStripe, c);
     if (lv >= 4) {
       // clock tower on the station
       const tx = bx1 - 4;
@@ -898,14 +797,14 @@ function buildTaxiDepot(c: Ctx): void {
 defineDesigns({
   bus_stops: {
     footprints: [[1, 1], [1, 1], [1, 1], [1, 1], [1, 1]],
-    levels: ["Curbside Pole", "Glass Shelter", "Shelter & Bus Bay", "Covered Interchange", "Transit Hub Pavilion"],
-    growth: "A pole and bench grow a shelter, then a bus bay with a parked bus, a ticket kiosk & departures board, and a beacon totem.",
+    levels: ["Curbside Pole", "Weather Shelter", "Accessible Boarding Stop", "Legacy Sheltered Stop", "Legacy Boarding Stop"],
+    growth: "A curbside pole and bench gain a weather shelter, then a tactile boarding strip, a fare reader and illuminated arrivals. All three stages leave the back of the lot open.",
     build: buildBusStop,
   },
   train_stops: {
     footprints: [[1, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
     levels: ["Request Halt", "Canopy Platform", "Country Station", "Clock-Tower Station", "Grand Terminal"],
-    growth: "A sign on a platform gains a canopy, then a station house with a waiting train, a clock tower, and finally a glass train shed.",
+    growth: "A sign on a platform gains a canopy, then a station house, a clock tower and finally a vaulted boarding hall beside the live railway.",
     build: buildTrainStop,
   },
   train_depots: {
