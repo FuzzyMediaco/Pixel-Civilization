@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { ELEMENT_BY_ID, getElementMaxLevel, getRoadLaneCount } from "../src/game/catalog";
-import { analyzeFarmNetworks } from "../src/game/farmNetworks";
-import { analyzeDistrictSynergies } from "../src/game/districtSynergies";
+import { analyzeFarmNetworks, getFarmAdjacencyMask } from "../src/game/farmNetworks";
+import { analyzeDistrictSynergies, getDistrictEdgeMasks } from "../src/game/districtSynergies";
 import { analyzeTraffic } from "../src/game/trafficModel";
 import {
   createInitialGameState, recomputeConnectivityAndMetrics,
@@ -41,8 +41,15 @@ for (let level = 2; level <= 11; level++) {
 assert.equal(upgradeElementDirect(roadGod, "road2").ok, false, "11 is maximum level");
 
 const farm = createInitialGameState("real");
-farm.elements.push(place("street", "roads", -1, 0), place("anchor", "plantations", 0, 0));
-for (let i = 0; i < 100; i++) farm.elements.push(place(`field${i}`, "fields", i + 1, 0));
+// Compact 10x10 plot grid stays inside the actual 64x64 game world.
+farm.highestStageReached = 20;
+farm.elements.push(place("street", "roads", -7, -5), place("anchor", "plantations", -6, -5));
+for (let i = 0; i < 100; i++) {
+  const gx = -5 + (i % 10);
+  const gz = -5 + Math.floor(i / 10);
+  farm.elements.push(place(`field${i}`, "vegetable_fields", gx, gz));
+}
+assert.ok(getFarmAdjacencyMask(farm.elements, farm.elements[2]) > 0, "Field paths must connect visually");
 recomputeConnectivityAndMetrics(farm);
 assert.equal(farm.metrics.farmModuleCount, 100);
 assert.equal(farm.elements.find(el => el.id === "field99")?.connected, true);
@@ -70,6 +77,9 @@ assert.deepEqual(new Set(d.active.map(a => a.kind)),
 assert.ok((d.educationMultiplier.get("hs") ?? 1) > 1);
 assert.ok((d.foodMultiplier.get("dairy") ?? 1) > 1);
 assert.ok((d.incomeMultiplier.get("uni") ?? 1) > 1);
+const edgeMasks = getDistrictEdgeMasks(bonuses.elements, d.active);
+assert.equal(edgeMasks.get("hs"), 2, "School path should open east toward sports field");
+assert.equal(edgeMasks.get("sport"), 8, "Sports path should open west toward school");
 
 const noAdjacency = createInitialGameState("god");
 noAdjacency.elements.push(place("u", "university", 0, 0), place("r", "research_institute", 2, 0));
