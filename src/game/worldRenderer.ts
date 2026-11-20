@@ -24,7 +24,7 @@ import {
   worldToGrid,
 } from "./simulation";
 import { buildPlacedGroupFromAsset, getOrBuildElementAsset } from "./voxelArchitect";
-import { getFarmAdjacencyMask } from "./farmNetworks";
+import { analyzeFarmNetworks, getFarmAdjacencyMask } from "./farmNetworks";
 import { analyzeDistrictSynergies, getDistrictEdgeMasks } from "./districtSynergies";
 import {
   PixelVox,
@@ -246,6 +246,8 @@ export class PixelWorldRenderer {
   private overlayGroup = new THREE.Group();
   private heatmapGroup = new THREE.Group();
   private trafficGroup = new THREE.Group();
+  private farmActivityGroup = new THREE.Group();
+  private farmActivity = new Map<string, { mesh: THREE.Group; gx: number; gz: number; phase: number; originId: string }>();
   private villagerGroup = new THREE.Group();
   private crimeGroup = new THREE.Group();
   private attackGroup = new THREE.Group();
@@ -450,6 +452,7 @@ export class PixelWorldRenderer {
     this.scene.add(this.placedGroup);
     this.scene.add(this.overlayGroup);
     this.scene.add(this.trafficGroup);
+    this.scene.add(this.farmActivityGroup);
     this.scene.add(this.villagerGroup);
     this.scene.add(this.crimeGroup);
     this.scene.add(this.attackGroup);
@@ -1265,6 +1268,7 @@ export class PixelWorldRenderer {
   // ===================== AUTONOMOUS CARS, TRAINS & PIXEL VILLAGERS =====================
 
   private syncAutonomousTrafficAndVillagers(): void {
+    this.syncFarmActivity();
     const connectedRoadSet = getConnectedRoadCoordSet(this.gameState.elements);
     const connectedRailSet = getConnectedRailCoordSet(this.gameState.elements);
 
@@ -1426,6 +1430,82 @@ export class PixelWorldRenderer {
       const villager = this.createPixelVillager(tile.gx, tile.gz, this.villagerAgents.length);
       this.villagerGroup.add(villager.root);
       this.villagerAgents.push(villager);
+    }
+  }
+
+  /**
+   * Larger, contiguous farm networks acquire moving machinery automatically:
+   * 5 modules -> tractor, 10 -> two, 25 -> three, 50+ -> four.
+   * Movement stays within owned fields and uses no roads or extra simulation demand.
+   */
+  private syncFarmActivity(): void {
+    const anchors = new Set(
+      this.gameState.elements.filter(el => el.connected && [
+        "farms", "farm_houses", "plantations", "orchards", "groves_of_olives",
+        "vegetable_farm", "grain_farm", "dairy_farm", "poultry_farm", "cattle_ranch",
+        "horse_ranch", "apiary", "vineyard", "rice_farm", "greenhouse_farm", "vertical_farm",
+      ].includes(el.defId)).map(el => el.id),
+    );
+    const networks = analyzeFarmNetworks(this.gameState.elements, anchors);
+    const moduleById = new Map(this.gameState.elements.map(el => [el.id, el]));
+    const wanted = new Set<string>();
+    for (const [anchorId, tier] of networks.animationTierByAnchorId.entries()) {
+      if (tier <= 0) continue;
+      const fields = [...networks.ownerByModuleId.entries()]
+        .filter(([, ownerId]) => ownerId === anchorId)
+        .map(([moduleId]) => moduleById.get(moduleId))
+        .filter((el): el is PlacedElement => Boolean(el))
+        .sort((a, b) => a.id.localeCompare(b.id));
+      for (let i = 0; i < tier; i++) {
+        const field = fields[Math.floor((i + 0.5) * fields.length / tier)] ?? moduleById.get(anchorId);
+        if (!field) continue;
+        const id = `${anchorId}:${i}`;
+        wanted.add(id);
+        let agent = this.farmActivity.get(id);
+        if (!agent) {
+          const v = new PixelVox(9 + i);
+          // Distinctive little green/yellow combine or tractor on four tires.
+          const combine = tier >= 3 && i % 2 === 0;
+          v.box(-3, 2, -2, 3, 5, 2, combine ? "gold" : "leaf");
+          v.box(-1, 5, -2, 2, 8, 1, "glass", 0.3);
+          v.box(-3, 1, -3, -1, 3, -2, "charcoal");
+          v.box(1, 1, -3, 3, 3, -2, "charcoal");
+          v.box(-3, 1, 2, -1, 3, 3, "charcoal");
+          v.box(1, 1, 2, 3, 3, 3, "charcoal");
+          if (combine) v.box(-5, 2, -4, 5, 3, -3, "silver");
+          const geometry = buildVoxelGeometry(v);
+          const mesh = new THREE.Mesh(geometry, getPixelVoxelMaterial());
+          mesh.scale.setScalar(0.64);
+          const group = new THREE.Group();
+          group.add(mesh);
+          this.farmActivityGroup.add(group);
+          agent = { mesh: group, gx: field.gx, gz: field.gz, phase: i * 1.9 + field.gx, originId: anchorId };
+          this.farmActivity.set(id, agent);
+        }
+        agent.gx = field.gx;
+        agent.gz = field.gz;
+      }
+    }
+    for (const [id, agent] of this.farmActivity.entries()) {
+      if (wanted.has(id)) continue;
+      this.farmActivityGroup.remove(agent.mesh);
+      agent.mesh.traverse(obj => {
+        if (obj instanceof THREE.Mesh) obj.geometry.dispose();
+      });
+      this.farmActivity.delete(id);
+    }
+  }
+
+  private animateFarmActivity(elapsed: number): void {
+    for (const agent of this.farmActivity.values()) {
+      const [cx, cz] = gridToWorldCenter(agent.gx, agent.gz, 1, 1);
+      const t = elapsed * 0.55 + agent.phase;
+      agent.mesh.position.set(
+        cx + Math.sin(t) * (TILE_SIZE * 0.21),
+        VOXEL_SIZE * 0.8,
+        cz + Math.cos(t) * (TILE_SIZE * 0.21),
+      );
+      agent.mesh.rotation.y = t + Math.PI / 2;
     }
   }
 
@@ -1712,6 +1792,7 @@ export class PixelWorldRenderer {
       this.syncAutonomousTrafficAndVillagers();
     }
     this.stepTrafficAndVillagers(dt, elapsed);
+    this.animateFarmActivity(elapsed);
 
     // Day/Night Atmosphere + Weather Clouds, Rain & Lightning
     this.updateDayNightAndWeather(dt, elapsed);
