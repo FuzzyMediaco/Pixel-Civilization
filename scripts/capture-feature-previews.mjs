@@ -64,10 +64,10 @@ async function seedScenario(scenario) {
       road(-14, -14, -2, 2);
       add("plantations", -13, -2, 4);
       for (let z = -2; z < 5; z++) {
-        for (let x = -11; x <= -4; x++) add((x + z) % 2 ? "grain_fields" : "vegetable_fields", x, z, 2);
+        for (let x = -10; x <= -3; x++) add((x + z) % 2 ? "grain_fields" : "vegetable_fields", x, z, 2);
       }
       add("dairy_farm", -2, -2, 4);
-      add("grain_farm", 0, -2, 4);
+      add("grain_farm", -1, -2, 4);
       add("grazing_pasture", -2, 0, 3);
       add("livestock_pen", -1, 0, 3);
       add("apiary", 3, -2, 4);
