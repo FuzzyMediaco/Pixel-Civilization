@@ -59,11 +59,16 @@ const floraIds = new Set(["trees","pine_trees","redwood_trees","shrubs","plants"
 const waterIds = new Set(["canals","rivers","wide_rivers","water_tile","lakes","ponds","swamps"]);
 
 /** Modify only the part of a lot that actually touches the neighboring parcel. */
-export function applyParcelAppearance(c: Ctx, opts: ParcelAppearance) {
+export function applyParcelAppearance(c: Ctx, opts: ParcelAppearance, siteX=c.spanX, siteZ=c.spanZ) {
   const v = c.v;
+  // The complete current model is centered and scaled uniformly onto its saved plot.
+  // Map painted cells and neighbor offsets through the same transform as its mesh.
+  const fit=Math.min(1,siteX/c.spanX,siteZ/c.spanZ);
   if (opts.soils) {
     for (let z=-c.hz; z<c.hz; z++) for (let x=-c.hx; x<c.hx; x++) {
-      const material = opts.soils[((z+c.hz)>>4)*c.spanX + ((x+c.hx)>>4)];
+      const tileX=Math.floor(siteX/2+(x+.5)*fit/16);
+      const tileZ=Math.floor(siteZ/2+(z+.5)*fit/16);
+      const material = opts.soils[tileZ*siteX+tileX];
       if (!material || material === "grass") continue;
       const key = packVoxKey(x,0,z);
       if (turf.has(v.v.get(key)!)) {
@@ -76,20 +81,29 @@ export function applyParcelAppearance(c: Ctx, opts: ParcelAppearance) {
   for (const edge of opts.edges ?? []) {
     const { side, slot, kind } = edge;
     if (kind==="rail" || kind==="road" || kind==="channel" || (kind==="walk" && ELEMENT_BY_ID[c.id]?.isNetwork)) continue;
-    const at = (t:number,d:number) => localPoint(c,side,slot*16+t,d);
+    const alongX=side==="front" || side==="back";
+    const origin=(alongX ? c.hx : c.hz) + (slot*16-(alongX ? siteX : siteZ)*8)/fit;
+    const at = (t:number,d:number) => localPoint(c,side,Math.floor(origin+(t+.5)/fit),d);
+    // Several authored voxels can fit into one saved frontage pixel. Paint the
+    // whole interval so a compressed driveway or fence remains continuous.
+    const start=(t:number)=>Math.ceil(origin+t/fit-.5);
     const put = (t:number,d:number,y:number,col:string,em=0) => {
-      const [x,z]=at(t,d); v.put(x,y,z,col,em);
+      for(let i=start(t);i<start(t+1);i++) {
+        const [x,z]=localPoint(c,side,i,d); v.put(x,y,z,col,em);
+      }
     };
     const unbuilt = (t:number,d:number) => {
       const [x,z]=at(t,d);
       return ![4,5,6].some(y=>v.v.has(packVoxKey(x,y,z)));
     };
     const clearFence = (t:number,d:number) => {
-      if (!unbuilt(t,d)) return;
-      const [x,z] = at(t,d);
-      for (let y=1;y<=3;y++) {
-        const k=packVoxKey(x,y,z);
-        if (fenceStyles.has(v.v.get(k)!)) v.v.delete(k);
+      for(let i=start(t);i<start(t+1);i++) {
+        const [x,z]=localPoint(c,side,i,d);
+        if ([4,5,6].some(y=>v.v.has(packVoxKey(x,y,z)))) continue;
+        for (let y=1;y<=3;y++) {
+          const k=packVoxKey(x,y,z);
+          if (fenceStyles.has(v.v.get(k)!)) v.v.delete(k);
+        }
       }
     };
     // Exterior walls and trees rise above the fence and survive this pass.

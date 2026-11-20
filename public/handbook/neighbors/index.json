@@ -1,0 +1,101 @@
+[
+  {
+    "id": "backyard",
+    "title": "A kitchen garden behind the house",
+    "description": "Against the rear fence, the garden opens a gate and adds planted food beds along the shared boundary.",
+    "image": "/handbook/neighbors/backyard.webp",
+    "ids": [
+      "house",
+      "gardens"
+    ]
+  },
+  {
+    "id": "driveway",
+    "title": "A driveway meets the front road",
+    "description": "A road beside the front garage slot opens the drive. A road against the rear fence leaves it closed.",
+    "image": "/handbook/neighbors/driveway.webp",
+    "ids": [
+      "medium_sized_homes",
+      "roads"
+    ]
+  },
+  {
+    "id": "townhouse-row",
+    "title": "A continuous townhouse row",
+    "description": "Both buildings face the same street. Side walls meet across the shared edge, with separate entrances along the front.",
+    "image": "/handbook/neighbors/townhouse-row.webp",
+    "ids": [
+      "townhomes"
+    ]
+  },
+  {
+    "id": "cashpoint",
+    "title": "An ATM facing the bank",
+    "description": "The cashpoint opens toward its neighbor. Paving and lamps mark the shared commercial frontage.",
+    "image": "/handbook/neighbors/cashpoint.webp",
+    "ids": [
+      "atms",
+      "banks"
+    ]
+  },
+  {
+    "id": "farmstead",
+    "title": "One farmhouse, five fields",
+    "description": "Five separate field plots open onto the farmhouse. Their tilled edges continue across former boundaries, and each shared edge contributes to the farm bonus.",
+    "image": "/handbook/neighbors/farmstead.webp",
+    "ids": [
+      "farm_houses",
+      "fields"
+    ]
+  },
+  {
+    "id": "churchyard",
+    "title": "A gate between church and graveyard",
+    "description": "The cemetery opens onto the church grounds. The gate and shared path add recreation while protecting the buildings and headstones.",
+    "image": "/handbook/neighbors/churchyard.webp",
+    "ids": [
+      "churches",
+      "graveyards"
+    ]
+  },
+  {
+    "id": "platform",
+    "title": "A platform beside the main line",
+    "description": "The station faces away from the continuous track. Its yellow boarding edge meets the rails along the back of the platform.",
+    "image": "/handbook/neighbors/platform.webp",
+    "ids": [
+      "train_stops",
+      "train_tracks"
+    ]
+  },
+  {
+    "id": "bus-curb",
+    "title": "A shelter on the curb",
+    "description": "The shelter leaves the carriageway free. A curb alone needs a depot and a route to carry passengers.",
+    "image": "/handbook/neighbors/bus-curb.webp",
+    "ids": [
+      "bus_stops",
+      "two_lane_roads"
+    ]
+  },
+  {
+    "id": "taxi-rank",
+    "title": "Taxi dispatch beside a through street",
+    "description": "The covered waiting area opens toward the yellow pickup curb; the road continues on either side.",
+    "image": "/handbook/neighbors/taxi-rank.webp",
+    "ids": [
+      "taxi_ranks",
+      "two_lane_roads"
+    ]
+  },
+  {
+    "id": "ferry-pier",
+    "title": "A ferry landing and its berth",
+    "description": "Boats need a clear approach with enough water for their draft. A reachable landing at the other end completes the passenger route.",
+    "image": "/handbook/neighbors/ferry-pier.webp",
+    "ids": [
+      "ferry_landings",
+      "boats"
+    ]
+  }
+]

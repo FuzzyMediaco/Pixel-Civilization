@@ -89,7 +89,7 @@ export function InfrastructurePanel({
       duct = i?.conduits[k],
       road = i?.streets[k],
       ground = getTerrainCell(state, p.gx, p.gz);
-    if (span) {
+    if (span && !span.run.startsWith("junction-")) {
       const tiles = Object.entries(i!.spans).filter(([, s]) => s.run === span.run);
       const bank = Math.min(
         ...tiles.filter(([, s]) => s.ramp).map(([, s]) => Math.min(s.startHeight, s.endHeight)),
@@ -338,7 +338,7 @@ export function InfrastructurePanel({
           <p>
             {span.shape} {span.mode} deck at {span.deck.toFixed(1)} m.{" "}
             {Number.isFinite(nav.clearance)
-              ? "Boat headroom " + nav.clearance.toFixed(1) + " m."
+              ? (nav.opening ? "Maximum raised headroom " : "Boat headroom ") + nav.clearance.toFixed(1) + " m."
               : "Opening available."}
           </p>
         )}

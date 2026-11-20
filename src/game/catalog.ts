@@ -290,7 +290,7 @@ export const ELEMENTS: CivElementDef[] = [
     water: -2,
     needsMaintenance: true,
     accentHex: "#f5b82e",
-    description: "Educates neighborhood children. Merge two adjacent schools into a taller academy.",
+    description: "Educates neighborhood children. Upgrade the school to add classrooms, play space, and campus buildings.",
   },
   {
     id: "water_treatment_plant",

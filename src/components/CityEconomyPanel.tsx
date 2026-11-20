@@ -350,7 +350,9 @@ export function CityEconomyPanel({
             <Figures
               rows={[
                 ["Staff", n(a.workers) + " / " + n(a.jobs)],
-                ["Food in store", rate(a.food)],
+                site.defId === "rainwater_cathedral"
+                  ? ["Cistern reserve", rate(a.cistern ?? 0)]
+                  : ["Food in store", rate(a.food)],
                 ["Farm water", rate(readWaterService(s, site).irrigation)],
                 ["Produced / served", n(a.harvested) + " / " + n(a.served)],
               ]}

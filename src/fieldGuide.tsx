@@ -3,16 +3,18 @@ import { createRoot } from "react-dom/client";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "./game/designs/index";
-import { CATEGORY_META, ELEMENTS, ELEMENT_BY_ID, getMaxElementLevel, type CivElementDef } from "./game/catalog";
-import connectionGuide from "./game/connectionGuide.json";
+import { CATEGORY_META, ELEMENT_BY_ID, getMaxElementLevel, type CivElementDef } from "./game/catalog";
+import designStyles from "./game/designStyles.json";
+import { getGuideUsage } from "./game/guideUsage";
+import { getHandbookFrame } from "./game/handbookLayout";
 import { DESIGNS } from "./game/designs/registry";
 import { buildDesignAsset, buildPlacedGroupFromAsset } from "./game/voxelArchitect";
 import { EDGE_LABELS } from "./game/parcelEdges";
-import { getGuidePartner, getNeighborPreview } from "./game/connectionPreview";
+import { findGuideElements, getGuidePartner, getGuideVariant, getNeighborPreview } from "./game/connectionPreview";
 import { TILE_SIZE, voxelNightUniform } from "./game/voxelCore";
 import "./fieldGuide.css";
 
-function Model({ def, level, variant, night, joined }: { def: CivElementDef; level: number; variant: number; night: boolean; joined: boolean }) {
+function Model({ def, level, variant, night, joined, onStatic }: { def: CivElementDef; level: number; variant: number; night: boolean; joined: boolean; onStatic: (value: boolean)=>void }) {
   const mount = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
   const viewer = useRef<{ show: (d: CivElementDef, lv: number, v: number, joined: boolean) => void; light: (dark: boolean) => void } | null>(null);
@@ -20,7 +22,7 @@ function Model({ def, level, variant, night, joined }: { def: CivElementDef; lev
     const host = mount.current!;
     let renderer: THREE.WebGLRenderer;
     try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
-    catch { setError(true); return; }
+    catch { setError(true); onStatic(true); return; }
     host.prepend(renderer.domElement);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
     renderer.shadowMap.enabled = true;
@@ -76,7 +78,7 @@ function Model({ def, level, variant, night, joined }: { def: CivElementDef; lev
           for(const [idx,plot] of plots.entries()) {
             const {el,mask,edges}=plot, def=ELEMENT_BY_ID[el.defId];
             const [sx,sz]=DESIGNS[el.defId].footprints[el.level-1];
-            const asset=buildDesignAsset(def,el.level,idx===0 ? v : (v+1)%4,sx,sz,mask,{edges});
+            const asset=buildDesignAsset(def,el.level,getGuideVariant(d.id,el.defId,v,idx),sx,sz,mask,{edges});
             const group=buildPlacedGroupFromAsset(asset);
             group.position.set((el.gx+el.spanX*.5)*TILE_SIZE,0,(el.gz+el.spanZ*.5)*TILE_SIZE);
             group.rotation.y=def.isNetwork ? 0 : el.rotation*Math.PI/2;
@@ -143,36 +145,43 @@ function Model({ def, level, variant, night, joined }: { def: CivElementDef; lev
   }, []);
   useEffect(() => viewer.current?.show(def, level, variant, joined), [def, level, variant, joined]);
   useEffect(() => viewer.current?.light(night), [night]);
-  return <div ref={mount} className="viewport" role="img" aria-label={def.name + " in 3D, level " + level + ", variant " + (variant + 1)}>
-    {error && <p className="webgl-error">Enable WebGL in your browser to see the model.</p>}
+  return <div ref={mount} className={"viewport"+(error ? " illustrated" : "")} role="img" aria-label={def.name + ", level " + level + ", variant " + (variant + 1)}>
+    {error && <div className="flat-model" style={{...getHandbookFrame(level,variant),backgroundImage:"url(./handbook/catalog/"+def.id+".webp)"}}/>}
   </div>;
 }
 
-const initial = new URLSearchParams(location.search);
+// Local files can replace a fragment without navigating or changing their origin.
+const fragment = new URLSearchParams(location.hash.slice(1));
+const initial = location.protocol === "file:" && fragment.has("id") ? fragment : new URLSearchParams(location.search);
 const numbered = (param: string, low: number, high: number, fallback: number) => {
   const n = Number(initial.get(param) ?? fallback);
   return Number.isInteger(n) && n >= low && n <= high ? n : fallback;
 };
-const notes = new Map(connectionGuide.flatMap(row => row.ids.map(id => [id, row] as const)));
 function Guide() {
   const [id, setId] = useState(ELEMENT_BY_ID[initial.get("id") ?? ""]?.id ?? "house");
   const [level, setLevel] = useState(Math.min(getMaxElementLevel(id), numbered("level", 1, 5, 3)));
   const [variant, setVariant] = useState(numbered("variant", 1, 4, 1) - 1);
   const [joined, setJoined] = useState(false);
   const [night, setNight] = useState(false);
+  const [staticImage,setStaticImage] = useState(false);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const def = ELEMENT_BY_ID[id], d = DESIGNS[id];
-  const note = notes.get(id), partner = ELEMENT_BY_ID[getGuidePartner(id)];
+  const styleNames = designStyles[id as keyof typeof designStyles];
+  const partner = ELEMENT_BY_ID[getGuidePartner(id)];
   const joins = useMemo(() => {
     const plot = getNeighborPreview(id, level)[0];
-    return [...new Set(plot?.edges.filter(e=>e.neighbor===partner?.id).map(e=>EDGE_LABELS[e.kind]))];
+    return [...new Set(plot?.edges.filter(e=>e.neighbor===partner?.id).map(e=>e.kind))];
   }, [id, level, partner]);
   const group = CATEGORY_META.find(c => c.id === def.category)!.label;
-  const matches = ELEMENTS.filter(e => (!category || category === e.category) && e.name.toLowerCase().includes(query.trim().toLowerCase()));
-  useEffect(() => { history.replaceState(null, "", "?id=" + id + "&level=" + level + "&variant=" + (variant + 1)); }, [id, level, variant]);
+  const matches = findGuideElements(query, category);
+  useEffect(() => {
+    const params = new URLSearchParams({ id, level: String(level), variant: String(variant + 1) });
+    const route = (location.protocol === "file:" ? "#" : "?") + params.toString();
+    history.replaceState(null, "", route);
+  }, [id, level, variant]);
   return <>
-    <header><div className="brand"><i aria-hidden="true" />Pixel Civilization</div><a href="./index.html">← Back to island</a></header>
+    <header><div className="brand"><i aria-hidden="true" />Pixel Civilization</div><a href={"./handbook.html#design="+id}>Illustrated design sheet ↗</a><a href="./index.html">← Back to island</a></header>
     <main>
       <aside aria-label="Element library">
         <h1>Island field guide</h1>
@@ -188,9 +197,9 @@ function Guide() {
       <article>
         <section className={"stage" + (night ? " night" : "")}>
           <div className="caption"><span>{group}</span><h2>{def.name}</h2></div>
-          <button className="light" aria-pressed={night} onClick={() => setNight(!night)}>{night ? "☾  Night" : "☀  Day"}</button>
-          <Model def={def} level={level} variant={variant} night={night} joined={joined} />
-          <div className="stage-foot"><span>Drag to rotate</span><div className="variants" aria-label="Visual variant">{["A","B","C","D"].map((letter, i) => <button key={letter} aria-label={"Variant " + letter} aria-pressed={variant === i} onClick={() => setVariant(i)}>{letter}</button>)}</div></div>
+          {!staticImage && <button className="light" aria-pressed={night} onClick={() => setNight(!night)}>{night ? "☾  Night" : "☀  Day"}</button>}
+          <Model def={def} level={level} variant={variant} night={night} joined={joined} onStatic={setStaticImage} />
+          <div className="stage-foot"><div className="style-info"><b>{styleNames[variant]}</b><span>{staticImage ? "Daylight illustration" : "Drag to rotate"}</span></div><div className="variants" aria-label="Visual variant">{["A","B","C","D"].map((letter, i) => <button key={letter} title={styleNames[i]} aria-label={"Variant " + letter} aria-pressed={variant === i} onClick={() => setVariant(i)}>{letter}</button>)}</div></div>
         </section>
         <section className="progression"><div className="entry-title"><h3>{d.levels[level-1]}</h3><span>{d.footprints[level-1].join(" × ")} tiles</span></div>
           <p>{d.growth}</p>
@@ -198,10 +207,10 @@ function Guide() {
             <small>Level {i+1}</small><strong>{name}</strong></button>)}</div>
         </section>
         <section className="connection-entry"><div className="join-heading"><h3>Neighbor connections</h3>
-          {partner && <button className="join-toggle" aria-pressed={joined} onClick={()=>setJoined(!joined)}>
+          {partner && !staticImage && <button className="join-toggle" aria-pressed={joined} onClick={()=>setJoined(!joined)}>
             {joined ? "Show element alone" : "Show beside " + partner.name}</button>}</div>
-          {joins.length>0 && <p className="join-readout">{(joined ? "Shown with " : "Compatible with ") + partner.name + " · " + joins.join(", ")}</p>}
-          {note ? <><p>{note.join}</p><p>{note.effect}</p></> : <p>{def.description}</p>}
+          {joins.length>0 && <p className="join-readout">{(joined ? "Shown with " : "Compatible with ") + partner.name + " · " + joins.map(kind=>EDGE_LABELS[kind]).join(", ")}</p>}
+          <p>{getGuideUsage(id,joins[0],def.description)}</p>
         </section>
       </article>
     </main>

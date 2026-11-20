@@ -4,6 +4,10 @@ The island has 173 buildable elements and four visual styles for each. The field
 
 ![The playable canal district](../previews/canal-district.jpg)
 
+## Illustrated player handbook
+
+Open **Game menu → Illustrated player handbook** to follow seven illustrated chapters. The **Design atlas** lets you search every element, compare all twenty modeled appearances on one sheet, check its footprint and requirements, and open the same design in the rotatable field guide. On a running server you can also visit `/handbook.html` directly.
+
 ## Try the canal district
 
 1. Open **Island tools → God controls → Explore the canal district**. The game saves your current sandbox as a snapshot. The district opens with two working quays, a mountain aqueduct, a lift bridge and three transit services.
@@ -20,7 +24,7 @@ Terrain tools unlock with the settlement. Roads, footways and rail can cross a c
 
 ## Running the game
 
-Use `npm install` and `npm run dev` for development. Run `npm run build` followed by `npm start` to play the production build. Both the island and the field guide are production entry points. Run `npm run lint` and `npm test` to check the code and game rules.
+Use `npm install` and `npm run dev` for development. Run `npm run build` followed by `npm start` to play the production build. The island, field guide and illustrated handbook are production entry points. Run `npm run lint` and `npm test` to check the code and game rules.
 
 ## Working on an element
 

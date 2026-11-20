@@ -60,7 +60,7 @@ function tryServeStaticFile(req: IncomingMessage, res: ServerResponse, rootDir: 
   res.statusCode = 200;
   res.setHeader("content-type", MIME_BY_EXT[ext] || "application/octet-stream");
   res.setHeader("x-content-type-options", "nosniff");
-  if (ext === ".png" || ext === ".jpg" || ext === ".ico") {
+  if (ext === ".png" || ext === ".jpg" || ext === ".webp" || ext === ".ico") {
     res.setHeader("cache-control", "public, max-age=3600");
   }
   if (req.method === "HEAD") {
@@ -92,7 +92,7 @@ export async function startServer(customPort?: number) {
           server: {
             middlewareMode: true,
             hmr: false,
-            ws: false,
+            ws: { server: httpServer },
             allowedHosts: true,
             watch: {
               ignored: ["**/dist/**", "**/.aistudio/**", "**/public/assets/aistudio/**"],
@@ -143,6 +143,10 @@ export async function startServer(customPort?: number) {
     if (tryServeStaticFile(req, res, distDir)) return;
     if (tryServeStaticFile(req, res, publicDir)) return;
 
+    if (path.extname(urlPath)) {
+      res.writeHead(404).end("Not Found");
+      return;
+    }
     const indexPath = path.join(distDir, "index.html");
     if (fs.existsSync(indexPath)) {
       res.statusCode = 200;
@@ -170,12 +174,11 @@ export async function startServer(customPort?: number) {
   });
 
   const close = async () => {
-    await new Promise<void>((resolve) => {
-      httpServer.close(() => resolve());
-    });
-    if (viteClose) {
-      await viteClose().catch(() => {});
-    }
+    process.off("SIGTERM", handleSignal);
+    process.off("SIGINT", handleSignal);
+    // Upgraded sockets must close before the shared HTTP server can drain.
+    if (viteClose) await viteClose().catch(() => {});
+    await new Promise<void>((resolve) => httpServer.close(() => resolve()));
   };
 
   const handleSignal = () => {

@@ -132,6 +132,7 @@ export const HeatmapPanel: React.FC<HeatmapPanelProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   if (!open) return null;
+  const legend=activeHeatmap==="clearance"?["Ample room","Close fit","Blocked"]:activeHeatmap==="lanes"?["6–8 lanes","4 lanes","2 lanes"]:activeHeatmap==="flow"?["Flowing","Low flow","Dry"]:activeHeatmap==="transit"?["Vehicle route","Limited","Obstruction"]:["Good","Edge","Missing"];
 
   return (
     <aside
@@ -203,15 +204,15 @@ export const HeatmapPanel: React.FC<HeatmapPanelProps> = ({
         <div className="flex items-center justify-between text-[10px] font-semibold text-stone-600">
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-xs bg-emerald-500" />
-            Good
+            {legend[0]}
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-xs bg-amber-500" />
-            Edge
+            {legend[1]}
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-xs bg-rose-500" />
-            Missing
+            {legend[2]}
           </span>
         </div>
         {activeHeatmap !== "none" && (

@@ -1,5 +1,5 @@
-import { ELEMENT_BY_ID, getStandardFootprintForLevel } from "./catalog";
-import { cellBeyondEdge, getParcelEdges, type ParcelEdge } from "./parcelEdges";
+import { ELEMENTS, ELEMENT_BY_ID, getStandardFootprintForLevel } from "./catalog";
+import { cellBeyondEdge, getParcelEdges, PARCEL_SIDES, type ParcelEdge } from "./parcelEdges";
 import { buildOccupancyMap, getNetworkConnMask, type PlacedElement } from "./simulation";
 
 const partners: Record<string,string> = {};
@@ -63,13 +63,26 @@ function model(id:string,level:number,rotation:number): PlacedElement {
 export interface NeighborPreview { el:PlacedElement; edges:ParcelEdge[]; mask:number }
 export const getGuidePartner = (id:string) => partners[id];
 
+export function findGuideElements(query: string, category: string) {
+  const term = query.trim().toLowerCase().replaceAll("_", " ");
+  return ELEMENTS.filter(def =>
+    (!category || (category === "starter" ? def.isStarter : def.category === category)) &&
+    (def.name.toLowerCase().includes(term) || def.id.replaceAll("_"," ").includes(term)));
+}
+
+/** Continuation tiles belong to the selected network's style, including its markings and track bed. */
+export function getGuideVariant(primary: string, other: string, variant: number, index: number) {
+  return index === 0 || (primary === other && ELEMENT_BY_ID[primary].isNetwork) ? variant : (variant + 1) % 4;
+}
+
 /** Build actual adjoining sites using the same sockets and network masks as the island. */
 export function getNeighborPreview(id:string,level:number): NeighborPreview[] {
   const a=model(id,level,0), other=partners[id];
   if(!other || !ELEMENT_BY_ID[other]) return [];
   let best:PlacedElement[] = [], bestScore=0;
   for(const side of [1,2,0,3]) for(let rotation=0;rotation<4;rotation++) {
-    const b=model(other,other===id?level:1,rotation); b.id+="-neighbor";
+    const companionLevel=other===id ? level : !ELEMENT_BY_ID[other].isNetwork && other!=="fields" ? Math.min(3,Math.max(1,level-1)) : 1;
+    const b=model(other,companionLevel,rotation); b.id+="-neighbor";
     const horizontal=side===0||side===2;
     const maxOffset=Math.max(0,horizontal?a.spanX-b.spanX:a.spanZ-b.spanZ);
     const center=Math.floor(maxOffset/2);
@@ -86,14 +99,30 @@ export function getNeighborPreview(id:string,level:number): NeighborPreview[] {
   }
   if(best.length===0) return [];
   const occupancy=buildOccupancyMap(best);
-  const stop=best.find(e=>e.defId==="bus_stops" || e.defId==="train_stops");
+  const site=best.find(e=>!ELEMENT_BY_ID[e.defId].isNetwork);
   const line=best.find(e=>ELEMENT_BY_ID[e.defId].isNetwork);
-  if(stop && line) {
-    const edge=getParcelEdges(stop,occupancy).find(e=>e.kind==="platform" || e.kind==="bus");
+  if(site && line) {
+    const edge=getParcelEdges(site,occupancy).find(e=>e.kind==="platform" || e.kind==="bus" || e.kind==="drive");
     if(edge) {
-      const [x,z]=cellBeyondEdge(stop,edge.side,edge.slot);
-      const alongX=x>=stop.gx && x<stop.gx+stop.spanX;
-      for(const k of [-1,1]) best.push({...line,id:line.id+k,gx:alongX ? x+k : x,gz:alongX ? z:z+k});
+      const [x,z]=cellBeyondEdge(site,edge.side,edge.slot);
+      const alongX=x>=site.gx && x<site.gx+site.spanX;
+      const from=alongX ? site.gx : site.gz;
+      const end=from+(alongX ? site.spanX : site.spanZ);
+      for(let i=from-1;i<=end;i++) {
+        const gx=alongX ? i : x, gz=alongX ? z : i;
+        if (!occupancy.has(gx+","+gz)) best.push({...line,id:line.id+"@"+i,gx,gz});
+      }
+    }
+  }
+  if(id==="farm_houses") {
+    // The guide shows a working cluster. Small homesteads have four free sides.
+    for(const side of PARCEL_SIDES) {
+      const length=side==="front" || side==="back" ? a.spanX : a.spanZ;
+      for(let slot=0;slot<length && best.length<6;slot++) {
+        const [gx,gz]=cellBeyondEdge(a,side,slot);
+        if(occupancy.has(gx+","+gz)) continue;
+        best.push({...best[1],id:"field@"+gx+","+gz,gx,gz});
+      }
     }
   }
   const occ=buildOccupancyMap(best);

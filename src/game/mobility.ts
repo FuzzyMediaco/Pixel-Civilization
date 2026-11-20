@@ -2,6 +2,7 @@ import { ELEMENT_BY_ID } from "./catalog";
 import type { GameState, PlacedElement } from "./simulation";
 import {
   applyInfrastructureStroke,
+  registerRoadDemand,
   requestVesselPassage,
   roadTravelOpen,
   type GridPoint,
@@ -138,6 +139,32 @@ const hullFor = (mode: TravelMode) => (marine(mode) ? waterHull[mode as keyof ty
 const allStops = (line: Run) => [line.depot, ...line.stops.filter((id) => id !== line.depot)];
 const legOptions = (net: TravelNetwork, stop: PlacedElement, mode: TravelMode) =>
   net.connectors(stop, mode, hullFor(mode));
+// A depot can face two disconnected streets or basins. Keep the same arrival berth
+// for the next departure so a route cannot cross a building between legs.
+function circuitStart(net: TravelNetwork, mode: TravelMode, route: string[]) {
+  const stops = route.map((id) => net.byId.get(id)).map((e) => (e ? legOptions(net, e, mode) : []));
+  let failedLeg = 1;
+  for (const departure of stops[0]) {
+    let start = departure,
+      complete = true;
+    for (let i = 1; i < stops.length; i++) {
+      const path = net.path([start], i === stops.length - 1 ? [departure] : stops[i], mode, hullFor(mode));
+      if (!path) {
+        failedLeg = Math.max(failedLeg, i);
+        complete = false;
+        break;
+      }
+      start = path[path.length - 1];
+    }
+    if (complete) return { departure, failedLeg };
+  }
+  return { departure: undefined, failedLeg };
+}
+function servingNow(s: GameState, l: Run) {
+  if (!l.enabled || l.blocked) return false;
+  const night = s.timeOfDay < 6 || s.timeOfDay >= 21;
+  return l.at !== l.depot || l.schedule === "all" || (night ? l.schedule === "night" : l.schedule === "day");
+}
 export function addLine(s: GameState, mode: TravelMode, depot: string, stops: string[]): string {
   if (!eligibleDepots(s, mode).some((e) => e.id === depot))
     throw new Error("Choose a depot or staffed landing for this service.");
@@ -148,21 +175,11 @@ export function addLine(s: GameState, mode: TravelMode, depot: string, stops: st
   const m = mobilityOf(s),
     net = getTravelNetwork(s);
   const route = [depot, ...ordered.filter((id) => id !== depot), depot];
-  let departure: Point | undefined;
-  for (let i = 1; i < route.length; i++) {
-    const a = legOptions(net, net.byId.get(route[i - 1])!, mode),
-      b = legOptions(net, net.byId.get(route[i])!, mode);
-    const path = net.path(a, b, mode, hullFor(mode));
-    if (i === 1 && path) departure = path[0];
-    if (!path) {
-      const info = net.diagnose(
-        perimeter(net.byId.get(route[i - 1])!),
-        perimeter(net.byId.get(route[i])!),
-        mode,
-        hullFor(mode),
-      );
-      throw new Error(info.reason);
-    }
+  const { departure, failedLeg } = circuitStart(net, mode, route);
+  if (!departure) {
+    const previous = net.byId.get(route[failedLeg - 1])!,
+      next = net.byId.get(route[failedLeg])!;
+    throw new Error(net.diagnose(perimeter(previous), perimeter(next), mode, hullFor(mode)).reason);
   }
   const id = "line-" + m.nextId++;
   m.lines.push({
@@ -194,14 +211,17 @@ export function autoStops(s: GameState, mode: TravelMode, depot: string): string
     origin = net.byId.get(depot);
   if (!origin) return [];
   const a = legOptions(net, origin, mode);
-  return eligibleStops(s, mode)
-    .flatMap((e) => {
-      const path = net.path(a, legOptions(net, e, mode), mode, hullFor(mode));
-      return path ? [{ id: e.id, d: path.length }] : [];
-    })
-    .sort((x, y) => x.d - y.d)
-    .slice(0, 6)
-    .map((e) => e.id);
+  const candidates = eligibleStops(s, mode)
+    .map((e) => ({ id: e.id, path: net.path(a, legOptions(net, e, mode), mode, hullFor(mode)) }))
+    .filter((item) => item.path)
+    .sort((x, y) => x.path!.length - y.path!.length);
+  const result: string[] = [];
+  for (const { id } of candidates) {
+    const route = [depot, ...result.filter((s) => s !== depot), ...(id === depot ? [] : [id]), depot];
+    if (circuitStart(net, mode, route).departure) result.push(id);
+    if (result.length === 6) break;
+  }
+  return result;
 }
 const capacities: Record<TravelMode, number> = { bus: 26, rail: 72, taxi: 4, ferry: 45, gondola: 8, freight: 24 };
 const speeds: Record<TravelMode, number> = {
@@ -224,10 +244,10 @@ function localDemand(net: TravelNetwork, stop: PlacedElement): number {
   }
   return result;
 }
-function transferAt(m: MobilityState, l: Run, here: PlacedElement, net: TravelNetwork) {
+function transferAt(s: GameState, m: MobilityState, l: Run, here: PlacedElement, net: TravelNetwork) {
   if (l.mode === "freight") return undefined;
   for (const other of m.lines) {
-    if (other === l || !other.enabled || other.blocked || other.mode === "freight") continue;
+    if (other === l || !servingNow(s, other) || other.mode === "freight") continue;
     for (const id of other.stops) {
       const pickup = net.byId.get(id);
       if (!pickup) continue;
@@ -246,7 +266,7 @@ function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElemen
   for (const r of arrived) {
     // A transfer is one ongoing passenger journey; record arrival once at the final stop.
     if (r.transfer) {
-      const transfer = transferAt(m, l, stop, net);
+      const transfer = transferAt(s, m, l, stop, net);
       if (transfer) {
         const readyAt = s.activePlaySec + transfer.distance / 1.4;
         (m.transfers[transfer.pickup] ??= []).push({
@@ -270,7 +290,7 @@ function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElemen
   }
   if (!l.stops.includes(stop.id)) return;
   if (l.mode === "taxi" && (l.callsSinceDepot ?? 0) >= l.stops.length && !l.riders.length) return;
-  const waiting = m.transfers[stop.id] ?? [];
+  const waiting = l.mode === "freight" ? [] : (m.transfers[stop.id] ?? []);
   let room = capacities[l.mode] - l.riders.reduce((n, r) => n + r.count, 0);
   for (const r of waiting) {
     if (!room || !l.stops.includes(r.destination) || (r.readyAt ?? 0) > s.activePlaySec) continue;
@@ -279,12 +299,21 @@ function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElemen
     r.count -= n;
     room -= n;
   }
-  m.transfers[stop.id] = waiting.filter((r) => r.count > 0);
-  const targets = l.stops.filter(
-    (id) => id !== stop.id && net.byId.has(id) && localDemand(net, net.byId.get(id)!) > 0,
-  );
+  if (l.mode !== "freight") m.transfers[stop.id] = waiting.filter((r) => r.count > 0);
+  function demand(at: PlacedElement) {
+    if (l.mode !== "freight") return localDemand(net, at);
+    let goods = 0;
+    for (const id of net.catchment(at)) {
+      const e = net.byId.get(id),
+        a = s.economy?.sites[id];
+      if (!e?.connected || e.onFire || !a) continue;
+      goods += Math.max(0, a.exportRate) + Math.max(0, a.yieldRate) + Math.max(0, a.retail);
+    }
+    return goods;
+  }
+  const targets = l.stops.filter((id) => id !== stop.id && net.byId.has(id) && demand(net.byId.get(id)!) > 0);
   if (!targets.length || room <= 0) return;
-  const busy = s.timeOfDay < 5 || s.timeOfDay >= 22 ? 0.38 : 1;
+  const busy = l.mode !== "freight" && (s.timeOfDay < 5 || s.timeOfDay >= 22) ? 0.38 : 1;
   // Residents arrive between departures. Retain anyone left behind and the time their queue began.
   l.lastBoarding ??= {};
   l.waiting ??= {};
@@ -293,15 +322,13 @@ function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElemen
   l.lastBoarding[stop.id] = s.activePlaySec;
   const competition = Math.max(
     1,
-    m.lines.filter((line) => line.enabled && !line.blocked && line.stops.includes(stop.id) && line.mode === l.mode)
-      .length,
+    m.lines.filter((line) => servingNow(s, line) && line.stops.includes(stop.id) && line.mode === l.mode).length,
   );
   const rate =
-    (localDemand(net, stop) *
+    (demand(stop) *
       busy *
       l.demandScale *
-      m.demand *
-      Math.min(2, Math.sqrt(Math.max(s.population, 1)) / 7)) /
+      (l.mode === "freight" ? 1 : m.demand * Math.min(2, Math.sqrt(Math.max(s.population, 0)) / 7))) /
     10 /
     competition;
   const queue = (l.waiting[stop.id] ??= { people: 0, since: previous + elapsed * 0.5 });
@@ -313,7 +340,7 @@ function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElemen
   queue.people -= count;
   const destination = targets[l.departures % targets.length];
   const dest = net.byId.get(destination)!;
-  const transferCount = transferAt(m, l, dest, net) ? Math.floor(count / 4) : 0;
+  const transferCount = transferAt(s, m, l, dest, net) ? Math.floor(count / 4) : 0;
   if (transferCount)
     l.riders.push({ destination, boarded: s.activePlaySec, waited, count: transferCount, transfer: true });
   l.riders.push({ destination, boarded: s.activePlaySec, waited, count: count - transferCount });
@@ -375,6 +402,8 @@ function advance(
         return "following";
       }
     }
+    if (mode === "bus" || mode === "taxi")
+      registerRoadDemand(s, b[0], b[1], b[0] - a[0], b[1] - a[1], ds / speeds[mode]);
     const ok = hull
       ? requestVesselPassage(s, b[0], b[1], hull.height)
       : roadTravelOpen(s, b[0], b[1], b[0] - a[0], b[1] - a[1]);
@@ -680,7 +709,7 @@ export interface TransitReport {
 }
 export function transitReadout(s: GameState): TransitReport {
   const m = s.mobility,
-    lines = m?.lines.filter((l) => l.enabled && !l.blocked) ?? [];
+    lines = m?.lines.filter((l) => servingNow(s, l)) ?? [];
   const reachable = new Set<string>(),
     samples = m?.deliveries.filter((r) => s.activePlaySec - r.time <= 120) ?? [];
   let served = 0,
@@ -733,9 +762,11 @@ export function transitReadout(s: GameState): TransitReport {
     }
   }
   const coverage = potential ? Math.round((100 * covered) / potential) : 0;
-  const scheduled = m?.lines.filter((l) => l.enabled).length ?? 0;
+  const scheduled =
+    m?.lines.filter((l) => l.mode !== "freight" && l.enabled && servingNow(s, { ...l, blocked: false })).length ??
+    0;
   const reliability = scheduled
-    ? Math.round((100 * lines.filter((l) => !l.status.startsWith("Waiting at")).length) / scheduled)
+    ? Math.round((100 * lines.filter((l) => l.mode !== "freight").length) / scheduled)
     : 0;
   const wait = served ? sumWait / served : 0;
   const score = served
@@ -815,16 +846,7 @@ export function previewWaterPassage(s: GameState, tool: InfrastructureTool, poin
   }
   for (const line of s.mobility?.lines ?? []) {
     if (!marine(line.mode) || !line.enabled) continue;
-    const ids = [...allStops(line), line.depot],
-      hull = hullFor(line.mode);
-    const joins = ids.every((id, i) => {
-      if (!i) return true;
-      const a = net.byId.get(ids[i - 1]),
-        b = net.byId.get(id);
-      return (
-        a && b && net.path(net.connectors(a, line.mode, hull), net.connectors(b, line.mode, hull), line.mode, hull)
-      );
-    });
+    const joins = circuitStart(net, line.mode, [...allStops(line), line.depot]).departure;
     if (!joins || line.blocked)
       messages.push(
         modeNames[line.mode] +

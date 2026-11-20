@@ -1,7 +1,7 @@
 import { hasNavigableHarbor, reliefAtStops, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
 import { advanceEconomy, buildingCharges, cityWealth, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
 import { advanceOperations, type ProjectOps } from "./projectOperations";
-import { vesselIds } from "./travelNetwork";
+import { vesselIds,waterHull } from "./travelNetwork";
 import {
   CRIME_UNLOCK_MIN_POP,
   CRIME_UNLOCK_STAGE,
@@ -15,7 +15,7 @@ import {
   getUpgradeCost,
   getMaxElementLevel,
 } from "./catalog";
-import { advanceReservoirs, getTerrainCell, islandMargin, freshWaterFactor, hydroHead, streetLaneFactor, hydraulics, buildWaterNavigation, type Infrastructure } from "./terrain";
+import { advanceReservoirs, getTerrainCell, islandMargin, freshWaterFactor, hydroHead, streetLaneFactor, roadPortOpen, hydraulics, buildWaterNavigation, type Infrastructure } from "./terrain";
 import { generationExposure } from "./parcelExposure";
 import { autoFrontageRotation, cellBeyondEdge, parcelAccessSteps, getParcelEdges, getParcelEffectSummary, PARCEL_SIDES, type LocalSide, type EdgeOverride } from "./parcelEdges";
 import { separatedDeckAxis } from "./roadTopology";
@@ -282,6 +282,7 @@ export interface GameEventToast {
 }
 
 export interface GameState {
+  playSpeed?: number;
   constructionHistory?: import("./constructionHistory").BuildingEdit[];
   economy?: Economy;
   projectOps?: ProjectOps;
@@ -742,7 +743,7 @@ export function getNetworkConnMask(
     } else if (def.isWaterFeature) {
       if (nbDef.isWaterFeature || nb.waterUnderlay || nb.overWater || nbDef.archetype === "dock_pier") mask |= roadBit;
     } else if (def.isRoadNetwork) {
-      if (nbDef.isRoadNetwork) {
+      if (nbDef.isRoadNetwork && roadPortOpen(state,el.gx,el.gz,dx,dz)) {
         mask |= roadBit;
         if (networkDeckClass(nbDef) !== myDeck) mask |= rampBit;
       } else if (entranceSides?.has(PARCEL_SIDES[Math.log2(roadBit)])) {
@@ -869,7 +870,7 @@ function analyzeRoadNetwork(elements: PlacedElement[], state?:GameState): RoadNe
     if (!d?.isRoadNetwork) continue;
     const key = `${e.gx},${e.gz}`;
     roadTiles.add(key);
-    if (networkDeckClass(d) !== "ground" && separatedDeckAxis(getNetworkConnMask(elements, e, occ)) >= 0) split.add(key);
+    if (networkDeckClass(d) !== "ground" && separatedDeckAxis(getNetworkConnMask(elements, e, occ,state)) >= 0) split.add(key);
   }
   const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   const nodeKey = (coord: string, dx: number) => dx !== 0 && split.has(coord) ? coord + "/ew" : coord;
@@ -892,7 +893,7 @@ function analyzeRoadNetwork(elements: PlacedElement[], state?:GameState): RoadNe
           const nx = cx + dx, nz = cz + dz;
           const neighbor = `${nx},${nz}`;
           const next = nodeKey(neighbor, dx);
-          if (!roadTiles.has(neighbor) || component.has(next)) continue;
+          if (!roadTiles.has(neighbor) || component.has(next) || !roadPortOpen(state,cx,cz,dx,dz)) continue;
           component.set(next, sequence);
           queue.push([nx, nz, Math.abs(dx)]);
         }
@@ -1003,7 +1004,7 @@ export function getConnectedRailCoordSet(elements: PlacedElement[]): Set<string>
 
   const activeComps = new Set<number>();
   for (const el of elements) {
-    if ((el.defId !== "train_stops" && el.defId !== "train_depots") || el.onFire) continue;
+    if ((el.defId !== "train_stops" && el.defId !== "train_depots") || el.onFire || el.disrepair) continue;
     for (const edge of getParcelEdges(el,occ)) {
       if(edge.kind!=="platform") continue;
       const [x,z] = cellBeyondEdge(el,edge.side,edge.slot);
@@ -1072,48 +1073,11 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   }
 
   // 3. Spatial radii: Police coverage, Fire coverage, and Nuisance proximity
-  const authorized = hasAuthority(state);
-  const policeSources = elements.filter((e) => {
-    const d = ELEMENT_BY_ID[e.defId];
-    return authorized && e.connected && !e.onFire && !e.disrepair && professionalStaff(state,e)>=1 && (d?.policeRadius ?? 0) > 0;
-  });
-  const fireSources = elements.filter((e) => {
-    const d = ELEMENT_BY_ID[e.defId];
-    return authorized && e.connected && !e.onFire && !e.disrepair && professionalStaff(state,e)>=1 && (d?.fireRadius ?? 0) > 0;
-  });
   const waterUnderlays = elements.flatMap(e => e.waterUnderlay ? [e.waterUnderlay] : []);
   const layout = analyzeLayout(waterUnderlays.length ? [...elements, ...waterUnderlays] : elements, (x,z) => isCoastalTile(x,z,state),state.infrastructure?.stamp ?? state.infrastructure?.revision);
 
   for (const el of elements) {
-    el.hasPoliceCover = false;
-    el.hasFireCover = false;
     el.nuisancePenalty = 0;
-
-    const cx = el.gx + el.spanX * 0.5;
-    const cz = el.gz + el.spanZ * 0.5;
-
-    for (const p of policeSources) {
-      const pDef = ELEMENT_BY_ID[p.defId]!;
-      const effMult = p.disrepair ? 0.45 : 1 + (p.level - 1) * 0.18;
-      const rad = (pDef.policeRadius ?? 10) * effMult;
-      const dist = Math.hypot(cx - (p.gx + p.spanX * 0.5), cz - (p.gz + p.spanZ * 0.5));
-      if (dist <= rad) {
-        el.hasPoliceCover = true;
-        break;
-      }
-    }
-
-    for (const f of fireSources) {
-      const fDef = ELEMENT_BY_ID[f.defId]!;
-      const effMult = f.disrepair ? 0.5 : 1 + (f.level - 1) * 0.18;
-      const rad = (fDef.fireRadius ?? 12) * effMult;
-      const dist = Math.hypot(cx - (f.gx + f.spanX * 0.5), cz - (f.gz + f.spanZ * 0.5));
-      if (dist <= rad) {
-        el.hasFireCover = true;
-        break;
-      }
-    }
-
     const def = ELEMENT_BY_ID[el.defId];
     const border = borderEffects.get(el.id)!;
     const pol = Math.max(0,sampleFieldAvg(layout.pollution, el)-border.cooling);
@@ -1280,16 +1244,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (def.government) {
       m.govSupply += Math.round(def.government * lvMult * serviceHealth);
     }
-    if (authorized && def.police) {
-      policePoints += Math.round(def.police * lvMult * serviceHealth);
-    }
-    if (authorized && def.military) {
-      militaryPower += Math.round(def.military * lvMult * serviceHealth);
-    }
-    if (!def.isNetwork && !def.passiveNature && (def.popBase || def.jobs)) {
-      coverableBuildings += 1;
-      if (!el.hasPoliceCover) uncoveredBuildings += 1;
-    }
+
   }
 
   // Population calculation:
@@ -1344,8 +1299,68 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   m.educationSupply=effective(state,"schools",m.educationSupply);
   m.wasteCapacity=effective(state,"waste",m.wasteCapacity);
   m.recreationSupply=effective(state,"parks",m.recreationSupply);
-  evaluateEconomy(state,m,baseHousingPop,elementRoadComps,service.reachable,borderEffects,service.districts,congestedEls);
+  const freightSites = elements.filter(el => el.defId === "freight_rail_terminal");
+  const freightRail = new Set<string>();
+  if (freightSites.length) {
+    const tracks = getConnectedRailCoordSet(elements);
+    for (const el of freightSites) {
+      if (getParcelEdges(el,parcelOccupancy,state).some(edge => edge.kind === "freight" && tracks.has(cellBeyondEdge(el,edge.side,edge.slot).join(",")))) freightRail.add(el.id);
+    }
+  }
+  evaluateEconomy(state,m,baseHousingPop,elementRoadComps,service.reachable,borderEffects,service.districts,congestedEls,freightRail);
 
+  // Dispatch and incident risk use the workforce just calculated for this layout.
+  const authorized = hasAuthority(state);
+  const policeSources = elements.filter((e) => {
+    const d = ELEMENT_BY_ID[e.defId];
+    return authorized && e.connected && !e.onFire && !e.disrepair && professionalStaff(state,e)>=1 && (d?.policeRadius ?? 0) > 0;
+  });
+  const fireSources = elements.filter((e) => {
+    const d = ELEMENT_BY_ID[e.defId];
+    return authorized && e.connected && !e.onFire && !e.disrepair && professionalStaff(state,e)>=1 && (d?.fireRadius ?? 0) > 0;
+  });
+  for(const el of elements){
+    el.hasPoliceCover = false;
+    el.hasFireCover = false;
+
+    const cx = el.gx + el.spanX * 0.5;
+    const cz = el.gz + el.spanZ * 0.5;
+
+    for (const p of policeSources) {
+      const pDef = ELEMENT_BY_ID[p.defId]!;
+      const effMult = p.disrepair ? 0.45 : 1 + (p.level - 1) * 0.18;
+      const rad = (pDef.policeRadius ?? 10) * effMult;
+      const dist = Math.hypot(cx - (p.gx + p.spanX * 0.5), cz - (p.gz + p.spanZ * 0.5));
+      if (dist <= rad) {
+        el.hasPoliceCover = true;
+        break;
+      }
+    }
+
+    for (const f of fireSources) {
+      const fDef = ELEMENT_BY_ID[f.defId]!;
+      const effMult = f.disrepair ? 0.5 : 1 + (f.level - 1) * 0.18;
+      const rad = (fDef.fireRadius ?? 12) * effMult;
+      const dist = Math.hypot(cx - (f.gx + f.spanX * 0.5), cz - (f.gz + f.spanZ * 0.5));
+      if (dist <= rad) {
+        el.hasFireCover = true;
+        break;
+      }
+    }
+
+    const def=ELEMENT_BY_ID[el.defId]; if(!def||!el.connected||el.onFire)continue;
+    const lvMult=2**(el.level-1),serviceHealth=(el.disrepair?.25:1)*synergyMultiplier(el.synergies?.length??0);
+    if (authorized && professionalStaff(state,el)>=1 && def.police) {
+      policePoints += Math.round(def.police * lvMult * serviceHealth);
+    }
+    if (authorized && professionalStaff(state,el)>=1 && def.military) {
+      militaryPower += Math.round(def.military * lvMult * serviceHealth);
+    }
+    if (!def.isNetwork && !def.passiveNature && (def.popBase || def.jobs)) {
+      coverableBuildings += 1;
+      if (!el.hasPoliceCover) uncoveredBuildings += 1;
+    }
+  }
   // Crime strictly unlocks only when Police elements become available (Stage 5 · 85,000 pop) in Real/Survival,
   // or when explicitly toggled ON via godCrimeEnabled in God Mode.
   m.crimeUnlocked =
@@ -2651,7 +2666,7 @@ export function computeHeatmapCells(state: GameState, kind: HeatmapKind): Heatma
   if (kind === "neighbors") {
     const occupied=buildOccupancyMap(state.elements);
     return state.elements.filter(e=>!ELEMENT_BY_ID[e.defId]?.isNetwork).map(e=>({
-      gx:e.gx,gz:e.gz,score:Math.min(1,getParcelEdges(e,occupied).length/3)
+      gx:e.gx,gz:e.gz,score:Math.min(1,getParcelEdges(e,occupied,state).length/3)
     }));
   }
 
@@ -2698,7 +2713,7 @@ export function computeHeatmapCells(state: GameState, kind: HeatmapKind): Heatma
     const i=state.infrastructure;
     if(kind==="flow")for(const [k,flow] of hydraulics(state).channels){const [x,z]=k.split(",").map(Number);setSample(x,z,Math.min(1,.5+flow/40));}
     if(kind==="flow")for(const [k,r] of hydraulics(state).runs){const [x,z]=k.split(",").map(Number);setSample(x,z,r.flow?Math.min(1,.5+r.flow/40):-1);}
-    if(kind==="clearance"){const water=buildWaterNavigation(state);for(let x=GRID_MIN;x<=GRID_MAX;x++)for(let z=GRID_MIN;z<=GRID_MAX;z++){const c=water.cell(x,z);if(c.depth>0)setSample(x,z,Math.max(-1,Math.min(1,Math.min(c.width/4.25,c.depth/.8,c.clearance/2.1)*2-1)));}}
+    if(kind==="clearance"){const water=buildWaterNavigation(state);for(let x=GRID_MIN;x<=GRID_MAX;x++)for(let z=GRID_MIN;z<=GRID_MAX;z++){const c=water.cell(x,z);if(c.depth>0)setSample(x,z,water.canPass(x,z,waterHull.ferry)?Math.min(1,Math.max(0,Math.min(c.width/waterHull.ferry.beam,c.depth/waterHull.ferry.draft,c.clearance/waterHull.ferry.height)-1)*2):-1);}}
     if(kind==="lanes")for(const e of state.elements){const d=ELEMENT_BY_ID[e.defId];if(!d?.isRoadNetwork)continue;const lane=i?.streets[`${e.gx},${e.gz}`]?.lanes??(d.id==="freeways"?6:d.id==="highways"?4:2);setSample(e.gx,e.gz,lane/4-1);}
     return Array.from(samples.values());
   }

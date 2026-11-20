@@ -45,11 +45,7 @@ export function loadSaveSlots(): (CivilizationSaveSlot | null)[] {
 }
 
 function persistSlots(slots: (CivilizationSaveSlot | null)[]): void {
-  try {
-    localStorage.setItem(SLOTS_STORAGE_KEY, JSON.stringify(slots));
-  } catch {
-    // Ignore storage quota issues
-  }
+  localStorage.setItem(SLOTS_STORAGE_KEY, JSON.stringify(slots));
 }
 
 export function cloneGameStateSnapshot(state: GameState): GameState {

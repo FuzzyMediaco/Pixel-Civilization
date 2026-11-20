@@ -273,3 +273,5 @@
 }
 
 .works-confirm small { flex-basis: 100%; font-size: 12px; }
+
+.storage-notice{position:fixed;z-index:49;left:50%;top:56px;transform:translateX(-50%);max-width:90vw;background:#ffe5aa;color:#512a15;border:1px solid #ba8045;border-radius:5px;padding:6px 11px;font-size:13px}

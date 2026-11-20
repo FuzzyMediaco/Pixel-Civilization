@@ -9,7 +9,6 @@ export default defineConfig({
     port: 3000,
     allowedHosts: true,
     hmr: false,
-    ws: false,
     watch: {
       ignored: ["**/dist/**", "**/.aistudio/**", "**/public/assets/aistudio/**"],
     },
@@ -17,7 +16,7 @@ export default defineConfig({
   build: {
     outDir: "dist",
     target: "es2022",
-    rolldownOptions: { input: { island: "index.html", guide: "field-guide.html" } },
+    rolldownOptions: { input: { island: "index.html", guide: "field-guide.html", handbook:"handbook.html" } },
     emptyOutDir: true,
   },
 });

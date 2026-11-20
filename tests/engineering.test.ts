@@ -5,6 +5,7 @@ import {
   createInitialGameState,
   checkPlacementValid,
   recomputeConnectivityAndMetrics,
+  getNetworkConnMask,
   type PlacedElement,
 } from "../src/game/simulation";
 import { ELEMENT_BY_ID } from "../src/game/catalog";
@@ -19,6 +20,8 @@ import {
   undoInfrastructure,
   readWaterService,
   registerRoadDemand,
+  hydroHead,
+  roadPortOpen,
 } from "../src/game/terrain";
 const p = (gx: number, gz: number) => ({ gx, gz });
 test("a carved channel is navigable, persists below a bridge, and opens lift traffic in sequence", () => {
@@ -262,4 +265,72 @@ test("lowering an adjoining outlet lets a pond spill with conserved volume and u
   assert.ok(undoInfrastructure(s));
   assert.equal(getTerrainCell(s, 0, 0).depth, 2);
   assert.equal(getTerrainCell(s, 1, 0).depth, 0);
+});
+
+test("opening a dam releases the raised pool; exposed banks limit retained head", () => {
+  const s = createInitialGameState("god");
+  s.elements = [];
+  draw(s, { kind: "river", depth: 2, waterLevel: -1.5 }, [p(0, -3), p(0, 3)]);
+  const natural = getTerrainCell(s, 0, -1).waterLevel,
+    down = getTerrainCell(s, 0, 1).waterLevel;
+  const site = { gx: 0, gz: 0, spanX: 1, spanZ: 1 };
+  assert.ok(draw(s, { kind: "dam", height: 4, gate: "closed" }, [p(0, 0)]).valid);
+  assert.equal(getTerrainCell(s, 0, -1).waterLevel, 0);
+  assert.equal(getTerrainCell(s, 0, 1).waterLevel, down);
+  assert.ok(hydroHead(s, site) > 1 && hydroHead(s, site) < 2);
+  assert.ok(draw(s, { kind: "dam", gate: "open" }, [p(0, 0)]).valid);
+  assert.equal(getTerrainCell(s, 0, -1).waterLevel, natural);
+  assert.ok(hydroHead(s, site) < 0.2);
+});
+test("even a fully open lift rejects a mast higher than the raised deck", () => {
+  const s = createInitialGameState("god");
+  s.elements = [];
+  draw(s, { kind: "canal", depth: 2 }, [p(0, -3), p(0, 3)]);
+  draw(s, { kind: "bridge", shape: "lift", height: 1, mode: "road" }, [p(-1, 0), p(1, 0)]);
+  const c = buildWaterNavigation(s).cell(0, 0),
+    height = c.clearance + 0.01;
+  assert.ok(c.clearance > 5 && c.clearance < 7);
+  assert.equal(requestVesselPassage(s, 0, 0, height), false);
+  assert.equal(s.infrastructure!.spans["0,0"].requestedAt, undefined);
+  assert.ok(!buildWaterNavigation(s).canPass(0, 0, { draft: 0.3, beam: 1.2, height }));
+});
+test("interchange ramps join the main road only at painted merge points, including when rotated", () => {
+  for (const r of [0, 1]) {
+    const s = createInitialGameState("god");
+    s.elements = [];
+    assert.ok(draw(s, { kind: "interchange", layout: "diamond", lanes: 4, orientation: r }, [p(0, 0)]).valid);
+    const [x, z] = r ? [-1, 1] : [1, 1],
+      [dx, dz] = r ? [1, 0] : [0, -1];
+    const axis = r ? "z" : "x",
+      rx = r ? 0 : -1,
+      rz = r ? -1 : 0;
+    const near = surfaceTravelHeight(s, rx, rz, axis, 0.99),
+      far = surfaceTravelHeight(s, rx, rz, axis, 0.01);
+    assert.ok(near - far > 1.2);
+    assert.ok(Math.abs(near - surfaceTravelHeight(s, 0, 0, axis, 0.01)) < 0.3);
+    assert.ok(!roadPortOpen(s, x, z, dx, dz));
+    assert.ok(roadPortOpen(s, x, z, -dx, -dz));
+    const e = s.elements.find((e) => e.gx === x && e.gz === z)!;
+    const mask = getNetworkConnMask(s.elements, e, undefined, s);
+    assert.equal(mask & 15, r ? 12 : 6);
+    assert.equal(s.infrastructure!.streets[x + "," + z].signal, "yield");
+    draw(s, { kind: "street", lanes: 2, signal: "east" }, [p(x, z)]);
+    assert.ok(!roadPortOpen(s, x, z, dx, dz));
+    assert.ok(!draw(s, { kind: "bridge", shape: "arch" }, [p(-3, 0), p(3, 0)]).valid);
+  }
+});
+test("spring intake, bend and receiving drop use their actual neighboring ports", () => {
+  const s = createInitialGameState("god");
+  s.elements = [];
+  draw(s, { kind: "spring", depth: 1, flow: 12 }, [p(-1, 0)]);
+  draw(s, { kind: "aqueduct", height: 2 }, [p(0, 0), p(2, 0), p(2, 1)]);
+  s.elements.push(site("farms", 2, 2));
+  const runs = hydraulics(s).runs;
+  assert.equal(runs.get("0,0")?.inlet, 3);
+  assert.ok(!runs.get("0,0")?.spill);
+  assert.equal(runs.get("2,0")?.upstream, 3);
+  assert.equal(runs.get("2,1")?.upstream, 0);
+  assert.equal(runs.get("2,1")?.deliveries, 4);
+  draw(s, { kind: "aqueduct", height: 2, outlet: "north" }, [p(1, 0)]);
+  assert.ok(hydraulics(s).runs.get("1,0")?.spill);
 });

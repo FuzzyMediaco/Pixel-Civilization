@@ -35,7 +35,8 @@ export interface BuiltVoxelAsset {
   siteSpecific?: boolean;
 }
 
-export function buildDesignAsset(
+/** Build once through this path for the island, field guide, and handbook artwork. */
+export function buildDesignVoxels(
   def: CivElementDef,
   lv: number,
   variant: number,
@@ -43,15 +44,10 @@ export function buildDesignAsset(
   spanZ: number,
   connMask: number,
   appearance: ParcelAppearance = {},
-): BuiltVoxelAsset {
+) {
   const design = getDesign(def.id);
   if (!design) throw new Error(`Missing civilization design: ${def.id}`);
-  // Old saves retain their occupied cells. Fit the complete current model inside that site rather
-  // than cutting off a tower wing, ship bow, or moving part at a legacy footprint boundary.
   const [designX, designZ] = design.footprints[lv - 1];
-  const fit = Math.min(1, spanX / designX, spanZ / designZ);
-  const unit = VOXEL_SIZE * fit;
-  const groundShift = def.domain === "land" ? VOXEL_SIZE - unit : 0;
   const c = makeCtx(def.id, lv, variant, designX, designZ, connMask);
   c.parcelEdges = appearance.edges;
   try {
@@ -61,8 +57,19 @@ export function buildDesignAsset(
     c.v.box(-c.hx + 2, 0, -c.hz + 2, c.hx - 2, 6, c.hz - 2, "magenta");
   }
   trimLandscapeEdge(def, c.v, c.hx, c.hz);
-  applyParcelAppearance(c, appearance);
+  applyParcelAppearance(c, appearance, spanX, spanZ);
   clampVoxToFootprint(c.v, c.hx, c.hz);
+  return c;
+}
+
+export function buildDesignAsset(
+  def: CivElementDef, lv: number, variant: number, spanX: number, spanZ: number, connMask: number,
+  appearance: ParcelAppearance = {},
+): BuiltVoxelAsset {
+  const c=buildDesignVoxels(def,lv,variant,spanX,spanZ,connMask,appearance);
+  // Old saves retain their occupied cells. Fit the complete model, including its moving parts.
+  const fit=Math.min(1,spanX/c.spanX,spanZ/c.spanZ), unit=VOXEL_SIZE*fit;
+  const groundShift=def.domain==="land" ? VOXEL_SIZE-unit : 0;
   const mesh = (v: PixelVox) => {
     const geometry = buildVoxelGeometry(v, unit);
     const boost = appearance.lighting === "dark" ? 0 : appearance.lighting === "lit" ? 2.1 : def.id === "bars" ? 1.8 : 1;

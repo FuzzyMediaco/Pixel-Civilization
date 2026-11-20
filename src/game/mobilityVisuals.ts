@@ -110,7 +110,8 @@ export class MobilityVisuals {
   ) {
     this.used.add(id);
     let mesh = this.objects.get(id);
-    if (!mesh) {
+    if (!mesh || mesh.userData.kind !== kind) {
+      if (mesh) this.root.remove(mesh);
       let geo = this.geometries.get(kind);
       if (!geo) {
         geo = ["bus", "rail", "taxi"].includes(kind)
@@ -119,6 +120,7 @@ export class MobilityVisuals {
         this.geometries.set(kind, geo);
       }
       mesh = new THREE.Mesh(geo, getPixelVoxelMaterial());
+      mesh.userData.kind = kind;
       mesh.castShadow = true;
       this.root.add(mesh);
       this.objects.set(id, mesh);
@@ -148,7 +150,7 @@ export class MobilityVisuals {
       const curb = water || l.mode === "rail" ? 0 : 0.38;
       const xx = (fx + 0.5) * TILE_SIZE - curb * Math.cos(l.heading),
         zz = (fz + 0.5) * TILE_SIZE + curb * Math.sin(l.heading);
-      this.draw(l.id, l.mode, l.depot, xx, y + 0.12, zz, l.heading, dt);
+      this.draw(l.id, l.mode, l.depot, xx, y + 0.12, zz, l.heading, dt).userData.serviceId = l.id;
       if (l.at && l.dwell > 0 && l.mode !== "freight") {
         const stop = s.elements.find((e) => e.id === l.at);
         if (!stop) continue;
@@ -187,7 +189,7 @@ export class MobilityVisuals {
       const mesh = this.draw(
         a.id,
         a.kind,
-        a.id.startsWith("crew-") ? a.id.slice(4) : a.id,
+        a.siteId,
         a.gx * TILE_SIZE,
         y + a.height + 0.07,
         a.gz * TILE_SIZE,

@@ -358,6 +358,10 @@ function skyDepot(c: Ctx, teleport = false) {
       arc(c, 0, 0, r, 2.8, 2.1, y, 1, j % 2 ? col : "cream", 1.8);
       v.box(-r, y, -1, 1, y + 1, 1, col);
     }
+    const deck = 4 * lv - 1;
+    v.box(-3, deck, 0, 4, deck + 1, 6, "slate");
+    for (const x of [-2, 2]) v.box(x, deck + 1, 1, x + 1, deck + 2, 5, "cream");
+    v.box(-1, deck + 1, 2, 2, deck + 2, 3, "cream");
     machine(c, 0, 6 + lv * 3, -3, 2, "y", "steel");
   }
   c.blink(-hx + 3, 7 + lv * 3, -hz + 3, "cyan");

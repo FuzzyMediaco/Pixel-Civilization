@@ -1,6 +1,6 @@
 import { parcelAccessSteps, PARCEL_SIDES, type AccessStep } from "./parcelEdges";
 import { ELEMENT_BY_ID } from "./catalog";
-import { buildWaterNavigation } from "./terrain";
+import { roadPortOpen, buildWaterNavigation } from "./terrain";
 import {
   buildOccupancyMap,
   getNetworkConnMask,
@@ -88,7 +88,7 @@ export class TravelNetwork {
     for (const e of state.elements) {
       const d = ELEMENT_BY_ID[e.defId];
       if (d?.isRoadNetwork && networkDeckClass(d) !== "ground") {
-        const axis = separatedDeckAxis(getNetworkConnMask(state.elements, e, this.occupancy));
+        const axis = separatedDeckAxis(getNetworkConnMask(state.elements, e, this.occupancy, state));
         if (axis >= 0) this.crossings.set(tileKey(e.gx, e.gz), axis);
       }
     }
@@ -121,6 +121,14 @@ export class TravelNetwork {
       return this.access(e)
         .filter((p) => this.canUse(p.gx, p.gz, "walk"))
         .map((p) => [p.gx, p.gz]);
+    if (
+      (mode === "taxi" && !["taxi_ranks", "bus_stops"].includes(e.defId)) ||
+      (mode === "bus" && e.defId === "bus_depots")
+    ) {
+      return this.access(e)
+        .filter((p) => this.canUse(p.gx, p.gz, mode))
+        .map((p) => [p.gx, p.gz]);
+    }
     const candidates = perimeter(e);
     if (hull) {
       for (let x = e.gx; x < e.gx + e.spanX; x++)
@@ -135,14 +143,18 @@ export class TravelNetwork {
       if (override === "closed") return false;
       if (override === "open") return true;
       if (mode === "rail" && ["train_depots", "train_stops"].includes(e.defId)) return side === "back";
-      if ((mode === "bus" && e.defId === "bus_stops") || (mode === "taxi" && e.defId === "taxi_ranks"))
+      if (
+        (mode === "bus" && e.defId === "bus_stops") ||
+        (mode === "taxi" && ["taxi_ranks", "bus_stops"].includes(e.defId))
+      )
         return side === "front";
       return true;
     });
   }
   path(starts: Point[], ends: Point[], mode: PathMode, hull?: Hull): Point[] | null {
     if (!starts.length || !ends.length) return null;
-    const goals = new Set(ends.map(([x, z]) => tileKey(x, z)));
+    const goals = new Set(ends.filter(([x, z]) => this.canUse(x, z, mode, hull)).map(([x, z]) => tileKey(x, z)));
+    if (!goals.size) return null;
     // Keep arrival axis at a grade-separated crossing so distinct decks cannot exchange vehicles.
     const parents = new Int32Array(8192).fill(-2);
     const queue: number[] = [];
@@ -167,6 +179,7 @@ export class TravelNetwork {
         const nx = x + dx,
           nz = z + dz;
         if (!this.canUse(nx, nz, mode, hull)) continue;
+        if (!hull && mode !== "rail" && !roadPortOpen(this.state, x, z, dx, dz)) continue;
         if (hull && !this.water.canStep(x, z, nx, nz, hull)) continue;
         const axis = dx === 0 ? 0 : 1;
         if (!hull && parents[id] !== -1 && this.crossings.has(cell) && (id & 1) !== axis) continue;
@@ -306,6 +319,10 @@ export function travelSignature(s: GameState): string {
           e.spanX,
           e.spanZ,
           e.rotation,
+          e.crossingAxis,
+          Number(!!e.overWater),
+          e.waterUnderlay?.defId,
+          e.waterUnderlay?.level,
           e.level,
           Number(!!e.onFire),
           e.defId === "canal_boat_lift" ? Number(e.disrepair) : 0,

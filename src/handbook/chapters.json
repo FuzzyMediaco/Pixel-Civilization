@@ -1,0 +1,696 @@
+[
+  {
+    "id": "tour",
+    "label": "Canal tour",
+    "title": "A first trip through the canal district",
+    "intro": "Start with a town that already works, then change one crossing and watch the consequences.",
+    "cover": "/handbook/travel/canal-district.jpg",
+    "lessons": [
+      {
+        "id": "open-town",
+        "title": "Open the working town",
+        "steps": [
+          "Open Island tools, choose God controls, then Explore the canal district. The game snapshots your previous sandbox before opening the district.",
+          "Choose Return to Transit & harbor. Expand Passenger ferry and select Follow vehicle. The service lists stops in order, riders aboard, and trips it has completed."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/travel/canal-district.jpg",
+            "caption": "The canal district has two walkable banks. A road lift and an aqueduct cross the same water used by the ferry.",
+            "alt": "The canal district has two walkable banks. A road lift and an aqueduct cross the same water used by the ferry."
+          }
+        ]
+      },
+      {
+        "id": "first-edit",
+        "title": "Try a low bridge",
+        "steps": [
+          "Open Land & water. Select the middle of the lift span at 0, 0. In Coordinates & inspection you can enter that tile directly.",
+          "Choose the stone arch and a low deck rise. Preview the change. Look for the headroom and the ferry warning before you apply it.",
+          "Let the clock run. The route panel identifies an obstruction when a vehicle plans its blocked leg. Select Show obstruction to go to the crossing. Restore the lift or use Undo last works and watch for a completed trip."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/works/lift-crossings.webp",
+            "caption": "A moving span can give a tall vessel headroom while road traffic waits.",
+            "alt": "A moving span can give a tall vessel headroom while road traffic waits."
+          }
+        ]
+      },
+      {
+        "id": "try-first-town",
+        "title": "Start a Real or Survival island",
+        "steps": [
+          "Choose a mode from the game menu. Put a home and a workplace on a short road and face their entrances toward it. Add power, drinking water, and a garden or food shop.",
+          "Tap Population, Happiness or City wealth to inspect conditions. Read the first unmet need and use a building that supplies it. Farms need water and consumers need a way to reach the food.",
+          "Real unlocks tools and buildings as the town grows. Survival also tracks accumulating shortages, maintenance and emergencies. The game menu can open a separate God-mode copy for an experiment."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/food-accounts.webp",
+            "caption": "A producing farm and a stocked grocer do different jobs in the same food supply.",
+            "alt": "A producing farm and a stocked grocer do different jobs in the same food supply."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "works",
+    "label": "Land & water",
+    "title": "Earthworks, water and crossings",
+    "intro": "Read the banks, follow the water, and check the clearance before committing a span.",
+    "cover": "/handbook/works/aqueduct-branches.webp",
+    "lessons": [
+      {
+        "id": "land-and-coasts",
+        "title": "Shape a coastline and cut a canyon",
+        "steps": [
+          "Open Land & public works. Draw a mountain ridge with a broad brush, then narrow the brush to cut a canyon beside it.",
+          "Drag Open bay from the sea toward the shore. A connected bay follows sea level. Use Reclaim land to extend a bank into the water, and choose sand for a beach.",
+          "Lower an outlet beside a freshwater pond to let it drain into the excavation. Preview the footprint before applying the stroke. Undo restores the original shoreline."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/works/graded-coast.webp",
+            "caption": "A canyon reaches a tidal bay below a mountain ridge. A reclaimed sand spit extends into the water on the right.",
+            "alt": "Isometric terrain cutaway with a snow-tipped ridge, rock-cut inlet and sandy headland entering the sea."
+          }
+        ]
+      },
+      {
+        "id": "aqueducts",
+        "title": "Bring water around a bend",
+        "steps": [
+          "Place a spring or a working water source next to the first aqueduct tile. Set the support height below the source’s pressure head.",
+          "Trace a bend or connect a second run to the side of the first. The blue trough carries water, and the current follows the branches away from the source.",
+          "Finish a branch beside a farm, reservoir, home or treatment plant. An outlet aimed at a receiving site shows a drop pipe. Point an unused side spout into open space for a visible spill, or cap it to conserve flow.",
+          "Inspect the trough or open the Aqueduct flow map to check the route. A reach above the available pressure stays dry."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/works/aqueduct-branches.webp",
+            "caption": "The intake pipe on the left lifts spring water into the arcade. The near branch feeds the farm. The short branch at the back spills from an open spout.",
+            "alt": "Terracotta aqueduct bends around a green field, with a spring intake, a fork, a falling stream and an outlet at a crop farm."
+          }
+        ]
+      },
+      {
+        "id": "bridge-clearance",
+        "title": "Choose a crossing that fits your boats",
+        "steps": [
+          "Select a bridge, choose its deck use and span, then drag from dry bank to dry bank. Higher decks reserve additional approach tiles.",
+          "Inspect the water beneath a bridge to check depth, channel width and headroom. A low stone footbridge suits small craft. A high mast needs enough space beneath the raised deck.",
+          "Set a lift bridge to Auto. An approaching tall vessel closes road access, the deck rises after a clearance interval, and the counterweights descend. Traffic resumes after the deck returns."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/works/lift-crossings.webp",
+            "caption": "A sailboat approaches the raised roadway. Behind it, a low stone footbridge provides a second crossing for walkers.",
+            "alt": "Teal bridge towers hold an elevated road over a sailboat, with a lower stone pedestrian crossing farther up the canal."
+          }
+        ]
+      },
+      {
+        "id": "road-junctions",
+        "title": "Route traffic through a diamond interchange",
+        "steps": [
+          "In Land & public works choose Build interchange, select Diamond, and rotate the junction to match your two roads. Tap the center to preview it on dry ground.",
+          "Extend the highway from its two straight approaches and attach a street to the lower road. The elevated route crosses directly above that street. Each slip road has specific entrance and exit points.",
+          "Use Edit road on the surface junctions. The timed cycle responds to waiting traffic. In God mode you can queue traffic on one approach and watch the following cycle give it a longer green."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/works/diamond-interchange.webp",
+            "caption": "A raised highway passes above a local street. Four slip roads connect the two routes at the marked junctions.",
+            "alt": "Diamond interchange seen from above, with four stepped ramps, an elevated center crossing, and a small bus stop."
+          }
+        ]
+      },
+      {
+        "id": "river-gates",
+        "title": "Hold a river behind a dam",
+        "steps": [
+          "Draw a flowing river in the downstream direction. Choose a narrow reach between two dry banks and place a dam across it.",
+          "Close the gate and set the retained head. The lowest bank limits how high the upstream pool can rise. A dam in a deep channel can hold a larger difference than one beside low banks.",
+          "A hydroelectric site needs flowing water, banks and a usable height difference. Open the gate to release the pool and restore the river’s original grade."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/works/dam-head.webp",
+            "caption": "The service gantry crosses a closed dam. The higher upstream pool on the right drops into the lower river on the left.",
+            "alt": "Concrete gated dam between rocky riverbanks, with deep water upstream and falling water below the gate."
+          }
+        ]
+      },
+      {
+        "id": "boat-lift",
+        "title": "Connect two canal levels with a boat lift",
+        "steps": [
+          "Shape two reaches with different water levels and leave room between them for the Canal Boat Lift. Rotate the project so the two ends of its open chamber meet the two reaches. A small boat must have a continuous wet approach on both ends.",
+          "In Real mode, provide enough electricity for the lift. Check that the boat fits the approach depth, chamber width and overhead clearance. The upright towers mark the sides of the chamber.",
+          "Send a boat to a destination beyond the upper reach. It waits for the lift cycle, passes through the chamber and continues on the higher water. Upgrading the lift improves headroom and shortens the wait."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/works/canal-boat-lift.webp",
+            "caption": "A small launch waits at the lower entrance. The operating lift connects this canal to the reach on the right, 2.3 m higher.",
+            "alt": "Yellow launch at the lower canal entrance, with a water-filled lift cradle and a steel gantry spanning two different water levels."
+          }
+        ]
+      },
+      {
+        "id": "harbor-voyages",
+        "title": "Send a ship out from a working harbor",
+        "steps": [
+          "Place a naval base, dock or shipyard where its berths face navigable water. Put the ship on water with enough depth and turning room for its hull. In Real mode it needs a reachable home port.",
+          "Open the vessel controls, select the ship, then choose a destination on the map or enter coordinates. Watch its status change to Under way. Use Recall to bring it back to its home position and moor it.",
+          "If a route stalls, inspect any narrow reach, shallow approach or low bridge between the ship and its destination. Wide naval hulls need more turning room than small launches."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/works/naval-harbor.webp",
+            "caption": "A naval vessel under way beyond the crane and finger piers of its home base. Its plotted course leads into deeper open water.",
+            "alt": "Naval vessel sailing clear of a coastal base, with small craft moored at its three finger piers and a yellow dockside crane."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "travel",
+    "label": "Transit",
+    "title": "Passengers, freight and the harbor",
+    "intro": "Give each service a continuous route and an entrance its passengers can reach.",
+    "cover": "/handbook/travel/ferry.webp",
+    "lessons": [
+      {
+        "id": "street-services",
+        "title": "Buses and taxis",
+        "steps": [
+          "Build a bus depot beside a drivable road. Put two bus stops along it with their curb faces against the street. Use the placement rotation control when the map offers two possible frontages.",
+          "In Island tools → Transit & harbor, choose Plan a line. Select Bus, choose the depot and use Suggest reachable stops or select stops in visit order. Start service, then follow the vehicle.",
+          "For a taxi, start at a Taxi Depot and choose ranks or street-facing homes and workplaces. A cab carries four riders. A bus can take 26. A bus stop keeps its one-tile footprint and finishes at level three."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/travel/bus.webp",
+            "caption": "A teal city bus calls at a curbside stop between homes and shops.",
+            "alt": "A teal city bus calls at a curbside stop between homes and shops."
+          },
+          {
+            "image": "/handbook/travel/taxi.webp",
+            "caption": "A yellow cab serves a rank on the same local street.",
+            "alt": "A yellow cab serves a rank on the same local street."
+          }
+        ]
+      },
+      {
+        "id": "rail-services",
+        "title": "Trains and transfers",
+        "steps": [
+          "Lay a continuous track. Turn the depot and each train stop so their platform side touches rail. Give the passenger side a walkable connection to town.",
+          "Choose Train in Plan a line, select a train depot and at least two stops, and start the line. A train can carry 72 people.",
+          "Give two services a shared stop or a short walking connection between stops. Transferring riders wait for a suitable passenger vehicle. The trip counts once, at the final destination."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/travel/rail.webp",
+            "caption": "The red-and-cream train is at a platform beside continuous track.",
+            "alt": "The red-and-cream train is at a platform beside continuous track."
+          }
+        ]
+      },
+      {
+        "id": "by-water",
+        "title": "Water taxis, ferries and barges",
+        "steps": [
+          "Place two landings with reachable wet berths. Connect their landward entrances to the people and jobs they serve. Choose Water taxi or Passenger ferry in the line planner.",
+          "A water taxi needs 1.35 m of width, 0.25 m of depth and 0.8 m of headroom. A passenger ferry needs 4.25 m, 0.8 m and 2.1 m. Give the freight barge 5.5 m of width, 1.25 m of depth, 2.7 m of headroom and space to turn.",
+          "Use a shipyard or dock for freight. Connect the berth to active exporters, food producers or retailers. The barge carries goods. Freight deliveries have their own count."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/travel/ferry.webp",
+            "caption": "A passenger ferry calls at the waterfront landing.",
+            "alt": "A passenger ferry calls at the waterfront landing."
+          }
+        ]
+      },
+      {
+        "id": "own-ships",
+        "title": "Send a ship inland",
+        "steps": [
+          "Place a boat, sailboat, speedboat, naval vessel, carrier or submarine in suitable water. In Real and Survival it also needs a reachable home port.",
+          "Open Harbor master in Transit & harbor, choose the vessel, and read its beam, draft and headroom. Choose destination on map, tap water, then follow the ship. Return to berth recalls it.",
+          "Widen bends for long hulls and leave room around the piers. A submarine dives in sufficiently deep water. A shallow cut, a closed gate, or a fixed deck can make a destination unreachable."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/travel/harbor.webp",
+            "caption": "A sailboat under way in an excavated channel. An open water connection lets it continue offshore.",
+            "alt": "A sailboat under way in an excavated channel. An open water connection lets it continue offshore."
+          }
+        ]
+      },
+      {
+        "id": "read-transit",
+        "title": "Read the line and fix a delay",
+        "steps": [
+          "Expand a service to inspect its next stop, follow it, adjust depot layover, or set daytime or night operation. Use Add vehicle from depot for a staggered departure.",
+          "Read the last two minutes of arrivals alongside demand, walking coverage and average wait. A line which is closed for the night cannot carry that shift. A red signal can briefly hold a running service.",
+          "If a leg becomes impassable, inspect the obstruction, repair it or edit the stops. Use the map to check clearance. In God mode you can change rider demand, then advance time to see the result."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/travel/service-desk.jpg",
+            "caption": "The transit desk shows the actual service and its stops alongside the island.",
+            "alt": "The transit desk shows the actual service and its stops alongside the island."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "city",
+    "label": "City life",
+    "title": "Money, food and emergency services",
+    "intro": "Trace what enters a household, what leaves a shop, and what a crew needs to answer a call.",
+    "cover": "/handbook/city/food-accounts.webp",
+    "lessons": [
+      {
+        "id": "balance",
+        "title": "Population, wealth and services",
+        "steps": [
+          "Population and jobs need a reachable connection. Tap Population to see workers and housing, then inspect the neighborhood entrances or transit line serving a workplace.",
+          "Tap City wealth. Its three balances are the public treasury, businesses and household savings. Wages, taxes, food purchases, imports and upkeep appear in the ledger. Construction draws from the treasury.",
+          "A peak wealth milestone unlocks a group of projects. Their cards show a separate construction price. In God mode you can build the projects immediately and still watch their costs and effects with the experiment controls."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/catalog/thumbs/banks.webp",
+            "caption": "Banks support the local economy. A neighboring ATM can open a useful retail frontage.",
+            "alt": "Banks support the local economy. A neighboring ATM can open a useful retail frontage."
+          }
+        ]
+      },
+      {
+        "id": "city-fire",
+        "title": "Fire response",
+        "steps": [
+          "Routine fires begin at Stage 4 (45,000 residents), after a 100-second settling period. Early emergencies can draw volunteers.",
+          "A staffed City Office, Government Building, Courthouse or Tax Collecting Office authorizes a staffed fire department. Keep a drivable route or a navigable waterfront approach open.",
+          "Select the burning site and dispatch a crew. An engine needs local fresh water at its station or incident. Clear weather requires eight seconds of water application. A volunteer takes twenty.",
+          "When the call is contained, select Repair and reopen to return the site to service."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/fire-response.webp",
+            "caption": "The engine reached the grocer, waited for water, then extinguished the fire after a working well was added.",
+            "alt": "Two views of the same street show the fire engine leaving its station and later waiting outside the grocer."
+          }
+        ]
+      },
+      {
+        "id": "city-food",
+        "title": "Food and city accounts",
+        "steps": [
+          "Face homes, farms and shops toward the same working street system, or join their districts with a working transit interchange. A farmhouse can support up to five nearby fields.",
+          "Feed crops with a well turnout or flowing freshwater. Use Selected site to read farm water, food in store, production and local service.",
+          "Open Wellbeing for meals harvested, imported, eaten and spoiled. A grocer can buy an affordable shortfall. Restaurant counters advance when the restaurant sells food.",
+          "Open Accounts to inspect Treasury, Household savings and Business cash. Wages, shopping and taxes redistribute money between these accounts. Local exports and visitors bring in outside money. Imports and upkeep send it out.",
+          "Meeting a wealth threshold permanently unlocks that project tier in Real or Survival. Construction and upgrades spend treasury funds."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/food-accounts.webp",
+            "caption": "After 12 active seconds this farm harvested 244 meals and this grocer sold 80. The ledger closed at $2,949 total wealth, comprising $2,668 treasury, $277 household savings and $4 business cash (rounded).",
+            "alt": "The farm and its working well appear beside the grocer from the same district. Captions show their measured harvest and sales."
+          }
+        ]
+      },
+      {
+        "id": "city-growth",
+        "title": "Earn an upgrade",
+        "steps": [
+          "In Real or Survival, select a working site and open Selected site. Read its activity counter and the footprint preview. Each category earns progress in its own way.",
+          "Let a field harvest, a grocery sell meals, or a transit depot complete journeys on its route. Connect and repair a site before upgrading it.",
+          "Reserve the space shown for the next level and keep the upgrade price in the treasury. Choose the upgrade button when the site is ready."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/earned-upgrade.webp",
+            "caption": "This field harvested 14 of the required 12 meals, then advanced to Level 2 for $95.",
+            "alt": "The same field before and after the paid expansion shows its new crop rows and field layout."
+          }
+        ]
+      },
+      {
+        "id": "city-staffing",
+        "title": "Government and God controls",
+        "steps": [
+          "In Real or Survival, put homes, a City Office and a fire department within the same working labor district. Supply at least one available worker at each civic building.",
+          "In God mode open Experiments, choose Crew staffing (%), enter zero and press Hold. Inspect the fire or police report to see the loss of professional coverage.",
+          "Release the hold to restore calculated staffing. For a local control such as turnaround, select a terminal and choose Selected site or District within four tiles. Set once allows the simulation to resume after the short experiment."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/staffing-hold.webp",
+            "caption": "Holding crew staffing at zero disabled professional coverage. Releasing the hold restored authority and made 48 station workers available in this example.",
+            "alt": "The first panel shows the connected office and fire department. The second shows the same station after releasing the staffing hold."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "projects",
+    "label": "Major projects",
+    "title": "Working major projects",
+    "intro": "Follow aircraft, passengers and research crews from their buildings into the world.",
+    "cover": "/handbook/city/rocket.webp",
+    "lessons": [
+      {
+        "id": "city-plane",
+        "title": "Regional airport",
+        "steps": [
+          "Reach $60,000 City Wealth and build a Regional Airport for $1,800. One terminal is enough.",
+          "Connect the terminal to a populated district. It needs at least one local worker, two residents and enough city power.",
+          "Select the terminal, open Selected site and use Dispatch journey. A 34-second flight pays businesses $9 per visitor after returning."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/plane.webp",
+            "caption": "24 passengers completed the illustrated regional airport journey.",
+            "alt": "Boarding and taxiing at left and climbing off the runway at right. The callouts identify the live aircraft actor."
+          }
+        ]
+      },
+      {
+        "id": "city-rocket",
+        "title": "Spaceport",
+        "steps": [
+          "Reach $1,000,000 City Wealth and build a Spaceport for $8,400.",
+          "Supply city water and power, at least three local workers, and $18 in business cash for propellant.",
+          "Dispatch the 23-second mission. It pays businesses $22 per researcher when complete, followed by a 45-second turnaround."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/rocket.webp",
+            "caption": "6 researchers completed the illustrated spaceport journey.",
+            "alt": "On the pad at left and climbing through launch altitude at right. The callouts identify the live rocket actor."
+          }
+        ]
+      },
+      {
+        "id": "city-airTaxi",
+        "title": "Flying-car depot",
+        "steps": [
+          "Reach $150,000 City Wealth. Build two Flying-Car Depots for $2,850 each.",
+          "Connect both pads to staffed districts with power. One pad cannot dispatch without a ready partner.",
+          "Select a depot and dispatch. Local fares are $0.80 per passenger. Both endpoints need time to turn around."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/airTaxi.webp",
+            "caption": "4 passengers completed the illustrated flying-car depot journey.",
+            "alt": "Boarding at the origin at left and approaching the partner pad at right. The callouts identify the live sky taxi actor."
+          }
+        ]
+      },
+      {
+        "id": "city-teleport",
+        "title": "Teleportation depot",
+        "steps": [
+          "Reach $400,000 City Wealth and build two Teleportation Depots for $5,200 each.",
+          "Supply both gates with staff, access and power. Use Selected site to dispatch or inspect their operating status.",
+          "The seven-second transfer pauses when either gate or the power system goes offline. Finished transfers debit household fares and credit businesses."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/teleport.webp",
+            "caption": "12 passengers completed the illustrated teleportation depot journey.",
+            "alt": "Charging at the origin at left and arriving at the partner gate at right. The callouts identify the live passenger actor."
+          }
+        ]
+      },
+      {
+        "id": "all-projects",
+        "title": "Find the other wealth projects",
+        "steps": [
+          "Open Design atlas and choose Wealth Projects. Each design page lists its five stages, footprint, neighbor, base contribution and wealth requirement.",
+          "Select a built project on the island and open its site panel. Check local workers, access, utilities and its operating requirements. In God mode, see which settings you can hold or trigger."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/catalog/thumbs/open_pit_mine.webp",
+            "caption": "An open-pit mine grows outward as its terraces deepen.",
+            "alt": "An open-pit mine grows outward as its terraces deepen."
+          },
+          {
+            "image": "/handbook/catalog/thumbs/canal_boat_lift.webp",
+            "caption": "A powered canal lift gives boats a way between water levels.",
+            "alt": "A powered canal lift gives boats a way between water levels."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "neighbors",
+    "label": "Neighbors",
+    "title": "Front doors, neighbors and growth",
+    "intro": "Turn parcels toward their surroundings and give each upgrade the room it needs.",
+    "cover": "handbook/neighbors/backyard.webp",
+    "lessons": [
+      {
+        "id": "joined-sites",
+        "title": "Read a working connection",
+        "steps": [
+          "Place two townhomes alongside each other with matched orientation. Look for party walls. A detached house instead opens its driveway toward a road. A backyard garden can share a gate with its home.",
+          "Set fields around a farmhouse or a graveyard beside a church. Trace the perimeter, the accessible gate and the path leading to the street. Select either site and open Connections to see the relationship.",
+          "In God mode you can close, open or restore an individual edge, switch lights, and immediately inspect the result. Walkable joins can carry people farther inside a parcel."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/catalog/thumbs/farm_houses.webp",
+            "caption": "A farmhouse can share a working enclosure with neighboring fields.",
+            "alt": "A farmhouse can share a working enclosure with neighboring fields."
+          }
+        ]
+      },
+      {
+        "id": "grow-in-place",
+        "title": "Upgrade in place",
+        "steps": [
+          "Select the building and open Services & upgrade. Read the requirement for its next level, the price, and the footprint it needs. Give it room and let it do the work appropriate to its use.",
+          "In God mode use the selected-site level and style controls. Ordinary placement, moves, demolition and upgrades have a separate Undo building edit action. The field guide and design atlas let you preview larger footprints."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/catalog/thumbs/cheesesteak_restaurants.webp",
+            "caption": "The mature Cheesesteak Spot is a walk-in sandwich with a counter along its side.",
+            "alt": "The mature Cheesesteak Spot is a walk-in sandwich with a counter along its side."
+          }
+        ]
+      },
+      {
+        "id": "neighbor-backyard",
+        "title": "A kitchen garden behind the house",
+        "steps": [
+          "Against the rear fence, the garden opens a gate and adds planted food beds along the shared boundary."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/backyard.webp",
+            "alt": "A kitchen garden behind the house",
+            "caption": "House + Garden"
+          }
+        ]
+      },
+      {
+        "id": "neighbor-driveway",
+        "title": "A driveway meets the front road",
+        "steps": [
+          "A road beside the front garage slot opens the drive. A road against the rear fence leaves it closed."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/driveway.webp",
+            "alt": "A driveway meets the front road",
+            "caption": "Medium Sized Home + Roads"
+          }
+        ]
+      },
+      {
+        "id": "neighbor-townhouse-row",
+        "title": "A continuous townhouse row",
+        "steps": [
+          "Both buildings face the same street. Side walls meet across the shared edge, with separate entrances along the front."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/townhouse-row.webp",
+            "alt": "A continuous townhouse row",
+            "caption": "Townhome"
+          }
+        ]
+      },
+      {
+        "id": "neighbor-cashpoint",
+        "title": "An ATM facing the bank",
+        "steps": [
+          "The cashpoint opens toward its neighbor. Paving and lamps mark the shared commercial frontage."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/cashpoint.webp",
+            "alt": "An ATM facing the bank",
+            "caption": "ATM + Bank"
+          }
+        ]
+      },
+      {
+        "id": "neighbor-farmstead",
+        "title": "One farmhouse, five fields",
+        "steps": [
+          "Five separate field plots open onto the farmhouse. Their tilled edges continue across former boundaries, and each shared edge contributes to the farm bonus."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/farmstead.webp",
+            "alt": "One farmhouse, five fields",
+            "caption": "Farm House + Fields"
+          }
+        ]
+      },
+      {
+        "id": "neighbor-churchyard",
+        "title": "A gate between church and graveyard",
+        "steps": [
+          "The cemetery opens onto the church grounds. The gate and shared path add recreation while protecting the buildings and headstones."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/churchyard.webp",
+            "alt": "A gate between church and graveyard",
+            "caption": "Church + Graveyard"
+          }
+        ]
+      },
+      {
+        "id": "neighbor-platform",
+        "title": "A platform beside the main line",
+        "steps": [
+          "The station faces away from the continuous track. Its yellow boarding edge meets the rails along the back of the platform."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/platform.webp",
+            "alt": "A platform beside the main line",
+            "caption": "Train Stop + Train Tracks"
+          }
+        ]
+      },
+      {
+        "id": "neighbor-bus-curb",
+        "title": "A shelter on the curb",
+        "steps": [
+          "The shelter leaves the carriageway free. A curb alone needs a depot and a route to carry passengers."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/bus-curb.webp",
+            "alt": "A shelter on the curb",
+            "caption": "Bus Stop + Two Lane Road"
+          }
+        ]
+      },
+      {
+        "id": "neighbor-taxi-rank",
+        "title": "Taxi dispatch beside a through street",
+        "steps": [
+          "The covered waiting area opens toward the yellow pickup curb; the road continues on either side."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/taxi-rank.webp",
+            "alt": "Taxi dispatch beside a through street",
+            "caption": "Taxi Rank + Two Lane Road"
+          }
+        ]
+      },
+      {
+        "id": "neighbor-ferry-pier",
+        "title": "A ferry landing and its berth",
+        "steps": [
+          "Boats need a clear approach with enough water for their draft. A reachable landing at the other end completes the passenger route."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/neighbors/ferry-pier.webp",
+            "alt": "A ferry landing and its berth",
+            "caption": "Ferry Landing + Boat"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sandbox",
+    "label": "God controls",
+    "title": "God mode and map tools",
+    "intro": "Pause a city, change one condition, and use the map to see who it affects.",
+    "cover": "/handbook/travel/night.jpg",
+    "lessons": [
+      {
+        "id": "sandbox-lab",
+        "title": "Set up an experiment",
+        "steps": [
+          "Open God controls from Island tools or the game menu. Pause the clock, save a sandbox snapshot, and select a site or district. Step one second to advance while paused.",
+          "Choose Set or hold city values. Set once changes the value for an update. Hold keeps the chosen rule active until you release it. Look at the calculated value as well as the held value.",
+          "Use Local experiment for one site, a radius around it, or the entire island. Restore the snapshot to compare the same starting town. Real and Survival have separate islands and can be copied into God mode."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/travel/sandbox.jpg",
+            "caption": "The sandbox controls keep time, systems, local actions and snapshots in one place.",
+            "alt": "The sandbox controls keep time, systems, local actions and snapshots in one place."
+          }
+        ]
+      },
+      {
+        "id": "night",
+        "title": "After dark, in bad weather and during an incident",
+        "steps": [
+          "Open Weather, camera & clock. Pick Night or use the time slider. Use Frozen to hold the time of day. The simulation can still carry passengers or dispatch a crew.",
+          "Watch the windows and nightlife, reduced nighttime travel and the change in solar production. Try rain or a different wind speed and inspect power and farm water.",
+          "Use Defense & incidents to inspect civic readiness or stage a sandbox incident. In a growing city, functioning government, staffed services, and a route to the incident matter."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/travel/night.jpg",
+            "caption": "The same canal district after dark, with lit windows and street lamps.",
+            "alt": "The same canal district after dark, with lit windows and street lamps."
+          }
+        ]
+      },
+      {
+        "id": "map-and-saves",
+        "title": "Inspect the map and save a city",
+        "steps": [
+          "Open Civilization Heat Maps. Passenger routes, shared edges, aqueduct flow, ferry clearance and road lanes answer different questions. Use the selected layer’s legend.",
+          "Choose a place on the map for its connections or site panel. To inspect ground under a crossing, open Land & water and use Coordinates & inspection.",
+          "The game restores the active mode and clock speed when reloaded. Use Saved Civilizations for three named slots. A sandbox snapshot gives you a separate restore point for experiments."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/travel/map-layers.jpg",
+            "caption": "The aqueduct flow layer follows the water network through the district.",
+            "alt": "The aqueduct flow layer follows the water network through the district."
+          }
+        ]
+      }
+    ]
+  }
+]

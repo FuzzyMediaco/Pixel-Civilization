@@ -5,6 +5,7 @@ import { type CivilizationSaveSlot, MAX_SAVE_SLOTS } from "../game/saveSlots";
 import { type GameState } from "../game/simulation";
 
 interface SaveSlotsModalProps {
+  error?:string;
   open: boolean;
   slots: (CivilizationSaveSlot | null)[];
   activeSlotIndex: number | null;
@@ -43,7 +44,7 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
   onClose,
   onSaveToSlot,
   onLoadSlot,
-  onRenameSlot,
+  onRenameSlot,error,
   onDeleteSlot,
 }) => {
   const [draftNames, setDraftNames] = useState<string[]>([
@@ -128,6 +129,7 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
           )}
         </div>
 
+        {error&&<p role="alert" className="bg-amber-100 px-5 py-2 text-sm text-amber-950">{error}</p>}
         {/* 3 Save Slots */}
         <div className="flex-1 space-y-3 overflow-y-auto p-5">
           {Array.from({ length: MAX_SAVE_SLOTS }, (_, idx) => {

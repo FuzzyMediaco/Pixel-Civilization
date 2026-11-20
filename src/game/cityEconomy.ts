@@ -56,6 +56,7 @@ type Setting = { key: ControlKey; value: number; site?: string; expires?: number
 export interface SiteAccount {
   work: number;
   food: number;
+  cistern?: number;
   harvested: number;
   served: number;
   level: number;
@@ -267,7 +268,7 @@ export function controlValue(s: GameState, k: ControlKey, site?: string) {
     jobs: s.metrics.jobsAvailable,
     food: s.metrics.foodSupply,
     authority: Number(hasAuthority(s)),
-    risk: s.mode === "survival" ? 12 : 4,
+    risk: s.mode === "god" ? 0 : s.mode === "survival" ? 12 : 4,
     imports: 100,
     access: 0,
     workforce: e.report.workers,
@@ -288,7 +289,13 @@ export function controlValue(s: GameState, k: ControlKey, site?: string) {
     demand: 100,
     turnaround: 14,
   };
-  return e.holds.find((x) => x.key === k)?.value ?? e.raw[k] ?? defaults[k];
+  return (
+    [...e.holds, ...e.once].find(
+      (x) => x.key === k && x.site === site && (x.expires ?? Infinity) > s.activePlaySec,
+    )?.value ??
+    e.raw[token(k, site)] ??
+    defaults[k]
+  );
 }
 const govIds = new Set(["city_offices", "government_buildings", "courthouses", "tax_collecting_office"]);
 export const operational = (e: PlacedElement) => e.connected && !e.onFire && !e.disrepair;
@@ -348,6 +355,7 @@ export function evaluateEconomy(
   joins?: ReadonlyMap<string, ReturnType<typeof getParcelEffectSummary>>,
   districts: ReadonlyMap<string, string> = new Map(),
   congested: ReadonlySet<string> = new Set(),
+  freightRail: ReadonlySet<string> = new Set(),
 ) {
   const e = economyOf(s),
     r = e.report,
@@ -403,15 +411,7 @@ export function evaluateEconomy(
       ),
     );
   const banks = live.filter((x) => x.defId === "banks" || x.defId === "atms"),
-    factories = live.filter((x) => industry(x.defId)),
-    tracks = s.elements.filter((x) => ELEMENT_BY_ID[x.defId]?.isRailNetwork);
-  const stores = new Set(
-    live
-      .filter(
-        (el) => el.defId === "grocery_store" || el.defId === "growers_exchange" || el.defId === "bakery_coop",
-      )
-      .map(group),
-  );
+    factories = live.filter((x) => industry(x.defId));
   let potable = 0,
     powerSaved = 0;
   r.workers = Math.round(effective(s, "workforce", s.population * 0.54));
@@ -481,7 +481,14 @@ export function evaluateEconomy(
         a.yieldRate += edge.food * 0.16 * (cooled || rain ? 1.35 : 1);
     }
     if (d.id === "floodplain_park" && rain) m.wasteCapacity += el.level * 2;
-    if (d.id === "rainwater_cathedral") potable += Math.min(36 * scale, a.food);
+    if (d.id === "rainwater_cathedral") {
+      // Early project saves used the food field to store rain in this building.
+      if (a.cistern === undefined) {
+        a.cistern = a.food;
+        a.food = 0;
+      }
+      potable += Math.min(36 * scale, a.cistern);
+    }
     if (d.id === "district_heat_works" && factories.some((x) => closeSites(x, el, 3)))
       powerSaved += homes.filter((x) => closeSites(x, el, 4)).length * el.level * 2;
     const bank = banks.some((x) => group(x) === g && closeSites(x, el, 5))
@@ -497,8 +504,8 @@ export function evaluateEconomy(
     if (edge) a.retail *= 1 + edge.commerce;
     if (residents > 0 && (d.id !== "grocery_store" || a.food > 0 || s.money + e.businesses > 0))
       r.shopping += a.retail;
-    if (residents > 0 && (a.retail > 0 || stores.has(g) || a.yieldRate > 0)) r.meals += a.food;
-    const railOK = d.id !== "freight_rail_terminal" || tracks.some((t) => closeSites(t, el, 0));
+    if (residents > 0 && (a.retail > 0 || a.yieldRate > 0)) r.meals += a.food;
+    const railOK = d.id !== "freight_rail_terminal" || freightRail.has(el.id);
     if (
       railOK &&
       !(d.id === "materials_foundry" && m.wasteDemand === 0) &&
@@ -557,7 +564,7 @@ export function evaluateEconomy(
 export function activityRule(el: PlacedElement) {
   const d = ELEMENT_BY_ID[el.defId];
   if (crops.has(d.id)) return { label: "Harvested local food", goal: 12 * el.level };
-  if (d.id === "grocery_store" || d.archetype === "restaurant_bar" || d.id === "bakery_coop")
+  if (["grocery_store", "growers_exchange", "bakery_coop"].includes(d.id) || d.archetype === "restaurant_bar")
     return { label: "Customers served", goal: 4 * el.level };
   if (flightProject(d.id) || ["bus_depots", "taxi_depots", "train_depots", "ferry_exchange"].includes(d.id))
     return { label: "Completed journeys", goal: 2 * el.level };
@@ -598,7 +605,13 @@ export function advanceEconomy(s: GameState, dt: number) {
     if (held) adjust(s, a, held.value - balance(s, a));
   }
   const present = new Set(s.elements.map((x) => x.id));
-  for (const id of Object.keys(e.sites)) if (!present.has(id)) delete e.sites[id];
+  for (const id of Object.keys(e.sites))
+    if (!present.has(id)) {
+      delete e.sites[id];
+      for (const k of Object.keys(CONTROLS) as ControlKey[]) delete e.raw[token(k, id)];
+    }
+  e.holds = e.holds.filter((x) => !x.site || present.has(x.site));
+  e.once = e.once.filter((x) => !x.site || present.has(x.site));
   const live = s.elements.filter(operational);
   const homes = live.filter((x) => ELEMENT_BY_ID[x.defId]?.popBase);
   const groups = new Map<string, { people: number; suppliers: PlacedElement[]; shops: PlacedElement[] }>();
@@ -621,9 +634,12 @@ export function advanceEconomy(s: GameState, dt: number) {
     workers += a.workers;
     if (d.popBase) g.people += (s.population * d.popBase * 2 ** (el.level - 1)) / Math.max(1, homeWeight);
     if (d.id === "rainwater_cathedral") {
-      a.food = Math.max(
+      a.cistern = Math.max(
         0,
-        Math.min(el.level * 180, a.food + (s.weather === "storm" || s.weather === "rain" ? 3 : -0.08) * t),
+        Math.min(
+          el.level * 180,
+          (a.cistern ?? 0) + (s.weather === "storm" || s.weather === "rain" ? 3 : -0.08) * t,
+        ),
       );
       continue;
     }
@@ -643,9 +659,10 @@ export function advanceEconomy(s: GameState, dt: number) {
   const importPrice = (0.8 * effective(s, "imports", 100)) / 100;
   let imported = 0,
     consumed = 0;
+  let remainingCapacity = s.metrics.foodSupply * t;
   const wages = transfer(s, "businesses", "households", workers * 0.34 * t, "Local wages");
   const taxFraction = effective(s, "tax", 15) / 100;
-  const taxes =
+  let taxes =
     transfer(s, "households", "treasury", wages * taxFraction, "Payroll tax") +
     transfer(s, "businesses", "treasury", r.exports * t * taxFraction, "Trade tax");
   for (const g of groups.values()) {
@@ -688,7 +705,7 @@ export function advanceEconomy(s: GameState, dt: number) {
     // Farmers' gates sell modest amounts directly. Markets and restaurants increase local distribution.
     const retail = sum(g.shops.map((el) => e.sites[el.id].retail)) * t * 0.1;
     const gates = sum(g.suppliers.map((el) => e.sites[el.id].yieldRate)) * t * 0.35;
-    let portion = Math.min(stock, need, retail + gates, s.metrics.foodSupply * t);
+    let portion = Math.min(stock, need, retail + gates, remainingCapacity);
     const voucher = Math.max(0, portion * 0.65 - e.households);
     transfer(s, "treasury", "households", voucher, "Household food assistance");
     portion = Math.min(portion, e.households / 0.65);
@@ -697,20 +714,17 @@ export function advanceEconomy(s: GameState, dt: number) {
       const a = e.sites[el.id],
         qty = Math.min(a.food, left);
       a.food -= qty;
+      if (a.retail > 0) {
+        a.served += qty;
+        a.work += qty;
+      }
       left -= qty;
       if (left <= 0) break;
     }
     consumed += portion;
+    remainingCapacity -= portion;
     const sale = transfer(s, "households", "businesses", portion * 0.65, "Household groceries");
-    transfer(s, "businesses", "treasury", sale * 0.04, "Sales tax");
-    if (g.shops.length) {
-      const capacity = sum(g.shops.map((el) => e.sites[el.id].retail));
-      for (const el of g.shops) {
-        const a = e.sites[el.id];
-        a.served += (portion * a.retail) / Math.max(1, capacity);
-        a.work += (portion * a.retail) / Math.max(1, capacity);
-      }
-    }
+    taxes += transfer(s, "businesses", "treasury", sale * 0.04, "Sales tax");
   }
   r.spoiled = spoil / t;
   r.consumed = consumed / t;

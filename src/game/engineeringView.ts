@@ -4,6 +4,7 @@ import {
   getTerrainCell,
   hydraulics,
   liftProgress,
+  LIFT_TRAVEL,
   naturalElevation,
   roadTravelOpen,
   tileKey,
@@ -296,7 +297,45 @@ export class EngineeringView {
               0x807b69,
             );
           }
-          if (cell.gate === "closed") {
+          if (cell.gateKind === "dam") {
+            const [dx, dz] = DIRECTIONS[cell.flowDir ?? 2];
+            const upstream = getTerrainCell(state, gx - dx, gz - dz);
+            const h = Math.max(0.8, cell.gateHead ?? 1),
+              crest = cell.waterLevel + h + 0.24;
+            const along = (a: number, y: number, b: number, len: number, high: number, w: number, col: number) =>
+              solid.box(x + 2 + (axis ? a : b), y, z + 2 + (axis ? b : a), axis ? len : w, high, axis ? w : len, col);
+            // A concrete intake, a transverse service gantry and a gate on each bank.
+            for (const side of [-1, 1]) {
+              const b = side * 1.48;
+              along(-0.58, cell.elevation, b - 0.34, 1.16, crest - cell.elevation + 0.06, 0.68, 0x918e7e);
+              along(-0.68, crest, b - 0.43, 1.36, 0.24, 0.86, 0xaaa38f);
+              along(-0.24, crest + 0.22, b - 0.17, 0.49, 0.45, 0.34, 0x637879);
+            }
+            along(-0.22, crest, -1.94, 0.44, 0.22, 3.88, 0x8b7960);
+            for (const b of [-1.75, -1, -0.22, 0.55, 1.35, 1.8])
+              along(-0.18, crest + 0.22, b, 0.065, 0.35, 0.065, 0x596461);
+            along(-0.18, crest + 0.54, -1.8, 0.07, 0.07, 3.64, 0x697772);
+            if (cell.gate === "closed") {
+              along(-0.16, cell.elevation, -1.2, 0.32, Math.max(0.3, crest - cell.elevation - 0.28), 2.4, 0x657b7a);
+              for (let y = cell.elevation + 0.32; y < crest - 0.4; y += 0.45)
+                along(-0.22, y, -1.2, 0.44, 0.07, 2.4, 0xaab4a3);
+              if (upstream.waterLevel > cell.waterLevel + 0.25) {
+                const sign = dx || dz;
+                for (const off of [-0.77, 0.59]) {
+                  for (let j = 0; j < 5; j++)
+                    along(
+                      sign * (0.23 + j * 0.1),
+                      cell.waterLevel + 0.03 + (4 - j) * 0.13,
+                      off,
+                      0.23,
+                      0.2,
+                      0.33,
+                      j % 2 ? 0x8ed2cc : 0xb7e6da,
+                    );
+                }
+              }
+            }
+          } else if (cell.gate === "closed") {
             solid.box(
               x + (axis ? 1.9 : 0.2),
               cell.waterLevel - 0.45,
@@ -412,10 +451,39 @@ export class EngineeringView {
             );
         }
       }
-      if (r.flow && pts.some(Boolean)) {
-        const edge = pts.findIndex(Boolean),
-          [dx, dz] = DIRECTIONS[edge];
-        this.currentPoints.push({ x: cx, y: h + 0.09, z: cz, dx, dz, phase: (gx * 3 + gz * 5) * 0.21 });
+      for (let side = 0; side < 4; side++) {
+        const [dx, dz] = DIRECTIONS[side],
+          neighbor = hydro.runs.get(tileKey(gx + dx, gz + dz));
+        if (r.flow && neighbor?.upstream === (side + 2) % 4) {
+          this.currentPoints.push({ x: cx, y: h + 0.09, z: cz, dx, dz, phase: (gx * 3 + gz * 5) * 0.21 });
+        }
+        const feed = r.inlet === side,
+          delivery = Boolean((r.deliveries ?? 0) & (1 << side));
+        if (!feed && !delivery) continue;
+        // Intake and drop pipe reach the receiving edge so water visibly enters the actual site.
+        const sample = getTerrainCell(state, gx + dx, gz + dz),
+          bottom = (sample.depth ? sample.waterLevel : sample.elevation) + 0.06;
+        const reach = feed ? 2.55 : 2.1,
+          tx = cx + dx * reach,
+          tz = cz + dz * reach;
+        const metal = feed ? 0x587878 : 0x9d7958;
+        solid.box(
+          Math.min(cx, tx) - 0.15,
+          h - 0.13,
+          Math.min(cz, tz) - 0.15,
+          Math.abs(tx - cx) + 0.3,
+          0.25,
+          Math.abs(tz - cz) + 0.3,
+          metal,
+        );
+        solid.box(tx - 0.16, bottom, tz - 0.16, 0.32, Math.max(0.25, h - bottom), 0.32, metal);
+        solid.box(tx - 0.23, bottom, tz - 0.23, 0.46, 0.25, 0.46, feed ? 0x637b74 : 0xaf9a72);
+        for (let d = 0.7; d < reach; d += 0.66)
+          solid.box(cx + dx * d - 0.19, h - 0.17, cz + dz * d - 0.19, 0.38, 0.32, 0.38, 0xd5af79);
+        if (delivery) {
+          solid.box(tx - 0.4, bottom - 0.055, tz - 0.4, 0.8, 0.08, 0.8, 0x83c6ca);
+          solid.box(tx - 0.18, bottom + 0.015, tz - 0.18, 0.36, 0.13, 0.36, 0x9cd6d1);
+        }
       }
       if (r.spill) {
         let edge = ["north", "east", "south", "west"].indexOf(duct.outlet);
@@ -447,6 +515,7 @@ export class EngineeringView {
       runs.set(s.run, [Math.min(n, range[0]), Math.max(n, range[1])]);
     }
     for (const [k, s] of Object.entries(infra.spans)) {
+      if (s.run.startsWith("junction-")) continue;
       const [gx, gz] = k.split(",").map(Number),
         cx = gx * 4 + 2,
         cz = gz * 4 + 2;
@@ -674,8 +743,9 @@ export class EngineeringView {
       const road = state.elements.find((e) => e.gx === gx && e.gz === gz);
       if (!road) continue;
       const alongX =
-        control.axis === "x" ||
-        state.elements.some((e) => e.gz === gz && Math.abs(e.gx - gx) === 1 && ELEMENT_ROAD(e.defId));
+        control.axis !== undefined
+          ? control.axis === "x"
+          : state.elements.some((e) => e.gz === gz && Math.abs(e.gx - gx) === 1 && ELEMENT_ROAD(e.defId));
       if (control.lanes > 2)
         for (let n = 1; n < control.lanes; n++) {
           const normal = 0.25 + (3.5 * n) / control.lanes;
@@ -739,7 +809,7 @@ export class EngineeringView {
     }
     for (const [k, m] of this.moving) {
       const s = state.infrastructure?.spans[k];
-      if (s) m.position.y = liftProgress(state, s) * 5;
+      if (s) m.position.y = liftProgress(state, s) * LIFT_TRAVEL;
     }
     for (const [k, m] of this.lights) {
       const [x, z] = k.split(",").map(Number);

@@ -105,15 +105,20 @@ function loadModeState(mode: GameMode): GameState {
   return createInitialGameState(mode);
 }
 
-function saveModeState(state: GameState): void {
+function lastMode(): GameMode {
+  try {const mode=localStorage.getItem("pixel_civ_last_mode");return mode==="real"||mode==="survival"?mode:"god";}catch{return "god";}
+}
+function persistMode(state: GameState): boolean {
   try {
     const slim: GameState = {
       ...state,
       toasts: [],
     };
     localStorage.setItem(`${SAVE_PREFIX}${state.mode}`, JSON.stringify(slim));
+    localStorage.setItem("pixel_civ_last_mode",state.mode);
+    return true;
   } catch {
-    // Ignore storage quota issues
+    return false;
   }
 }
 
@@ -121,9 +126,11 @@ export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<PixelWorldRenderer | null>(null);
 
-  const [gameState, setGameState] = useState<GameState>(() => loadModeState("god"));
+  const [gameState, setGameState] = useState<GameState>(() => loadModeState(lastMode()));
   const stateRef = useRef<GameState>(gameState);
-  stateRef.current = gameState;
+  const [saveError,setSaveError]=useState(false);
+  const [slotError,setSlotError]=useState("");
+  const saveModeState=useCallback((s:GameState)=>{const ok=persistMode(s);setSaveError(!ok);return ok;},[]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedIdsRef = useRef<string[]>(selectedIds);
@@ -138,13 +145,14 @@ export const App: React.FC = () => {
   const brushRef = useRef<BuildBrush>(brush);
   brushRef.current = brush;
 
-  const [simSpeed, setSimSpeed] = useState<number>(1);
+  const simSpeed=gameState.playSpeed??1;
   const simSpeedRef = useRef<number>(simSpeed);
   simSpeedRef.current = simSpeed;
 
   const [desk,setDesk]=useState<DeskTab|null>(null);
   const [folded,setFolded]=useState(false);
   const [score,setScore]=useState<"population"|"happiness"|"wealth"|"safety"|"site"|"controls">("wealth");
+  const [followedService, setFollowedService] = useState<string>();
   const [returnLine,setReturnLine]=useState<string>();
   const [dispatchTarget,setDispatchTarget]=useState<string>();
   const targetRef=useRef<string|undefined>(undefined);targetRef.current=dispatchTarget;
@@ -195,6 +203,8 @@ export const App: React.FC = () => {
     setGameState(next);
     saveModeState(next);
   }, []);
+
+  const setSimSpeed=(v:number)=>commitState(d=>{d.playSpeed=v;simSpeedRef.current=v;});
 
   const commitBuildingEdit = useCallback((label:string, mutate:(draft:GameState)=>void) => {
     const before=stateRef.current;
@@ -318,11 +328,13 @@ export const App: React.FC = () => {
       onTilePlace: handleTilePlace,
       onTileMoveCommit: handleTileMoveCommit,
       onSelectElement: handleSelectElement,
+      onFollowChange: setFollowedService,
+      onSelectService:id=>{setSelectedIds([]);setReturnLine(id);setDesk("transit");setFolded(false);setBottomMenuOpen(false);setWorksTool(null);},
       onHoverInfo: setHoverInfo,
       onInspectTile: (gx,gz)=>{
         setInspectPoint({gx,gz});
         const target=targetRef.current;
-        if(target){commitState(s=>dispatchVessel(s,target,"sail",[gx,gz]));setDispatchTarget(undefined);setDesk("transit");setFolded(false);}
+        if(target){commitState(s=>dispatchVessel(s,target,"sail",[gx,gz]));setDispatchTarget(undefined);setDesk("transit");setFolded(false);return true;}
       },
       onInfrastructureStroke: (tool,points)=>setPendingWorks({tool:{...tool},points:points.map(p=>({...p}))}),
     });
@@ -363,7 +375,11 @@ export const App: React.FC = () => {
 
   // Simulation loop (250ms tick, pauses active Survival timers when tab is hidden)
   useEffect(() => {
-    let lastMs = performance.now();
+    let lastMs = performance.now(), lastSave=lastMs;
+    const flush=()=>saveModeState(stateRef.current);
+    const visibility=()=>{if(document.hidden)flush();};
+    window.addEventListener("pagehide",flush);
+    document.addEventListener("visibilitychange",visibility);
     const timer = window.setInterval(() => {
       const now = performance.now();
       const rawDt = Math.min(1.0, (now - lastMs) / 1000);
@@ -390,14 +406,14 @@ export const App: React.FC = () => {
         next.elements.some((e) => e.animProgress > 0)
       ) {
         setGameState(next);
-        if (changed) saveModeState(next);
+        if(now-lastSave>=5000){saveModeState(next);lastSave=now;}
       } else {
         // Still sync animProgress & clock smoothly to rendererRef
         rendererRef.current?.syncState(next, selectedIdsRef.current);
       }
     }, 250);
 
-    return () => window.clearInterval(timer);
+    return () => {window.clearInterval(timer);window.removeEventListener("pagehide",flush);document.removeEventListener("visibilitychange",visibility);};
   }, []);
 
   // Keyboard controls for selection, building and view.
@@ -472,8 +488,9 @@ export const App: React.FC = () => {
   // UI Handlers
   const handleSwitchMode = (mode: GameMode) => {
     setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
-    saveModeState(stateRef.current);
+    if(!saveModeState(stateRef.current))return;
     const loaded = loadModeState(mode);
+    saveModeState(loaded);
     stateRef.current = loaded;
     setGameState(loaded);
     setSelectedIds([]);
@@ -615,7 +632,8 @@ export const App: React.FC = () => {
   };
 
   const handleSaveToSlot = (slotIndex: number, name: string) => {
-    const updated = saveCivilizationToSlot(slotIndex, name, stateRef.current);
+    let updated:typeof saveSlots;
+    try{updated=saveCivilizationToSlot(slotIndex,name,stateRef.current);setSlotError("");}catch{setSlotError("The slot could not be saved. Free browser storage and try again.");return;}
     setSaveSlots(updated);
     setActiveSlotIndex(slotIndex);
     const savedName = updated[slotIndex]?.name ?? `Civilization ${slotIndex + 1}`;
@@ -633,7 +651,7 @@ export const App: React.FC = () => {
     setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
     const slot = saveSlots[slotIndex];
     if (!slot) return;
-    saveModeState(stateRef.current);
+    if(!saveModeState(stateRef.current))return;
     const restored = cloneGameStateSnapshot(slot.state);
     pushToast(
       restored,
@@ -656,11 +674,11 @@ export const App: React.FC = () => {
   };
 
   const handleRenameSlot = (slotIndex: number, name: string) => {
-    setSaveSlots(renameCivilizationSlot(slotIndex, name));
+    try{setSaveSlots(renameCivilizationSlot(slotIndex,name));setSlotError("");}catch{setSlotError("The name could not be saved in browser storage.");}
   };
 
   const handleDeleteSlot = (slotIndex: number) => {
-    setSaveSlots(deleteCivilizationSlot(slotIndex));
+    try{setSaveSlots(deleteCivilizationSlot(slotIndex));setSlotError("");}catch{setSlotError("The slot could not be removed from browser storage.");return;}
     if (activeSlotIndex === slotIndex) {
       setActiveSlotIndex(null);
     }
@@ -781,7 +799,7 @@ export const App: React.FC = () => {
     setSelectedIds([]);setActiveSlotIndex(null);setWorksTool(null);rendererRef.current?.followService();openDesk("god");
   };
   const copyIsland=()=>{
-    const current=stateRef.current;saveModeState(current);
+    const current=stateRef.current;if(!saveModeState(current))return;
     if(!snapshot(loadModeState("god")))return;
     activateSandbox(cloneGameStateSnapshot(current));
   };
@@ -802,6 +820,7 @@ export const App: React.FC = () => {
         aria-label="Pixel Civilization 3D Voxel Island"
       />
 
+      {saveError&&<p className="storage-notice" role="alert">This island could not be saved in browser storage. Keep the game open while you free space.</p>}
       {dispatchTarget&&<div className="works-confirm" role="status">Tap the water where you want this vessel to sail.<button onClick={()=>{setDispatchTarget(undefined);setFolded(false);}}>Cancel voyage</button></div>}
       {pendingWorks&&worksPreview&&<div className="works-confirm" role="status"><strong>{pendingWorks.tool.kind} · {worksPreview.points.length} tiles</strong>
         <span>{worksPreview.valid?("$"+worksPreview.cost+" · "+worksPreview.affected.length+" affected sites"):worksPreview.reason}</span>
@@ -815,7 +834,7 @@ export const App: React.FC = () => {
         <nav aria-label="Island tool sections">{(Object.keys(tabs) as DeskTab[]).filter(t=>(t!=="god"||gameState.mode==="god")&&(t!=="connections"||selected)).map(t=><button key={t} aria-current={desk===t} onClick={()=>openDesk(t)}>{tabs[t]}</button>)}</nav>
         {desk==="works"&&returnLine&&<button className="desk-back" onClick={()=>openDesk("transit")}>← Back to {returnLine.replace("line-","service #")}</button>}
         {desk==="works"&&<div className="desk-works"><InfrastructurePanel state={gameState} mutate={editCity} selected={selected} onPreview={(tool,points)=>{setPendingWorks({tool,points});setFolded(true);}} inspectPoint={inspectPoint} tool={worksTool} onToolChange={t=>{setPendingWorks(null);setWorksTool(t);}} onClose={closeDesk}/></div>}
-        {desk==="transit"&&<MobilityPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} onPickDestination={id=>{setDispatchTarget(id);setFolded(true);}} onFollow={id=>rendererRef.current?.followService(id)} focusLine={returnLine} onGrid={(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openDesk("works");}}/>}
+        {desk==="transit"&&<MobilityPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} onPickDestination={id=>{setDispatchTarget(id);setFolded(true);}} onFollow={id=>rendererRef.current?.followService(id)} following={followedService} focusLine={returnLine} onGrid={(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openDesk("works");}}/>}
         {desk==="city"&&<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel={score}/>}
         {desk==="connections"&&<Connections s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("site");openDesk(tab);}}/>}
         {desk==="god"&&gameState.mode==="god"&&<GodControls s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("controls");openDesk(tab);}} paused={simSpeed===0} onPause={()=>setSimSpeed(simSpeed?0:1)}
@@ -1122,6 +1141,7 @@ export const App: React.FC = () => {
         onClose={() => setSavesModalOpen(false)}
         onSaveToSlot={handleSaveToSlot}
         onLoadSlot={handleLoadSlot}
+        error={slotError}
         onRenameSlot={handleRenameSlot}
         onDeleteSlot={handleDeleteSlot}
       />

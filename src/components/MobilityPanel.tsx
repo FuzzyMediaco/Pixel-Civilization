@@ -21,6 +21,7 @@ export interface TransportProps {
   selected?: PlacedElement;
   onFocus: (id: string) => void;
   focusLine?: string;
+  following?: string;
   onGrid: (x: number, z: number, line: string) => void;
   onFollow: (id?: string) => void;
   onPickDestination: (id: string) => void;
@@ -32,6 +33,7 @@ export function MobilityPanel({
   mutate,
   selected,
   onFollow,
+  following,
   onFocus,
   onGrid,
   onPickDestination,
@@ -41,8 +43,7 @@ export function MobilityPanel({
     [depot, setDepot] = useState(""),
     [stops, setStops] = useState<string[]>([]),
     [message, setMessage] = useState("");
-  const [following, setFollowing] = useState(""),
-    [editing, setEditing] = useState(""),
+  const [editing, setEditing] = useState(""),
     [showBuilder, setShowBuilder] = useState(false);
   useEffect(() => {
     if (focusLine) document.getElementById("service-" + focusLine)?.scrollIntoView({ block: "nearest" });
@@ -62,7 +63,6 @@ export function MobilityPanel({
   const follow = (id: string) => {
     const next = following === id ? "" : id;
     onFollow(next || undefined);
-    setFollowing(next);
   };
   const suggest = () => {
     const list = autoStops(state, mode, chosen);
@@ -83,6 +83,19 @@ export function MobilityPanel({
           if (prior) {
             replacement.id = editing;
             replacement.delivered = prior.delivered;
+            replacement.departures = prior.departures;
+            replacement.enabled = prior.enabled;
+            if (prior.mode === mode && prior.depot === chosen) {
+              replacement.riders = prior.riders.filter((r) => stops.includes(r.destination));
+              replacement.position = prior.position ?? replacement.position;
+              replacement.at = prior.at && [chosen, ...stops].includes(prior.at) ? prior.at : undefined;
+              replacement.waiting = prior.waiting;
+              replacement.lastBoarding = prior.lastBoarding;
+              const calls = [chosen, ...stops.filter((x) => x !== chosen)];
+              const previous = [prior.depot, ...prior.stops.filter((x) => x !== prior.depot)];
+              const next = calls.indexOf(previous[prior.next]);
+              replacement.next = next >= 0 ? next : 1;
+            }
             replacement.schedule = prior.schedule;
             replacement.interval = prior.interval;
             replacement.demandScale = prior.demandScale;
@@ -263,7 +276,7 @@ export function MobilityPanel({
             </label>
           )}
           <div className="island-actions">
-            <button onClick={() => follow(l.id)}>
+            <button disabled={!l.enabled} onClick={() => follow(l.id)}>
               {following === l.id ? "Stop following" : "Follow vehicle"}
             </button>
             <button
@@ -284,6 +297,7 @@ export function MobilityPanel({
                     const extra = s.mobility!.lines.find((line) => line.id === id)!;
                     extra.interval = l.interval;
                     extra.schedule = l.schedule;
+                    extra.demandScale = l.demandScale;
                     extra.dwell = l.interval / 2 + 3;
                     setMessage("An extra vehicle will leave the depot after a staggered start.");
                   } catch (e) {

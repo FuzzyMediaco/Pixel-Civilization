@@ -1,4 +1,4 @@
-import { ELEMENT_BY_ID } from "./catalog";
+import { ELEMENT_BY_ID, getStandardFootprintForLevel } from "./catalog";
 import {
   closeSites,
   economyOf,
@@ -11,11 +11,12 @@ import {
 } from "./cityEconomy";
 import type { GameState, PlacedElement } from "./simulation";
 import { getTravelNetwork, type Point, waterHull, travelSignature } from "./travelNetwork";
-import { readWaterService, requestVesselPassage, roadTravelOpen } from "./terrain";
+import { freshWaterFactor, readWaterService, requestVesselPassage, roadTravelOpen } from "./terrain";
 
 export type ActorKind = "plane" | "airTaxi" | "teleport" | "rocket" | "engine" | "fireboat" | "volunteer";
 export interface ProjectActor {
   id: string;
+  siteId: string;
   kind: ActorKind;
   gx: number;
   gz: number;
@@ -34,6 +35,7 @@ interface Flight {
   capacity: number;
 }
 interface Call {
+  id?: string;
   target: string;
   origin?: string;
   kind: "engine" | "fireboat" | "volunteer";
@@ -43,6 +45,7 @@ interface Call {
   age: number;
   status: string;
   revision?: string;
+  stalled?: boolean;
   escaped: boolean;
   retiring?: boolean;
 }
@@ -81,39 +84,32 @@ const aviation: Record<string, ActorKind> = {
 const center = (e: PlacedElement): Point => [e.gx + e.spanX / 2, e.gz + e.spanZ / 2];
 const limit = (n: number, a = 0, b = 1) => Math.max(a, Math.min(b, n));
 function waypoints(kind: ActorKind, from: PlacedElement, to: PlacedElement): Waypoint[] {
-  const [x, z] = center(from),
-    [u, v] = center(to);
-  let dx = 1,
-    dz = 0;
-  if (from.rotation % 2) {
-    dx = 0;
-    dz = 1;
-  }
-  if (from.rotation >= 2) {
-    dx = -dx;
-    dz = -dz;
-  }
-  const pad = (ahead: number, side: number, height: number): Waypoint => [
-    x + dx * ahead - dz * side,
-    z + dz * ahead + dx * side,
-    height,
-  ];
+  const at = (e: PlacedElement, ahead: number, side: number, height: number): Waypoint => {
+    const [x, z] = center(e),
+      angle = (e.rotation * Math.PI) / 2;
+    const dx = Math.round(Math.cos(angle)),
+      dz = -Math.round(Math.sin(angle));
+    return [x + dx * ahead - dz * side, z + dz * ahead + dx * side, height];
+  };
+  const pad = (a: number, b: number, h: number) => at(from, a, b, h);
   if (kind === "plane") {
-    const r = Math.max(from.spanX, from.spanZ) * 0.4;
-    const far = 36 + Math.abs(dx * x + dz * z);
+    const [width, depth] = from.rotation % 2 ? [from.spanZ, from.spanX] : [from.spanX, from.spanZ];
+    const r = width * 0.4,
+      lane = depth / 4;
+    const far = 38 + Math.abs(from.rotation % 2 ? from.gz : from.gx);
     return [
-      pad(-r, -0.15, 0.28),
-      pad(-r, 0.3, 0.28),
-      pad(r, 0.3, 0.28),
-      pad(r + 3, 0.3, 2),
-      pad(r + 9, 0.3, 8),
+      pad(-r, 0.1, 0.28),
+      pad(-r, lane, 0.28),
+      pad(r, lane, 0.28),
+      pad(r + 3, lane, 2),
+      pad(r + 9, lane, 8),
       pad(far, -4, 15),
       pad(far, 7, 15),
       pad(-12, 6, 9),
-      pad(-5, 0.3, 3),
-      pad(-r, 0.3, 0.28),
-      pad(r, 0.3, 0.28),
-      pad(r, -0.15, 0.28),
+      pad(-5, lane, 3),
+      pad(-r, lane, 0.28),
+      pad(r, lane, 0.28),
+      pad(r, 0.1, 0.28),
     ];
   }
   if (kind === "rocket")
@@ -128,16 +124,30 @@ function waypoints(kind: ActorKind, from: PlacedElement, to: PlacedElement): Way
       pad(2, 0, 38),
       pad(4, 0, 65),
     ];
-  const height = kind === "airTaxi" ? 5 + from.level : 1.4;
+  // Land on the marked roof deck or the sidewalk-side portal arch. Old sites scale the
+  // model to their saved lot dimensions, so their boarding positions scale with the art.
+  const platform = (e: PlacedElement) => {
+    const [w, d] = getStandardFootprintForLevel(ELEMENT_BY_ID[e.defId], e.level);
+    const [width, depth] = e.rotation % 2 ? [e.spanZ, e.spanX] : [e.spanX, e.spanZ];
+    const fit = Math.min(1, width / w, depth / d);
+    const localZ = kind === "airTaxi" ? 3 : d * 8 - 4;
+    const top = kind === "airTaxi" ? 4 * e.level + 1 : 3;
+    return at(e, 0, (localZ * fit) / 16, (1 + (top - 1) * fit) / 4);
+  };
+  const start = platform(from),
+    end = platform(to);
+  const [x, z, h] = start,
+    [u, v, j] = end,
+    cruise = Math.max(h, j) + 5;
   return [
-    [x, z, height],
-    [x, z, height],
-    [x, z, height + 2],
-    [x + (u - x) * 0.25, z + (v - z) * 0.25, height + 5],
-    [(x + u) / 2, (z + v) / 2, height + 6],
-    [u, v, height + 2],
-    [u, v, height],
-    [u, v, height],
+    start,
+    start,
+    [x, z, h + 2],
+    [x + (u - x) * 0.25, z + (v - z) * 0.25, cruise],
+    [(x + u) / 2, (z + v) / 2, cruise + 1],
+    [u, v, j + 2],
+    end,
+    end,
   ];
 }
 function interpolate(path: Waypoint[], p: number) {
@@ -196,18 +206,20 @@ export function requestProjectJourney(s: GameState, originId: string) {
   if (a.workers < 1 || s.population < 2) return fail("Waiting for local passengers and staff");
   if (kind === "rocket" && (s.metrics.waterDemand > s.metrics.waterSupply || a.workers < 3))
     return fail("Crew and launch water required");
-  const dest =
-    kind === "airTaxi" || kind === "teleport"
-      ? s.elements.find(
-          (el) =>
-            el.id !== originId &&
-            el.defId === origin.defId &&
-            operational(el) &&
-            !op.flights.some((f) => f.origin === el.id || f.dest === el.id) &&
-            siteOf(s, el).workers >= 1,
-        )
-      : origin;
-  if (!dest) return fail("Build a second staffed, powered partner terminal");
+  let dest = origin;
+  if (kind === "airTaxi" || kind === "teleport") {
+    const partners = s.elements.filter((el) => el.id !== originId && el.defId === origin.defId);
+    if (!partners.length) return fail("Build a second partner terminal");
+    const staffed = partners.filter((el) => operational(el) && siteOf(s, el).workers >= 1);
+    if (!staffed.length) return fail("Connect, repair and staff a partner terminal");
+    const available = staffed.find(
+      (el) =>
+        (op.next[el.id] ?? 0) <= s.activePlaySec &&
+        !op.flights.some((f) => f.origin === el.id || f.dest === el.id),
+    );
+    if (!available) return fail("Waiting for partner terminal turnaround");
+    dest = available;
+  }
   if (kind === "rocket" && economyOf(s).businesses < 18)
     return fail("Launch supplies cost $18 from business cash");
   if (kind === "rocket") transfer(s, "businesses", "outside", 18, "Rocket propellant");
@@ -307,6 +319,7 @@ export function dispatchFire(s: GameState, targetId: string) {
   let call = op.calls.find((c) => c.target === targetId && !c.retiring);
   if (!call) {
     call = {
+      id: "crew-" + targetId + "-" + op.fires,
       target: targetId,
       kind: "volunteer",
       path: [],
@@ -329,17 +342,33 @@ export function advanceOperations(s: GameState, dt: number) {
   if (plan) op.clock %= 1;
   let changed = false;
   for (const f of [...op.flights]) {
-    if (!s.elements.some((e) => e.id === f.origin) || !s.elements.some((e) => e.id === f.dest)) {
+    const origin = s.elements.find((el) => el.id === f.origin),
+      dest = s.elements.find((el) => el.id === f.dest);
+    if (!origin || !dest) {
       op.flights.splice(op.flights.indexOf(f), 1);
+      op.status[f.origin] = "Journey cancelled · terminal removed";
       changed = true;
       continue;
     }
-    if (f.kind === "teleport" && s.metrics.powerSupply < s.metrics.powerDemand) {
-      op.status[f.origin] = "Gate paused · restore power";
+    const powered = s.metrics.powerSupply >= s.metrics.powerDemand;
+    const receiving = operational(dest) && siteOf(s, dest).workers >= 1 && powered;
+    if (f.kind === "teleport" && (!operational(origin) || siteOf(s, origin).workers < 1 || !receiving)) {
+      op.status[f.origin] = op.status[f.dest] = "Gate paused · restore both terminals, staff and power";
+      continue;
+    }
+    const approach = f.kind === "plane" ? 0.68 : 0.74;
+    if (
+      (f.kind === "airTaxi" || f.kind === "plane") &&
+      f.progress + dt >= f.duration * approach &&
+      !receiving
+    ) {
+      // Stop counting toward arrival, even if a long active tick spans the whole approach.
+      f.progress = Math.max(f.progress, f.duration * approach);
+      op.status[f.origin] = op.status[f.dest] = "Holding for a safe landing";
       continue;
     }
     f.progress += dt;
-    op.status[f.origin] = flightStatus(f);
+    op.status[f.origin] = op.status[f.dest] = flightStatus(f);
     if (f.progress < f.duration) continue;
     op.flights.splice(op.flights.indexOf(f), 1);
     op.completed[f.origin] = (op.completed[f.origin] ?? 0) + 1;
@@ -355,34 +384,40 @@ export function advanceOperations(s: GameState, dt: number) {
       );
     else transfer(s, "households", "businesses", f.capacity * 0.8, "Passenger fares");
     op.next[f.origin] = s.activePlaySec + effective(s, "turnaround", f.kind === "rocket" ? 45 : 14, f.origin);
-    op.next[f.dest] = op.next[f.origin];
-    op.status[f.origin] = "Returned · " + f.capacity + " passengers served";
+    op.next[f.dest] = s.activePlaySec + effective(s, "turnaround", f.kind === "rocket" ? 45 : 14, f.dest);
+    op.status[f.origin] = op.status[f.dest] = "Completed · " + f.capacity + " passengers served";
     changed = true;
   }
   if (plan) {
-    for (const el of s.elements) {
-      if (aviation[el.defId] && !op.flights.some((f) => f.origin === el.id || f.dest === el.id))
+    // Alternating origins lets both ends of a two-pad line earn departure experience.
+    const ready = s.elements
+      .filter((el) => aviation[el.defId] && (op.next[el.id] ?? 0) <= s.activePlaySec)
+      .sort((a, b) => (op.completed[a.id] ?? 0) - (op.completed[b.id] ?? 0));
+    for (const el of ready)
+      if (!op.flights.some((f) => f.origin === el.id || f.dest === el.id))
         changed = requestProjectJourney(s, el.id) || changed;
+    for (const el of s.elements) {
       if (el.onFire && !op.calls.some((c) => !c.retiring && c.target === el.id)) {
         dispatchFire(s, el.id);
         changed = true;
       }
     }
-    if (s.highestStageReached >= 4 && s.mode !== "god") {
+    const risk = effective(s, "risk", s.mode === "god" ? 0 : s.mode === "survival" ? 12 : 4);
+    if ((s.mode === "god" || s.highestStageReached >= 4) && risk > 0) {
       if (op.sinceBoom === undefined) {
         op.sinceBoom = s.activePlaySec;
         op.nextFire = s.activePlaySec + 100;
       }
       if (s.activePlaySec >= op.nextFire) {
-        const risk = effective(s, "risk", s.mode === "survival" ? 12 : 4);
         op.nextFire = s.activePlaySec + 120 + Math.random() * 220;
         const vulnerable = s.elements.filter(
-          (e) => operational(e) && !ELEMENT_BY_ID[e.defId]?.isNetwork && !ELEMENT_BY_ID[e.defId]?.passiveNature,
+          (e) =>
+            e.connected &&
+            !e.onFire &&
+            !ELEMENT_BY_ID[e.defId]?.isNetwork &&
+            !ELEMENT_BY_ID[e.defId]?.passiveNature,
         );
-        if (
-          vulnerable.length &&
-          Math.random() < Math.min(0.8, 0.08 + risk * 0.02 + Math.min(0.3, vulnerable.length * 0.001))
-        ) {
+        if (vulnerable.length && Math.random() < risk / 100) {
           vulnerable.sort(
             (a, b) =>
               Number(b.disrepair) -
@@ -422,14 +457,33 @@ export function advanceOperations(s: GameState, dt: number) {
     if (!c.origin) continue;
     const station = s.elements.find((x) => x.id === c.origin);
     if (!station || !operational(station)) {
-      c.origin = undefined;
-      c.path = [];
+      if (c.retiring) op.calls.splice(op.calls.indexOf(c), 1);
+      else {
+        c.origin = undefined;
+        c.path = [];
+        c.stalled = false;
+      }
       continue;
     }
-    if (!c.retiring && plan && c.revision !== travelSignature(s)) {
-      c.origin = undefined;
-      c.path = [];
-      routeCrew(s, c, target);
+    if (plan && c.revision !== travelSignature(s)) {
+      // Replan from the crew's present road or channel. An unrelated parcel edit
+      // must not teleport an en-route engine or a returning boat to its station.
+      const mode = c.kind === "engine" ? "taxi" : c.kind === "fireboat" ? "gondola" : "walk";
+      const hull = c.kind === "fireboat" ? fireHull : undefined;
+      const goal = c.retiring ? station : target;
+      const i = Math.floor(c.travel),
+        net = getTravelNetwork(s),
+        current = c.path[i];
+      const reroute = net.path([current], net.connectors(goal, mode, hull), mode, hull);
+      c.revision = travelSignature(s);
+      if (reroute) {
+        if (c.path[i + 1]?.join(",") !== reroute[1]?.join(",")) c.travel = i;
+        c.path = [...c.path.slice(0, i), ...reroute];
+        c.stalled = false;
+      } else c.stalled = !(c.kind === "volunteer" && closeSites(station, target, 0));
+    }
+    if (c.stalled) {
+      c.status = "Waiting for a route to reopen";
       continue;
     }
     const end = c.path.length - 1;
@@ -458,7 +512,18 @@ export function advanceOperations(s: GameState, dt: number) {
     const wet = s.weather === "rain" || s.weather === "storm",
       localWater = readWaterService(s, target).freshwater || readWaterService(s, station).freshwater;
     const nearbyWater = s.elements.some(
-      (x) => operational(x) && (ELEMENT_BY_ID[x.defId]?.water ?? 0) > 0 && closeSites(x, target, 3),
+      (x) =>
+        operational(x) &&
+        [
+          "wells",
+          "water_towers",
+          "municipal_reservoir",
+          "desalination_plant",
+          "water_pumping_station",
+          "water_treatment_plant",
+        ].includes(x.defId) &&
+        (closeSites(x, target, 3) || closeSites(x, station, 3)) &&
+        freshWaterFactor(s, x) > 0,
     );
     if (
       !wet &&
@@ -501,6 +566,7 @@ export function getProjectActors(s: GameState): ProjectActor[] {
       const a = f.path[idx];
       actors.push({
         id: f.origin,
+        siteId: f.origin,
         kind: f.kind,
         gx: a[0],
         gz: a[1],
@@ -508,7 +574,8 @@ export function getProjectActors(s: GameState): ProjectActor[] {
         heading: p * 10,
         progress: p,
       });
-    } else actors.push({ id: f.origin, kind: f.kind, ...interpolate(f.path, p), progress: p });
+    } else
+      actors.push({ id: f.origin, siteId: f.origin, kind: f.kind, ...interpolate(f.path, p), progress: p });
   }
   for (const c of op.calls) {
     if (!c.origin || !c.path.length) continue;
@@ -519,7 +586,8 @@ export function getProjectActors(s: GameState): ProjectActor[] {
     const gx = a[0] + (b[0] - a[0]) * off + 0.5,
       gz = a[1] + (b[1] - a[1]) * off + 0.5;
     actors.push({
-      id: "crew-" + c.target,
+      id: c.id ?? "crew-" + c.target,
+      siteId: c.target,
       kind: c.kind,
       gx,
       gz,

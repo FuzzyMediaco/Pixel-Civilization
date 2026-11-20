@@ -1,4 +1,4 @@
-import { getTravelNetwork, type TravelNetwork } from "./travelNetwork";
+import { getTravelNetwork, travelSignature, type TravelNetwork } from "./travelNetwork";
 import { MobilityVisuals, voyagePlacement } from "./mobilityVisuals";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -28,7 +28,7 @@ import {
   worldToGrid,
 } from "./simulation";
 import { EngineeringView, maskTerrainFragment } from "./engineeringView";
-import { getTerrainCell, planInfrastructureStroke, registerRoadDemand, roadTravelOpen, surfaceTravelHeight, tileKey, type InfrastructureTool, type GridPoint } from "./terrain";
+import { getTerrainCell, planInfrastructureStroke, registerRoadDemand, roadPortOpen, roadTravelOpen, surfaceTravelHeight, tileKey, type InfrastructureTool, type GridPoint } from "./terrain";
 import { networkRoadProfile } from "./designs/networks";
 import { getParcelEdgeKey, getParcelEdges } from "./parcelEdges";
 import { getParcelSoils } from "./parcelGeometry";
@@ -61,7 +61,9 @@ export interface WorldCallbacks {
   onInfrastructureStroke?: (tool:InfrastructureTool,points:GridPoint[])=>void;
   onTilePlace: (gx: number, gz: number) => void;
   onTileMoveCommit: (elementId: string, gx: number, gz: number) => void;
-  onInspectTile?: (gx:number,gz:number)=>void;
+  onInspectTile?: (gx:number,gz:number)=>boolean|void;
+  onSelectService?: (id: string) => void;
+  onFollowChange?: (id?: string) => void;
   onSelectElement: (elementId: string | null, additiveShift: boolean) => void;
   onHoverInfo?: (info: { gx: number; gz: number; valid: boolean; reason?: string } | null) => void;
 }
@@ -167,24 +169,33 @@ function getVehicleGeometry(kind: RoadVehicleKind | "train", variantSeed: number
       break;
     }
     case "bus": {
-      const bCol = variantSeed % 2 === 0 ? "busYellow" : "blue";
-      v.box(-2, 0, -6, 2, 4, 6, bCol);
-      v.box(-2, 2, -5, 2, 3, 5, "glass", 0.35);
-      v.box(-2, 4, -6, 2, 5, 6, "white");
+      const body="#257d77",cream="#f8e6bb",window="#416478";
+      v.box(-3,1,-9,3,5,9,body);
+      v.box(-3,5,-8,3,7,8,cream);
+      for(const z of [-7,-4,-1,2,5])v.box(-3,5,z,3,6,z+1,window,.17);
+      v.box(-2,5,9,2,6,9,window,.17);
+      v.box(-2,7,9,2,7,9,"#fbd284",.6);
+      v.box(3,2,5,3,6,7,"#424f4d");v.box(3,5,5,3,6,6,"#80aeb0",.2);
+      v.box(-2,8,-7,2,8,7,cream);v.box(-1,9,-3,1,9,0,"#a9b9ab");
       break;
     }
     case "taxi": {
-      v.box(-2, 0, -4, 2, 2, 4, "busYellow");
-      v.box(-2, 2, -2, 2, 3, 2, "busYellow");
-      v.put(0, 3, 0, "warmGlow", 0.9); // taxi roof light
+      const yellow="#eeb237";
+      v.box(-3,1,-6,3,3,6,yellow);v.box(-2,4,-3,2,5,2,"#466571",.18);
+      v.box(-2,6,-2,2,6,1,yellow);v.box(-1,7,-1,1,7,0,"#fff3c2",.7);
+      for(const x of [-3,3])for(let z=-4;z<4;z++)v.put(x,3,z,z%2?"#3d4140":"#f9eacd");
       break;
     }
     case "train": {
-      const tCol = variantSeed % 2 === 0 ? "crimson" : "blueDark";
-      v.box(-3, 0, -7, 3, 4, 7, tCol);
-      v.box(-3, 2, -6, 3, 3, 6, "glass", 0.45);
-      v.box(-2, 4, -7, 2, 5, 7, "silver");
-      v.put(0, 2, 7, "warmGlow", 1.2);
+      for(const z of [-12,1]){
+        v.box(-3,1,z,3,3,z+10,"#aa3e31");
+        v.box(-3,4,z,3,6,z+10,"#f0e9d3");
+        for(const window of [1,4,7])v.box(-3,4,z+window,3,5,z+window+1,"#435b6d",.18);
+        v.box(-2,7,z+1,2,7,z+9,"#9bacae");
+      }
+      v.box(-2,2,-1,2,5,0,"#525865");
+      v.box(-2,4,11,2,5,11,"#364c58",.25);
+      v.box(-2,1,12,2,3,12,"#ad4231");v.put(0,4,12,"warmGlow",.8);
       break;
     }
     default: {
@@ -196,6 +207,11 @@ function getVehicleGeometry(kind: RoadVehicleKind | "train", variantSeed: number
     }
   }
 
+  if(["train","bus","taxi"].includes(kind)){
+    const axle=kind==="train"?9:kind==="bus"?6:4,nose=kind==="train"?12:kind==="bus"?9:6;
+    for(const x of [-3,3])for(const z of [-axle,axle])v.box(x,0,z-1,x,1,z+1,"rubber");
+    for(const x of [-2,2]){v.put(x,2,nose,"warmGlow",.8);v.put(x,2,-nose,"#ce583d",.3);}
+  }
   // Wheels
   const wz = kind === "train" ? 5 : kind === "bus" || kind === "truck" ? 4 : 3;
   v.put(-2, 0, -wz + 1, "rubber");
@@ -271,7 +287,7 @@ export class PixelWorldRenderer {
   private weatherGroup = new THREE.Group();
   private fxGroup = new THREE.Group();
 
-  private oceanUniforms = { uTime: { value: 0 } };
+  private oceanUniforms = { uTime: { value: 0 }, uDaylight: { value: 1 } };
   private placedEntries = new Map<string, PlacedRenderEntry>();
   private activeHeatmap: HeatmapKind = "none";
   private selectionFilter: SelectionFilter = "all";
@@ -593,6 +609,7 @@ export class PixelWorldRenderer {
       fragmentShader: `
         uniform sampler2D uWorksMask;
         uniform float uTime;
+        uniform float uDaylight;
         varying vec3 vWorldPos;
 
         float islandMargin(vec2 p) {
@@ -634,7 +651,8 @@ export class PixelWorldRenderer {
           float distFade = clamp(length(vWorldPos.xz) / 620.0, 0.0, 1.0);
           col = mix(col, vec3(0.80, 0.93, 1.0), distFade * 0.75);
 
-          gl_FragColor = vec4(col, 0.92);
+          vec3 moonlit = col * vec3(0.22, 0.34, 0.48);
+          gl_FragColor = vec4(mix(moonlit, col, uDaylight), 0.92);
         }
       `,
     });
@@ -645,6 +663,7 @@ export class PixelWorldRenderer {
   }
 
   public setCameraMode(mode: CameraMode): void {
+    if (mode === "walk") this.followService();
     this.cameraMode = mode;
     if (mode === "walk") {
       this.walkPos.set(this.target.x, 2.3, this.target.z + 12);
@@ -681,16 +700,18 @@ export class PixelWorldRenderer {
   }
 
   public followService(id?: string): void {
-    this.following=id;
+    if (this.following === id) return;
+    this.following = id;
+    this.callbacks.onFollowChange?.(id);
     if(id){this.spherical.radius=21;this.cameraMode="pan";this.updateCameraTransform();}
   }
   public focusGrid(gx: number, gz: number, distance = 21): void {
-    this.following=undefined;
+    this.followService();
     const [x,z]=gridToWorldCenter(gx,gz);
     this.target.set(x,.6,z);this.spherical.radius=distance;this.updateCameraTransform();
   }
   public focusElement(elementId: string): void {
-    this.following=undefined;
+    this.followService();
     const el = this.gameState.elements.find((e) => e.id === elementId);
     if (!el) return;
     const [wx, wz] = gridToWorldCenter(el.gx, el.gz, el.spanX, el.spanZ);
@@ -888,7 +909,7 @@ export class PixelWorldRenderer {
           entry.group.position.z = wz;
         }
         entry.group.userData.baseY = baseY;
-        entry.group.rotation.y = def.isNetwork ? 0 : (el.rotation * Math.PI) / 2;
+        if(!state.mobility?.voyages[el.id])entry.group.rotation.y = def.isNetwork ? 0 : (el.rotation * Math.PI) / 2;
         entry.wx = wx;
         entry.baseY = baseY;
         entry.wz = wz;
@@ -1620,7 +1641,7 @@ export class PixelWorldRenderer {
         }
 
         // Prefer continuing forward or turning, falling back to U-turn at dead ends
-        const validDirs = dirs.filter(([dx, dz]) => net.has(`${a.gx + dx},${a.gz + dz}`) && (a.isRail || this.canTurn(a.gx, a.gz, a.dirX, dx)));
+        const validDirs = dirs.filter(([dx, dz]) => net.has(`${a.gx + dx},${a.gz + dz}`) && (a.isRail || (roadPortOpen(this.gameState,a.gx,a.gz,dx,dz) && this.canTurn(a.gx, a.gz, a.dirX, dx))));
         const nonReverse = validDirs.filter(([dx, dz]) => !(dx === -a.dirX && dz === -a.dirZ));
         const choices = nonReverse.length > 0 ? nonReverse : validDirs;
 
@@ -1676,7 +1697,7 @@ export class PixelWorldRenderer {
           v.gz = fz;
         }
 
-        const validDirs = dirs.filter(([dx, dz]) => roadSet.has(`${v.gx + dx},${v.gz + dz}`) && this.canTurn(v.gx, v.gz, v.dirX, dx));
+        const validDirs = dirs.filter(([dx, dz]) => roadSet.has(`${v.gx + dx},${v.gz + dz}`) && roadPortOpen(this.gameState,v.gx,v.gz,dx,dz) && this.canTurn(v.gx, v.gz, v.dirX, dx));
         const nonReverse = validDirs.filter(([dx, dz]) => !(dx === -v.dirX && dz === -v.dirZ));
         const choices = nonReverse.length > 0 ? nonReverse : validDirs;
         if (choices.length > 0) {
@@ -1813,7 +1834,8 @@ export class PixelWorldRenderer {
         grp.position.x += (p.x - grp.position.x) * blend;
         grp.position.z += (p.z - grp.position.z) * blend;
         grp.position.y = p.y + Math.sin(elapsed * 1.5) * .06;
-        grp.rotation.y = voyage.heading;
+        const turn=voyage.heading-grp.rotation.y;
+        grp.rotation.y+=Math.atan2(Math.sin(turn),Math.cos(turn))*blend;
       }
       if (entry.disrepairBadge?.visible) {
         entry.disrepairBadge.rotation.y = elapsed * 2.4;
@@ -1830,6 +1852,8 @@ export class PixelWorldRenderer {
       if (p) {
         this.target.lerp(p, 1-Math.exp(-dt*8));
         this.updateCameraTransform();
+      } else {
+        this.followService();
       }
     }
     // Traffic & Villagers
@@ -1981,6 +2005,9 @@ export class PixelWorldRenderer {
       this.skyBgColor.lerp(new THREE.Color(0xeef6ff), this.lightningFlash * 0.78);
     }
 
+    this.scene.environmentIntensity = THREE.MathUtils.lerp(0.028, 0.28, dayFactor) * weatherDim;
+    this.renderer.toneMappingExposure = THREE.MathUtils.lerp(0.84, 0.97, dayFactor);
+    this.oceanUniforms.uDaylight.value = dayFactor;
     this.scene.background = this.skyBgColor;
     if (this.scene.fog instanceof THREE.FogExp2) {
       this.fogColor.copy(this.skyBgColor);
@@ -2047,10 +2074,18 @@ export class PixelWorldRenderer {
   }
 
   private rebuildHeatmapOverlay(): void {
+    const state=this.gameState,kind=this.activeHeatmap;
+    // Channel dimensions, entrances and lanes do not change between city edits.
+    // Live services refresh once a second even when the player holds the camera still.
+    const staticLayer=kind==="clearance"||kind==="neighbors"||kind==="lanes";
+    const key=kind==="none"?"none":kind+"|"+travelSignature(state)+(staticLayer?"":"|"+Math.floor(state.activePlaySec));
+    if(this.heatmapKey===key)return;
+    this.heatmapKey=key;
     for (const ch of [...this.heatmapGroup.children]) {
       this.heatmapGroup.remove(ch);
       if (ch instanceof THREE.Mesh) {
         (ch.material as THREE.Material).dispose();
+        ch.geometry.dispose();
         if (ch instanceof THREE.InstancedMesh) ch.dispose();
       }
     }
@@ -3100,7 +3135,7 @@ export class PixelWorldRenderer {
               break; // Skip dimmed layers so clicks hit underlying roads/pipes/utilities
             }
           }
-          return elId;
+          return cur.userData.serviceId ?? elId;
         }
         cur = cur.parent;
       }
@@ -3320,9 +3355,10 @@ export class PixelWorldRenderer {
           this.callbacks.onTilePlace(g[0], g[1]);
         }
       } else {
-        if(g)this.callbacks.onInspectTile?.(g[0],g[1]);
+        if(g && this.callbacks.onInspectTile?.(g[0],g[1]))return;
         const hitId = this.raycastPlacedElement(e.clientX, e.clientY);
-        this.callbacks.onSelectElement(hitId, e.shiftKey);
+        if(hitId&&this.gameState.mobility?.lines.some(l=>l.id===hitId))this.callbacks.onSelectService?.(hitId);
+        else this.callbacks.onSelectElement(hitId, e.shiftKey);
       }
     }
   };
@@ -3410,6 +3446,7 @@ export class PixelWorldRenderer {
   public dispose(): void {
     if (this.ghostGroup) releaseParcelGeometry(this.ghostGroup);
     for (const entry of this.placedEntries.values()) releaseParcelGeometry(entry.group);
+    this.setHeatmap("none");
     this.engineering.dispose();
     this.disposed = true;
     this.canvas.removeEventListener("pointerdown", this.onPointerDown);
