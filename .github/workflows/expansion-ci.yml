@@ -5,6 +5,7 @@ on:
     paths:
       - "src/**"
       - "scripts/test-expansion.ts"
+      - "scripts/test-voxel-expansion.ts"
       - "package.json"
       - ".github/workflows/expansion-ci.yml"
   push:
@@ -31,3 +32,5 @@ jobs:
         run: npm run build
       - name: Simulation regression tests
         run: npm run test:expansion
+      - name: Voxel runtime smoke tests
+        run: npm run test:voxels
