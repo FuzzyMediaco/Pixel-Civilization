@@ -691,7 +691,8 @@ function buildNetworkElement(
   const isWalking = def.id === "walking_paths";
   const isSidewalk = def.id === "side_walks";
   const isPretty = def.id === "pretty_roads";
-  const isTwoLane = def.id === "two_lane_roads";
+  const isTownBoulevard = def.id === "two_lane_roads";
+  const isTwoLane = isTownBoulevard || def.id === "roads";
   const isHighway = def.id === "highways";
   const isFreeway = def.id === "freeways";
   const isUnderpass = def.id === "underpasses";
@@ -770,7 +771,7 @@ function buildNetworkElement(
             ? "marble"
             : "concrete";
 
-  const halfW = isFreeway ? 6 : isHighway ? 5 : isTwoLane ? 4 : isBoardwalk ? 4 : isDirtRoad ? 2 : 3;
+  const halfW = isFreeway ? 7 : isHighway ? 6 : isTownBoulevard ? Math.min(7, 5 + Math.floor((level - 1) / 5)) : isTwoLane ? Math.min(6, 4 + Math.floor((level - 1) / 4)) : isBoardwalk ? 4 : isDirtRoad ? Math.min(4, 2 + Math.floor((level - 1) / 5)) : 3;
   const apronW = Math.max(1, halfW - 1);
 
   const armN = n || (!anyConn && !bE && !bW);
@@ -946,6 +947,19 @@ function buildNetworkElement(
     const stripeCol = isTwoLane ? "busYellow" : level >= 3 ? "busYellow" : "white";
 
     if (isTwoLane) {
+      // Four-lane boulevard gets outer lane dividers; starter road begins as two lanes.
+      if (isTownBoulevard) {
+        for (let c = -7; c < 8; c += 3) {
+          if (armN && c < 0) {
+            v.box(-3, 0, c, -2, 1, Math.min(0, c + 1), "white");
+            v.box(2, 0, c, 3, 1, Math.min(0, c + 1), "white");
+          }
+          if (armS && c >= 0) {
+            v.box(-3, 0, c, -2, 1, Math.min(8, c + 1), "white");
+            v.box(2, 0, c, 3, 1, Math.min(8, c + 1), "white");
+          }
+        }
+      }
       const stopGap = isIntersection ? halfW : 0;
       if (armN) v.box(-1, 0, -8, 1, 1, -stopGap, "busYellow");
       if (armS) v.box(-1, 0, stopGap, 1, 1, 8, "busYellow");
@@ -1029,9 +1043,9 @@ export function getOrBuildElementAsset(
   connMask = 0,
 ): BuiltVoxelAsset {
   const def = ELEMENT_BY_ID[elementId];
-  const clampedLv = Math.max(1, Math.min(5, level | 0));
+  const clampedLv = Math.max(1, Math.min(def?.isRoadNetwork ? 11 : 5, level | 0));
   const clampedVar = ((variant | 0) % 4 + 4) % 4;
-  const key = `${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
+  const key = `${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${connMask}`;
   const existing = assetCache.get(key);
   if (existing) return existing;
 
@@ -1674,6 +1688,169 @@ export function getOrBuildElementAsset(
       addHippedRoofSafe(v, -w3, totalH, -w3, w3, w3, 4, mullionC, "screenCyan");
       v.box(-1, totalH + 3, -1, 1, totalH + 10 + clampedLv, 1, "chrome");
       v.put(0, totalH + 10 + clampedLv, 0, "red", 1.35);
+      break;
+    }
+
+    // --------------------- EXPANDABLE FARMS & AGRICULTURAL PARCELS ---------------------
+    case "vegetable_farm":
+    case "grain_farm":
+    case "dairy_farm":
+    case "poultry_farm":
+    case "cattle_ranch":
+    case "horse_ranch":
+    case "apiary":
+    case "vineyard":
+    case "rice_farm":
+    case "greenhouse_farm":
+    case "vertical_farm": {
+      const bx = padX, bz = padZ;
+      const id = def.id;
+      const livestock = ["dairy_farm", "poultry_farm", "cattle_ranch", "horse_ranch"].includes(id);
+      const glass = id === "greenhouse_farm" || id === "vertical_farm";
+      const crop = id === "grain_farm" ? "gold" : id === "vineyard" ? "purple"
+        : id === "rice_farm" ? "lime" : id === "apiary" ? "yellow" : "leafLight";
+      if (id === "vertical_farm") {
+        const towerH = 9 + clampedLv * 6;
+        v.hollowBox(-bx + 2, 0, -bz + 2, bx - 2, towerH, bz - 2, "glass", "silver");
+        for (let y = 3; y < towerH - 1; y += 4) {
+          v.box(-bx + 3, y, -bz + 3, bx - 3, y + 1, bz - 3, "leaf");
+          v.box(-bx + 2, y + 1, -bz + 2, bx - 2, y + 2, -bz + 3, "screenCyan", 0.4);
+        }
+        v.box(-bx + 2, towerH, -bz + 2, bx - 2, towerH + 1, bz - 2, "solarBlue");
+        if (clampedLv >= 4) v.cylinderY(bx - 3, bz - 3, 0, 8, 2, "silver");
+        break;
+      }
+      if (glass) {
+        for (let i = 0; i < Math.min(4, 1 + clampedLv); i++) {
+          const x = -bx + 2 + i * 5;
+          if (x + 4 > bx - 1) break;
+          v.box(x, 0, -bz + 2, x + 4, 4 + Math.min(3, clampedLv), bz - 2, "glass", 0.14);
+          v.box(x + 1, 0, -bz + 3, x + 3, 1, bz - 3, "leaf");
+          v.box(x, 4 + Math.min(3, clampedLv), -bz + 2, x + 4, 5 + Math.min(3, clampedLv), bz - 2, "silver");
+        }
+        if (clampedLv >= 3) v.box(bx - 5, 0, bz - 3, bx - 2, 6, bz - 1, "water");
+        break;
+      }
+      if (id === "rice_farm") {
+        for (let z = -bz + 1; z < bz - 1; z += 4) {
+          v.box(-bx + 1, 0, z, bx - 1, 1, z + 3, "water", 0.22);
+          for (let x = -bx + 2; x < bx - 1; x += 3) {
+            v.box(x, 1, z + 1, x + 1, 3, z + 2, "lime");
+          }
+        }
+        if (clampedLv >= 2) v.box(-1, 1, -bz + 1, 1, 2, bz - 1, "wood");
+        if (clampedLv >= 4) v.box(bx - 5, 0, bz - 3, bx - 1, 3, bz - 1, "woodDark");
+        break;
+      }
+      // Organic ground-level crop beds, trellises, apiary hives or grazing paddocks.
+      const rowCount = Math.max(2, Math.min(8, 2 + clampedLv));
+      for (let i = 0; i < rowCount; i++) {
+        const z = -bz + 2 + i * 3;
+        if (z >= bz - 1) break;
+        v.box(-bx + 1, 0, z, bx - 1, 1, z + 1, livestock ? "leafLight" : "soilDark");
+        if (!livestock) for (let x = -bx + 2; x < bx - 1; x += 3) {
+          v.put(x, 1, z, crop);
+          if (id === "vineyard") v.box(x, 1, z, x + 1, 3 + (clampedLv >= 3 ? 1 : 0), z + 1, "purple");
+          if (id === "grain_farm" && clampedLv >= 2) v.put(x, 2, z, "gold");
+        }
+      }
+      if (id === "apiary") {
+        for (let i = 0; i < Math.min(8, clampedLv + 2); i++) {
+          const x = -bx + 2 + (i % 4) * 4, z = -bz + 3 + Math.floor(i / 4) * 5;
+          if (x < bx && z < bz) {
+            v.box(x, 0, z, x + 2, 2, z + 2, "gold");
+            v.put(x, 2, z, "woodDark");
+            v.put(x + 1, 2, z + 1, "yellow");
+          }
+        }
+      } else if (livestock) {
+        const animalCount = Math.min(9, clampedLv + 2);
+        for (let i = 0; i < animalCount; i++) {
+          const x = -bx + 3 + (i % 3) * 4, z = -bz + 3 + Math.floor(i / 3) * 4;
+          if (x >= bx - 2 || z >= bz - 2) continue;
+          const chicken = id === "poultry_farm";
+          const col = id === "horse_ranch" ? "wood" : chicken ? "white" : i % 2 === 0 ? "white" : "brown";
+          v.box(x, 1, z, x + (chicken ? 1 : 3), chicken ? 3 : 4, z + (chicken ? 1 : 2), col);
+          if (!chicken) v.box(x + 2, 3, z, x + 3, 5, z + 1, col);
+          else v.put(x, 3, z, "red");
+        }
+        // Open pasture fence and a barn grow more substantial at each level.
+        v.box(-bx + 1, 0, -bz + 1, -bx + 2, 3, bz - 1, "woodDark");
+        v.box(bx - 2, 0, -bz + 1, bx - 1, 3, bz - 1, "woodDark");
+      }
+      const barnW = Math.min(8, 3 + clampedLv);
+      const barnH = 3 + clampedLv;
+      const barnCol = id === "vineyard" ? "limestone" : id === "apiary" ? "wood" : "crimson";
+      v.hollowBox(bx - barnW - 1, 0, -bz + 1, bx - 1, barnH, -bz + 6, barnCol, "cream");
+      addGableSafe(v, bx - barnW - 2, barnH, -bz, bx, -bz + 7, 3, "x", id === "vineyard" ? "terracotta" : "slate", "white");
+      if (clampedLv >= 2) {
+        v.cylinderY(-bx + 3, -bz + 3, 0, 5 + clampedLv, 1.5, "silver");
+        v.dome(-bx + 3, 5 + clampedLv, -bz + 3, 1.7, "red");
+      }
+      if (clampedLv >= 3) {
+        v.box(-bx + 2, 0, bz - 4, -bx + 6, 2, bz - 1, "leaf");
+        v.box(-bx + 1, 0, bz - 3, -bx + 2, 2, bz - 1, "charcoal");
+      }
+      if (clampedLv >= 5) {
+        v.hollowBox(bx - 7, 0, bz - 6, bx - 2, 6, bz - 2, barnCol, "cream");
+        addGableSafe(v, bx - 8, 6, bz - 7, bx - 1, bz - 1, 2, "x", "slate");
+      }
+      break;
+    }
+
+    case "vegetable_fields":
+    case "grain_fields":
+    case "orchard_block":
+    case "grazing_pasture":
+    case "livestock_pen":
+    case "chicken_coop":
+    case "feed_silo":
+    case "irrigation_pond":
+    case "greenhouse_bay": {
+      const bx = padX, bz = padZ, id = def.id;
+      if (id === "irrigation_pond") {
+        v.box(-bx + 2, 0, -bz + 2, bx - 2, 1, bz - 2, "water", 0.20);
+        v.box(-2, 1, -bz + 1, 2, 2, bz - 1, "wood");
+        if (clampedLv >= 3) v.box(bx - 3, 0, bz - 4, bx - 1, 5, bz - 2, "steel");
+      } else if (id === "feed_silo") {
+        v.cylinderY(0, 0, 0, 8 + clampedLv * 3, 2 + Math.floor(clampedLv / 2), "silver");
+        v.dome(0, 8 + clampedLv * 3, 0, 3, "crimson");
+        if (clampedLv >= 3) v.cylinderY(bx - 3, 0, 0, 8 + clampedLv * 2, 1.6, "cream");
+        if (clampedLv >= 5) v.box(-bx + 2, 0, bz - 4, bx - 2, 4, bz - 2, "gold");
+      } else if (id === "greenhouse_bay") {
+        for (let x = -bx + 2; x < bx - 2; x += 5) {
+          v.box(x, 0, -bz + 2, x + 4, 4 + clampedLv, bz - 2, "glass", 0.12);
+          v.box(x + 1, 0, -bz + 3, x + 3, 1, bz - 3, "lime");
+          v.box(x, 4 + clampedLv, -bz + 2, x + 4, 5 + clampedLv, bz - 2, "silver");
+        }
+      } else if (id === "orchard_block") {
+        for (let x = -bx + 3; x < bx - 2; x += 5) for (let z = -bz + 3; z < bz - 2; z += 5) {
+          addTreeMini(v, x, 0, z, clampedVar + clampedLv);
+          v.put(x + 1, 4, z, clampedLv >= 4 ? "orange" : "red");
+        }
+      } else if (id === "livestock_pen" || id === "chicken_coop" || id === "grazing_pasture") {
+        for (let i = 0; i < Math.min(10, clampedLv + 2); i++) {
+          const x = -bx + 2 + (i % 3) * 4, z = -bz + 2 + Math.floor(i / 3) * 4;
+          if (x >= bx || z >= bz) continue;
+          const hen = id === "chicken_coop";
+          v.box(x, 1, z, x + (hen ? 1 : 3), hen ? 3 : 4, z + (hen ? 1 : 2), hen ? "white" : i % 2 === 0 ? "white" : "brown");
+          if (hen) v.put(x, 3, z, "orange");
+        }
+        if (id === "chicken_coop" && clampedLv >= 2) {
+          v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, 3 + clampedLv, -bz + 5, "crimson", "white");
+          addGableSafe(v, bx - 6, 3 + clampedLv, -bz + 1, bx - 1, -bz + 5, 2, "x", "woodDark");
+        }
+      } else {
+        const rowCol = id === "grain_fields" ? "gold" : clampedVar % 2 === 0 ? "leaf" : "orange";
+        for (let z = -bz + 2; z < bz - 1; z += 3) {
+          v.box(-bx + 1, 0, z, bx - 1, 1, z + 1, "soilDark");
+          for (let x = -bx + 2; x < bx - 1; x += 2) {
+            v.box(x, 1, z, x + 1, clampedLv >= 3 ? 3 : 2, z + 1, rowCol);
+          }
+        }
+        if (clampedLv >= 3) v.box(-bx + 2, 0, bz - 3, -bx + 4, 2, bz - 1, "gold");
+        if (clampedLv >= 5) v.box(bx - 5, 0, -bz + 2, bx - 2, 3, -bz + 4, "leaf");
+      }
       break;
     }
 
@@ -3082,6 +3259,144 @@ export function getOrBuildElementAsset(
     }
 
     // --------------------- CIVIC & PARKS (13 — Ground-Flush, Zero Spiral Towers!) ---------------------
+    case "sports_field": {
+      // Dedicated school athletic field, visually connected to a neighboring high school.
+      const bx = padX, bz = padZ;
+      v.box(-bx + 1, 0, -bz + 1, bx - 1, 1, bz - 1, "leafDark");
+      // Perimeter track and bright turf with thin sideline markers.
+      v.box(-bx + 1, 0, -bz + 1, bx - 1, 1, -bz + 3, "terracotta");
+      v.box(-bx + 1, 0, bz - 3, bx - 1, 1, bz - 1, "terracotta");
+      v.box(-bx + 1, 0, -bz + 1, -bx + 3, 1, bz - 1, "terracotta");
+      v.box(bx - 3, 0, -bz + 1, bx - 1, 1, bz - 1, "terracotta");
+      for (let x = -bx + 5; x < bx - 4; x += 5) v.box(x, 1, -bz + 4, x + 1, 2, bz - 4, "white");
+      for (let z of [-bz + 4, bz - 5]) v.box(-bx + 4, 1, z, bx - 4, 2, z + 1, "white");
+      if (clampedLv >= 2) v.box(-bx + 2, 0, -bz + 3, -bx + 4, 3, bz - 3, "silver"); // bleachers
+      if (clampedLv >= 3) v.box(bx - 4, 0, -bz + 3, bx - 2, 3, bz - 3, "silver");
+      if (clampedLv >= 4) {
+        for (const [x, z] of [[-bx + 2, -bz + 2], [bx - 3, -bz + 2], [-bx + 2, bz - 3], [bx - 3, bz - 3]]) {
+          v.box(x, 1, z, x + 1, 10, z + 1, "steel");
+          v.put(x, 10, z, "warmGlow", 1.1);
+        }
+      }
+      if (clampedLv >= 5) v.box(-bx + 5, 0, bz - 5, -bx + 9, 5, bz - 3, "brick"); // little clubhouse
+      break;
+    }
+
+    case "research_institute": {
+      const bx = padX, bz = padZ, h = 7 + clampedLv * 3;
+      v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h, bz - 2, "glass", "silver");
+      addWindowGrid(v, -bx + 1, 1, -bz + 1, bx - 1, h, bz - 2, 2, 0.56, "screenCyan");
+      v.box(-bx + 1, h, -bz + 1, bx - 1, h + 1, bz - 2, "steelLight");
+      v.cylinderY(0, -1, h + 1, h + 4, 2.8, "white");
+      v.dome(0, h + 4, -1, 3, "glass", 0.3);
+      if (clampedLv >= 2) v.box(-bx + 3, h + 1, -bz + 2, -bx + 7, h + 2, bz - 3, "solarBlue");
+      if (clampedLv >= 3) v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, h - 2, bz - 2, "limestone", "silver");
+      if (clampedLv >= 4) v.box(-bx + 2, 0, bz - 2, bx - 2, 1, bz - 1, "teal");
+      if (clampedLv >= 5) v.box(bx - 4, h + 1, bz - 4, bx - 3, h + 11, bz - 3, "steel");
+      break;
+    }
+
+    case "preschool":
+    case "country_schoolhouse":
+    case "elementary_school":
+    case "middle_school":
+    case "high_school":
+    case "trade_school":
+    case "community_college":
+    case "university":
+    case "research_university": {
+      // Every school keeps its own recognizable architectural identity over five levels.
+      const bx = padX, bz = padZ;
+      const h = 3 + clampedLv * (def.id === "research_university" ? 3 : 2);
+      const roof = def.id === "preschool" ? "orange" : def.id === "country_schoolhouse" ? "crimson"
+        : def.id === "trade_school" ? "steelDark" : def.id === "university" ? "copper" : "slate";
+      const walls = def.id === "preschool" ? "yellow" : def.id === "country_schoolhouse" ? "white"
+        : def.id === "community_college" || def.id === "research_university" ? "glass" : "brick";
+      const trim = def.id === "research_university" ? "screenCyan" : def.id === "preschool" ? "pink" : "cream";
+
+      if (def.id === "preschool") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 2, h, 1, walls, trim);
+        addGableSafe(v, -bx, h, -bz, bx - 1, 2, 3, "x", roof, "white");
+        v.box(-3, 0, 2, 3, 1, bz - 1, "leafLight");
+        v.box(-2, 1, 3, 0, 3, 4, "pink"); // miniature slide
+        v.box(0, 0, 4, 3, 1, 6, "sand"); // sandbox
+        v.box(-bx, 0, bz - 1, bx, 2, bz, "white"); // front picket fence
+        if (clampedLv >= 3) v.box(-bx + 1, 0, -bz + 1, -bx + 4, h + 2, 1, "teal");
+        if (clampedLv >= 5) v.dome(1, h, -1, 2.2, "orange");
+      } else if (def.id === "country_schoolhouse") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h, bz - 2, "white", "woodLight");
+        addGableSafe(v, -bx, h, -bz, bx, bz - 1, 4, "x", "crimson", "cream");
+        v.box(-2, 0, bz - 2, 2, 1, bz - 1, "wood");
+        v.box(-1, 1, bz - 2, 1, 4, bz - 1, "woodDark");
+        v.box(-1, h + 2, -1, 2, h + 5 + clampedLv, 2, "cream"); // bell tower
+        v.dome(0, h + 5 + clampedLv, 0, 2.0, "crimson");
+        if (clampedLv >= 2) addTreeMini(v, bx - 2, 0, bz - 2, 0);
+        if (clampedLv >= 3) v.box(-bx + 1, 0, -bz, bx - 2, 2, -bz + 1, "wood");
+        if (clampedLv >= 4) v.box(bx - 4, 0, -bz + 1, bx - 1, h - 1, 1, "cream");
+        if (clampedLv >= 5) v.box(-bx + 2, 0, bz - 1, bx - 2, 1, bz, "path");
+      } else if (def.id === "research_university") {
+        v.hollowBox(-bx + 2, 0, -bz + 2, bx - 2, h + 4, bz - 3, "steelLight", "screenCyan");
+        addWindowGrid(v, -bx + 2, 1, -bz + 2, bx - 2, h + 4, bz - 3, 2, 0.72, "glass");
+        v.box(-bx + 2, h + 4, -bz + 2, bx - 2, h + 5, bz - 3, "silver");
+        v.cylinderY(0, -1, h + 5, h + 8, 2.6, "white");
+        v.dome(0, h + 8, -1, 3.0, "glass", 0.6);
+        if (clampedLv >= 2) v.box(-bx + 3, 0, bz - 2, bx - 3, 1, bz - 1, "solarBlue");
+        if (clampedLv >= 3) v.hollowBox(-bx + 1, 0, -bz + 2, -bx + 5, h + 1, bz - 3, "glass", "silver");
+        if (clampedLv >= 4) v.hollowBox(bx - 5, 0, -bz + 2, bx - 1, h + 2, bz - 3, "glass", "silver");
+        if (clampedLv >= 5) v.box(-bx + 3, h + 5, -bz + 4, bx - 3, h + 6, -bz + 1, "teal");
+      } else if (def.id === "high_school") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h + 2, 0, "brick", "cream");
+        addWindowGrid(v, -bx + 1, 1, -bz + 1, bx - 1, h + 2, 0, 2, 0.5);
+        addHippedRoofSafe(v, -bx, h + 2, -bz, bx, 1, 3, "slate", "white");
+        // Localized athletic field with white grid stripes and track outline.
+        v.box(-bx + 1, 0, 2, bx - 1, 1, bz - 1, "leafDark");
+        for (let x = -bx + 3; x < bx - 2; x += 3) v.box(x, 1, 2, x + 1, 2, bz - 2, "white");
+        v.box(-bx + 1, 0, 1, bx - 1, 1, 2, "terracotta");
+        if (clampedLv >= 2) v.hollowBox(-bx + 1, 0, -bz + 1, -bx + 6, h + 2, 1, "brick", "white");
+        if (clampedLv >= 3) v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, h + 3, 1, "limestone", "cream");
+        if (clampedLv >= 4) v.box(bx - 3, 1, bz - 2, bx - 1, 4, bz - 1, "steel");
+        if (clampedLv >= 5) addSquareClockTower(v, 0, -bz + 3, h + 1, 8, 2, "brickDark", "cream", "slate");
+      } else if (def.id === "trade_school") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h, 1, "stone", "steelDark");
+        v.box(-bx + 1, h, -bz + 1, bx - 1, h + 1, 1, "steelDark");
+        for (let x = -bx + 3; x < bx - 3; x += 5) v.box(x, 0, 0, x + 3, 4, 2, "charcoal"); // workshop bays
+        v.box(-bx + 2, 0, bz - 3, -bx + 5, 2, bz - 1, "busYellow"); // machinery
+        if (clampedLv >= 2) v.box(bx - 6, 0, bz - 3, bx - 2, 3, bz - 1, "orange");
+        if (clampedLv >= 3) v.hollowBox(-bx + 2, 0, -bz + 2, -bx + 6, h + 3, 0, "brick", "cream");
+        if (clampedLv >= 4) v.box(-bx + 2, h + 1, -bz + 2, bx - 3, h + 2, 0, "solarBlue");
+        if (clampedLv >= 5) v.box(bx - 2, 0, -bz + 1, bx - 1, h + 6, 0, "silver");
+      } else if (def.id === "university") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h + 2, 0, "limestone", "cream");
+        addGableSafe(v, -bx, h + 2, -bz, bx, 1, 3, "x", "copper", "white");
+        v.box(-bx + 2, 0, 2, bx - 2, 1, bz - 1, "leaf");
+        v.box(-1, 0, 1, 1, 1, bz - 1, "path");
+        addTreeMini(v, -bx + 3, 0, bz - 3, 0);
+        addTreeMini(v, bx - 4, 0, bz - 3, 2);
+        if (clampedLv >= 2) addSquareClockTower(v, 0, -bz + 3, h + 1, 8 + clampedLv, 2, "limestone", "cream", "copper");
+        if (clampedLv >= 3) v.hollowBox(-bx + 1, 0, -bz + 1, -bx + 6, h + 2, bz - 3, "brick", "cream");
+        if (clampedLv >= 4) v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, h + 3, bz - 3, "brick", "cream");
+        if (clampedLv >= 5) v.dome(0, h + 3, -bz + 2, 4, "copper");
+      } else {
+        // Elementary, middle and community college share a readable school silhouette,
+        // differentiated by their roof materials, courtyards, wings and recreation spaces.
+        const isCollege = def.id === "community_college";
+        const isMiddle = def.id === "middle_school";
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h, 0, isCollege ? "glass" : "brick", isCollege ? "teal" : "cream");
+        addWindowGrid(v, -bx + 1, 1, -bz + 1, bx - 1, h, 0, 2, 0.5);
+        if (!isCollege) addGableSafe(v, -bx, h, -bz, bx, 1, 3, "x", roof, "cream");
+        else v.box(-bx, h, -bz, bx, h + 1, 1, "steelLight");
+        v.box(-bx + 2, 0, 2, bx - 2, 1, bz - 1, isMiddle ? "terracotta" : "leafLight");
+        // Basketball hoop, play equipment or collegiate courtyard.
+        v.box(bx - 3, 1, bz - 3, bx - 2, 4, bz - 2, "white");
+        v.put(bx - 3, 4, bz - 3, isMiddle ? "orange" : "yellow");
+        if (clampedLv >= 2) v.hollowBox(-bx + 1, 0, -bz + 1, -bx + 6, h - 1, 1, walls, trim);
+        if (clampedLv >= 3) v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, h + 1, 1, walls, trim);
+        if (clampedLv >= 4) v.box(-bx + 2, 0, bz - 2, -bx + 6, 3, bz - 1, "busYellow"); // bus loop
+        if (clampedLv >= 5) v.dome(0, h + 1, -1, 3.0, isCollege ? "glass" : "copper", 0.4);
+      }
+      break;
+    }
+
     case "school": {
       // Multi-Wing Red-Brick & Limestone Academy: Gabled Classroom Hall + Playground Court + Domed Library + Square Collegiate Clock Tower!
       const lowH = 5 + clampedLv;
@@ -4580,6 +4895,26 @@ export function getOrBuildElementAsset(
       addHippedRoofSafe(v, -bx, h, -bz + 1, 2, bz - 1, 3, st.roof, st.trim);
       addSquareClockTower(v, Math.max(2, bx - 2), 0, 0, h + 4 + clampedLv, 2, st.trim, "white", st.roof);
       break;
+    }
+  }
+
+  // A touching farm complex reads as one continuous countryside:
+  // narrow irrigation tracks and gateways reach the actual shared parcel edge.
+  // School-campus partners receive matching footpaths but remain distinct assets.
+  if (connMask && !def.isNetwork) {
+    const groundCol = def.category === "agriculture" ? "path" : "limestone";
+    const edge = Math.min(halfX, halfZ);
+    const pathHalfW = Math.min(2, Math.max(1, Math.floor(edge / 5)));
+    if (connMask & 1) v.box(-pathHalfW, 0, -halfZ, pathHalfW, 1, -halfZ + 3, groundCol);
+    if (connMask & 2) v.box(halfX - 3, 0, -pathHalfW, halfX, 1, pathHalfW, groundCol);
+    if (connMask & 4) v.box(-pathHalfW, 0, halfZ - 3, pathHalfW, 1, halfZ, groundCol);
+    if (connMask & 8) v.box(-halfX, 0, -pathHalfW, -halfX + 3, 1, pathHalfW, groundCol);
+    if (def.category === "agriculture") {
+      // Crops and fences align visually across field boundaries instead of isolated islands.
+      if (!(connMask & 1)) v.box(-halfX + 1, 0, -halfZ, halfX - 1, 1, -halfZ + 1, "wood");
+      if (!(connMask & 4)) v.box(-halfX + 1, 0, halfZ - 1, halfX - 1, 1, halfZ, "wood");
+      if (!(connMask & 2)) v.box(halfX - 1, 0, -halfZ + 1, halfX, 1, halfZ - 1, "wood");
+      if (!(connMask & 8)) v.box(-halfX, 0, -halfZ + 1, -halfX + 1, 1, halfZ - 1, "wood");
     }
   }
 

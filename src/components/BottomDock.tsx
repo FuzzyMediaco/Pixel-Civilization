@@ -24,6 +24,8 @@ import {
   ELEMENT_BY_ID,
   type ElementCategory,
   getUpgradeCost,
+  getElementMaxLevel,
+  getRoadLaneCount,
 } from "../game/catalog";
 import {
   MAINTENANCE_INTERVAL_SEC,
@@ -33,6 +35,9 @@ import {
 } from "../game/simulation";
 import { type BuildBrush } from "../game/worldRenderer";
 import { ElementFavicon } from "./ElementFavicon";
+import { FARM_ANCHOR_IDS } from "../game/expansionCatalog";
+import { analyzeFarmNetworks } from "../game/farmNetworks";
+import { analyzeDistrictSynergies } from "../game/districtSynergies";
 
 interface BottomDockProps {
   open: boolean;
@@ -136,10 +141,24 @@ export const BottomDock: React.FC<BottomDockProps> = ({
     : undefined;
 
   const primaryDef = primaryEl ? ELEMENT_BY_ID[primaryEl.defId] : undefined;
+  const districtStats = useMemo(() => analyzeDistrictSynergies(state.elements), [state.elements]);
+  const farmStats = useMemo(
+    () => analyzeFarmNetworks(
+      state.elements,
+      new Set(state.elements.filter(el => FARM_ANCHOR_IDS.has(el.defId) && el.connected).map(el => el.id)),
+    ),
+    [state.elements],
+  );
+  const relatedDistricts = primaryEl
+    ? [...new Set(districtStats.active.filter(d => d.aId === primaryEl.id || d.bId === primaryEl.id).map(d => d.title))]
+    : [];
+  const ownedFieldCount = primaryEl ? farmStats.moduleCountByAnchorId.get(primaryEl.id) ?? 0 : 0;
+  const primaryMaxLevel = primaryDef ? getElementMaxLevel(primaryDef) : 5;
   const mergeCheck =
     primaryEl && secondaryEl ? canMergePair(state, primaryEl.id, secondaryEl.id) : null;
 
   const activeBrushDef = brush.kind === "place" && brush.defId ? ELEMENT_BY_ID[brush.defId] : undefined;
+  const brushMaxLevel = activeBrushDef ? getElementMaxLevel(activeBrushDef) : 5;
   const activeCatLabel =
     ALL_CATEGORIES.find((c) => c.id === activeCat)?.label ?? "Starter 10";
 
@@ -176,6 +195,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               <div className="font-mono-num flex flex-wrap items-center gap-1 text-[9.5px] font-semibold text-stone-500">
                 <span>
                   V{primaryEl.variant + 1} · {primaryEl.spanX}×{primaryEl.spanZ}
+                  {primaryDef.isRoadNetwork && getRoadLaneCount(primaryDef, primaryEl.level) > 0
+                    ? ` · ${getRoadLaneCount(primaryDef, primaryEl.level)} lanes`
+                    : ""}
                 </span>
                 {state.mode !== "god" && !primaryDef.isNetwork && !primaryDef.passiveNature && (
                   <>
@@ -196,6 +218,17 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                   </>
                 )}
               </div>
+              {relatedDistricts.length > 0 && (
+                <div className="text-[9.5px] font-extrabold text-emerald-700" title="Neighbor district bonuses apply automatically">
+                  {relatedDistricts.join(" · ")}
+                </div>
+              )}
+              {ownedFieldCount > 0 && (
+                <div className="text-[9.5px] font-bold text-emerald-700" title="Modules share this farm's road access and increase its food production">
+                  {ownedFieldCount} connected farm module{ownedFieldCount === 1 ? "" : "s"}
+                  {ownedFieldCount >= 5 ? " · Active machinery" : ""}
+                </div>
+              )}
             </div>
           </div>
 
@@ -273,7 +306,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               </button>
             )}
 
-            {primaryEl.level < 5 && !secondaryEl && (
+            {primaryEl.level < primaryMaxLevel && !secondaryEl && (
               <button
                 type="button"
                 onClick={onTogglePairSelectMode}
@@ -329,12 +362,12 @@ export const BottomDock: React.FC<BottomDockProps> = ({
             {!secondaryEl && (
               <button
                 type="button"
-                disabled={primaryEl.level >= 5}
+                disabled={primaryEl.level >= primaryMaxLevel}
                 onClick={() => onUpgradeSelected(primaryEl.id)}
                 className="flex h-6.5 w-6.5 items-center justify-center rounded bg-stone-900 text-amber-300 transition-opacity hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-35"
                 title={
-                  primaryEl.level >= 5
-                    ? "Max Level (Lv.5)"
+                  primaryEl.level >= primaryMaxLevel
+                    ? "Max Level (Lv.${primaryMaxLevel})"
                     : state.mode === "god"
                       ? `Level Up to Lv.${primaryEl.level + 1}`
                       : `Upgrade to Lv.${primaryEl.level + 1} ($${getUpgradeCost(primaryDef, primaryEl.level)})`
@@ -447,9 +480,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                       </span>
                       <button
                         type="button"
-                        disabled={brush.level >= 5}
+                        disabled={brush.level >= brushMaxLevel}
                         onClick={() =>
-                          onUpdateBrushSettings({ level: Math.min(5, brush.level + 1) })
+                          onUpdateBrushSettings({ level: Math.min(brushMaxLevel, brush.level + 1) })
                         }
                         className="flex h-5 w-5 items-center justify-center rounded bg-stone-900 text-amber-300 hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-35"
                         title="Increase Placement Level"
