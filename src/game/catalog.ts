@@ -1,3 +1,5 @@
+import { EXPANSION_ELEMENTS } from "./expansionCatalog";
+
 export type GameMode = "god" | "real" | "survival";
 
 export type ElementCategory =
@@ -220,7 +222,7 @@ export const ELEMENTS: CivElementDef[] = [
   },
   {
     id: "roads",
-    name: "Roads",
+    name: "Two-Lane Road",
     category: "roads_transit",
     isStarter: true,
     stage: 1,
@@ -231,7 +233,7 @@ export const ELEMENTS: CivElementDef[] = [
     isRoadNetwork: true,
     passiveNature: true,
     accentHex: "#585b63",
-    description: "Connects homes, businesses, and services. Spawns cars and pedestrians automatically.",
+    description: "The starter two-lane street connects adjacent buildings automatically. Upgrade it ten times for more lanes and capacity.",
   },
   {
     id: "solar_panels",
@@ -2534,6 +2536,9 @@ export const ELEMENTS: CivElementDef[] = [
   },
 ];
 
+// Additional school campuses and connected agricultural modules.
+ELEMENTS.push(...EXPANSION_ELEMENTS);
+
 export const ELEMENT_BY_ID: Record<string, CivElementDef> = Object.fromEntries(
   ELEMENTS.map((el) => [el.id, el]),
 );
@@ -2743,6 +2748,28 @@ export function getStandardFootprintForLevel(
   return [Math.max(1, Math.min(3, base[0])), Math.max(1, Math.min(3, base[1]))];
 }
 
+/** Ten upgrades are available to motor roads; all other elements retain five levels. */
+export const VEHICLE_ROAD_IDS = new Set<string>([
+  "roads", "two_lane_roads", "dirt_roads", "pretty_roads",
+  "highways", "freeways", "over_passes", "underpasses",
+  "bridges", "stone_bridges", "suspension_bridges",
+]);
+
+export function isVehicleRoad(def: CivElementDef): boolean {
+  return VEHICLE_ROAD_IDS.has(def.id);
+}
+
+export function getElementMaxLevel(def: CivElementDef): number {
+  return isVehicleRoad(def) ? 11 : 5;
+}
+
+/** Road capacity deliberately changes with level, not only the paint and lane markings. */
+export function getRoadLaneCount(def: CivElementDef, level: number): number {
+  if (!isVehicleRoad(def)) return 0;
+  const baseLanes = def.id === "freeways" ? 6 : def.id === "highways" ? 4 : 2;
+  return Math.min(12, baseLanes + 2 * Math.floor((Math.max(1, level) - 1) / 2));
+}
+
 export function getUpgradeCost(def: CivElementDef, currentLevel: number): number {
-  return Math.round(def.cost * Math.pow(2.1, currentLevel));
+  return Math.round(def.cost * Math.pow(isVehicleRoad(def) ? 1.72 : 2.1, currentLevel));
 }
