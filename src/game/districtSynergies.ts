@@ -35,7 +35,7 @@ export interface DistrictSynergyAnalysis {
 const isAny = (id: string, ids: readonly string[]): boolean => ids.includes(id);
 const GRAIN = ["grain_farm", "grain_fields", "fields", "farms"] as const;
 const DAIRY = ["dairy_farm", "cattle_ranch"] as const;
-const UNIVERSITY = ["university", "research_university"] as const;
+const UNIVERSITY = ["university"] as const;
 const SPORTS = ["sports_field", "athletic_field", "stadium"] as const;
 const RESEARCH = ["research_institute", "research_university"] as const;
 const ORCHARD = ["orchards", "orchard_block", "groves_of_olives"] as const;
@@ -86,7 +86,6 @@ export function analyzeDistrictSynergies(elements: PlacedElement[]): DistrictSyn
     result[key].set(id, Math.min(1.6, current + amount));
   };
   const applied = new Set<string>();
-  const kindCount = new Map<DistrictSynergyKind, number>();
   const sortedPairs = [...pairs.values()].sort((a, b) => (a[0].id + a[1].id).localeCompare(b[0].id + b[1].id));
   for (const [a, b] of sortedPairs) {
     const ai = a.defId, bi = b.defId;
@@ -128,8 +127,31 @@ export function analyzeDistrictSynergies(elements: PlacedElement[]): DistrictSyn
     if (synergy) {
       // Record all unique pairs for inspection, but cap displayed counters to genuine pairs.
       result.active.push(synergy);
-      kindCount.set(synergy.kind, (kindCount.get(synergy.kind) ?? 0) + 1);
     }
   }
   return result;
+}
+
+/** N=1 E=2 S=4 W=8: only shared district edges receive little connecting paths. */
+export function getDistrictEdgeMasks(
+  elements: PlacedElement[],
+  active: DistrictSynergy[],
+): Map<string, number> {
+  const byId = new Map(elements.map(el => [el.id, el]));
+  const masks = new Map<string, number>();
+  const mark = (id: string, bit: number) => masks.set(id, (masks.get(id) ?? 0) | bit);
+  for (const district of active) {
+    const a = byId.get(district.aId);
+    const b = byId.get(district.bId);
+    if (!a || !b) continue;
+    for (let x = a.gx; x < a.gx + a.spanX; x++) for (let z = a.gz; z < a.gz + a.spanZ; z++) {
+      for (let bx = b.gx; bx < b.gx + b.spanX; bx++) for (let bz = b.gz; bz < b.gz + b.spanZ; bz++) {
+        if (bx === x && bz === z - 1) { mark(a.id, 1); mark(b.id, 4); }
+        if (bx === x + 1 && bz === z) { mark(a.id, 2); mark(b.id, 8); }
+        if (bx === x && bz === z + 1) { mark(a.id, 4); mark(b.id, 1); }
+        if (bx === x - 1 && bz === z) { mark(a.id, 8); mark(b.id, 2); }
+      }
+    }
+  }
+  return masks;
 }
