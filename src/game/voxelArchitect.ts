@@ -691,7 +691,7 @@ function buildNetworkElement(
   const isWalking = def.id === "walking_paths";
   const isSidewalk = def.id === "side_walks";
   const isPretty = def.id === "pretty_roads";
-  const isTwoLane = def.id === "two_lane_roads";
+  const isTwoLane = def.id === "two_lane_roads" || def.id === "roads";
   const isHighway = def.id === "highways";
   const isFreeway = def.id === "freeways";
   const isUnderpass = def.id === "underpasses";
@@ -770,7 +770,7 @@ function buildNetworkElement(
             ? "marble"
             : "concrete";
 
-  const halfW = isFreeway ? 6 : isHighway ? 5 : isTwoLane ? 4 : isBoardwalk ? 4 : isDirtRoad ? 2 : 3;
+  const halfW = isFreeway ? 7 : isHighway ? 6 : isTwoLane ? Math.min(6, 4 + Math.floor((level - 1) / 4)) : isBoardwalk ? 4 : isDirtRoad ? Math.min(4, 2 + Math.floor((level - 1) / 5)) : 3;
   const apronW = Math.max(1, halfW - 1);
 
   const armN = n || (!anyConn && !bE && !bW);
@@ -1029,9 +1029,9 @@ export function getOrBuildElementAsset(
   connMask = 0,
 ): BuiltVoxelAsset {
   const def = ELEMENT_BY_ID[elementId];
-  const clampedLv = Math.max(1, Math.min(5, level | 0));
+  const clampedLv = Math.max(1, Math.min(def?.isRoadNetwork ? 11 : 5, level | 0));
   const clampedVar = ((variant | 0) % 4 + 4) % 4;
-  const key = `${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
+  const key = `${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${connMask}`;
   const existing = assetCache.get(key);
   if (existing) return existing;
 
@@ -4681,6 +4681,26 @@ export function getOrBuildElementAsset(
       addHippedRoofSafe(v, -bx, h, -bz + 1, 2, bz - 1, 3, st.roof, st.trim);
       addSquareClockTower(v, Math.max(2, bx - 2), 0, 0, h + 4 + clampedLv, 2, st.trim, "white", st.roof);
       break;
+    }
+  }
+
+  // A touching farm complex reads as one continuous countryside:
+  // narrow irrigation tracks and gateways reach the actual shared parcel edge.
+  // School-campus partners receive matching footpaths but remain distinct assets.
+  if (connMask && !def.isNetwork) {
+    const groundCol = def.category === "agriculture" ? "path" : "limestone";
+    const edge = Math.min(halfX, halfZ);
+    const pathHalfW = Math.min(2, Math.max(1, Math.floor(edge / 5)));
+    if (connMask & 1) v.box(-pathHalfW, 0, -halfZ, pathHalfW, 1, -halfZ + 3, groundCol);
+    if (connMask & 2) v.box(halfX - 3, 0, -pathHalfW, halfX, 1, pathHalfW, groundCol);
+    if (connMask & 4) v.box(-pathHalfW, 0, halfZ - 3, pathHalfW, 1, halfZ, groundCol);
+    if (connMask & 8) v.box(-halfX, 0, -pathHalfW, -halfX + 3, 1, pathHalfW, groundCol);
+    if (def.category === "agriculture") {
+      // Crops and fences align visually across field boundaries instead of isolated islands.
+      if (!(connMask & 1)) v.box(-halfX + 1, 0, -halfZ, halfX - 1, 1, -halfZ + 1, "wood");
+      if (!(connMask & 4)) v.box(-halfX + 1, 0, halfZ - 1, halfX - 1, 1, halfZ, "wood");
+      if (!(connMask & 2)) v.box(halfX - 1, 0, -halfZ + 1, halfX, 1, halfZ - 1, "wood");
+      if (!(connMask & 8)) v.box(-halfX, 0, -halfZ + 1, -halfX + 1, 1, halfZ - 1, "wood");
     }
   }
 
