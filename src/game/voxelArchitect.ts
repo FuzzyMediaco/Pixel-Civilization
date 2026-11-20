@@ -3082,6 +3082,107 @@ export function getOrBuildElementAsset(
     }
 
     // --------------------- CIVIC & PARKS (13 — Ground-Flush, Zero Spiral Towers!) ---------------------
+    case "preschool":
+    case "country_schoolhouse":
+    case "elementary_school":
+    case "middle_school":
+    case "high_school":
+    case "trade_school":
+    case "community_college":
+    case "university":
+    case "research_university": {
+      // Every school keeps its own recognizable architectural identity over five levels.
+      const bx = padX, bz = padZ;
+      const h = 3 + clampedLv * (def.id === "research_university" ? 3 : 2);
+      const roof = def.id === "preschool" ? "orange" : def.id === "country_schoolhouse" ? "crimson"
+        : def.id === "trade_school" ? "steelDark" : def.id === "university" ? "copper" : "slate";
+      const walls = def.id === "preschool" ? "yellow" : def.id === "country_schoolhouse" ? "white"
+        : def.id === "community_college" || def.id === "research_university" ? "glass" : "brick";
+      const trim = def.id === "research_university" ? "screenCyan" : def.id === "preschool" ? "pink" : "cream";
+
+      if (def.id === "preschool") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 2, h, 1, walls, trim);
+        addGableSafe(v, -bx, h, -bz, bx - 1, 2, 3, "x", roof, "white");
+        v.box(-3, 0, 2, 3, 1, bz - 1, "leafLight");
+        v.box(-2, 1, 3, 0, 3, 4, "pink"); // miniature slide
+        v.box(0, 0, 4, 3, 1, 6, "sand"); // sandbox
+        v.box(-bx, 0, bz - 1, bx, 2, bz, "white"); // front picket fence
+        if (clampedLv >= 3) v.box(-bx + 1, 0, -bz + 1, -bx + 4, h + 2, 1, "teal");
+        if (clampedLv >= 5) v.dome(1, h, -1, 2.2, "orange");
+      } else if (def.id === "country_schoolhouse") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h, bz - 2, "white", "woodLight");
+        addGableSafe(v, -bx, h, -bz, bx, bz - 1, 4, "x", "crimson", "cream");
+        v.box(-2, 0, bz - 2, 2, 1, bz - 1, "wood");
+        v.box(-1, 1, bz - 2, 1, 4, bz - 1, "woodDark");
+        v.box(-1, h + 2, -1, 2, h + 5 + clampedLv, 2, "cream"); // bell tower
+        v.dome(0, h + 5 + clampedLv, 0, 2.0, "crimson");
+        if (clampedLv >= 2) addTreeMini(v, bx - 2, 0, bz - 2, 0);
+        if (clampedLv >= 3) v.box(-bx + 1, 0, -bz, bx - 2, 2, -bz + 1, "wood");
+        if (clampedLv >= 4) v.box(bx - 4, 0, -bz + 1, bx - 1, h - 1, 1, "cream");
+        if (clampedLv >= 5) v.box(-bx + 2, 0, bz - 1, bx - 2, 1, bz, "path");
+      } else if (def.id === "research_university") {
+        v.hollowBox(-bx + 2, 0, -bz + 2, bx - 2, h + 4, bz - 3, "steelLight", "screenCyan");
+        addWindowGrid(v, -bx + 2, 1, -bz + 2, bx - 2, h + 4, bz - 3, 2, 0.72, "glass");
+        v.box(-bx + 2, h + 4, -bz + 2, bx - 2, h + 5, bz - 3, "silver");
+        v.cylinderY(0, -1, h + 5, h + 8, 2.6, "white");
+        v.dome(0, h + 8, -1, 3.0, "glass", 0.6);
+        if (clampedLv >= 2) v.box(-bx + 3, 0, bz - 2, bx - 3, 1, bz - 1, "solarBlue");
+        if (clampedLv >= 3) v.hollowBox(-bx + 1, 0, -bz + 2, -bx + 5, h + 1, bz - 3, "glass", "silver");
+        if (clampedLv >= 4) v.hollowBox(bx - 5, 0, -bz + 2, bx - 1, h + 2, bz - 3, "glass", "silver");
+        if (clampedLv >= 5) v.box(-bx + 3, h + 5, -bz + 4, bx - 3, h + 6, -bz + 1, "teal");
+      } else if (def.id === "high_school") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h + 2, 0, "brick", "cream");
+        addWindowGrid(v, -bx + 1, 1, -bz + 1, bx - 1, h + 2, 0, 2, 0.5);
+        addHippedRoofSafe(v, -bx, h + 2, -bz, bx, 1, 3, "slate", "white");
+        // Localized athletic field with white grid stripes and track outline.
+        v.box(-bx + 1, 0, 2, bx - 1, 1, bz - 1, "leafDark");
+        for (let x = -bx + 3; x < bx - 2; x += 3) v.box(x, 1, 2, x + 1, 2, bz - 2, "white");
+        v.box(-bx + 1, 0, 1, bx - 1, 1, 2, "terracotta");
+        if (clampedLv >= 2) v.hollowBox(-bx + 1, 0, -bz + 1, -bx + 6, h + 2, 1, "brick", "white");
+        if (clampedLv >= 3) v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, h + 3, 1, "limestone", "cream");
+        if (clampedLv >= 4) v.box(bx - 3, 1, bz - 2, bx - 1, 4, bz - 1, "steel");
+        if (clampedLv >= 5) addSquareClockTower(v, 0, -bz + 3, h + 1, 8, 2, "brickDark", "cream", "slate");
+      } else if (def.id === "trade_school") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h, 1, "stone", "steelDark");
+        v.box(-bx + 1, h, -bz + 1, bx - 1, h + 1, 1, "steelDark");
+        for (let x = -bx + 3; x < bx - 3; x += 5) v.box(x, 0, 0, x + 3, 4, 2, "charcoal"); // workshop bays
+        v.box(-bx + 2, 0, bz - 3, -bx + 5, 2, bz - 1, "busYellow"); // machinery
+        if (clampedLv >= 2) v.box(bx - 6, 0, bz - 3, bx - 2, 3, bz - 1, "orange");
+        if (clampedLv >= 3) v.hollowBox(-bx + 2, 0, -bz + 2, -bx + 6, h + 3, 0, "brick", "cream");
+        if (clampedLv >= 4) v.box(-bx + 2, h + 1, -bz + 2, bx - 3, h + 2, 0, "solarBlue");
+        if (clampedLv >= 5) v.box(bx - 2, 0, -bz + 1, bx - 1, h + 6, 0, "silver");
+      } else if (def.id === "university") {
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h + 2, 0, "limestone", "cream");
+        addGableSafe(v, -bx, h + 2, -bz, bx, 1, 3, "x", "copper", "white");
+        v.box(-bx + 2, 0, 2, bx - 2, 1, bz - 1, "leaf");
+        v.box(-1, 0, 1, 1, 1, bz - 1, "path");
+        addTreeMini(v, -bx + 3, 0, bz - 3, 0);
+        addTreeMini(v, bx - 4, 0, bz - 3, 2);
+        if (clampedLv >= 2) addSquareClockTower(v, 0, -bz + 3, h + 1, 8 + clampedLv, 2, "limestone", "cream", "copper");
+        if (clampedLv >= 3) v.hollowBox(-bx + 1, 0, -bz + 1, -bx + 6, h + 2, bz - 3, "brick", "cream");
+        if (clampedLv >= 4) v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, h + 3, bz - 3, "brick", "cream");
+        if (clampedLv >= 5) v.dome(0, h + 3, -bz + 2, 4, "copper");
+      } else {
+        // Elementary, middle and community college share a readable school silhouette,
+        // differentiated by their roof materials, courtyards, wings and recreation spaces.
+        const isCollege = def.id === "community_college";
+        const isMiddle = def.id === "middle_school";
+        v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h, 0, isCollege ? "glass" : "brick", isCollege ? "teal" : "cream");
+        addWindowGrid(v, -bx + 1, 1, -bz + 1, bx - 1, h, 0, 2, 0.5);
+        if (!isCollege) addGableSafe(v, -bx, h, -bz, bx, 1, 3, "x", roof, "cream");
+        else v.box(-bx, h, -bz, bx, h + 1, 1, "steelLight");
+        v.box(-bx + 2, 0, 2, bx - 2, 1, bz - 1, isMiddle ? "terracotta" : "leafLight");
+        // Basketball hoop, play equipment or collegiate courtyard.
+        v.box(bx - 3, 1, bz - 3, bx - 2, 4, bz - 2, "white");
+        v.put(bx - 3, 4, bz - 3, isMiddle ? "orange" : "yellow");
+        if (clampedLv >= 2) v.hollowBox(-bx + 1, 0, -bz + 1, -bx + 6, h - 1, 1, walls, trim);
+        if (clampedLv >= 3) v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, h + 1, 1, walls, trim);
+        if (clampedLv >= 4) v.box(-bx + 2, 0, bz - 2, -bx + 6, 3, bz - 1, "busYellow"); // bus loop
+        if (clampedLv >= 5) v.dome(0, h + 1, -1, 3.0, isCollege ? "glass" : "copper", 0.4);
+      }
+      break;
+    }
+
     case "school": {
       // Multi-Wing Red-Brick & Limestone Academy: Gabled Classroom Hall + Playground Court + Domed Library + Square Collegiate Clock Tower!
       const lowH = 5 + clampedLv;
