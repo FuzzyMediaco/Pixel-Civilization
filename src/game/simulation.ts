@@ -8,7 +8,11 @@ import {
   STAGES,
   getStandardFootprintForLevel,
   getUpgradeCost,
+  getElementMaxLevel,
 } from "./catalog";
+import { FARM_ANCHOR_IDS, FARM_MODULE_IDS, SCHOOL_IDS } from "./expansionCatalog";
+import { analyzeFarmNetworks } from "./farmNetworks";
+import { analyzeTraffic } from "./trafficModel";
 import { TILE_SIZE } from "./voxelCore";
 
 export const GRID_HALF = 32; // tiles from -32 .. +31 (64x64 grid = 256m x 256m)
@@ -26,7 +30,7 @@ export interface PlacedElement {
   spanX: number;
   spanZ: number;
   rotation: number; // 0, 1, 2, 3 (90 deg steps)
-  level: number; // 1..5
+  level: number; // 1..5 for buildings; 1..11 for motor roads
   variant: number; // 0..3
   connected: boolean;
   hasPoliceCover: boolean;
@@ -161,6 +165,14 @@ export interface CityMetrics {
   jobsNeeded: number;
   foodSupply: number;
   foodDemand: number;
+  farmModuleCount: number;
+  farmNetworkCount: number;
+  specializedSchoolJobs: number;
+  specializedSchoolIncome: number;
+  trafficCapacity: number;
+  trafficDemand: number;
+  trafficCongestion: number;
+  congestedRoads: number;
   educationSupply: number;
   educationDemand: number;
   recreationSupply: number;
@@ -309,6 +321,14 @@ export function createEmptyMetrics(): CityMetrics {
     jobsNeeded: 0,
     foodSupply: 0,
     foodDemand: 0,
+    farmModuleCount: 0,
+    farmNetworkCount: 0,
+    specializedSchoolJobs: 0,
+    specializedSchoolIncome: 0,
+    trafficCapacity: 0,
+    trafficDemand: 0,
+    trafficCongestion: 0,
+    congestedRoads: 0,
     educationSupply: 0,
     educationDemand: 0,
     recreationSupply: 0,
@@ -482,8 +502,9 @@ export function canMergePair(
   if (a.level !== b.level) {
     return { ok: false, reason: `Both must be the same level (Lv.${a.level} vs Lv.${b.level})` };
   }
-  if (a.level >= 5) {
-    return { ok: false, reason: "Already at maximum Level 5" };
+  const maxLevel = getElementMaxLevel(ELEMENT_BY_ID[a.defId]);
+  if (a.level >= maxLevel) {
+    return { ok: false, reason: `Already at maximum Level ${maxLevel}` };
   }
 
   // Check cardinal adjacency between footprint A and footprint B
@@ -663,7 +684,7 @@ export function resizeElementForLevel(
 ): boolean {
   const def = ELEMENT_BY_ID[el.defId];
   if (!def) return false;
-  const nextLevel = Math.max(1, Math.min(5, Math.round(targetLevel)));
+  const nextLevel = Math.max(1, Math.min(getElementMaxLevel(def), Math.round(targetLevel)));
   if (nextLevel === el.level) return false;
 
   if (!def.isNetwork) {
@@ -724,10 +745,10 @@ export function resizeElementForLevel(
 export function upgradeElementDirect(state: GameState, id: string): { ok: boolean; reason?: string } {
   const el = state.elements.find((e) => e.id === id);
   if (!el) return { ok: false, reason: "Element not found" };
-  if (el.level >= 5) return { ok: false, reason: "Already at max Level 5" };
-
   const def = ELEMENT_BY_ID[el.defId];
   if (!def) return { ok: false, reason: "Unknown element" };
+  const maxLevel = getElementMaxLevel(def);
+  if (el.level >= maxLevel) return { ok: false, reason: `Already at max Level ${maxLevel}` };
 
   const cost = state.mode === "god" ? 0 : getUpgradeCost(def, el.level);
   if (state.mode !== "god" && state.money < cost) {
@@ -852,14 +873,9 @@ function analyzeRoadNetwork(elements: PlacedElement[]): RoadNetworkAnalysis {
  * Isolated roads or stubs touching 0 or 1 building never spawn cars or pedestrians.
  */
 export function getConnectedRoadCoordSet(elements: PlacedElement[]): Set<string> {
-  const { roadCompByCoord, buildingsInRoadComp } = analyzeRoadNetwork(elements);
-  const validCoords = new Set<string>();
-  for (const [coord, compId] of roadCompByCoord.entries()) {
-    if ((buildingsInRoadComp.get(compId)?.size ?? 0) >= 2) {
-      validCoords.add(coord);
-    }
-  }
-  return validCoords;
+  const { roadCompByCoord } = analyzeRoadNetwork(elements);
+  // Streets connect immediately, even before the second building is placed.
+  return new Set(roadCompByCoord.keys());
 }
 
 /**
@@ -937,7 +953,7 @@ export function getConnectedRailCoordSet(elements: PlacedElement[]): Set<string>
  */
 export function recomputeConnectivityAndMetrics(state: GameState): void {
   const elements = state.elements;
-  const { buildingsInRoadComp, elementRoadComps } = analyzeRoadNetwork(elements);
+  const { elementRoadComps } = analyzeRoadNetwork(elements);
 
   // An element is connected if:
   // - In God Mode: always active, or
@@ -954,16 +970,20 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       continue;
     }
     const comps = elementRoadComps.get(el.id);
-    let linked = false;
-    if (comps) {
-      for (const cId of comps) {
-        if ((buildingsInRoadComp.get(cId)?.size ?? 0) >= 2) {
-          linked = true;
-          break;
-        }
-      }
+    // A building connected to any adjacent road is live; no second building required.
+    el.connected = state.mode === "god" || Boolean(comps && comps.size > 0);
+  }
+
+  // Propagate one anchor's street connection through every touching field,
+  // pasture or auxiliary barn, across arbitrarily large farm complexes.
+  const connectedAnchors = new Set(
+    elements.filter(el => FARM_ANCHOR_IDS.has(el.defId) && el.connected).map(el => el.id),
+  );
+  const farmNetworks = analyzeFarmNetworks(elements, connectedAnchors);
+  for (const el of elements) {
+    if (FARM_MODULE_IDS.has(el.defId)) {
+      el.connected = state.mode === "god" || farmNetworks.connectedModuleIds.has(el.id);
     }
-    el.connected = state.mode === "god" ? true : linked;
   }
 
   // 3. Spatial radii: Police coverage, Fire coverage, and Nuisance proximity
