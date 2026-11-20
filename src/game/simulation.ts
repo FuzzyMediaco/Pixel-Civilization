@@ -2373,6 +2373,18 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
   }
 
   if (state.mode === "god") {
+    // God Mode intentionally skips maintenance, taxes and economic penalties,
+    // but must STILL accumulate population for testing complete cities.
+    const housing = state.elements.reduce((sum, el) => {
+      const def = ELEMENT_BY_ID[el.defId];
+      return sum + (el.connected && !el.onFire && def?.popBase
+        ? def.popBase * Math.pow(2, Math.min(5, el.level) - 1)
+        : 0);
+    }, 0);
+    if (housing > 0) {
+      state.growthPool += Math.max(25, housing * 0.9) * dtSec;
+      dirty = true;
+    }
     if (dirty) recomputeConnectivityAndMetrics(state);
     return dirty;
   }
@@ -2445,14 +2457,8 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     if (state.happiness >= 72 && state.metrics.burningCount === 0) {
       // Smooth thriving growth toward neighborhood settlement capacity
       const happyFactor = (state.happiness - 65) / 35;
-      // God Mode is an open sandbox: residents should arrive quickly enough to
-      // test advanced buildings, even when only a few houses have been placed.
-      // Real/Survival still grow gradually through housing and services.
-      const growthRate = (
-        state.mode === "god"
-          ? Math.max(25, baseHousingPop * 0.9)
-          : Math.max(1.8, baseHousingPop * 0.42)
-      ) * happyFactor;
+      // Real and Survival remain driven by livability, wealth and housing.
+      const growthRate = Math.max(1.8, baseHousingPop * 0.42) * happyFactor;
       state.growthPool += growthRate * dtSec;
       dirty = true;
     } else if (state.happiness < 65) {
