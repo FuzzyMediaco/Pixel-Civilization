@@ -26,7 +26,8 @@ export function analyzeTraffic(elements: PlacedElement[]): TrafficSnapshot {
   let capacity = 0;
   for (const road of roads) {
     const lanes = getRoadLaneCount(ELEMENT_BY_ID[road.defId], road.level);
-    const throughput = Math.max(10, lanes * 10);
+    // Every upgrade increases throughput, even when a second paint/geometry tier is pending.
+    const throughput = Math.max(10, lanes * 10 + Math.max(0, road.level - 1) * 5);
     capacityByRoad.set(road.id, throughput);
     capacity += throughput;
   }
