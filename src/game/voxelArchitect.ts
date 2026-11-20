@@ -3245,6 +3245,43 @@ export function getOrBuildElementAsset(
     }
 
     // --------------------- CIVIC & PARKS (13 — Ground-Flush, Zero Spiral Towers!) ---------------------
+    case "sports_field": {
+      // Dedicated school athletic field, visually connected to a neighboring high school.
+      const bx = padX, bz = padZ;
+      v.box(-bx + 1, 0, -bz + 1, bx - 1, 1, bz - 1, "leafDark");
+      // Perimeter track and bright turf with thin sideline markers.
+      v.box(-bx + 1, 0, -bz + 1, bx - 1, 1, -bz + 3, "terracotta");
+      v.box(-bx + 1, 0, bz - 3, bx - 1, 1, bz - 1, "terracotta");
+      v.box(-bx + 1, 0, -bz + 1, -bx + 3, 1, bz - 1, "terracotta");
+      v.box(bx - 3, 0, -bz + 1, bx - 1, 1, bz - 1, "terracotta");
+      for (let x = -bx + 5; x < bx - 4; x += 5) v.box(x, 1, -bz + 4, x + 1, 2, bz - 4, "white");
+      for (let z of [-bz + 4, bz - 5]) v.box(-bx + 4, 1, z, bx - 4, 2, z + 1, "white");
+      if (clampedLv >= 2) v.box(-bx + 2, 0, -bz + 3, -bx + 4, 3, bz - 3, "silver"); // bleachers
+      if (clampedLv >= 3) v.box(bx - 4, 0, -bz + 3, bx - 2, 3, bz - 3, "silver");
+      if (clampedLv >= 4) {
+        for (const [x, z] of [[-bx + 2, -bz + 2], [bx - 3, -bz + 2], [-bx + 2, bz - 3], [bx - 3, bz - 3]]) {
+          v.box(x, 1, z, x + 1, 10, z + 1, "steel");
+          v.put(x, 10, z, "warmGlow", 1.1);
+        }
+      }
+      if (clampedLv >= 5) v.box(-bx + 5, 0, bz - 5, -bx + 9, 5, bz - 3, "brick"); // little clubhouse
+      break;
+    }
+
+    case "research_institute": {
+      const bx = padX, bz = padZ, h = 7 + clampedLv * 3;
+      v.hollowBox(-bx + 1, 0, -bz + 1, bx - 1, h, bz - 2, "glass", "silver");
+      addWindowGrid(v, -bx + 1, 1, -bz + 1, bx - 1, h, bz - 2, 2, 0.56, "screenCyan");
+      v.box(-bx + 1, h, -bz + 1, bx - 1, h + 1, bz - 2, "steelLight");
+      v.cylinderY(0, -1, h + 1, h + 4, 2.8, "white");
+      v.dome(0, h + 4, -1, 3, "glass", 0.3);
+      if (clampedLv >= 2) v.box(-bx + 3, h + 1, -bz + 2, -bx + 7, h + 2, bz - 3, "solarBlue");
+      if (clampedLv >= 3) v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, h - 2, bz - 2, "limestone", "silver");
+      if (clampedLv >= 4) v.box(-bx + 2, 0, bz - 2, bx - 2, 1, bz - 1, "teal");
+      if (clampedLv >= 5) v.box(bx - 4, h + 1, bz - 4, bx - 3, h + 11, bz - 3, "steel");
+      break;
+    }
+
     case "preschool":
     case "country_schoolhouse":
     case "elementary_school":
