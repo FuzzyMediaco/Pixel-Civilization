@@ -1,0 +1,48 @@
+name: Feature Branch Gameplay Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/civilization-schools-farms-roads-2026-11
+    paths:
+      - "scripts/capture-feature-previews.mjs"
+      - ".github/workflows/feature-previews.yml"
+      - "docs/rail-bridges-faith-next-expansion.md"
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install game and preview dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright-core
+          npx playwright install chromium
+      - name: Start isolated game preview
+        run: |
+          npm run dev -- --port 4173 > /tmp/pixel-civ-preview.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:4173/api/health >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/pixel-civ-preview.log
+          exit 1
+      - name: Capture actual in-engine game screenshots
+        run: node scripts/capture-feature-previews.mjs
+      - name: Upload captured preview packet
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixel-civilization-gameplay-previews
+          path: previews/captured/*.png
+          if-no-files-found: warn
+          retention-days: 14
