@@ -1051,6 +1051,17 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   let coverableBuildings = 0;
   let militaryPower = 0;
   let incomeSum = 0;
+  let industrialJobs = 0;
+  let commercialJobs = 0;
+  let commercialIncome = 0;
+  let tradeSchoolStrength = 0;
+  let communityCollegeStrength = 0;
+  let universityStrength = 0;
+  let researchStrength = 0;
+  let preschoolStrength = 0;
+  let countrySchoolStrength = 0;
+  m.farmModuleCount = farmNetworks.connectedModuleIds.size;
+  m.farmNetworkCount = connectedAnchors.size;
 
   for (const el of elements) {
     const def = ELEMENT_BY_ID[el.defId];
@@ -1065,8 +1076,17 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
     if (!el.connected || el.onFire) continue;
 
-    // Level scaling: doubling per level (1, 2, 4, 8, 16)
-    const lvMult = Math.pow(2, el.level - 1);
+    // Standard building output doubles through Level 5.
+    const lvMult = Math.pow(2, Math.min(5, el.level) - 1);
+    const schoolStrength = 1 + Math.max(0, Math.min(5, el.level) - 1) * 0.18;
+    if (SCHOOL_IDS.has(el.defId)) {
+      if (el.defId === "trade_school") tradeSchoolStrength += schoolStrength;
+      if (el.defId === "community_college") communityCollegeStrength += schoolStrength;
+      if (el.defId === "university") universityStrength += schoolStrength;
+      if (el.defId === "research_university") researchStrength += schoolStrength;
+      if (el.defId === "preschool") preschoolStrength += schoolStrength;
+      if (el.defId === "country_schoolhouse") countrySchoolStrength += schoolStrength;
+    }
     // Disrepair in Survival Mode cuts positive service output by 75%
     const serviceHealth = el.disrepair ? 0.25 : 1.0;
 
@@ -1090,10 +1110,20 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       m.wasteCapacity += Math.round(def.waste * lvMult * serviceHealth);
     }
     if (def.jobs) {
-      m.jobsAvailable += Math.round(def.jobs * lvMult * serviceHealth);
+      const jobPoints = Math.round(def.jobs * lvMult * serviceHealth);
+      m.jobsAvailable += jobPoints;
+      if (def.archetype === "factory_mill" || def.archetype === "power_heavy") industrialJobs += jobPoints;
+      if (def.category === "commerce") commercialJobs += jobPoints;
     }
     if (def.food) {
-      m.foodSupply += Math.round(def.food * lvMult * serviceHealth);
+      // All farms, grocers and food-service elements start with stronger output.
+      // Food grows 2.4x per upgrade rather than the legacy 2x.
+      const foodLevelMult = Math.pow(2.4, Math.max(0, Math.min(5, el.level) - 1));
+      const foodBaseMult = def.category === "agriculture" ? 2.7 : 2.15;
+      const linkedFarmBonus = FARM_ANCHOR_IDS.has(el.defId)
+        ? (farmNetworks.multiplierByAnchorId.get(el.id) ?? 1)
+        : 1;
+      m.foodSupply += Math.round(def.food * foodLevelMult * foodBaseMult * linkedFarmBonus * serviceHealth);
     }
     if (def.education) {
       m.educationSupply += Math.round(def.education * lvMult * serviceHealth);
@@ -1111,7 +1141,9 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       militaryPower += Math.round(def.military * lvMult * serviceHealth);
     }
     if (def.income) {
-      incomeSum += Math.round(def.income * lvMult * serviceHealth);
+      const elementIncome = Math.round(def.income * lvMult * serviceHealth);
+      incomeSum += elementIncome;
+      if (def.category === "commerce") commercialIncome += elementIncome;
     }
 
     if (!def.isNetwork && !def.passiveNature && (def.popBase || def.jobs)) {
@@ -1119,6 +1151,21 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       if (!el.hasPoliceCover) uncoveredBuildings += 1;
     }
   }
+
+  // Schools specialize their economies: trade colleges help factories and skilled
+  // jobs, while universities improve the productivity of commercial districts.
+  const industrialMultiplier = Math.min(0.38, tradeSchoolStrength * 0.08 + researchStrength * 0.05);
+  const commercialWorkMultiplier = Math.min(0.22, communityCollegeStrength * 0.05 + universityStrength * 0.04);
+  m.specializedSchoolJobs = Math.round(industrialJobs * industrialMultiplier + commercialJobs * commercialWorkMultiplier);
+  m.jobsAvailable += m.specializedSchoolJobs;
+  m.specializedSchoolIncome = Math.round(commercialIncome * Math.min(0.32, universityStrength * 0.10 + researchStrength * 0.07));
+  incomeSum += m.specializedSchoolIncome;
+
+  const traffic = analyzeTraffic(elements);
+  m.trafficCapacity = traffic.capacity;
+  m.trafficDemand = traffic.demand;
+  m.trafficCongestion = traffic.congestion;
+  m.congestedRoads = traffic.congestedRoads;
 
   // Population calculation:
   // Immediate connected housing base (Lv1 House = 5) + thriving settlement pool bounded by housing capacity
@@ -1306,6 +1353,19 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     checkNeed("edu", "Schools & Education", m.educationSupply, m.educationDemand, 13, "Build or merge Schools so families stay happy.");
     checkNeed("rec", "Parks & Leisure", m.recreationSupply, m.recreationDemand, 12, "Add Parks, Gardens, Plazas, or Landmarks.");
 
+    if (m.congestedRoads > 0 && m.trafficCongestion > 1.1) {
+      const congestionPenalty = Math.min(10, Math.max(2, Math.round((m.trafficCongestion - 1) * 4)));
+      happiness -= congestionPenalty;
+      diags.push({
+        id: "traffic",
+        severity: m.trafficCongestion >= 1.8 ? "warning" : "info",
+        title: `${m.congestedRoads} Congested Road${m.congestedRoads === 1 ? "" : "s"}`,
+        detail: "Commuter routes exceed the capacity of one or more road segments.",
+        fixHint: "Select a busy road and upgrade it in place. Widening increases actual traffic throughput.",
+        deltaHappiness: -congestionPenalty,
+      });
+    }
+
     if (m.govDemand > 0) {
       checkNeed("gov", "Government Services", m.govSupply, m.govDemand, 16, "Stage 3+ requires City Offices, Tax Offices, Courthouses, or Government Buildings.");
     }
@@ -1380,6 +1440,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       });
     }
 
+    // Schools improve quality of life, particularly for small towns and families.
+    if (m.connectedHouses > 0) happiness += Math.min(6, preschoolStrength * 1.5 + countrySchoolStrength);
     // Bonus for abundant parks, landmarks & faith
     if (m.recreationSupply > m.recreationDemand * 1.6 && m.connectedHouses > 0) {
       happiness += 5;
