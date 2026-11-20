@@ -13,6 +13,7 @@ import {
 import { FARM_ANCHOR_IDS, FARM_MODULE_IDS, SCHOOL_IDS } from "./expansionCatalog";
 import { analyzeFarmNetworks } from "./farmNetworks";
 import { analyzeTraffic } from "./trafficModel";
+import { analyzeDistrictSynergies } from "./districtSynergies";
 import { TILE_SIZE } from "./voxelCore";
 
 export const GRID_HALF = 32; // tiles from -32 .. +31 (64x64 grid = 256m x 256m)
@@ -167,6 +168,7 @@ export interface CityMetrics {
   foodDemand: number;
   farmModuleCount: number;
   farmNetworkCount: number;
+  districtSynergyCount: number;
   specializedSchoolJobs: number;
   specializedSchoolIncome: number;
   trafficCapacity: number;
@@ -323,6 +325,7 @@ export function createEmptyMetrics(): CityMetrics {
     foodDemand: 0,
     farmModuleCount: 0,
     farmNetworkCount: 0,
+    districtSynergyCount: 0,
     specializedSchoolJobs: 0,
     specializedSchoolIncome: 0,
     trafficCapacity: 0,
@@ -986,6 +989,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
   }
 
+  const districtSynergies = analyzeDistrictSynergies(elements);
+
   // 3. Spatial radii: Police coverage, Fire coverage, and Nuisance proximity
   const policeSources = elements.filter((e) => {
     const d = ELEMENT_BY_ID[e.defId];
@@ -1062,6 +1067,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   let countrySchoolStrength = 0;
   m.farmModuleCount = farmNetworks.connectedModuleIds.size;
   m.farmNetworkCount = connectedAnchors.size;
+  m.districtSynergyCount = districtSynergies.active.length;
 
   for (const el of elements) {
     const def = ELEMENT_BY_ID[el.defId];
@@ -1111,7 +1117,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
     if (def.jobs) {
       const jobPoints = Math.round(def.jobs * lvMult * serviceHealth);
-      m.jobsAvailable += jobPoints;
+      m.jobsAvailable += Math.round(jobPoints * (districtSynergies.jobsMultiplier.get(el.id) ?? 1));
       if (def.archetype === "factory_mill" || def.archetype === "power_heavy") industrialJobs += jobPoints;
       if (def.category === "commerce") commercialJobs += jobPoints;
     }
@@ -1123,13 +1129,13 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       const linkedFarmBonus = FARM_ANCHOR_IDS.has(el.defId)
         ? (farmNetworks.multiplierByAnchorId.get(el.id) ?? 1)
         : 1;
-      m.foodSupply += Math.round(def.food * foodLevelMult * foodBaseMult * linkedFarmBonus * serviceHealth);
+      m.foodSupply += Math.round(def.food * foodLevelMult * foodBaseMult * linkedFarmBonus * serviceHealth * (districtSynergies.foodMultiplier.get(el.id) ?? 1));
     }
     if (def.education) {
-      m.educationSupply += Math.round(def.education * lvMult * serviceHealth);
+      m.educationSupply += Math.round(def.education * lvMult * serviceHealth * (districtSynergies.educationMultiplier.get(el.id) ?? 1));
     }
     if (def.recreation) {
-      m.recreationSupply += Math.round(def.recreation * lvMult * serviceHealth);
+      m.recreationSupply += Math.round(def.recreation * lvMult * serviceHealth * (districtSynergies.recreationMultiplier.get(el.id) ?? 1));
     }
     if (def.government) {
       m.govSupply += Math.round(def.government * lvMult * serviceHealth);
@@ -1142,7 +1148,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
     if (def.income) {
       const elementIncome = Math.round(def.income * lvMult * serviceHealth);
-      incomeSum += elementIncome;
+      incomeSum += Math.round(elementIncome * (districtSynergies.incomeMultiplier.get(el.id) ?? 1));
       if (def.category === "commerce") commercialIncome += elementIncome;
     }
 
