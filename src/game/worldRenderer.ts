@@ -1,6 +1,8 @@
 import { editedCoastline } from "./coastline";
 import { GRID_SIZE, GRID_HALF } from "./mapBounds";
+import { patrolPosition } from "./policeDispatch";
 import { getTravelNetwork, travelSignature, type TravelNetwork } from "./travelNetwork";
+import { advanceCarSegment, departureInterval, getRoadTripNetwork, roadTripPoints, trafficFleetTarget, type RoadTrip, type RoadTripNetwork, type TripPoint } from "./roadTraffic";
 import { MobilityVisuals, voyagePlacement } from "./mobilityVisuals";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -19,10 +21,8 @@ import {
   planRelocation,
   buildOccupancyMap,
   computeHeatmapCells,
-  getConnectedRailCoordSet,
   getConnectedRoadCoordSet,
   getTrafficLoadMap,
-  PEDESTRIAN_IDS,
   getNetworkConnMask,
   gridToWorldCenter,
   islandMarginAtWorld,
@@ -32,7 +32,9 @@ import {
 import { EngineeringView, maskOceanFragment } from "./engineeringView";
 import { elevationFromMargin, getTerrainCell, planInfrastructureStroke, registerRoadDemand, roadPortOpen, roadTravelOpen, surfaceTravelHeight, tileKey, type InfrastructureTool, type GridPoint } from "./terrain";
 import { networkRoadProfile } from "./designs/networks";
-import { getParcelEdgeKey, getParcelEdges } from "./parcelEdges";
+import { planFirstStreetFacing } from "./streetFacing";
+import { encodeRoadSitePort } from "./roadTopology";
+import { cellBeyondEdge, getParcelEdgeKey, getParcelEdges } from "./parcelEdges";
 import { getParcelSoils } from "./parcelGeometry";
 import { buildPlacedGroupFromAsset, getOrBuildElementAsset, releaseParcelGeometry } from "./voxelArchitect";
 import {
@@ -94,20 +96,16 @@ type RoadVehicleKind =
   | "taxi";
 
 interface TrafficAgent {
-  kind: RoadVehicleKind | "train";
-  isRail: boolean;
-  mesh: THREE.Group;
-  gx: number;
-  gz: number;
-  nextGx: number;
-  nextGz: number;
-  dirX: number;
-  dirZ: number;
-  facingAngle: number;
+  id: number;
+  kind: RoadVehicleKind;
+  trip: RoadTrip;
+  points: TripPoint[];
+  mesh: THREE.Mesh;
+  segment: number;
   progress: number;
-  speed: number;
-  laneOffset: number;
   velocity: number;
+  speed: number;
+  dwell: number;
 }
 
 interface VillagerAgent {
@@ -362,7 +360,6 @@ export class PixelWorldRenderer {
         leftArm: THREE.Mesh;
         rightArm: THREE.Mesh;
       } | null;
-      roadPath: [number, number][];
       copAngle: number;
       officerAngle: number;
       sparkAccum: number;
@@ -386,6 +383,7 @@ export class PixelWorldRenderer {
   private hoverGrid: [number, number] | null = null;
   private ghostGroup: THREE.Group | null = null;
   private ghostKey = "";
+  private curbPreviews = new Map<string,{key:string; original:THREE.Group; ghost:THREE.Group; wasVisible:boolean}>();
   private cursorOutline: THREE.LineSegments;
   private selectionOutlines: THREE.LineSegments[] = [];
   private radiusRingMesh: THREE.Mesh | null = null;
@@ -411,10 +409,13 @@ export class PixelWorldRenderer {
   private particles: VoxelParticle[] = [];
   private trafficSyncAccum = 0;
   // Cached network sets (recomputed only when the layout changes, not every frame)
-  private netCacheKey = "";
+  private roadTrips?: RoadTripNetwork;
   private cachedRoadSet = new Set<string>();
-  private cachedRailSet = new Set<string>();
-  private cachedCarSet = new Set<string>();
+  private carSequence = 0;
+  private routeCursor = 0;
+  private departureTimer = 0;
+  private carClock = 0;
+  private availableAfter: number[] = [];
   /** Road deck height (m) per tile for bridges / overpasses so vehicles ride on top */
   private streets = new Map<string, { base: number; profile: ReturnType<typeof networkRoadProfile> }>();
   // Pooled smoke / steam particles & blinking beacons
@@ -873,7 +874,7 @@ export class PixelWorldRenderer {
       this.coastlineTexture.image.data=editedCoastline(state,this.naturalCoastline);
       this.coastlineTexture.needsUpdate=true;
     }
-    this.activeTravel = state.mobility || state.projectOps?.calls.length ? getTravelNetwork(state) : undefined;
+    this.activeTravel = state.mobility || state.projectOps?.calls.length || state.crimeIncidents?.some(i=>i.policeOriginId) ? getTravelNetwork(state) : undefined;
 
     const seenIds = new Set<string>();
 
@@ -1323,8 +1324,40 @@ export class PixelWorldRenderer {
     }
   }
 
+  private updateCurbPreviews(roads: {site:PlacedElement; mask:number}[] = []): void {
+    if (!roads.length && !this.curbPreviews.size) return;
+    const keep=new Set<string>();
+    for (const {site,mask} of roads) {
+      const entry=this.placedEntries.get(site.id);
+      if (!entry) continue;
+      const key=entry.key+"|preview"+mask;
+      const prior=this.curbPreviews.get(site.id);
+      if (prior?.key===key && prior.original===entry.group) {keep.add(site.id);continue;}
+      if(prior) this.removeCurbPreview(site.id);
+      const soils=getParcelSoils(this.gameState,site);
+      const asset=getOrBuildElementAsset(site.defId,site.level,site.variant,site.spanX,site.spanZ,mask,{soils});
+      const ghost=buildPlacedGroupFromAsset(asset,true,true);
+      ghost.position.copy(entry.group.position);
+      this.curbPreviews.set(site.id,{key,original:entry.group,ghost,wasVisible:entry.group.visible});
+      this.overlayGroup.add(ghost);
+      entry.group.visible=false;
+      keep.add(site.id);
+    }
+    for(const id of this.curbPreviews.keys())if(!keep.has(id))this.removeCurbPreview(id);
+  }
+
+  private removeCurbPreview(id:string):void {
+    const previous=this.curbPreviews.get(id);
+    if(!previous)return;
+    previous.original.visible=previous.wasVisible;
+    this.overlayGroup.remove(previous.ghost);
+    releaseParcelGeometry(previous.ghost);
+    this.curbPreviews.delete(id);
+  }
+
   private updateHoverOverlay(): void {
     if(this.worksTool && this.hoverGrid){
+      this.updateCurbPreviews();
       this.cursorOutline.visible=false;if(this.ghostGroup)this.ghostGroup.visible=false;
       const [gx,gz]=this.hoverGrid,p={gx,gz};
       const points=this.worksStroke.length?[...this.worksStroke,p]:this.worksAnchor?[this.worksAnchor,p]:[p];
@@ -1334,6 +1367,7 @@ export class PixelWorldRenderer {
     }
     this.engineering.showPreview(this.gameState,null);
     if (!this.hoverGrid || this.brush.kind === "none") {
+      this.updateCurbPreviews();
       this.cursorOutline.visible = false;
       if (this.ghostGroup) {
         this.ghostGroup.visible = false;
@@ -1374,6 +1408,7 @@ export class PixelWorldRenderer {
     }
 
     if (!def) {
+      this.updateCurbPreviews();
       this.cursorOutline.visible = false;
       if (this.ghostGroup) this.ghostGroup.visible = false;
       return;
@@ -1382,11 +1417,32 @@ export class PixelWorldRenderer {
     const chk = placement ?? relocation ?? { valid: false, reason: "Select an element" };
     const occupancy = buildOccupancyMap(this.gameState.elements, moving ? new Set([moving.id]) : undefined);
     const pose = { ...moving, defId: def.id, gx, gz, spanX, spanZ, rotation: def.isNetwork ? 0 : rotation };
+    // Use the same prospective orientation on the first local street as the committed edit.
+    if (placement?.valid && def.isRoadNetwork) {
+      for (const {site,rotation:newFacing} of planFirstStreetFacing(pose,occupancy,this.gameState)) {
+        const turned={...site,rotation:newFacing};
+        for(let x=site.gx;x<site.gx+site.spanX;x++)for(let z=site.gz;z<site.gz+site.spanZ;z++){
+          occupancy.set(tileKey(x,z),turned);
+        }
+      }
+    }
     const edges = getParcelEdges(pose, occupancy, this.gameState).filter(e => !["road","rail","channel"].includes(e.kind));
+    const changedRoads:{site:PlacedElement;mask:number}[]=[];
+    if(chk.valid && !def.isNetwork) {
+      for (const edge of edges) {
+        if (edge.kind!=="drive" && edge.kind!=="bus" && edge.kind!=="freight") continue;
+        const [x,z]=cellBeyondEdge(pose,edge.side,edge.slot), road=occupancy.get(tileKey(x,z));
+        if(!road || !ELEMENT_BY_ID[road.defId]?.isRoadNetwork)continue;
+        const dir=x<gx?1:x>=gx+spanX?3:z<gz?2:0;
+        const mask=getNetworkConnMask(this.gameState.elements,road,occupancy,this.gameState);
+        changedRoads.push({site:road,mask:mask|encodeRoadSitePort(dir,edge.kind)});
+      }
+    }
+    this.updateCurbPreviews(changedRoads);
     const soils = def.domain === "land" ? getParcelSoils(this.gameState, pose) : undefined;
     const lighting = moving?.exteriorLighting ?? "auto";
     const mask = def.isNetwork ? getNetworkConnMask(this.gameState.elements, {
-      defId: def.id, gx, gz, overWater: placement?.overWater || Boolean(relocation?.underlay),
+      defId: def.id, gx, gz, edgeOverrides: moving?.edgeOverrides, crossingAxis: moving?.crossingAxis, overWater: placement?.overWater || Boolean(relocation?.underlay),
     }, occupancy,this.gameState) : 0;
     const [wx, wz] = gridToWorldCenter(gx, gz, spanX, spanZ);
     const baseY = this.getGroundElevationForElement(def, wx, wz);
@@ -1426,13 +1482,20 @@ export class PixelWorldRenderer {
   // ===================== AUTONOMOUS CARS, TRAINS & PIXEL VILLAGERS =====================
 
   private refreshNetworkCache(): void {
-    let key = String(this.gameState.infrastructure?.stamp??this.gameState.infrastructure?.revision??0)+":";
-    for (const e of this.gameState.elements) key += `${e.defId}${e.gx},${e.gz},${e.spanX}${e.spanZ}${e.connected ? 1 : 0}${e.onFire ? 1 : 0};`;
-    if (key === this.netCacheKey) return;
-    this.netCacheKey = key;
-    this.cachedRoadSet = getConnectedRoadCoordSet(this.gameState.elements,this.gameState);
-    this.cachedRailSet = getConnectedRailCoordSet(this.gameState.elements);
-    this.cachedCarSet = new Set<string>();
+    const trips = getRoadTripNetwork(this.gameState);
+    if (trips === this.roadTrips) return;
+    if (!this.roadTrips?.routes.length || !trips.routes.length) {
+      this.departureTimer = 0;
+      this.availableAfter = [];
+    }
+    this.roadTrips = trips;
+    const stillReachable = new Set(trips.routes.map(trip => trip.key));
+    this.trafficAgents = this.trafficAgents.filter(car => {
+      if (stillReachable.has(car.trip.key)) return true;
+      this.trafficGroup.remove(car.mesh);
+      return false;
+    });
+    this.cachedRoadSet = getConnectedRoadCoordSet(this.gameState.elements, this.gameState);
     this.streets.clear();
     const occ = buildOccupancyMap(this.gameState.elements);
     const profiles = new Map<string, ReturnType<typeof networkRoadProfile>>();
@@ -1445,7 +1508,6 @@ export class PixelWorldRenderer {
       if (!profiles.has(profileKey)) profiles.set(profileKey, networkRoadProfile(d.id, mask));
       const [wx, wz] = gridToWorldCenter(e.gx, e.gz);
       this.streets.set(key, { profile: profiles.get(profileKey), base: this.getGroundElevationForElement(d, wx, wz) });
-      if (this.cachedRoadSet.has(key) && !PEDESTRIAN_IDS.has(d.id) && !e.pedestrianDeck) this.cachedCarSet.add(key);
     }
   }
 
@@ -1476,31 +1538,9 @@ export class PixelWorldRenderer {
   private syncAutonomousTrafficAndVillagers(): void {
     this.refreshNetworkCache();
     const connectedRoadSet = this.cachedRoadSet;
-    const connectedRailSet = this.cachedRailSet;
-
-    const roadTiles: PlacedElement[] = [];
-    const carTiles: PlacedElement[] = [];
-    let hasMilitary = false;
-
-    for (const el of this.gameState.elements) {
-      const def = ELEMENT_BY_ID[el.defId];
-      if (!def) continue;
-      if (def.isRoadNetwork && connectedRoadSet.has(`${el.gx},${el.gz}`)) {
-        roadTiles.push(el);
-        if (this.cachedCarSet.has(`${el.gx},${el.gz}`)) carTiles.push(el);
-      }
-      if (def.military) hasMilitary = true;
-    }
-
-    // Immediately remove any vehicles or villagers stranded on isolated/disconnected stubs
-    this.trafficAgents = this.trafficAgents.filter((a) => {
-      const net = a.isRail ? connectedRailSet : this.cachedCarSet;
-      if (!net.has(`${a.gx},${a.gz}`)) {
-        this.trafficGroup.remove(a.mesh);
-        return false;
-      }
-      return true;
-    });
+    const roadTiles = this.gameState.elements.filter(el =>
+      ELEMENT_BY_ID[el.defId]?.isRoadNetwork && connectedRoadSet.has(tileKey(el.gx, el.gz))
+    );
     this.villagerAgents = this.villagerAgents.filter((v) => {
       if (!connectedRoadSet.has(`${v.gx},${v.gz}`)) {
         this.villagerGroup.remove(v.root);
@@ -1509,72 +1549,7 @@ export class PixelWorldRenderer {
       return true;
     });
 
-    const activeBuildings = this.gameState.elements.filter((e) => {
-      const d = ELEMENT_BY_ID[e.defId];
-      return e.connected && !d?.isNetwork && !d?.passiveNature;
-    }).length;
-
-    // Target road vehicle & villager counts: require connected road tiles AND population > 0
     const hasPop = this.gameState.population > 0;
-    const maxVehicles = this.isSoftwareGl ? 22 : 60;
-    const m = this.gameState.metrics;
-    const nightTraffic = this.gameState.timeOfDay < 6 || this.gameState.timeOfDay > 22 ? .37 : 1;
-    const busyness = nightTraffic * Math.min(1.8, 0.45 + (m.congestion ?? 0) / 100);
-    const targetRoadVehicles =
-      carTiles.length >= 2 && hasPop
-        ? Math.min(
-            maxVehicles,
-            Math.max(2, Math.round((Math.floor(carTiles.length / 4) + Math.floor(activeBuildings / 3) + Math.sqrt(m.trafficTrips ?? 0)) * busyness)),
-          )
-        : 0;
-
-    const currentRoadCount = this.trafficAgents.filter((a) => !a.isRail).length;
-
-    // Prune excess road vehicles
-    if (currentRoadCount > targetRoadVehicles) {
-      let toRemove = currentRoadCount - targetRoadVehicles;
-      this.trafficAgents = this.trafficAgents.filter((a) => {
-        if (!a.isRail && toRemove > 0) {
-          this.trafficGroup.remove(a.mesh);
-          toRemove -= 1;
-          return false;
-        }
-        return true;
-      });
-    }
-
-    // Spawn road vehicles (Cars, Sports Cars, Trucks, Military Trucks, Cybertrucks, Mini Coopers, Buses, Taxis!)
-    for (let i = currentRoadCount; i < targetRoadVehicles; i++) {
-      const tile = carTiles[Math.floor(Math.random() * carTiles.length)];
-      const pool: RoadVehicleKind[] = ["sedan", "sedan", "mini_cooper", "sports_car", "truck", "cybertruck"];
-      if (hasMilitary) pool.push("military_truck");
-
-      const kind = pool[Math.floor(Math.random() * pool.length)];
-      const geo = getVehicleGeometry(kind, Math.floor(Math.random() * 16));
-      const mesh = new THREE.Mesh(geo, getPixelVoxelMaterial());
-      mesh.castShadow = !this.isSoftwareGl;
-      const grp = new THREE.Group();
-      grp.add(mesh);
-      this.trafficGroup.add(grp);
-
-      this.trafficAgents.push({
-        kind,
-        isRail: false,
-        mesh: grp,
-        gx: tile.gx,
-        gz: tile.gz,
-        nextGx: tile.gx,
-        nextGz: tile.gz,
-        dirX: 1,
-        dirZ: 0,
-        facingAngle: Math.atan2(1, 0),
-        progress: 1,
-        speed: kind === "sports_car" ? 2.6 : kind === "bus" || kind === "truck" ? 1.55 : 2.0,
-        laneOffset: 0.36,
-        velocity: 0,
-      });
-    }
-
     // Spawn / prune autonomous walking pixel villagers along roads when population > 0!
     const maxVillagers = this.isSoftwareGl ? 20 : 48;
     const targetVillagers =
@@ -1661,98 +1636,164 @@ export class PixelWorldRenderer {
     };
   }
 
-  private stepTrafficAndVillagers(dt: number, elapsed: number): void {
-    const roadSet = this.cachedRoadSet;
-    const railSet = this.cachedRailSet;
-    const loadMap = getTrafficLoadMap();
-    const grip = this.gameState.weather === "storm" ? 0.65 : this.gameState.weather === "rain" ? 0.82 : 1;
+  /** Vehicle inspection reads the same paths/positions used by the scene. Positions are world metres. */
+  public ambientCarTrips() {
+    return this.trafficAgents.map((car) => ({
+      id: car.id,
+      kind: car.kind,
+      origin: car.trip.origin,
+      destination: car.trip.destination,
+      path: car.trip.path,
+      cursor: car.segment,
+      progress: car.progress,
+      speed: car.velocity,
+      position: [car.mesh.position.x, car.mesh.position.z],
+      arrived: car.segment === car.points.length - 1,
+    }));
+  }
 
-    const dirs: [number, number][] = [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ];
-
-    for (const a of this.trafficAgents) {
-      const net = a.isRail ? railSet : this.cachedCarSet;
-      if (net.size === 0) continue;
-
-      const load = a.isRail ? 0 : loadMap.get(`${a.gx},${a.gz}`) ?? 0;
-      const jam = load > 0.85 ? 1 / (1 + (load - 0.85) * 2.2) : 1;
-      // Car-following: brake behind a vehicle ahead in the same lane (same tile & heading, or the next tile)
-      let follow = 1;
-      let availableGap = Infinity;
-      if (!a.isRail) {
-        for (const b of this.trafficAgents) {
-          if (b === a || b.isRail || b.dirX !== a.dirX || b.dirZ !== a.dirZ) continue;
-          let gap = -1;
-          if (b.gx === a.gx && b.gz === a.gz && b.progress > a.progress) gap = b.progress - a.progress;
-          else if (b.gx === a.nextGx && b.gz === a.nextGz) gap = 1 - a.progress + b.progress;
-          if (gap >= 0) {
-            const room = Math.max(0, gap - 0.22 / grip);
-            availableGap = Math.min(availableGap, room);
-            follow = Math.min(follow, room / (0.33 / grip));
-          }
-        }
-      }
-      if(!a.isRail)registerRoadDemand(this.gameState,a.nextGx,a.nextGz,a.dirX,a.dirZ,dt);
-      if (!roadTravelOpen(this.gameState,a.nextGx,a.nextGz,a.dirX,a.dirZ)) availableGap=Math.min(availableGap,Math.max(0,.37-a.progress));
-      const targetSpeed = a.speed * Math.max(0.25, jam) * follow * (a.isRail ? 1 : grip);
-      const acceleration = (targetSpeed < a.velocity ? 5.8 : 2.4) * (a.isRail ? 0.7 : grip);
-      a.velocity += THREE.MathUtils.clamp(targetSpeed - a.velocity, -acceleration * dt, acceleration * dt);
-      a.progress += Math.min(availableGap, dt * a.velocity);
-      if (a.progress >= 1) {
-        a.gx = a.nextGx;
-        a.gz = a.nextGz;
-        a.progress = 0;
-
-        if (!net.has(`${a.gx},${a.gz}`)) {
-          const first = net.values().next().value as string;
-          const [fx, fz] = first.split(",").map(Number);
-          a.gx = fx;
-          a.gz = fz;
-        }
-
-        // Prefer continuing forward or turning, falling back to U-turn at dead ends
-        const validDirs = dirs.filter(([dx, dz]) => net.has(`${a.gx + dx},${a.gz + dz}`) && (a.isRail || (roadPortOpen(this.gameState,a.gx,a.gz,dx,dz) && this.canTurn(a.gx, a.gz, a.dirX, dx))));
-        const nonReverse = validDirs.filter(([dx, dz]) => !(dx === -a.dirX && dz === -a.dirZ));
-        const choices = nonReverse.length > 0 ? nonReverse : validDirs;
-
-        if (choices.length > 0) {
-          const [nx, nz] = choices[Math.floor(Math.random() * choices.length)];
-          a.dirX = nx;
-          a.dirZ = nz;
-          a.nextGx = a.gx + nx;
-          a.nextGz = a.gz + nz;
-        } else {
-          a.nextGx = a.gx;
-          a.nextGz = a.gz;
-        }
-      }
-
-      const [x0, z0] = gridToWorldCenter(a.gx, a.gz, 1, 1);
-      const [x1, z1] = gridToWorldCenter(a.nextGx, a.nextGz, 1, 1);
-      const wx = THREE.MathUtils.lerp(x0, x1, a.progress);
-      const wz = THREE.MathUtils.lerp(z0, z1, a.progress);
-
-      // Right-hand lane offset perpendicular to travel direction, pushed clear of building walls
-      const perpX = -a.dirZ * a.laneOffset;
-      const perpZ = a.dirX * a.laneOffset;
-      const [carX, carZ] = a.isRail
-        ? [wx + perpX, wz + perpZ]
-        : this.resolveBuildingCollision(wx + perpX, wz + perpZ, 0.35);
-
-      const deckY = this.streetHeight(carX, carZ, a.dirX !== 0);
-      a.mesh.position.set(carX, VOXEL_SIZE + 0.02 + deckY, carZ);
-      const targetAngle = Math.atan2(a.dirX, a.dirZ);
-      const angleDiff = Math.atan2(
-        Math.sin(targetAngle - a.facingAngle),
-        Math.cos(targetAngle - a.facingAngle),
+  private dispatchAmbientCar(dt: number) {
+    const network = this.roadTrips;
+    this.carClock += dt;
+    if (!network?.routes.length) return;
+    if (this.availableAfter.length)
+      this.availableAfter = this.availableAfter.filter((time) => time > this.carClock);
+    this.departureTimer -= dt;
+    const state = this.gameState;
+    const demand = state.metrics.trafficTrips;
+    const target = trafficFleetTarget(
+      network,
+      state.population,
+      demand,
+      this.isSoftwareGl ? 22 : 60,
+      state.timeOfDay,
+    );
+    if (this.departureTimer > 0 || this.trafficAgents.length + this.availableAfter.length >= target) return;
+    for (let i = 0; i < network.routes.length; i++) {
+      const trip = network.routes[this.routeCursor++ % network.routes.length];
+      const gate = trip.origin;
+      const x = (gate.gx + 0.5 + gate.dx * 0.495) * TILE_SIZE;
+      const z = (gate.gz + 0.5 + gate.dz * 0.495) * TILE_SIZE;
+      if (
+        this.trafficAgents.some(
+          (c) => Math.hypot(c.mesh.position.x - x, c.mesh.position.z - z) < TILE_SIZE * 0.55,
+        )
+      )
+        continue;
+      const points = roadTripPoints(trip);
+      const id = this.carSequence++;
+      const kinds: RoadVehicleKind[] = ["sedan", "mini_cooper", "truck", "sports_car", "sedan", "cybertruck"];
+      const military = state.elements.some(
+        (e) => (e.id === gate.siteId || e.id === trip.destination.siteId) && ELEMENT_BY_ID[e.defId].military,
       );
-      a.facingAngle += angleDiff * Math.min(1, dt * 11);
-      a.mesh.rotation.y = a.facingAngle;
+      const kind = military && id % 3 === 0 ? "military_truck" : kinds[id % kinds.length];
+      const mesh = new THREE.Mesh(getVehicleGeometry(kind, id % 8), getPixelVoxelMaterial());
+      mesh.castShadow = !this.isSoftwareGl;
+      mesh.position.set(x, this.streetHeight(x, z, !!gate.dx) + VOXEL_SIZE + 0.02, z);
+      mesh.rotation.y = Math.atan2(points[1].x - points[0].x, points[1].z - points[0].z);
+      this.trafficGroup.add(mesh);
+      this.trafficAgents.push({
+        id,
+        kind,
+        trip,
+        points,
+        mesh,
+        segment: 0,
+        progress: 0,
+        velocity: 0,
+        speed: kind === "sports_car" ? 2 : kind === "truck" || kind === "military_truck" ? 1.35 : 1.65,
+        dwell: 0.25,
+      });
+      this.departureTimer = departureInterval(target, demand, state.timeOfDay);
+      return;
     }
+    this.departureTimer = 0.3;
+  }
+
+  private stepAmbientCars(dt: number) {
+    this.dispatchAmbientCar(dt);
+    const state = this.gameState;
+    const loads = getTrafficLoadMap(this.gameState);
+    const grip = state.weather === "storm" ? 0.65 : state.weather === "rain" ? 0.82 : 1;
+    for (let i = this.trafficAgents.length - 1; i >= 0; i--) {
+      const car = this.trafficAgents[i];
+      const a = car.points[car.segment],
+        b = car.points[car.segment + 1];
+      if (!b) {
+        car.dwell -= dt;
+        if (car.dwell <= 0) {
+          this.trafficGroup.remove(car.mesh);
+          this.trafficAgents.splice(i, 1);
+          const fleet = trafficFleetTarget(
+            this.roadTrips!,
+            state.population,
+            state.metrics.trafficTrips,
+            this.isSoftwareGl ? 22 : 60,
+            state.timeOfDay,
+          );
+          // A completed journey frees its fleet slot after the driver has spent time at the destination.
+          this.availableAfter.push(
+            this.carClock + departureInterval(fleet, state.metrics.trafficTrips, state.timeOfDay),
+          );
+        }
+        continue;
+      }
+      const dx = b.x - a.x,
+        dz = b.z - a.z,
+        length = Math.hypot(dx, dz);
+      const tx = b.tile[0] - a.tile[0],
+        tz = b.tile[1] - a.tile[1];
+      let room = Infinity;
+      if (tx || tz) {
+        registerRoadDemand(state, b.tile[0], b.tile[1], tx, tz, dt);
+        if (car.progress <= 0.4 && !roadTravelOpen(state, b.tile[0], b.tile[1], tx, tz))
+          room = Math.max(0, 0.36 - car.progress) * length;
+      }
+      // Leave space behind vehicles advancing along the same carriageway, including at a stop line.
+      for (const other of this.trafficAgents) {
+        if (other === car) continue;
+        const aheadX = (other.mesh.position.x - car.mesh.position.x) / TILE_SIZE;
+        const aheadZ = (other.mesh.position.z - car.mesh.position.z) / TILE_SIZE;
+        const along = (aheadX * dx + aheadZ * dz) / length,
+          sideways = Math.abs(aheadX * dz - aheadZ * dx) / length;
+        if (along <= 0.002 || along > 0.72 || sideways > 0.13) continue;
+        const start = other.points[other.segment],
+          end = other.points[other.segment + 1];
+        if (end && (end.x - start.x) * dx + (end.z - start.z) * dz > 0)
+          room = Math.min(room, Math.max(0, along - 0.34 / grip));
+      }
+      const load = loads.get(tileKey(...a.tile)) ?? 0;
+      const flow = Math.max(0.3, 1 / (1 + Math.max(0, load - 0.85) * 2.2));
+      const cruise = car.speed * grip * flow;
+      if (car.segment === car.points.length - 2) room = Math.min(room, (1 - car.progress) * length);
+      const movement = advanceCarSegment(car.progress, car.velocity, length, cruise, room, dt, grip);
+      car.progress = movement.progress;
+      car.velocity = movement.velocity;
+      const wx = (a.x + dx * car.progress) * TILE_SIZE,
+        wz = (a.z + dz * car.progress) * TILE_SIZE;
+      const deck = this.streetHeight(wx, wz, Math.abs(dx) > Math.abs(dz));
+      car.mesh.position.set(wx, deck + VOXEL_SIZE + 0.02, wz);
+      const angle = Math.atan2(dx, dz) - car.mesh.rotation.y;
+      car.mesh.rotation.y += Math.atan2(Math.sin(angle), Math.cos(angle)) * Math.min(1, dt * 12);
+      if (car.progress >= 1 - 0.00001) {
+        car.segment++;
+        car.progress = 0;
+      }
+    }
+  }
+
+  public advanceStreetTraffic(seconds: number): void {
+    // Keep lane following and braking stable when the simulation runs faster or steps a whole second.
+    for (let left = seconds; left > 0; left -= .08) {
+      const delta = Math.min(left, .08);
+      this.stepTrafficAndVillagers(delta, this.carClock + delta);
+    }
+  }
+
+  private stepTrafficAndVillagers(dt: number, elapsed: number): void {
+    this.stepAmbientCars(dt);
+    const roadSet = this.cachedRoadSet;
+    const dirs: [number, number][] = [[1,0],[-1,0],[0,1],[0,-1]];
 
     for (const v of this.villagerAgents) {
       if (roadSet.size === 0) continue;
@@ -1936,7 +1977,7 @@ export class PixelWorldRenderer {
       this.trafficSyncAccum = 0;
       this.syncAutonomousTrafficAndVillagers();
     }
-    this.stepTrafficAndVillagers(dt, elapsed);
+    this.advanceStreetTraffic(dt * (this.gameState.playSpeed ?? 1));
 
     // Day/Night Atmosphere + Weather Clouds, Rain & Lightning
     this.updateDayNightAndWeather(dt, elapsed);
@@ -2152,7 +2193,8 @@ export class PixelWorldRenderer {
     // Channel dimensions, entrances and lanes do not change between city edits.
     // Live services refresh once a second even when the player holds the camera still.
     const staticLayer=kind==="clearance"||kind==="neighbors"||kind==="lanes";
-    const key=kind==="none"?"none":kind+"|"+travelSignature(state)+(staticLayer?"":"|"+Math.floor(state.activePlaySec));
+    const trafficClock = kind === "traffic" ? "|" + Math.round(state.timeOfDay * 12) + "|" + state.metrics.trafficTrips : "";
+    const key=kind==="none"?"none":kind+"|"+travelSignature(state)+(staticLayer?"":"|"+Math.floor(state.activePlaySec))+trafficClock;
     if(this.heatmapKey===key)return;
     this.heatmapKey=key;
     for (const ch of [...this.heatmapGroup.children]) {
@@ -2347,76 +2389,6 @@ export class PixelWorldRenderer {
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   }
 
-  private findRoadPath(startGx: number, startGz: number, targetGx: number, targetGz: number): [number, number][] {
-    const roadSet = new Set<string>();
-    for (const el of this.gameState.elements) {
-      const d = ELEMENT_BY_ID[el.defId];
-      if (d?.isRoadNetwork) roadSet.add(`${el.gx},${el.gz}`);
-    }
-
-    // Find nearest road tile to start & target
-    const nearestRoad = (gx: number, gz: number): [number, number] | null => {
-      let best: [number, number] | null = null;
-      let bestD = Infinity;
-      for (const key of roadSet) {
-        const [rx, rz] = key.split(",").map(Number);
-        const d = Math.abs(rx - gx) + Math.abs(rz - gz);
-        if (d < bestD) {
-          bestD = d;
-          best = [rx, rz];
-        }
-      }
-      return best;
-    };
-
-    const sRoad = nearestRoad(startGx, startGz);
-    const tRoad = nearestRoad(targetGx, targetGz);
-    if (!sRoad || !tRoad) {
-      return [
-        [startGx, startGz],
-        [targetGx, targetGz],
-      ];
-    }
-
-    const q: [number, number][] = [sRoad];
-    const prev = new Map<string, string | null>();
-    prev.set(`${sRoad[0]},${sRoad[1]}`, null);
-    const dirs = [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ];
-
-    while (q.length > 0) {
-      const [cx, cz] = q.shift()!;
-      if (cx === tRoad[0] && cz === tRoad[1]) break;
-      for (const [dx, dz] of dirs) {
-        const nx = cx + dx;
-        const nz = cz + dz;
-        const k = `${nx},${nz}`;
-        if (!roadSet.has(k) || prev.has(k)) continue;
-        prev.set(k, `${cx},${cz}`);
-        q.push([nx, nz]);
-      }
-    }
-
-    const path: [number, number][] = [];
-    let cur: string | null = `${tRoad[0]},${tRoad[1]}`;
-    if (!prev.has(cur)) {
-      return [
-        [startGx, startGz],
-        [targetGx, targetGz],
-      ];
-    }
-    while (cur) {
-      const [px, pz] = cur.split(",").map(Number);
-      path.unshift([px, pz]);
-      cur = prev.get(cur) ?? null;
-    }
-    return path;
-  }
-
   private createCriminalGroup() {
     const root = new THREE.Group();
 
@@ -2595,8 +2567,16 @@ export class PixelWorldRenderer {
     }
 
     for (const inc of incidents) {
-      if (this.crimeVisuals.has(inc.id)) continue;
+      const prior=this.crimeVisuals.get(inc.id);
+      const pose=patrolPosition(this.gameState,inc,this.activeTravel);
+      if (prior && Boolean(prior.copCar)===Boolean(pose)) continue;
+      if(prior){
+        this.crimeGroup.remove(prior.burglar.root);
+        if(prior.copCar)this.crimeGroup.remove(prior.copCar);
+        if(prior.copOfficer)this.crimeGroup.remove(prior.copOfficer.root);
+      }
       const burglar = this.createCriminalGroup();
+      burglar.root.visible=false;
       this.crimeGroup.add(burglar.root);
 
       let copCar: THREE.Group | null = null;
@@ -2605,22 +2585,22 @@ export class PixelWorldRenderer {
       let headlightL: THREE.Mesh | null = null;
       let headlightR: THREE.Mesh | null = null;
       let copOfficer: ReturnType<PixelWorldRenderer["createCopOfficerGroup"]> | null = null;
-      let roadPath: [number, number][] = [];
 
-      if (inc.policeGx !== null && inc.policeGz !== null) {
+      if (pose) {
         const created = this.createPoliceCarGroup();
         copCar = created.car;
         sirenRed = created.sirenRed;
         sirenBlue = created.sirenBlue;
         headlightL = created.headlightL;
         headlightR = created.headlightR;
+        copCar.position.set(pose.gx*TILE_SIZE,pose.height+.025,pose.gz*TILE_SIZE);
+        copCar.rotation.y=Math.atan2(pose.dx,pose.dz);
         this.crimeGroup.add(copCar);
 
         copOfficer = this.createCopOfficerGroup();
         copOfficer.root.visible = false;
         this.crimeGroup.add(copOfficer.root);
 
-        roadPath = this.findRoadPath(inc.policeGx, inc.policeGz, inc.targetGx, inc.targetGz);
       }
 
       this.crimeVisuals.set(inc.id, {
@@ -2631,8 +2611,7 @@ export class PixelWorldRenderer {
         headlightL,
         headlightR,
         copOfficer,
-        roadPath,
-        copAngle: 0,
+        copAngle: pose ? Math.atan2(pose.dx,pose.dz):0,
         officerAngle: 0,
         sparkAccum: 0,
         captureBurstDone: false,
@@ -2704,23 +2683,12 @@ export class PixelWorldRenderer {
       vis.burglar.alertMesh.rotation.y = elapsed * 3.2;
       vis.burglar.root.visible = true;
 
-      if (vis.copCar && vis.roadPath.length > 0) {
-        const travelDur = Math.min(5.0, inc.maxSec * 0.4);
-        const tNorm = Math.min(1, inc.progressSec / Math.max(0.5, travelDur));
-        const idxFloat = tNorm * (vis.roadPath.length - 1);
-        const idx0 = Math.floor(idxFloat);
-        const idx1 = Math.min(vis.roadPath.length - 1, idx0 + 1);
-        const frac = idxFloat - idx0;
-
-        const [x0, z0] = gridToWorldCenter(vis.roadPath[idx0][0], vis.roadPath[idx0][1], 1, 1);
-        const [x1, z1] = gridToWorldCenter(vis.roadPath[idx1][0], vis.roadPath[idx1][1], 1, 1);
-        const rawCx = THREE.MathUtils.lerp(x0, x1, frac);
-        const rawCz = THREE.MathUtils.lerp(z0, z1, frac);
-        const [cx, cz] = this.resolveBuildingCollision(rawCx, rawCz, 0.65);
-        vis.copCar.position.set(cx, VOXEL_SIZE + 0.02, cz);
-
-        const dx = x1 - x0;
-        const dz = z1 - z0;
+      const pose=patrolPosition(this.gameState,inc,this.activeTravel);
+      if(vis.copCar)vis.copCar.visible=Boolean(pose);
+      if(!pose && vis.copOfficer)vis.copOfficer.root.visible=false;
+      if (vis.copCar && pose) {
+        const cx=pose.gx*TILE_SIZE,cz=pose.gz*TILE_SIZE, {dx,dz}=pose;
+        vis.copCar.position.set(cx,pose.height+.025,cz);
         if (Math.hypot(dx, dz) > 0.01) {
           const targetCopAngle = Math.atan2(dx, dz);
           const diff = Math.atan2(
@@ -2735,7 +2703,7 @@ export class PixelWorldRenderer {
         const flash = Math.floor(elapsed * 10) % 2 === 0;
         if (vis.sirenRed) vis.sirenRed.visible = flash;
         if (vis.sirenBlue) vis.sirenBlue.visible = !flash;
-        const lightsOn = this.gameState.timeOfDay < 6.5 || this.gameState.timeOfDay > 17.5 || tNorm < 1;
+        const lightsOn = this.gameState.timeOfDay < 6.5 || this.gameState.timeOfDay > 17.5 || !inc.policeArrived;
         if (vis.headlightL) vis.headlightL.visible = lightsOn;
         if (vis.headlightR) vis.headlightR.visible = lightsOn;
 
@@ -2750,7 +2718,7 @@ export class PixelWorldRenderer {
             const copStride = Math.sin(elapsed * 16 + 0.7);
             vis.copOfficer.root.position.set(
               ox,
-              VOXEL_SIZE + Math.abs(copStride) * 0.12,
+              this.streetHeight(ox,oz,false)+VOXEL_SIZE + Math.abs(copStride) * 0.12,
               oz,
             );
             const chaseAngle = Math.atan2(bx - ox, bz - oz);
@@ -3519,6 +3487,7 @@ export class PixelWorldRenderer {
   }
 
   public dispose(): void {
+    this.updateCurbPreviews();
     if (this.ghostGroup) releaseParcelGeometry(this.ghostGroup);
     for (const entry of this.placedEntries.values()) releaseParcelGeometry(entry.group);
     this.setHeatmap("none");

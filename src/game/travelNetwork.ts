@@ -1,5 +1,5 @@
 import { GRID_SIZE, cellIndex, cellFromIndex, withinMap } from "./mapBounds";
-import { parcelAccessSteps, PARCEL_SIDES, type AccessStep } from "./parcelEdges";
+import { roadSiteAccess, parcelAccessSteps, PARCEL_SIDES, type AccessStep } from "./parcelEdges";
 import { ELEMENT_BY_ID } from "./catalog";
 import { roadPortOpen, buildWaterNavigation } from "./terrain";
 import {
@@ -84,6 +84,7 @@ export class TravelNetwork {
   private crossings = new Map<number, number>();
   private walking = new Map<string, Set<string>>();
   private walkEdges = new Map<string, AccessStep[]>();
+  private motorGates = new Map<string, Point[]>();
   private transfers = new Map<string, number>();
   constructor(private readonly state: GameState) {
     this.occupancy = buildOccupancyMap(state.elements);
@@ -125,13 +126,16 @@ export class TravelNetwork {
       return this.access(e)
         .filter((p) => this.canUse(p.gx, p.gz, "walk"))
         .map((p) => [p.gx, p.gz]);
-    if (
-      (mode === "taxi" && !["taxi_ranks", "bus_stops"].includes(e.defId)) ||
-      (mode === "bus" && e.defId === "bus_depots")
-    ) {
-      return this.access(e)
-        .filter((p) => this.canUse(p.gx, p.gz, mode))
-        .map((p) => [p.gx, p.gz]);
+    if (mode === "taxi" || mode === "bus") {
+      let gates=this.motorGates.get(e.id);
+      if (!gates) {
+        gates=perimeter(e).filter(([x,z])=>{
+          const road=this.occupancy.get(x+","+z);
+          return road && this.canUse(x,z,mode) && roadSiteAccess(road,this.occupancy,this.state).some(g=>g.site.id===e.id);
+        });
+        this.motorGates.set(e.id,gates);
+      }
+      return gates;
     }
     const candidates = perimeter(e);
     if (hull) {
@@ -146,15 +150,10 @@ export class TravelNetwork {
       if (override === "closed") return false;
       if (override === "open") return true;
       if (mode === "rail" && ["train_depots", "train_stops"].includes(e.defId)) return side === "back";
-      if (
-        (mode === "bus" && e.defId === "bus_stops") ||
-        (mode === "taxi" && ["taxi_ranks", "bus_stops"].includes(e.defId))
-      )
-        return side === "front";
       return true;
     });
   }
-  path(starts: Point[], ends: Point[], mode: PathMode, hull?: Hull): Point[] | null {
+  path(starts: Point[], ends: Point[], mode: PathMode, hull?: Hull, entryAxis?: 0 | 1): Point[] | null {
     if (!starts.length || !ends.length) return null;
     // Search from both ends. A blocked inland berth exhausts its small basin without
     // enumerating the entire ocean. Each frontier remembers the arrival axis at tight turns.
@@ -170,10 +169,11 @@ export class TravelNetwork {
     for (const side of [0, 1] as const)
       for (const [x, z] of side === 0 ? starts : ends) {
         if (!this.canUse(x, z, mode, hull)) continue;
-        const node = side * sideSize + tileKey(x, z) * 2;
+        const constrained=side===0 && entryAxis!==undefined && this.crossings.has(tileKey(x,z));
+        const node = side * sideSize + tileKey(x, z) * 2 + (constrained ? entryAxis : 0);
         if (visits[node] === generation) continue;
         visits[node] = generation;
-        parents[node] = -1;
+        parents[node] = constrained ? -2 : -1;
         frontier[side].push(node);
       }
     const stitch = (a: number, b: number) => {

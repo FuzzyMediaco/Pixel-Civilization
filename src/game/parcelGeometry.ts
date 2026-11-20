@@ -1,3 +1,4 @@
+import {roadPortalWidth} from "./roadTopology";
 import { ELEMENT_BY_ID } from "./catalog";
 import { type Ctx } from "./designs/kit";
 import { PixelVox, packVoxKey } from "./voxelCore";
@@ -50,10 +51,10 @@ const soilColor: Record<Material, readonly [string,string]> = {
 };
 
 const lane: Partial<Record<JoinKind, [number, number, string]>> = {
-  drive: [5,6,"concreteDark"], walk:[3,5,"path"], garden:[3,5,"path2"], farm:[2,4,"soil"],
-  freight:[5,5,"asphaltDark"], arcade:[9,4,"limestone"], cloister:[4,5,"limestone"],
+  drive: [roadPortalWidth.drive,6,"concreteDark"], walk:[3,5,"path"], garden:[3,5,"path2"], farm:[2,4,"soil"],
+  freight:[roadPortalWidth.freight,5,"asphaltDark"], arcade:[9,4,"limestone"], cloister:[4,5,"limestone"],
   ceremonial:[5,5,"marbleShade"], dock:[5,3,"wood"], quay:[6,3,"granite"],
-  transfer:[4,4,"path"], service:[3,4,"concreteDark"], beach:[5,3,"sand"], bus:[10,1,"concrete"],
+  transfer:[4,4,"path"], service:[3,4,"concreteDark"], beach:[5,3,"sand"], bus:[roadPortalWidth.bus,1,"concrete"],
 };
 const floraIds = new Set(["trees","pine_trees","redwood_trees","shrubs","plants","bushes","alligators","swamps","ponds","lakes"]);
 const waterIds = new Set(["canals","rivers","wide_rivers","water_tile","lakes","ponds","swamps"]);
@@ -80,7 +81,7 @@ export function applyParcelAppearance(c: Ctx, opts: ParcelAppearance, siteX=c.sp
   }
   for (const edge of opts.edges ?? []) {
     const { side, slot, kind } = edge;
-    if (kind==="rail" || kind==="road" || kind==="channel" || (kind==="walk" && ELEMENT_BY_ID[c.id]?.isNetwork)) continue;
+    if (kind==="rail" || kind==="road" || kind==="channel" || (kind==="walk" && ELEMENT_BY_ID[c.id]?.isNetwork && !edge.stairRise)) continue;
     const alongX=side==="front" || side==="back";
     const origin=(alongX ? c.hx : c.hz) + (slot*16-(alongX ? siteX : siteZ)*8)/fit;
     const at = (t:number,d:number) => localPoint(c,side,Math.floor(origin+(t+.5)/fit),d);
@@ -112,12 +113,22 @@ export function applyParcelAppearance(c: Ctx, opts: ParcelAppearance, siteX=c.sp
     }
     if (kind==="yard" || kind==="party") continue;
     if (c.id==="train_tracks" || (waterIds.has(c.id) && kind!=="beach")) continue;
+    // The street mesh already lowered its own kerb and tapered into the lot.
+    if(ELEMENT_BY_ID[c.id]?.isRoadNetwork && (kind==="drive" || kind==="freight" || kind==="bus")) continue;
     const strip=lane[kind];
     if (strip && !(c.id==="bus_stops" && kind==="drive")) {
       const [width,depth,paving]=strip, lo=Math.floor((16-width)/2);
       for (let t=lo;t<lo+width;t++) for (let d=0;d<depth;d++) {
         clearFence(t,d);
         if (unbuilt(t,d)) put(t,d,0,paving);
+      }
+    }
+    if(kind==="walk" && edge.stairRise && edge.stairRise>0){
+      const rise=Math.max(1,Math.round(edge.stairRise/.25));
+      const run=Math.min(10,rise+2);
+      for(let d=0;d<run;d++)for(let t=6;t<10;t++)if(unbuilt(t,d)){
+        const high=Math.round(rise*(run-d)/run);
+        for(let y=1;y<=high;y++)put(t,d,y,y===high?"limestone":"concreteDark");
       }
     }
     if(kind==="skywalk") {

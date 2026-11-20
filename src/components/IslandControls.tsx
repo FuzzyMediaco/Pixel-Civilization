@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { ELEMENT_BY_ID } from "../game/catalog";
-import { buildOccupancyMap, type GameState, type PlacedElement } from "../game/simulation";
+import { buildOccupancyMap, PEDESTRIAN_IDS, type GameState, type PlacedElement } from "../game/simulation";
 import { getParcelEdges, PARCEL_SIDES, EDGE_LABELS } from "../game/parcelEdges";
+import { getRoadTripNetwork } from "../game/roadTraffic";
 import { mobilityOf } from "../game/mobility";
 import { igniteSite } from "../game/projectOperations";
 import { cityWealth } from "../game/cityEconomy";
@@ -44,6 +45,25 @@ export function CityBar({
     </div>
   );
 }
+function CarAccess({city, site}: {city: GameState; site: PlacedElement}) {
+  const def = ELEMENT_BY_ID[site.defId];
+  const isStreet = Boolean(def.isRoadNetwork && !PEDESTRIAN_IDS.has(def.id) && !site.pedestrianDeck);
+  if (!isStreet && (def.isNetwork || def.passiveNature || def.domain === "water")) return null;
+  const network = getRoadTripNetwork(city);
+  const route = isStreet
+    ? network.routes.find(trip => trip.path.some(([x,z]) => x === site.gx && z === site.gz))
+    : network.routes.find(trip => trip.origin.siteId === site.id || trip.destination.siteId === site.id);
+  if (!route) {
+    return <p><b>Car access</b> · {isStreet
+      ? "No car trips use this tile. Join two building entrances with a continuous drivable street."
+      : "No car trips reach this site. Connect its entrance to a second building by local street."}</p>;
+  }
+  const describe = (id: string) => {
+    const stop = city.elements.find(el => el.id === id)!;
+    return ELEMENT_BY_ID[stop.defId].name + " (" + stop.gx + ", " + stop.gz + ")";
+  };
+  return <p><b>Car route</b> · {describe(route.origin.siteId)} → {describe(route.destination.siteId)}</p>;
+}
 export function Connections({
   s,
   el,
@@ -65,6 +85,7 @@ export function Connections({
         Level {el.level} · Style {String.fromCharCode(65 + el.variant)} · {el.spanX} × {el.spanZ} tiles · {el.gx},{" "}
         {el.gz}
       </p>
+      <CarAccess city={s} site={el} />
       {edges.length ? (
         <ul>
           {edges.map((e, i) => (

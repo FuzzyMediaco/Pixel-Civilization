@@ -18,7 +18,7 @@ import {
   type WorksPreview,
   type Material,
 } from "./terrain";
-import type { GameState } from "./simulation";
+import {buildOccupancyMap, getNetworkConnMask, type GameState} from "./simulation";
 
 const earth: Record<Material, number> = {
   grass: 0x81b561,
@@ -832,28 +832,32 @@ export class EngineeringView {
         this.moving.set(k, mesh);
       }
     }
-    for (const [k, control] of Object.entries(infra.streets)) {
+    const controlledStreets=Object.entries(infra.streets);
+    const occupancy=controlledStreets.length?buildOccupancyMap(state.elements):undefined;
+    for (const [k, control] of controlledStreets) {
       const [gx, gz] = k.split(",").map(Number),
         x = gx * 4,
         z = gz * 4,
         y = getTerrainCell(state, gx, gz).elevation + 0.045;
       const hway = Boolean(infra.spans[k]);
       const yRoad = hway ? infra.spans[k].deck + 0.04 : y;
-      const road = state.elements.find((e) => e.gx === gx && e.gz === gz);
-      if (!road) continue;
+      const road=occupancy?.get(k);
+      if (!road || !occupancy) continue;
+      const arms=getNetworkConnMask(state.elements,road,occupancy,state)&15;
       const alongX =
         control.axis !== undefined
           ? control.axis === "x"
-          : state.elements.some((e) => e.gz === gz && Math.abs(e.gx - gx) === 1 && ELEMENT_ROAD(e.defId));
+          : Boolean(arms&10);
       if (control.lanes > 2)
         for (let n = 1; n < control.lanes; n++) {
           const normal = 0.25 + (3.5 * n) / control.lanes;
           for (const a of [0.4, 2.65]) {
             const side = a < 2 ? -1 : 1,
               other = infra.streets[tileKey(gx + (alongX ? side : 0), gz + (alongX ? 0 : side))];
-            const neighbor = state.elements.find(
-              (e) => e.gx === gx + (alongX ? side : 0) && e.gz === gz + (alongX ? 0 : side),
-            );
+            const direction=alongX?(side<0?3:1):(side<0?0:2);
+            // An entrance tapers to its own paving; through-lane dashes end at the carriageway.
+            if (!(arms & (1<<direction))) continue;
+            const neighbor=occupancy.get(tileKey(gx+(alongX?side:0),gz+(alongX?0:side)));
             const lanes = other?.lanes ?? (neighbor?.defId === "freeways" ? 6 : neighbor?.defId === "highways" ? 4 : 2);
             const merge =
               lanes < control.lanes ? 0.25 + (3.5 * Math.round((n * lanes) / control.lanes)) / lanes : normal;
@@ -995,4 +999,3 @@ export class EngineeringView {
     this.mask.dispose();
   }
 }
-const ELEMENT_ROAD = (id: string) => /road|highway|freeway|bridge|pass/.test(id);

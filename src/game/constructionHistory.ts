@@ -17,7 +17,7 @@ export interface BuildingEdit {
 }
 const layers:GroundKey[]=["cells","spans","conduits","streets"];
 const authored = ["defId","gx","gz","spanX","spanZ","rotation","level","variant","edgeOverrides","exteriorLighting",
-  "overWater","waterUnderlay","sculptsTerrain","crossingAxis","pedestrianDeck"] as const;
+  "overWater","waterUnderlay","sculptsTerrain","crossingAxis","pedestrianDeck","awaitingStreet"] as const;
 
 function layout(el:PlacedElement | undefined):string {
   return JSON.stringify(el ? authored.map(k=>k==="waterUnderlay" ? layout(el.waterUnderlay) : el[k]) : null);

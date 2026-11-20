@@ -49,6 +49,7 @@ export interface Ctx {
    *  bits 16,32,64,128 = a building touches N, E, S, W (draw driveway aprons)
    *  bits 256,512,1024,2048 = the N/E/S/W neighbour is a network piece at a DIFFERENT deck height
    *                           (e.g. bridge meeting a ground road → draw a ramp down that side)
+   *  bits 13–16/17–20 = width and surface of freight/boarding entrances on N/E/S/W
    *  bit 4096 = this tile sits over water (ocean, coast, or a placed water feature)
    */
   conn: number;

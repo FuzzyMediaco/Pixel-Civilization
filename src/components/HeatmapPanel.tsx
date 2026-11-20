@@ -132,7 +132,7 @@ export const HeatmapPanel: React.FC<HeatmapPanelProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   if (!open) return null;
-  const legend=activeHeatmap==="clearance"?["Ample room","Close fit","Blocked"]:activeHeatmap==="lanes"?["6–8 lanes","4 lanes","2 lanes"]:activeHeatmap==="flow"?["Flowing","Low flow","Dry"]:activeHeatmap==="transit"?["Vehicle route","Limited","Obstruction"]:["Good","Edge","Missing"];
+  const legend=activeHeatmap==="traffic"?["Light","Busy","Congested"]:activeHeatmap==="clearance"?["Ample room","Close fit","Blocked"]:activeHeatmap==="lanes"?["6–8 lanes","4 lanes","2 lanes"]:activeHeatmap==="flow"?["Flowing","Low flow","Dry"]:activeHeatmap==="transit"?["Vehicle route","Limited","Obstruction"]:["Good","Edge","Missing"];
 
   return (
     <aside id="island-panel-layers" aria-label="Map layers"

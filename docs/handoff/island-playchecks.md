@@ -8,6 +8,10 @@ Open **Game menu → Example islands**. Each world has an independent God-mode s
 | **Copper Gorge** | Follow the mountain supply across a bend and bridge to the reservoir and five farm fields. Open the millrace dam and inspect the change in hydroelectric head. Compare the reclaimed desert cottage, the mine terraces and the winding gorge. |
 | **Switchyard City** | Ride the train through the night market, inspect a home’s driveway or a shop’s banking frontage, then compare the municipal fire crew, flying taxis and Spaceport. Select a place in the guide to travel directly there. |
 
+## Watch a street work
+
+[Watch one complete house-to-shop trip](../previews/house-to-shop.webp), [compare the house and shop entrances](../previews/road-frontages.jpg), or [see the same route by day and night](../../public/handbook/neighbors/road-traffic.jpg). The seven-tile through street carried ten completed trips at noon and four at 11 p.m. in equal 55-second samples. The side spur and detached road stayed empty. Cutting the middle tile stopped trips. Building a road bridge over the canal restored them in both directions.
+
 ## Requests checked in play
 
 | Request | How to verify it |
@@ -18,6 +22,7 @@ Open **Game menu → Example islands**. Each world has an independent God-mode s
 | Build a water city | Dredge a continuous channel into the sea. The harbor master uses beam, draft, overhead clearance, bend geometry and gates to plan a voyage. Ferries and water taxis carry residents between walkable landings. Barges deliver freight. Canals can irrigate land and give bank homes a local amenity. |
 | Use fresh water for hydropower | A reservoir stores delivered water. A hydro plant needs a river or canal and usable head, including on a previously unedited map. A salt bay or ocean site fails the placement check. Opening a dam changes its water levels and output. |
 | Build road, rail and water transit | Give each line a depot or landing, suitable connected stops, and a continuous round trip. Watch departures, boarding, transfers, returns and deliveries. Completed passenger journeys relieve traffic. The transit report shows demand, coverage and waits. Bus stops remain one tile and finish upgrading at level three. |
+| Run cars between buildings | Join a house driveway to a shop entrance with a continuous local street. Inspect a road tile in **Connections** to find a journey. In **Layers → Traffic**, compare the route at rush hour and late at night. A detached street or a spur with no destination stays empty. |
 | Control roads and traffic | Compare local roads, highways and freeways, set a lane count within the road class, and draw an interchange. Try diamond, trumpet or directional layouts. Signals, lane direction, queueing and bridge closures affect vehicle movement. |
 | Grow wealth and build projects | Open **City wealth** to inspect the treasury, households, businesses and transfers. Staffed jobs earn income, residents spend, and crime and confidence affect trade. Peak wealth opens 22 projects in Real and Survival. God mode can use every project and still observe its accounts. |
 | Watch projects operate | Follow the airport flight and offshore patrol in Pelican Reach, the working open pit and portal in Copper Gorge, or a rocket countdown and flying taxi in Switchyard City. Site controls show staffing, utilities, readiness and the result of a completed journey. |

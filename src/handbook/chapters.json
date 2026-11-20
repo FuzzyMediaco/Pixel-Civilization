@@ -831,7 +831,9 @@
         "id": "neighbor-driveway",
         "title": "A driveway meets the front road",
         "steps": [
-          "A road beside the front garage slot opens the drive. A road against the rear fence leaves it closed."
+          "Draw a local road from the driveway of one home to the entrance of a shop. The pavement narrows into each entrance. Select any tile and open Connections to see a journey using that street.",
+          "You can build the road or the buildings first. A new freestanding building can turn to meet its first street when that turn fits its lot. Manually rotating the building fixes its facing. A rear fence, closed gate or footpath keeps cars out.",
+          "Try extending an empty spur. Cars keep to the journeys between usable entrances. Compare rush hour and late night in the Traffic layer, then remove a connecting tile to see the road empty."
         ],
         "examples": [
           {
@@ -840,6 +842,20 @@
             "caption": "Medium Sized Home + Roads",
             "width": 690,
             "height": 420
+          },
+          {
+            "image": "/handbook/neighbors/street-entrances.webp",
+            "alt": "Three views of the same road ending at a closed frontage, an open house driveway and a wider factory entrance.",
+            "caption": "Open a driveway and the end of the street tapers into the lot. A rear loading entrance gets a wider turn.",
+            "width": 1080,
+            "height": 258
+          },
+          {
+            "image": "/handbook/neighbors/road-traffic.jpg",
+            "alt": "The same house-to-shop street by day and at night, with an empty spur, a broken link and a bridge across a canal.",
+            "caption": "Follow traffic between the two frontages. Cutting the middle tile ends the trips. A road bridge across the canal restores them.",
+            "width": 1352,
+            "height": 1053
           }
         ]
       },

@@ -1,6 +1,7 @@
+import { advancePatrol, findPatrolDispatch } from "./policeDispatch";
 import { GRID_MIN, GRID_MAX } from "./mapBounds";
 export { GRID_MIN, GRID_MAX, GRID_HALF } from "./mapBounds";
-import { hasNavigableHarbor, reliefAtStops, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
+import { hasNavigableHarbor, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
 import { advanceEconomy, buildingCharges, cityWealth, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
 import { advanceOperations, type ProjectOps } from "./projectOperations";
 import { vesselIds,waterHull } from "./travelNetwork";
@@ -17,10 +18,11 @@ import {
   getUpgradeCost,
   getMaxElementLevel,
 } from "./catalog";
-import { advanceReservoirs, getTerrainCell, islandMargin, freshWaterFactor, hydroHead, streetLaneFactor, roadPortOpen, hydraulics, buildWaterNavigation, type Infrastructure } from "./terrain";
+import { advanceReservoirs, getTerrainCell, islandMargin, freshWaterFactor, hydroHead, roadPortOpen, hydraulics, buildWaterNavigation, type Infrastructure } from "./terrain";
+import { streetDemand } from "./streetDemand";
 import { generationExposure } from "./parcelExposure";
-import { autoFrontageRotation, cellBeyondEdge, parcelAccessSteps, getParcelEdges, getParcelEffectSummary, PARCEL_SIDES, type LocalSide, type EdgeOverride } from "./parcelEdges";
-import { separatedDeckAxis } from "./roadTopology";
+import { roadSiteAccess, autoFrontageRotation, cellBeyondEdge, parcelAccessSteps, getParcelEdges, getParcelEffectSummary, PARCEL_SIDES, type LocalSide, type EdgeOverride } from "./parcelEdges";
+import { separatedDeckAxis, encodeRoadSitePort } from "./roadTopology";
 import { TILE_SIZE } from "./voxelCore";
 import { payEarnedGrants } from "./cityGrants";
 import {
@@ -30,19 +32,22 @@ import {
   landValuePopMultiplier,
   powerKind,
   powerOutputFactor,
-  roadCapacity,
-  rushHourFactor,
   sampleFieldAvg,
   synergyMultiplier,
-  transitRelief,
-  tripsFor,
   upkeepFor,
 } from "./cityDynamics";
 
-/** Latest per-road-tile traffic load ratio (0 = empty, 1 = at capacity), for heatmaps & car density */
+/** Occupied road tiles in this city's last traffic report, including a freshly reloaded save. */
+const trafficByReport = new WeakMap<CityMetrics, Map<string, number>>();
 let lastTrafficLoad = new Map<string, number>();
-export function getTrafficLoadMap(): Map<string, number> {
-  return lastTrafficLoad;
+export function getTrafficLoadMap(state?: GameState): Map<string, number> {
+  if (!state) return lastTrafficLoad;
+  let load = trafficByReport.get(state.metrics);
+  if (!load) {
+    load = streetDemand(state).load;
+    trafficByReport.set(state.metrics, load);
+  }
+  return load;
 }
 
 function isCoastalTile(gx: number, gz: number, state?: GameState): boolean {
@@ -68,6 +73,7 @@ export interface PlacedElement {
   level: number; // 1..5
   variant: number; // 0..3
   edgeOverrides?: Partial<Record<LocalSide, EdgeOverride>>;
+  awaitingStreet?: boolean;
   exteriorLighting?: "auto" | "dark" | "lit";
   connected: boolean;
   hasPoliceCover: boolean;
@@ -161,6 +167,11 @@ export interface CrimeIncident {
   progressSec: number;
   maxSec: number;
   policeArrived: boolean;
+  policeRoute?: [number,number][];
+  policeTravel?: number;
+  policeSpeed?: number;
+  policeDeparted?: boolean;
+  policeHeading?: 0 | 1;
 }
 
 export interface AttackUnit {
@@ -716,7 +727,7 @@ export function removePlacedElements(state: GameState, ids: Set<string>): void {
 
 export function getNetworkConnMask(
   elements: PlacedElement[],
-  el: Pick<PlacedElement, "defId" | "gx" | "gz" | "overWater" | "crossingAxis">,
+  el: Pick<PlacedElement, "defId" | "gx" | "gz" | "overWater" | "crossingAxis" | "edgeOverrides">,
   occIn?: Map<string, PlacedElement>,
   state?: GameState,
 ): number {
@@ -725,21 +736,22 @@ export function getNetworkConnMask(
   const occ = occIn ?? buildOccupancyMap(elements);
   let mask = 0;
   // Bits 0..3 (1,2,4,8)        = connected same-network neighbours N(-Z), E(+X), S(+Z), W(-X)
-  // Bits 4..7 (16..128)        = adjacent buildings (driveways right up to building edges)
-  // Bits 8..11 (256..2048)     = neighbour road sits at a different deck height (draw ramps)
-  // Bit 12 (4096)              = this tile is over water
-  const neighbors: [number, number, number, number, number][] = [
-    [0, -1, 1, 16, 256], // N (-Z)
-    [1, 0, 2, 32, 512], // E (+X)
-    [0, 1, 4, 64, 1024], // S (+Z)
-    [-1, 0, 8, 128, 2048], // W (-X)
+  // Bits 4..7 encode real curb cuts, bits 8..11 ramps, bit 12 water underneath.
+  // Bits 13..16 and 17..20 identify freight and boarding entrances, respectively.
+  const neighbors: [number, number, number, number][] = [
+    [0, -1, 1, 256],
+    [1, 0, 2, 512],
+    [0, 1, 4, 1024],
+    [-1, 0, 8, 2048],
   ];
   const myDeck = networkDeckClass(def);
-  const entranceSides = def.isRoadNetwork
-    ? new Set(getParcelEdges({ ...el, rotation: 0, spanX: 1, spanZ: 1 }, occ)
-      .filter(edge => edge.kind === "drive" || edge.kind === "bus").map(edge => edge.side))
-    : undefined;
-  for (const [dx, dz, roadBit, bldgBit, rampBit] of neighbors) {
+  if (def.isRoadNetwork) {
+    for(const access of roadSiteAccess(el,occ,state)){
+      const dir=access.dx===1?1:access.dx===-1?3:access.dz===1?2:0;
+      mask |= encodeRoadSitePort(dir,access.kind);
+    }
+  }
+  for (const [dx, dz, roadBit, rampBit] of neighbors) {
     const nb = occ.get(`${el.gx + dx},${el.gz + dz}`);
     if (!nb) {
       if (state && def.isWaterFeature && getTerrainCell(state,el.gx+dx,el.gz+dz).depth>.1) mask |= roadBit;
@@ -757,8 +769,6 @@ export function getNetworkConnMask(
       if (nbDef.isRoadNetwork && roadPortOpen(state,el.gx,el.gz,dx,dz)) {
         mask |= roadBit;
         if (networkDeckClass(nbDef) !== myDeck) mask |= rampBit;
-      } else if (entranceSides?.has(PARCEL_SIDES[Math.log2(roadBit)])) {
-        mask |= bldgBit;
       }
     }
   }
@@ -960,8 +970,8 @@ function analyzeRoadNetwork(elements: PlacedElement[], state?:GameState): RoadNe
 }
 
 /**
- * Returns road coordinates belonging to road components touching at least 2 active buildings.
- * Isolated roads or stubs touching 0 or 1 building never spawn cars or pedestrians.
+ * Street and footpath components with two occupied destinations, including shared pedestrian courts.
+ * Walkers can explore a component. Motor traffic uses complete entrance-to-entrance journeys.
  */
 export function getConnectedRoadCoordSet(elements: PlacedElement[],state?:GameState): Set<string> {
   const { roadCompsByCoord, buildingsInRoadComp } = analyzeRoadNetwork(elements,state);
@@ -1049,7 +1059,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   let unportedVessels = 0;
   const freeAccess=state.mode==="god"&&effective(state,"access",0)>0;
   const service = transitReadout(state);
-  const { buildingsInRoadComp, elementRoadComps, roadCompsByCoord } = analyzeRoadNetwork(elements,state);
+  const { buildingsInRoadComp, elementRoadComps } = analyzeRoadNetwork(elements,state);
 
   // An element is connected if:
   // - In God Mode: always active, or
@@ -1120,63 +1130,15 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   let renewableOut = 0;
   let landValueSum = 0;
 
-  // Traffic: trips per road component vs capacity, minus transit relief, scaled by rush hour
-  const congestedEls = new Set<string>();
-  {
-    const capByComp = new Map<number, number>();
-    const tripsByComp = new Map<number, number>();
-    const reliefByComp = new Map<number, number>();
-    const occ = buildOccupancyMap(elements);
-    for (const [coord, comps] of roadCompsByCoord) {
-      const el = occ.get(coord);
-      const d = el ? ELEMENT_BY_ID[el.defId] : undefined;
-      if (!el || !d) continue;
-      for (const comp of comps) capByComp.set(comp, (capByComp.get(comp) ?? 0) + roadCapacity(d, el.level) * streetLaneFactor(state,el) / comps.length);
-    }
-    const rush = rushHourFactor(state.timeOfDay ?? 10.5);
-    const delivered = reliefAtStops(state);
-    let totalTrips = 0;
-    let totalRelief = 0;
-    for (const el of elements) {
-      const d = ELEMENT_BY_ID[el.defId];
-      if (!d || !el.connected) continue;
-      const comps = elementRoadComps.get(el.id);
-      if (!comps || comps.size === 0) continue;
-      const share = 1 / comps.size;
-      const trips = tripsFor(d) * Math.pow(1.7, el.level - 1) * rush;
-      const relief = delivered.get(el.id) ?? 0;
-      for (const c of comps) {
-        if (trips) tripsByComp.set(c, (tripsByComp.get(c) ?? 0) + trips * share);
-        if (relief) reliefByComp.set(c, (reliefByComp.get(c) ?? 0) + relief * share);
-      }
-      totalTrips += trips;
-    }
-    const loadByComp = new Map<number, number>();
-    let usedCap = 0;
-    let sumCap = 0;
-    for (const [comp, trips] of tripsByComp) {
-      const relief = Math.min(trips * 0.7, reliefByComp.get(comp) ?? 0);
-      totalRelief += relief;
-      const cap = Math.max(1, capByComp.get(comp) ?? 1);
-      const load = (trips - relief) / cap;
-      loadByComp.set(comp, load);
-      usedCap += trips - relief;
-      sumCap += cap;
-    }
-    const loadMap = new Map<string, number>();
-    for (const [coord, comps] of roadCompsByCoord) loadMap.set(coord, Math.max(...comps.map(id => loadByComp.get(id) ?? 0)));
-    lastTrafficLoad = loadMap;
-    for (const el of elements) {
-      const comps = elementRoadComps.get(el.id);
-      if (!comps) continue;
-      for (const c of comps) if ((loadByComp.get(c) ?? 0) > 1.15) congestedEls.add(el.id);
-    }
-    m.trafficTrips = Math.round(totalTrips);
-    m.transitTrips = Math.round(service.served);
-    m.transitShare = service.served ? Math.round(100 * service.served / Math.max(service.served, totalTrips)) : 0;
-    m.trafficCapacity = Math.round(sumCap);
-    m.congestion = sumCap > 0 ? Math.round((usedCap / sumCap) * 100) : 0;
-  }
+  const demand = streetDemand(state);
+  const congestedEls = demand.congestedSites;
+  trafficByReport.set(m, demand.load);
+  lastTrafficLoad = demand.load;
+  m.trafficTrips = Math.round(demand.carTrips);
+  m.trafficCapacity = Math.round(demand.capacity);
+  m.congestion = Math.round(demand.congestion);
+  m.transitTrips = Math.round(service.served);
+  m.transitShare = service.served ? Math.round(100 * service.served / Math.max(service.served, demand.trips)) : 0;
   m.solarFactor = Math.round(powerOutputFactor("solar", state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * 100) / 100;
   m.windFactor = Math.round(powerOutputFactor("wind", state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * 100) / 100;
 
@@ -2451,15 +2413,8 @@ export function triggerCrimeIncident(state: GameState, announce = true): boolean
     const d = ELEMENT_BY_ID[e.defId];
     return hasAuthority(state) && e.connected && !e.onFire && !e.disrepair && professionalStaff(state,e)>=1 && (d?.policeRadius ?? 0) > 0;
   });
-  let nearestPolice: PlacedElement | null = null;
-  let bestDist = Infinity;
-  for (const p of policeStations) {
-    const d = Math.hypot(p.gx - victim.gx, p.gz - victim.gz);
-    if (d < bestDist) {
-      bestDist = d;
-      nearestPolice = p;
-    }
-  }
+  const dispatch=findPatrolDispatch(state,policeStations,victim);
+  const nearestPolice=dispatch?.station;
 
   state.crimeIncidents.push({
     id: `crm_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
@@ -2467,6 +2422,8 @@ export function triggerCrimeIncident(state: GameState, announce = true): boolean
     targetGx: victim.gx,
     targetGz: victim.gz,
     policeOriginId: nearestPolice?.id ?? null,
+    policeRoute: dispatch?.path,
+    policeTravel: 0,
     policeGx: nearestPolice?.gx ?? null,
     policeGz: nearestPolice?.gz ?? null,
     progressSec: 0,
@@ -2572,10 +2529,7 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     for (let i = state.crimeIncidents.length - 1; i >= 0; i--) {
       const inc = state.crimeIncidents[i];
       inc.progressSec += dtSec;
-      if (inc.policeOriginId && !inc.policeArrived && inc.progressSec >= Math.min(5.0, inc.maxSec * 0.4)) {
-        inc.policeArrived = true;
-        dirty = true;
-      }
+      if (advancePatrol(state,inc,dtSec)) dirty = true;
       if (inc.progressSec >= inc.maxSec) {
         if (inc.policeArrived) {
           transfer(state,"businesses","treasury",25,"Recovered local funds");
@@ -2747,7 +2701,7 @@ export function computeHeatmapCells(state: GameState, kind: HeatmapKind): Heatma
     return Array.from(samples.values());
   }
   if (kind === "traffic") {
-    for (const [coord, load] of getTrafficLoadMap()) {
+    for (const [coord, load] of getTrafficLoadMap(state)) {
       const [gx, gz] = coord.split(",").map(Number);
       setSample(gx, gz, Math.max(-1, Math.min(1, 1 - load * 1.6)));
     }

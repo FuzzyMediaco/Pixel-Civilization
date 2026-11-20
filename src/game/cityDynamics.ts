@@ -118,7 +118,7 @@ const DESIRABILITY: Record<string, [number, number]> = {
   jails: [-0.2, 4],
 };
 
-/** Road capacity in "trips" per tile at Lv.1 */
+/** Road capacity in traversals per quarter hour on a level-one tile */
 const ROAD_CAPACITY: Record<string, number> = {
   dirt_roads: 5,
   paths: 2,
@@ -381,8 +381,9 @@ export function tripsFor(def: CivElementDef): number {
 export function rushHourFactor(timeOfDay: number): number {
   const t = ((timeOfDay % 24) + 24) % 24;
   const peak = (center: number, w: number) => Math.exp(-((t - center) ** 2) / (2 * w * w));
-  const base = t < 5.5 || t > 22 ? 0.35 : 0.85;
-  return base + 0.55 * peak(8, 0.9) + 0.55 * peak(17.75, 1.0);
+  // Departures ramp up before the morning commute and taper off after sunset.
+  const daytime = Math.max(0, Math.min(1, (t - 5) / 2.5, (22 - t) / 3.5));
+  return 0.23 + 0.62 * daytime + 0.55 * peak(8, 0.9) + 0.55 * peak(17.75, 1.0);
 }
 
 /** Daylight 0..1 */

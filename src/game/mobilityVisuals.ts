@@ -205,6 +205,7 @@ export class MobilityVisuals {
     }
     for (const a of getProjectActors(s)) {
       const cell = getTerrainCell(s, Math.floor(a.gx), Math.floor(a.gz));
+      const axis=Math.abs(Math.sin(a.heading))>.5?"x":"z";
       const y =
         a.kind === "fireboat"
           ? (nav?.water.cell(Math.floor(a.gx), Math.floor(a.gz)).waterLevel ?? cell.waterLevel)
@@ -213,8 +214,8 @@ export class MobilityVisuals {
                 s,
                 Math.floor(a.gx),
                 Math.floor(a.gz),
-                Math.abs(Math.sin(a.heading)) > 0.5 ? "x" : "z",
-                0.5,
+                axis,
+                axis==="x"?a.gx-Math.floor(a.gx):a.gz-Math.floor(a.gz),
               )
             : Math.max(cell.elevation, cell.waterLevel);
       const mesh = this.draw(

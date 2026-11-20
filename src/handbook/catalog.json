@@ -367,7 +367,7 @@
     "domain": "land",
     "isStarter": true,
     "stats": {},
-    "description": "Connects homes, businesses, and services. Spawns cars and pedestrians automatically.",
+    "description": "Join two building entrances to carry cars. Streets get busier at rush hour and quieter after dark.",
     "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
     "growth": "Kerbed asphalt street that gains lamps, street trees, hydrants, bus stops, signals and flower planters.",
     "maxLevel": 5,

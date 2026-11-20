@@ -1,5 +1,6 @@
 import { ELEMENT_BY_ID, type CivElementDef } from "./catalog";
-import { getTerrainCell } from "./terrain";
+import type { RoadAccessKind } from "./roadTopology";
+import { getTerrainCell, roadPortOpen } from "./terrain";
 import type { GameState, PlacedElement } from "./simulation";
 
 export type LocalSide = "back" | "right" | "front" | "left";
@@ -33,6 +34,8 @@ export interface ParcelEdge {
   neighbor: string;
   /** True only where this actual contact meets replenished surface water. */
   flowing?: boolean;
+  /** Metres from this bank to an adjoining utility maintenance landing. */
+  stairRise?: number;
 }
 const ids = (members: string) => new Set(members.split(" "));
 const farms = ids("farm_houses farms fields orchards groves_of_olives plantations solar_canopy_orchard terraced_glasshouses");
@@ -146,8 +149,9 @@ function joint(a: CivElementDef, b: CivElementDef, sa: LocalSide, sb: LocalSide,
   return undefined;
 }
 
-function acceptsDriveSlot(e: ParcelPose, slot: number): boolean {
-  const width = e.rotation % 2 ? e.spanZ : e.spanX;
+function acceptsDriveSlot(e: ParcelPose, side: LocalSide, slot: number): boolean {
+  const alongLocalX=side==="front" || side==="back";
+  const width=(e.rotation%2===0)===alongLocalX ? e.spanX : e.spanZ;
   if (width < 2) return true;
   if (e.defId === "medium_sized_homes" || e.defId === "large_homes") return slot === Math.min(1,width-1);
   if (e.defId === "mansions") return slot === 0;
@@ -180,22 +184,44 @@ export function getParcelEdges(el: ParcelPose, occupancy: ReadonlyMap<string, Pl
           else if (flora.has(def.id)) kind = "habitat";
           if(kind) out.push({side,slot,kind,neighbor:adjacent.water==="salt" ? "sea" : "freshwater",flowing:adjacent.source>0});
         }
-        if(Math.abs(ground.elevation-adjacent.elevation)>1.25 && !ports.has(def.id) && !wetUtil.has(def.id)) continue;
+        if(Math.abs(ground.elevation-adjacent.elevation)>1.25 && !ports.has(def.id) && !wetUtil.has(def.id) && !ports.has(n?.defId??"") && !wetUtil.has(n?.defId??"")) continue;
       }
       if (!n || n === el) continue;
       const other = ELEMENT_BY_ID[n.defId], otherSide = localSide((world + 2) % 4, other?.isNetwork ? 0 : n.rotation);
       if (!other || n.edgeOverrides?.[otherSide] === "closed") continue;
-      const kind = joint(def, other, side, otherSide, normalized(n.rotation) === normalized(el.rotation),
+      let kind = joint(def, other, side, otherSide, normalized(n.rotation) === normalized(el.rotation),
         el.edgeOverrides?.[side] === "open" || n.edgeOverrides?.[otherSide] === "open");
-      if (kind === "drive" && ((!def.isNetwork && !acceptsDriveSlot(el,slot)) ||
-          (!other.isNetwork && !acceptsDriveSlot(n,slotAt(n,(world+2)%4,gx+dx,gz+dz))))) continue;
+      if (kind === "drive" && ((!def.isNetwork && !acceptsDriveSlot(el,side,slot)) ||
+          (!other.isNetwork && !acceptsDriveSlot(n,otherSide,slotAt(n,(world+2)%4,gx+dx,gz+dz))))) continue;
+      let stairRise:number|undefined;
+      if ((kind==="drive" || kind==="freight" || kind==="bus") && (def.isRoadNetwork || other.isRoadNetwork)) {
+        const rx=def.isRoadNetwork?gx:gx+dx, rz=def.isRoadNetwork?gz:gz+dz;
+        const dirX=def.isRoadNetwork?dx:-dx, dirZ=def.isRoadNetwork?dz:-dz;
+        if(!roadPortOpen(state,rx,rz,dirX,dirZ))continue;
+        if(state){
+          const span=state.infrastructure?.spans[rx+","+rz];
+          const along=span?.axis==="x"?dirX:dirZ;
+          // A bridge's outer landing may meet a gate. Its suspended edges and steep inner ramp cannot.
+          const roadHeight=span ? (along===span.direction ? span.endHeight : span.startHeight) :
+            getTerrainCell(state,rx,rz).elevation;
+          if(span && (!span.ramp || !along || roadHeight>Math.min(span.startHeight,span.endHeight)+.05))continue;
+          const siteHeight=getTerrainCell(state,rx+dirX,rz+dirZ).elevation;
+          const rise=siteHeight-roadHeight;
+          if(Math.abs(rise)>1.25){
+            const siteDef=def.isRoadNetwork?other:def;
+            if(!(wetUtil.has(siteDef.id)||ports.has(siteDef.id)) || Math.abs(rise)>3)continue;
+            kind="walk";
+            stairRise=def.isRoadNetwork?rise:-rise;
+          }
+        }
+      }
       if (kind === "skywalk" && "level" in el && el.level !== n.level) continue;
       if (kind) {
         const water = state && kind === "irrigation" ? getTerrainCell(state,gx+dx,gz+dz) : undefined;
         // A well can feed the adjacent field turnout directly. Towers, ponds and empty
         // canals need actual water delivery before they can irrigate another site.
         const well = n.defId==="wells" && !n.onFire && !n.disrepair && (!water || water.water!=="salt");
-        out.push({side,slot,kind,neighbor:n.defId,flowing:well || Boolean(water && water.water==="fresh" && water.depth>0 && water.source>0)});
+        out.push({side,slot,kind,neighbor:n.defId,stairRise,flowing:well || Boolean(water && water.water==="fresh" && water.depth>0 && water.source>0)});
       }
     }
   }
@@ -203,7 +229,7 @@ export function getParcelEdges(el: ParcelPose, occupancy: ReadonlyMap<string, Pl
 }
 
 export function getParcelEdgeKey(edges: readonly ParcelEdge[]) {
-  return edges.map(e => sideIndex(e.side) + "." + e.slot + "." + e.kind).join("/");
+  return edges.map(e => sideIndex(e.side) + "." + e.slot + "." + e.kind + (e.stairRise ? "."+Math.round(e.stairRise*4):"")).join("/");
 }
 export function getParcelEffectSummary(edges: readonly ParcelEdge[]) {
   const touched = new Set(edges.map(e => e.kind));
@@ -264,4 +290,41 @@ export function parcelAccessSteps(el:PlacedElement, occupancy:ReadonlyMap<string
     if(neighbor) steps.push({gx,gz,neighbor});
   }
   return steps;
+}
+
+export interface RoadSiteAccess {
+  gx: number;
+  gz: number;
+  dx: number;
+  dz: number;
+  site: PlacedElement;
+  kind: RoadAccessKind;
+  /** Building-local side and frontage slot, including rotated rectangular lots. */
+  side: LocalSide;
+  slot: number;
+}
+
+/** The same physical curb cuts feed the road model, daily traffic and the placement ghost. */
+export function roadSiteAccess(
+  road: Pick<ParcelPose,"defId" | "gx" | "gz" | "edgeOverrides">,
+  occupancy: ReadonlyMap<string,PlacedElement>,
+  state?: GameState,
+): RoadSiteAccess[] {
+  const d=ELEMENT_BY_ID[road.defId];
+  if (!d || !localRoad(d)) return [];
+  if (!offsets.some(([dx,dz])=>{
+    const neighbor=occupancy.get((road.gx+dx)+","+(road.gz+dz));
+    return neighbor && !ELEMENT_BY_ID[neighbor.defId]?.isNetwork;
+  })) return [];
+  const result:RoadSiteAccess[]=[];
+  for(const edge of getParcelEdges({...road,spanX:1,spanZ:1,rotation:0},occupancy,state)){
+    if(edge.kind!=="drive" && edge.kind!=="freight" && edge.kind!=="bus")continue;
+    const direction=sideIndex(edge.side), [dx,dz]=offsets[direction];
+    const x=road.gx+dx,z=road.gz+dz, site=occupancy.get(x+","+z);
+    if(!site || ELEMENT_BY_ID[site.defId]?.isNetwork)continue;
+    const facing=(direction+2)%4;
+    result.push({gx:road.gx,gz:road.gz,dx,dz,site,kind:edge.kind,
+      side:localSide(facing,site.rotation),slot:slotAt(site,facing,x,z)});
+  }
+  return result;
 }

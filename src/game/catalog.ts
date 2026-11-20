@@ -243,7 +243,7 @@ export const ELEMENTS: CivElementDef[] = [
     isRoadNetwork: true,
     passiveNature: true,
     accentHex: "#585b63",
-    description: "Connects homes, businesses, and services. Spawns cars and pedestrians automatically.",
+    description: "Join two building entrances to carry cars. Streets get busier at rush hour and quieter after dark.",
   },
   {
     id: "solar_panels",

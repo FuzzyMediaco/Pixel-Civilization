@@ -19,7 +19,7 @@
  */
 import { type Ctx, PixelVox, bench, bush, lamp, person, rocks, solarRow, tree, type TreeKind } from "./kit";
 import { defineDesigns } from "./registry";
-import { separatedDeckAxis } from "../roadTopology";
+import { separatedDeckAxis, roadPortalWidth, roadSitePortKind } from "../roadTopology";
 
 // ---------------------------------------------------------------------------------------------
 // Rotation frame
@@ -105,13 +105,9 @@ function networkLayout(m: number, lonelyArms: boolean) {
   const ramp = [0, 1, 2, 3].map((k) => ((m >> (k + 8)) & 1) === 1 && arm[k]);
   const realArms = arm.filter(Boolean).length;
   let lonely = false;
-  if (realArms === 0 && lonelyArms) {
+  if (realArms === 0 && lonelyArms && !drive.some(Boolean)) {
     lonely = true;
-    if ((drive[1] || drive[3]) && !(drive[0] || drive[2])) {
-      arm[1] = arm[3] = true;
-    } else {
-      arm[0] = arm[2] = true;
-    }
+    arm[0] = arm[2] = true;
   }
   const nArms = arm.filter(Boolean).length;
   const straight = arm[0] && arm[2] && !arm[1] && !arm[3] ? 0 : arm[1] && arm[3] && !arm[0] && !arm[2] ? 1 : -1;
@@ -128,7 +124,7 @@ function networkLayout(m: number, lonelyArms: boolean) {
     nArms,
     realArms,
     lonely,
-    dead: nArms === 1 ? arm.indexOf(true) : -1,
+    dead: nArms === 1 && !drive.some(Boolean) ? arm.indexOf(true) : -1,
     straight,
     corner,
     junction: nArms >= 3,
@@ -2801,6 +2797,35 @@ function buildRiver(c: Ctx, wide: boolean): void {
 // Registration
 // ---------------------------------------------------------------------------------------------
 
+/** Finish the road side of a gate after the street's markings, kerbs and furniture. */
+function withSiteEntrances(build: (c: Ctx) => void, carriageway: number) {
+  return (c: Ctx) => {
+    build(c);
+    if (!(c.conn & 240)) return;
+    const networkArms=c.conn&15;
+    for (let k=0;k<4;k++) {
+      const kind=roadSitePortKind(c.conn,k);
+      if (!kind || networkArms & (1<<k)) continue;
+      const target=roadPortalWidth[kind], R=new RotVox(c.v,k);
+      // Side entrances leave the through lanes, median and paint intact.
+      const through=Boolean(networkArms & (k%2 ? 5 : 10));
+      const begin=through ? carriageway/2 : 0;
+      for (let distance=begin;distance<8;distance++) {
+        const fraction=(distance-begin+1)/(8-begin);
+        const width=2*Math.round((carriageway+(target-carriageway)*fraction)/2);
+        const lo=-width/2,z=-1-distance;
+        R.box(lo,1,z,lo+width,20,z+1,null);
+        const paint=distance>=6 ? kind==="freight" ? "asphaltDark" : kind==="bus" ? "concrete" : "concreteDark" :
+          c.id==="dirt_roads" ? "soil" : c.id==="pretty_roads" ? "stone" : "asphalt";
+        R.box(lo,0,z,lo+width,1,z+1,paint);
+        if (distance===5 && kind==="freight") {
+          R.put(lo,0,z,"busYellow"); R.put(lo+width-1,0,z,"busYellow");
+        }
+      }
+    }
+  };
+}
+
 type FP = [[number, number], [number, number], [number, number], [number, number], [number, number]];
 const ONE: FP = [[1, 1], [1, 1], [1, 1], [1, 1], [1, 1]];
 
@@ -2809,13 +2834,13 @@ defineDesigns({
     footprints: ONE,
     levels: ["Fresh Asphalt Lane", "Lamplit Street", "Tree-Lined Street", "Main Street", "Grand Avenue"],
     growth: "Kerbed asphalt street that gains lamps, street trees, hydrants, bus stops, signals and flower planters.",
-    build: buildRoads,
+    build: withSiteEntrances(buildRoads, 8),
   },
   dirt_roads: {
     footprints: ONE,
     levels: ["Wagon Ruts", "Fenced Farm Track", "Haybale Lane", "Gravel Byway", "Scenic Hedgerow Lane"],
     growth: "Rutted earth lane that picks up fences, hay bales, carts, lanterns, gravel and wildflowers.",
-    build: buildDirt,
+    build: withSiteEntrances(buildDirt, 6),
   },
   paths: {
     footprints: ONE,
@@ -2845,13 +2870,13 @@ defineDesigns({
     footprints: ONE,
     levels: ["Striped Arterial", "Lit Arterial", "Bike-Lane Avenue", "Transit Boulevard", "Smart Avenue"],
     growth: "Wide double-yellow arterial that adds lighting, green bike lanes, bus stops and smart signals.",
-    build: buildTwoLane,
+    build: withSiteEntrances(buildTwoLane, 10),
   },
   pretty_roads: {
     footprints: ONE,
     levels: ["Cobble Lane", "Flower-Verge Cobbles", "Tree-Lined Boulevard", "Flower-Basket Roundabout", "Fountain Roundabout Boulevard"],
     growth: "Cobblestone boulevard that blooms with flower verges, avenue trees, baskets and fountain roundabouts.",
-    build: buildPretty,
+    build: withSiteEntrances(buildPretty, 8),
   },
   highways: {
     footprints: ONE,

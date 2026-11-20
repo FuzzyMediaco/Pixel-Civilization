@@ -14,6 +14,7 @@ import { loadModeState, persistMode, resumeIsland } from "./game/activeIsland";
 import { createCanalDistrict } from "./game/canalDistrict";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertOctagon, Flame, Menu, RotateCcw, ShieldAlert, Sparkles, X } from "lucide-react";
+import { settleStreetFacing } from "./game/streetFacing";
 import { AdvisorModal } from "./components/AdvisorModal";
 import { BottomDock } from "./components/BottomDock";
 import { type CursorBehavior, CursorControlButton } from "./components/CursorControlButton";
@@ -255,6 +256,7 @@ export const App: React.FC = () => {
         }
         draft.elements.push(placed);
         applyLandformPlacement(draft,placed);
+        settleStreetFacing(draft, placed, curBrush.faceManually === true);
         if (def.id !== brushDef.id && !draft.achievements?.includes("bridge_builder")) {
           pushToast(draft, "merge", `Auto-Bridge: ${def.name}`, "Roads dragged across water become bridges automatically.");
         }
@@ -284,7 +286,10 @@ export const App: React.FC = () => {
 
       commitBuildingEdit("Move "+ELEMENT_BY_ID[el.defId].name,(draft) => {
         const target = draft.elements.find(e => e.id === elementId);
-        if (target && relocatePlacedElement(draft, target, gx, gz)) recomputeConnectivityAndMetrics(draft);
+        if (target && relocatePlacedElement(draft, target, gx, gz)) {
+          if (ELEMENT_BY_ID[target.defId].isRoadNetwork) settleStreetFacing(draft, target, false);
+          recomputeConnectivityAndMetrics(draft);
+        }
       });
 
       setBrush((b) => ({ ...b, kind: "none", movingElementId: undefined }));
@@ -434,6 +439,7 @@ export const App: React.FC = () => {
           commitBuildingEdit("Rotate building",(draft) => {
             const el = draft.elements.find((item) => item.id === id);
             if (!el) return;
+            delete el.awaitingStreet;
             const nextRot = (el.rotation + 1) % 4;
             if (el.spanX !== el.spanZ && nextRot % 2 !== el.rotation % 2) {
               const def = ELEMENT_BY_ID[el.defId];
@@ -576,6 +582,7 @@ export const App: React.FC = () => {
       }
       if (patch.variant !== undefined) el.variant = patch.variant;
       if (patch.rotation !== undefined) {
+        delete el.awaitingStreet;
         const nextRot = ((patch.rotation % 4) + 4) % 4;
         if (el.spanX !== el.spanZ && nextRot % 2 !== el.rotation % 2) {
           const def = ELEMENT_BY_ID[el.defId];
@@ -852,7 +859,11 @@ export const App: React.FC = () => {
         {desk==="city"&&<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel={score}/>}
         {desk==="connections"&&<Connections s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("site");openDesk(tab);}}/>}
         {desk==="god"&&gameState.mode==="god"&&<GodControls s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("controls");openDesk(tab);}} paused={simSpeed===0} onPause={()=>setSimSpeed(simSpeed?0:1)}
-          onStep={()=>{setSimSpeed(0);commitState(s=>{stepSimulation(s,1,true);recomputeConnectivityAndMetrics(s);});}}
+          onStep={()=>{
+            setSimSpeed(0);
+            commitState(s=>{stepSimulation(s,1,true);recomputeConnectivityAndMetrics(s);});
+            rendererRef.current?.advanceStreetTraffic(1);
+          }}
           onWeather={()=>{closeDesk();setViewEnvTab("weather");revealOverlay("view");}} onDefense={()=>{closeDesk();setViewEnvTab("defense");revealOverlay("view");}}
           onSave={()=>{if(snapshot(stateRef.current))commitState(s=>pushToast(s,"stage","Snapshot saved","Restore it from God controls at any time."));}}
           canRestore={hasSnapshot} onRestore={()=>{try{const raw=localStorage.getItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{commitState(s=>pushToast(s,"alert","Unable to restore snapshot","The saved data could not be opened."));}}}
