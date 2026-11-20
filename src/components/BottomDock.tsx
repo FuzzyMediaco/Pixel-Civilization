@@ -35,6 +35,9 @@ import {
 } from "../game/simulation";
 import { type BuildBrush } from "../game/worldRenderer";
 import { ElementFavicon } from "./ElementFavicon";
+import { FARM_ANCHOR_IDS } from "../game/expansionCatalog";
+import { analyzeFarmNetworks } from "../game/farmNetworks";
+import { analyzeDistrictSynergies } from "../game/districtSynergies";
 
 interface BottomDockProps {
   open: boolean;
@@ -138,6 +141,18 @@ export const BottomDock: React.FC<BottomDockProps> = ({
     : undefined;
 
   const primaryDef = primaryEl ? ELEMENT_BY_ID[primaryEl.defId] : undefined;
+  const districtStats = useMemo(() => analyzeDistrictSynergies(state.elements), [state.elements]);
+  const farmStats = useMemo(
+    () => analyzeFarmNetworks(
+      state.elements,
+      new Set(state.elements.filter(el => FARM_ANCHOR_IDS.has(el.defId) && el.connected).map(el => el.id)),
+    ),
+    [state.elements],
+  );
+  const relatedDistricts = primaryEl
+    ? [...new Set(districtStats.active.filter(d => d.aId === primaryEl.id || d.bId === primaryEl.id).map(d => d.title))]
+    : [];
+  const ownedFieldCount = primaryEl ? farmStats.moduleCountByAnchorId.get(primaryEl.id) ?? 0 : 0;
   const primaryMaxLevel = primaryDef ? getElementMaxLevel(primaryDef) : 5;
   const mergeCheck =
     primaryEl && secondaryEl ? canMergePair(state, primaryEl.id, secondaryEl.id) : null;
@@ -203,6 +218,17 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                   </>
                 )}
               </div>
+              {relatedDistricts.length > 0 && (
+                <div className="text-[9.5px] font-extrabold text-emerald-700" title="Neighbor district bonuses apply automatically">
+                  {relatedDistricts.join(" · ")}
+                </div>
+              )}
+              {ownedFieldCount > 0 && (
+                <div className="text-[9.5px] font-bold text-emerald-700" title="Modules share this farm's road access and increase its food production">
+                  {ownedFieldCount} connected farm module{ownedFieldCount === 1 ? "" : "s"}
+                  {ownedFieldCount >= 5 ? " · Active machinery" : ""}
+                </div>
+              )}
             </div>
           </div>
 
