@@ -93,3 +93,25 @@ export function analyzeFarmNetworks(
     multiplierByAnchorId, animationTierByAnchorId,
   };
 }
+
+/**
+ * Neighbor directions shared by all farm anchors and modules, with no raised
+ * border between connected parcels. N=1 E=2 S=4 W=8.
+ * This is visual adjacency, independent of which anchor owns the production.
+ */
+export function getFarmAdjacencyMask(elements: PlacedElement[], el: PlacedElement): number {
+  if (!FARM_ANCHOR_IDS.has(el.defId) && !FARM_MODULE_IDS.has(el.defId)) return 0;
+  const occupied = new Map<string, string>();
+  for (const candidate of elements) {
+    if (!FARM_ANCHOR_IDS.has(candidate.defId) && !FARM_MODULE_IDS.has(candidate.defId)) continue;
+    eachFootprintCell(candidate, (x, z) => occupied.set(`${x},${z}`, candidate.id));
+  }
+  let mask = 0;
+  eachFootprintCell(el, (x, z) => {
+    if (occupied.has(`${x},${z - 1}`) && occupied.get(`${x},${z - 1}`) !== el.id) mask |= 1;
+    if (occupied.has(`${x + 1},${z}`) && occupied.get(`${x + 1},${z}`) !== el.id) mask |= 2;
+    if (occupied.has(`${x},${z + 1}`) && occupied.get(`${x},${z + 1}`) !== el.id) mask |= 4;
+    if (occupied.has(`${x - 1},${z}`) && occupied.get(`${x - 1},${z}`) !== el.id) mask |= 8;
+  });
+  return mask;
+}
