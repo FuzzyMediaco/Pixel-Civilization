@@ -5,7 +5,7 @@ import { analyzeDistrictSynergies, getDistrictEdgeMasks } from "../src/game/dist
 import { analyzeTraffic } from "../src/game/trafficModel";
 import {
   createInitialGameState, recomputeConnectivityAndMetrics,
-  upgradeElementDirect, type PlacedElement,
+  upgradeElementDirect, stepSimulation, type PlacedElement,
 } from "../src/game/simulation";
 
 function place(id: string, defId: string, gx: number, gz: number, level = 1): PlacedElement {
@@ -28,6 +28,13 @@ real.elements.push(place("road1", "roads", 0, 0), place("house1", "house", 1, 0)
 recomputeConnectivityAndMetrics(real);
 assert.equal(real.elements[1].connected, true, "One adjacent road must connect a building");
 assert.equal(real.metrics.connectedHouses, 1);
+
+const sandboxGrowth = createInitialGameState("god");
+sandboxGrowth.elements.push(place("godHome", "house", 0, 0));
+recomputeConnectivityAndMetrics(sandboxGrowth);
+const beforeSandboxGrowth = sandboxGrowth.population;
+stepSimulation(sandboxGrowth, 1, true);
+assert.ok(sandboxGrowth.population > beforeSandboxGrowth, "God Mode population must grow every active tick");
 
 const roadGod = createInitialGameState("god");
 roadGod.elements.push(place("road2", "roads", 0, 0));
