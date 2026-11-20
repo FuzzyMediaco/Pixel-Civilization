@@ -1677,6 +1677,169 @@ export function getOrBuildElementAsset(
       break;
     }
 
+    // --------------------- EXPANDABLE FARMS & AGRICULTURAL PARCELS ---------------------
+    case "vegetable_farm":
+    case "grain_farm":
+    case "dairy_farm":
+    case "poultry_farm":
+    case "cattle_ranch":
+    case "horse_ranch":
+    case "apiary":
+    case "vineyard":
+    case "rice_farm":
+    case "greenhouse_farm":
+    case "vertical_farm": {
+      const bx = padX, bz = padZ;
+      const id = def.id;
+      const livestock = ["dairy_farm", "poultry_farm", "cattle_ranch", "horse_ranch"].includes(id);
+      const glass = id === "greenhouse_farm" || id === "vertical_farm";
+      const crop = id === "grain_farm" ? "gold" : id === "vineyard" ? "purple"
+        : id === "rice_farm" ? "lime" : id === "apiary" ? "yellow" : "leafLight";
+      if (id === "vertical_farm") {
+        const towerH = 9 + clampedLv * 6;
+        v.hollowBox(-bx + 2, 0, -bz + 2, bx - 2, towerH, bz - 2, "glass", "silver");
+        for (let y = 3; y < towerH - 1; y += 4) {
+          v.box(-bx + 3, y, -bz + 3, bx - 3, y + 1, bz - 3, "leaf");
+          v.box(-bx + 2, y + 1, -bz + 2, bx - 2, y + 2, -bz + 3, "screenCyan", 0.4);
+        }
+        v.box(-bx + 2, towerH, -bz + 2, bx - 2, towerH + 1, bz - 2, "solarBlue");
+        if (clampedLv >= 4) v.cylinderY(bx - 3, bz - 3, 0, 8, 2, "silver");
+        break;
+      }
+      if (glass) {
+        for (let i = 0; i < Math.min(4, 1 + clampedLv); i++) {
+          const x = -bx + 2 + i * 5;
+          if (x + 4 > bx - 1) break;
+          v.box(x, 0, -bz + 2, x + 4, 4 + Math.min(3, clampedLv), bz - 2, "glass", 0.14);
+          v.box(x + 1, 0, -bz + 3, x + 3, 1, bz - 3, "leaf");
+          v.box(x, 4 + Math.min(3, clampedLv), -bz + 2, x + 4, 5 + Math.min(3, clampedLv), bz - 2, "silver");
+        }
+        if (clampedLv >= 3) v.box(bx - 5, 0, bz - 3, bx - 2, 6, bz - 1, "water");
+        break;
+      }
+      if (id === "rice_farm") {
+        for (let z = -bz + 1; z < bz - 1; z += 4) {
+          v.box(-bx + 1, 0, z, bx - 1, 1, z + 3, "water", 0.22);
+          for (let x = -bx + 2; x < bx - 1; x += 3) {
+            v.box(x, 1, z + 1, x + 1, 3, z + 2, "lime");
+          }
+        }
+        if (clampedLv >= 2) v.box(-1, 1, -bz + 1, 1, 2, bz - 1, "wood");
+        if (clampedLv >= 4) v.box(bx - 5, 0, bz - 3, bx - 1, 3, bz - 1, "woodDark");
+        break;
+      }
+      // Organic ground-level crop beds, trellises, apiary hives or grazing paddocks.
+      const rowCount = Math.max(2, Math.min(8, 2 + clampedLv));
+      for (let i = 0; i < rowCount; i++) {
+        const z = -bz + 2 + i * 3;
+        if (z >= bz - 1) break;
+        v.box(-bx + 1, 0, z, bx - 1, 1, z + 1, livestock ? "leafLight" : "soilDark");
+        if (!livestock) for (let x = -bx + 2; x < bx - 1; x += 3) {
+          v.put(x, 1, z, crop);
+          if (id === "vineyard") v.box(x, 1, z, x + 1, 3 + (clampedLv >= 3 ? 1 : 0), z + 1, "purple");
+          if (id === "grain_farm" && clampedLv >= 2) v.put(x, 2, z, "gold");
+        }
+      }
+      if (id === "apiary") {
+        for (let i = 0; i < Math.min(8, clampedLv + 2); i++) {
+          const x = -bx + 2 + (i % 4) * 4, z = -bz + 3 + Math.floor(i / 4) * 5;
+          if (x < bx && z < bz) {
+            v.box(x, 0, z, x + 2, 2, z + 2, "gold");
+            v.put(x, 2, z, "woodDark");
+            v.put(x + 1, 2, z + 1, "yellow");
+          }
+        }
+      } else if (livestock) {
+        const animalCount = Math.min(9, clampedLv + 2);
+        for (let i = 0; i < animalCount; i++) {
+          const x = -bx + 3 + (i % 3) * 4, z = -bz + 3 + Math.floor(i / 3) * 4;
+          if (x >= bx - 2 || z >= bz - 2) continue;
+          const chicken = id === "poultry_farm";
+          const col = id === "horse_ranch" ? "wood" : chicken ? "white" : i % 2 === 0 ? "white" : "brown";
+          v.box(x, 1, z, x + (chicken ? 1 : 3), chicken ? 3 : 4, z + (chicken ? 1 : 2), col);
+          if (!chicken) v.box(x + 2, 3, z, x + 3, 5, z + 1, col);
+          else v.put(x, 3, z, "red");
+        }
+        // Open pasture fence and a barn grow more substantial at each level.
+        v.box(-bx + 1, 0, -bz + 1, -bx + 2, 3, bz - 1, "woodDark");
+        v.box(bx - 2, 0, -bz + 1, bx - 1, 3, bz - 1, "woodDark");
+      }
+      const barnW = Math.min(8, 3 + clampedLv);
+      const barnH = 3 + clampedLv;
+      const barnCol = id === "vineyard" ? "limestone" : id === "apiary" ? "wood" : "crimson";
+      v.hollowBox(bx - barnW - 1, 0, -bz + 1, bx - 1, barnH, -bz + 6, barnCol, "cream");
+      addGableSafe(v, bx - barnW - 2, barnH, -bz, bx, -bz + 7, 3, "x", id === "vineyard" ? "terracotta" : "slate", "white");
+      if (clampedLv >= 2) {
+        v.cylinderY(-bx + 3, -bz + 3, 0, 5 + clampedLv, 1.5, "silver");
+        v.dome(-bx + 3, 5 + clampedLv, -bz + 3, 1.7, "red");
+      }
+      if (clampedLv >= 3) {
+        v.box(-bx + 2, 0, bz - 4, -bx + 6, 2, bz - 1, "leaf");
+        v.box(-bx + 1, 0, bz - 3, -bx + 2, 2, bz - 1, "charcoal");
+      }
+      if (clampedLv >= 5) {
+        v.hollowBox(bx - 7, 0, bz - 6, bx - 2, 6, bz - 2, barnCol, "cream");
+        addGableSafe(v, bx - 8, 6, bz - 7, bx - 1, bz - 1, 2, "x", "slate");
+      }
+      break;
+    }
+
+    case "vegetable_fields":
+    case "grain_fields":
+    case "orchard_block":
+    case "grazing_pasture":
+    case "livestock_pen":
+    case "chicken_coop":
+    case "feed_silo":
+    case "irrigation_pond":
+    case "greenhouse_bay": {
+      const bx = padX, bz = padZ, id = def.id;
+      if (id === "irrigation_pond") {
+        v.box(-bx + 2, 0, -bz + 2, bx - 2, 1, bz - 2, "water", 0.20);
+        v.box(-2, 1, -bz + 1, 2, 2, bz - 1, "wood");
+        if (clampedLv >= 3) v.box(bx - 3, 0, bz - 4, bx - 1, 5, bz - 2, "steel");
+      } else if (id === "feed_silo") {
+        v.cylinderY(0, 0, 0, 8 + clampedLv * 3, 2 + Math.floor(clampedLv / 2), "silver");
+        v.dome(0, 8 + clampedLv * 3, 0, 3, "crimson");
+        if (clampedLv >= 3) v.cylinderY(bx - 3, 0, 0, 8 + clampedLv * 2, 1.6, "cream");
+        if (clampedLv >= 5) v.box(-bx + 2, 0, bz - 4, bx - 2, 4, bz - 2, "gold");
+      } else if (id === "greenhouse_bay") {
+        for (let x = -bx + 2; x < bx - 2; x += 5) {
+          v.box(x, 0, -bz + 2, x + 4, 4 + clampedLv, bz - 2, "glass", 0.12);
+          v.box(x + 1, 0, -bz + 3, x + 3, 1, bz - 3, "lime");
+          v.box(x, 4 + clampedLv, -bz + 2, x + 4, 5 + clampedLv, bz - 2, "silver");
+        }
+      } else if (id === "orchard_block") {
+        for (let x = -bx + 3; x < bx - 2; x += 5) for (let z = -bz + 3; z < bz - 2; z += 5) {
+          addTreeMini(v, x, 0, z, clampedVar + clampedLv);
+          v.put(x + 1, 4, z, clampedLv >= 4 ? "orange" : "red");
+        }
+      } else if (id === "livestock_pen" || id === "chicken_coop" || id === "grazing_pasture") {
+        for (let i = 0; i < Math.min(10, clampedLv + 2); i++) {
+          const x = -bx + 2 + (i % 3) * 4, z = -bz + 2 + Math.floor(i / 3) * 4;
+          if (x >= bx || z >= bz) continue;
+          const hen = id === "chicken_coop";
+          v.box(x, 1, z, x + (hen ? 1 : 3), hen ? 3 : 4, z + (hen ? 1 : 2), hen ? "white" : i % 2 === 0 ? "white" : "brown");
+          if (hen) v.put(x, 3, z, "orange");
+        }
+        if (id === "chicken_coop" && clampedLv >= 2) {
+          v.hollowBox(bx - 6, 0, -bz + 1, bx - 1, 3 + clampedLv, -bz + 5, "crimson", "white");
+          addGableSafe(v, bx - 6, 3 + clampedLv, -bz + 1, bx - 1, -bz + 5, 2, "x", "woodDark");
+        }
+      } else {
+        const rowCol = id === "grain_fields" ? "gold" : clampedVar % 2 === 0 ? "leaf" : "orange";
+        for (let z = -bz + 2; z < bz - 1; z += 3) {
+          v.box(-bx + 1, 0, z, bx - 1, 1, z + 1, "soilDark");
+          for (let x = -bx + 2; x < bx - 1; x += 2) {
+            v.box(x, 1, z, x + 1, clampedLv >= 3 ? 3 : 2, z + 1, rowCol);
+          }
+        }
+        if (clampedLv >= 3) v.box(-bx + 2, 0, bz - 3, -bx + 4, 2, bz - 1, "gold");
+        if (clampedLv >= 5) v.box(bx - 5, 0, -bz + 2, bx - 2, 3, -bz + 4, "leaf");
+      }
+      break;
+    }
+
     // --------------------- AGRICULTURE (6) ---------------------
     case "farms": {
       // Ground-hugging irrigated furrows (NO thick raised soil slab!), red barn, silo & tractor!
