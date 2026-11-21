@@ -350,12 +350,16 @@ export function lineHeadway(s: GameState, key: string): number {
 export function replanRailStops(s:GameState,l:Run,stops:string[]){
   const r=trainFor(l),ordered=[...new Set(stops)],net=getTravelNetwork(s);
   if(ordered.length<2||ordered.some(id=>net.byId.get(id)?.defId!==(r.service==="freight"?"freight_rail_terminal":"train_stops")))throw Error("Choose at least two distinct compatible platforms.");
-  if(l.riders.some(p=>!ordered.includes(p.destination))||r.contract&&(!ordered.includes(r.contract.pickup)||!ordered.includes(r.contract.drop)))throw Error("The revised route must serve every onboard rider and contracted platform.");
+  const trains=lineTrains(s,lineKey(l));
+  if(trains.some(t=>t.riders.some(p=>!ordered.includes(p.destination)))||r.contract&&(!ordered.includes(r.contract.pickup)||!ordered.includes(r.contract.drop)))throw Error("The revised route must serve every onboard rider and contracted platform.");
   const depot=net.byId.get(l.depot);if(!depot)throw Error("Restore the depot first.");
   validateFormation(s,depot,ordered.map(id=>net.byId.get(id)!),r);
   const {departure}=circuitStart(net,"rail",[l.depot,...ordered,l.depot]);if(!departure)throw Error("Join all platforms and the depot with continuous track.");
-  if(!l.blocked&&l.at!==l.depot)throw Error("Replan while the train is at its depot or blocked.");
-  l.stops=ordered;l.next=1;l.at=l.depot;l.position=departure;l.blocked=false;l.path=[];l.progress=0;l.dwell=1;r.trail=[];r.rearCab=false;clearRailBlock(l);
+  for(const t of trains){
+    t.stops=[...ordered];t.next=0;t.blocked=false;t.path=[];t.progress=0;t.dwell=Math.max(t.dwell,.5);
+    const tr=trainFor(t);tr.dist=0;tr.speed=0;tr.circuitStart=undefined;tr.circuit=undefined;clearRailBlock(t);
+    if(t.at===t.depot){tr.trail=[];tr.rearCab=false;t.position=departure;}
+  }
 }
 export function autoStops(s: GameState, mode: TravelMode, depot: string): string[] {
   const net = getTravelNetwork(s),
@@ -572,8 +576,181 @@ function advance(
   unit.position = interpolate(unit.path, wanted);
   return wanted >= end ? "arrived" : "moving";
 }
+function migrateRail(l: Run) {
+  const r = trainFor(l);
+  if (r.v === 2) return r;
+  // Older saves: the route began at the depot and every circuit returned there.
+  const len = Math.max(1, railRoute(l).length);
+  l.next = l.at === l.depot || l.at === undefined && !r.trail.length ? 0 : (Math.max(0, l.next - 1)) % len;
+  if (l.at === l.depot) r.trail = [];
+  r.v = 2;
+  delete r.blockPlan;
+  delete r.reservation;
+  delete r.waitingSince;
+  r.dist = 0;
+  r.speed = 0;
+  l.path = [];
+  return r;
+}
+const nightNow = (s: GameState) => s.timeOfDay < 6 || s.timeOfDay >= 21;
+function inServiceHours(s: GameState, l: Run) {
+  const night = nightNow(s);
+  return l.schedule === "all" || (night ? l.schedule === "night" : l.schedule === "day");
+}
+function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: TravelNetwork, version: number) {
+  const r = migrateRail(l);
+  if (!l.enabled) {
+    clearRailBlock(l);
+    l.status = "Service paused";
+    return;
+  }
+  const route = railRoute(l);
+  const depot = net.byId.get(l.depot);
+  if (!depot || route.length < 1 || l.stops.some((id) => !net.byId.has(id))) {
+    clearRailBlock(l);
+    l.blocked = true;
+    l.status = "A stop was removed. Edit the line to replace it.";
+    return;
+  }
+  if ([depot, ...l.stops.map((id) => net.byId.get(id)!)].some((e) => !net.connectors(e, "rail").length || e.disrepair || e.onFire)) {
+    l.path = [];
+    l.blocked = true;
+    if (r.reservation) r.reservation = undefined;
+    l.status = "Restore service and track at each rear platform.";
+    return;
+  }
+  if (l.dwell > 0) {
+    l.dwell -= dt;
+    if (l.at && l.at !== l.depot && onTrack(l) && !r.reservation?.length) claimRailLeg(s, { ...l, path: [] } as Run, net);
+    return;
+  }
+  const parked = l.at === l.depot && !r.trail.length;
+  if (parked && r.yielding !== "recall" && !inServiceHours(s, l)) {
+    l.status = "Parked · waiting for service hours";
+    return;
+  }
+  if (parked && r.yielding === "recall") {
+    l.status = "Parked in the depot";
+    return;
+  }
+  // Headway keeping: leave the depot or the line's first station no sooner than the line's headway allows.
+  const key = lineKey(l),
+    trains = lineTrains(s, key).filter((t) => t.enabled);
+  const startStop = route[0];
+  const leavingStart = !l.path.length && (parked || l.at === startStop) && !r.yielding;
+  if (leavingStart && trains.length > 1) {
+    const last = (m.departed ??= {})[key + "|" + startStop];
+    const headway = circuitSeconds(s, key) / trains.length;
+    if (last !== undefined && s.activePlaySec - last < headway * 0.85) {
+      l.status = parked ? "Ready in the depot · keeping the headway" : "Holding to keep the headway";
+      return;
+    }
+  }
+  if (!l.path.length || l.version !== version) {
+    if (l.version !== version && l.path.length) {
+      r.reservation = undefined;
+      delete r.claimEnd;
+    }
+    if (l.blocked && l.version === version && s.activePlaySec - (l.plannedAt ?? 0) < 4) return;
+    l.plannedAt = s.activePlaySec;
+    l.version = version;
+    if (!parked && !r.yielding && (!inServiceHours(s, l) && !l.riders.length)) r.yielding = "hours";
+    if (!parked && !r.yielding && starvingBehind(s, l)) r.yielding = "clear";
+    if (parked && r.yielding && r.yielding !== "recall") delete r.yielding;
+    const target = r.yielding ? depot : net.byId.get(route[l.next % route.length]);
+    if (!target) return;
+    const starts: Point[] = parked || !l.position ? net.connectors(depot, "rail") : [[Math.round(l.position[0]), Math.round(l.position[1])]];
+    const allEnds = net.connectors(target, "rail");
+    const avoid = heldByOthers(s, l);
+    const freeEnds = allEnds.filter(([x, z]) => !avoid.has(x + "," + z));
+    const path =
+      (freeEnds.length && net.path(starts, freeEnds, "rail", undefined, undefined, avoid)) ||
+      net.path(starts, freeEnds.length ? freeEnds : allEnds, "rail") ||
+      net.path(starts, allEnds, "rail");
+    if (!path) {
+      r.reservation = undefined;
+      const issue = net.diagnose(starts, perimeter(target), "rail");
+      l.status = issue.reason;
+      l.blocker = issue.blocker;
+      l.blocked = true;
+      l.path = [];
+      return;
+    }
+    if (parked) l.position = path[0];
+    l.path = prepareRailLeg(l, path, net, freeEnds.length ? freeEnds : allEnds, avoid);
+    l.progress = 0;
+    l.blocked = false;
+    l.blocker = undefined;
+    r.reservation = undefined;
+    r.speed = 0;
+  }
+  if (l.blocked || !l.path.length) return;
+  const target = r.yielding ? depot : net.byId.get(route[l.next % route.length])!;
+  if (!r.reservation || r.claimEnd !== undefined || r.waitingSince !== undefined) {
+    const was = r.waitingSince !== undefined;
+    if (!claimRailLeg(s, l, net)) {
+      const other = s.mobility!.lines.find((o) => o.id === r.blockedBy);
+      l.status = "Red signal · waiting for " + (other?.rail?.name ? other.rail.name : "the track ahead");
+      // Waiting a while: look for a way round (a loop or the other track of a double line).
+      if (s.activePlaySec - (r.waitingSince ?? s.activePlaySec) > 1.5 && was && Math.floor(s.activePlaySec) !== Math.floor(s.activePlaySec - dt)) {
+        l.path = [];
+        r.reservation = undefined;
+      }
+      return;
+    }
+  }
+  if (!l.at || l.at !== target.id) l.at = undefined;
+  if (r.circuitStart === undefined && !r.yielding && l.next % route.length === 1 % route.length) r.circuitStart = s.activePlaySec;
+  const arrived = moveRail(s, l, dt, net);
+  if (!arrived) {
+    l.status =
+      r.ghost ? "Squeezing past on single track · build a passing loop"
+      : r.claimEnd !== undefined && (r.speed ?? 0) < 0.05 ? "Signal at caution · following " + (s.mobility!.lines.find((o) => o.id === r.blockedBy)?.rail?.name ?? "a train")
+      : r.yielding === "clear" ? "Clearing the line · heading to the depot"
+      : r.yielding ? "Returning to the depot"
+      : "En route to " + ELEMENT_BY_ID[target.defId].name;
+    return;
+  }
+  // Arrival.
+  const wasGhost = r.ghost;
+  delete r.ghost;
+  l.path = [];
+  l.progress = 0;
+  r.dist = 0;
+  r.speed = 0;
+  delete r.claimEnd;
+  if (target.id === l.depot) {
+    clearRailBlock(l);
+    r.trail = [];
+    r.rearCab = false;
+    l.at = l.depot;
+    const hours = r.yielding === "hours";
+    if (r.yielding !== "recall") delete r.yielding;
+    l.dwell = hours ? 0 : 2.5;
+    l.status = "Parked in the depot";
+    return;
+  }
+  r.reservation = undefined;
+  completeStop(s, m, l, target, net);
+  l.departures++;
+  l.at = target.id;
+  const index = l.next % route.length;
+  l.next = (l.next + 1) % route.length;
+  if (index === 0 && r.circuitStart !== undefined) {
+    const lap = s.activePlaySec - r.circuitStart;
+    if (lap > 1) r.circuit = r.circuit ? r.circuit * 0.6 + lap * 0.4 : lap;
+    r.circuitStart = undefined;
+  }
+  const terminus = index === 0 || (r.pattern === "shuttle" && index === route.length - 1 && route.length > 1) || route.length <= 2;
+  let dwell = (r.service === "freight" ? 3.2 : 1.5) + (r.cars.length * 0.3) / Math.sqrt(target.level);
+  if (r.service === "freight" && s.railYard?.works?.[target.id]?.crane) dwell *= 0.7;
+  if (terminus) dwell = Math.max(dwell, Math.min(r.frequency, 90) * (nightNow(s) ? 1.4 : 1) * 0.5);
+  l.dwell = dwell;
+  if (index === 0) (m.departed ??= {})[key + "|" + target.id] = s.activePlaySec + dwell;
+  l.status = (wasGhost ? "Squeezed past · build a passing loop · " : "") + (r.service === "freight" ? "Loading at " : "Boarding at ") + ELEMENT_BY_ID[target.defId].name;
+}
 function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: TravelNetwork, version: number) {
-  if(l.mode==="rail")trainFor(l);
+  if (l.mode === "rail") return stepRailLine(s, m, l, seconds, net, version);
   if (!l.enabled) {
     clearRailBlock(l);
     l.status = "Service paused";
