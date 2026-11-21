@@ -800,6 +800,7 @@ export function advanceEconomy(s: GameState, dt: number) {
       left -= qty;
       if (left <= 0) break;
     }
+    if ((globalThis as any).DBG) console.log("grp", Math.round(g.people), (need/t).toFixed(2), (portion/t).toFixed(2), (stock/t).toFixed(1), (retail/t).toFixed(1), (gates/t).toFixed(1), g.shops.length, g.suppliers.length);
     consumed += portion;
     remainingCapacity -= portion;
     const sale = transfer(s, "households", "businesses", portion * MEAL_PRICE, "Household groceries");
