@@ -1,4 +1,4 @@
-import { railFreightBonus } from "./railOperations";
+import { railFreightBonus, railServedSites } from "./railOperations";
 import {syncCatalogBridges} from "./catalogBridge";
 import {chooseRoadAxis,corridorConflict} from "./roadCorridors";
 import {roadWidth,type RoadAxis} from "./roadStandards";
@@ -1272,6 +1272,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   // 3. Spatial radii: Police coverage, Fire coverage, and Nuisance proximity
   const waterUnderlays = elements.flatMap(e => e.waterUnderlay ? [e.waterUnderlay] : []);
   const layout = analyzeLayout(waterUnderlays.length ? [...elements, ...waterUnderlays] : elements, (x,z) => isCoastalTile(x,z,state),String(state.terrainVersion??1)+"/"+(state.infrastructure?.stamp ?? state.infrastructure?.revision??0));
+  const railServed = railServedSites(state);
 
   for (const el of elements) {
     el.nuisancePenalty = 0;
@@ -1280,7 +1281,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     const pol = Math.max(0,sampleFieldAvg(layout.pollution, el)-border.cooling);
     el.pollution = Math.round(pol * 10) / 10;
     el.landValue = Math.round(sampleFieldAvg(layout.landValue, el) * 100) / 100;
-    el.synergies = (layout.synergies.get(el.id) ?? []).filter(tag => tag !== "irrigated");
+    // Rail Freight needs a running freight line serving the site, not just nearby track.
+    el.synergies = (layout.synergies.get(el.id) ?? []).filter(tag => tag !== "irrigated" && (tag !== "rail_freight" || railServed.has(el.id)));
     if (def?.category==="agriculture" && (border.bankWater || (waterAtSites.get(el.id)?.irrigation ?? 0)>0))
       el.synergies.push("irrigated");
     if (def?.popBase && pol > 1.2) {
@@ -1316,7 +1318,9 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   m.congestion = Math.round(demand.congestion);
   m.congestionDaily = Math.round(demand.congestion * AVERAGE_RUSH_FACTOR / Math.max(0.05, rushHourFactor(state.timeOfDay ?? 10.5)));
   m.transitTrips = Math.round(service.served);
-  m.transitShare = service.served ? Math.round(100 * service.served / Math.max(service.served, demand.trips)) : 0;
+  // Riders are counted per real minute; street trips per game hour (1 game hour = 5 real seconds).
+  const servedPerGameHour = service.served / 12;
+  m.transitShare = servedPerGameHour ? Math.round(100 * servedPerGameHour / Math.max(servedPerGameHour, demand.trips)) : 0;
   m.solarFactor = Math.round(powerOutputFactor("solar", state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * 100) / 100;
   m.windFactor = Math.round(powerOutputFactor("wind", state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * 100) / 100;
 
