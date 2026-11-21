@@ -39,13 +39,17 @@ for (const t of ["Lines", "Trains", "Cars", "Cargo", "Upgrades"]) {
 }
 await click(/Close Rail Operations/);
 await page.waitForTimeout(1200);
+const cx0 = W / 2, cy0 = H * 0.45; await page.mouse.move(cx0, cy0);
+for (let i = 0; i < Number(process.env.OUT ?? 3); i++) { await page.mouse.wheel(0, 300); await page.waitForTimeout(150); }
+await page.keyboard.press("Escape").catch(()=>{});
+await page.waitForTimeout(1500);
 await shot("04-yard-world");
 // motion frames
 for (let i = 0; i < 6; i++) { await page.waitForTimeout(700); await shot("05-frame-" + i); }
 // zoom in via wheel
 const cx = W / 2, cy = H / 2;
 await page.mouse.move(cx, cy);
-for (let i = 0; i < 4; i++) { await page.mouse.wheel(0, -300); await page.waitForTimeout(150); }
+for (let i = 0; i < 2; i++) { await page.mouse.wheel(0, -300); await page.waitForTimeout(150); }
 await page.waitForTimeout(1500);
 await shot("06-yard-zoom");
 for (let i = 0; i < 4; i++) { await page.waitForTimeout(600); await shot("07-zoomframe-" + i); }

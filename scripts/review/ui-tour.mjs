@@ -6,7 +6,16 @@ const device = process.argv[2] ?? "phone";
 const filter = process.argv[3];
 const opts = device === "phone" ? PHONE : DESK;
 const SW = "#world=switchyard-city";
-const clickText = async (page, sel, text) => { await page.locator(sel, { hasText: text }).first().click({ timeout: 4000 }); await page.waitForTimeout(600); };
+// DOM-level click by selector + text (Playwright actionability checks time out under software GL).
+const clickText = async (page, sel, text) => {
+  const ok = await page.evaluate(([sel, src, flags]) => {
+    const re = new RegExp(src, flags);
+    const el = [...document.querySelectorAll(sel)].find((e) => re.test(e.textContent ?? ""));
+    if (el) el.click(); return !!el;
+  }, [sel, text instanceof RegExp ? text.source : text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), text instanceof RegExp ? text.flags : ""]);
+  if (!ok) throw new Error(`no ${sel} matching ${text}`);
+  await page.waitForTimeout(700);
+};
 const rail = (page, id) => page.click(`[data-panel-toggle="${id}"]`).then(() => page.waitForTimeout(700));
 const selectDef = async (page, defId) => page.evaluate((defId) => {
   const w = window.__pixelWorld; const el = w.gameState.elements.find((e) => e.defId === defId) ?? w.gameState.elements.find((e) => e.defId.includes(defId));
@@ -46,15 +55,31 @@ const states = {
   "saves": [SW, async (p) => { await p.click('[aria-label="Open Game Menu"]'); await p.waitForTimeout(500); await clickText(p, ".main-menu button", /Save|Load/); }],
   "examples": [SW, async (p) => { await p.click('[aria-label="Open Game Menu"]'); await p.waitForTimeout(500); await clickText(p, ".main-menu button", "Example islands"); }],
   "world-guide": [SW, async (p) => { await p.click(".world-guide-toggle", { force: true }); await p.waitForTimeout(600); }],
+  "status-quick": [SW, async (p) => { await rail(p, "status"); await p.click('[aria-label="Show Quick Controls"]'); await p.waitForTimeout(500); }],
+  "advisor-stages": [SW, async (p) => { await rail(p, "status"); await p.click('[title="City Advisor & 20 Stages"]'); await p.waitForTimeout(500); await clickText(p, "button", /All 20 Stages/); }],
+  "desk-city-scrolled": [SW, async (p) => { await clickText(p, ".city-pulse button", "Happiness"); await p.evaluate(() => { const d = document.querySelector(".island-desk"); if (d) d.scrollTop = 600; }); await p.waitForTimeout(400); }],
+  "toast-upgrade-fail": [SW, async (p) => { await selectDef(p, "house"); await p.click('[aria-label="Level Up"]', { force: true }).catch(() => {}); await p.waitForTimeout(700); }],
   "stacked": [SW, async (p) => { await selectDef(p, "house"); await rail(p, "build"); }],
 };
 const b = await launch();
-const report = {};
-for (const [name, [hash, fn]] of Object.entries(states)) {
-  if (filter && !name.includes(filter)) continue;
-  const { ctx, page } = await open(b, opts, hash);
+const f = `${OUT}/tour-${device}.json`;
+const report = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : {};
+// Reuse one page per hash; reset with Escape between states, reload after states that leave modals or edits behind.
+const DIRTY = /build-placed|rail-ops|examples|saves|hamburger|advisor|world-guide|full/;
+let cur = null, curHash = null, dirty = false;
+for (const [name, [hash, fn]] of Object.entries(states).sort((a, b) => a[1][0].localeCompare(b[1][0]))) {
+  if (filter && !new RegExp(filter).test(name)) continue;
+  if (!cur || hash !== curHash || dirty) {
+    if (cur) await cur.ctx.close();
+    cur = await open(b, opts, hash); curHash = hash;
+  } else {
+    for (let i = 0; i < 4; i++) { await cur.page.keyboard.press("Escape"); await cur.page.waitForTimeout(150); }
+    await cur.page.waitForTimeout(300);
+  }
+  const page = cur.page;
+  dirty = DIRTY.test(name);
   let extra = {};
-  try { extra = (await fn(page)) ?? {}; } catch (e) { console.log(`[${name}] step failed: ${e.message.split("\n")[0]}`); }
+  try { extra = (await fn(page)) ?? {}; } catch (e) { console.log(`[${name}] step failed: ${e.message.split("\n")[0]}`); dirty = true; }
   const file = `${OUT}/${device}-${name}.png`;
   if (extra.full) {
     const h = await page.evaluate(() => document.querySelector(".main-menu")?.scrollHeight ?? innerHeight);
@@ -62,10 +87,7 @@ for (const [name, [hash, fn]] of Object.entries(states)) {
   }
   await page.screenshot({ path: file });
   report[name] = { inv: await inventory(page), panels: await panels(page) };
+  fs.writeFileSync(f, JSON.stringify(report, null, 1));
   console.log("saved", file, "controls", report[name].inv.count, "tiny", report[name].inv.tiny);
-  await ctx.close();
 }
-const f = `${OUT}/tour-${device}.json`;
-const prev = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : {};
-fs.writeFileSync(f, JSON.stringify({ ...prev, ...report }, null, 1));
 await b.close();
