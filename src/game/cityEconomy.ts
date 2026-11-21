@@ -122,6 +122,8 @@ export interface Economy {
     commerce?: number;
     /** Household spending at local commerce in the last period ($/s) */
     spending?: number;
+    /** Residents the districts' shops and farm gates can serve (growth cap input) */
+    foodResidents?: number;
   };
 }
 export function economyOf(s: GameState): Economy {
@@ -800,14 +802,28 @@ export function advanceEconomy(s: GameState, dt: number) {
       left -= qty;
       if (left <= 0) break;
     }
-    if ((globalThis as any).DBG) console.log("grp", Math.round(g.people), (need/t).toFixed(2), (portion/t).toFixed(2), (stock/t).toFixed(1), (retail/t).toFixed(1), (gates/t).toFixed(1), g.shops.length, g.suppliers.length);
     consumed += portion;
     remainingCapacity -= portion;
     const sale = transfer(s, "households", "businesses", portion * MEAL_PRICE, "Household groceries");
     taxes += transfer(s, "businesses", "treasury", sale * 0.04, "Sales tax");
   }
-  const wages = transfer(s, "businesses", "households", workers * 0.34 * t, "Local wages");
+  // Firms keep a tenth of their cash as working capital for the next period's restocking.
+  const wages = transfer(s, "businesses", "households", Math.min(workers * 0.34 * t, 0.9 * e.businesses), "Local wages");
   taxes += transfer(s, "households", "treasury", wages * taxFraction, "Payroll tax");
+  // How many residents the districts' shops and farm gates can serve, with new residents settling in
+  // proportion to today's homes: a district's spare counter capacity cannot feed another district.
+  {
+    const perResident = 1 / (s.mode === "survival" ? 103 : 115);
+    const lanes = [...groups.values()].filter((g) => g.people > 0).map((g) => ({
+      share: g.people / Math.max(1, s.population),
+      meals: sum(g.shops.map((el) => e.sites[el.id].retail)) * 0.15 + sum(g.suppliers.map((el) => e.sites[el.id].yieldRate)) * 0.52,
+    }));
+    const fed = (p: number) => lanes.reduce((n, l) => n + Math.min(l.share * p * perResident, l.meals), 0);
+    let lo = 0, hi = Math.max(1000, s.population * 40);
+    if (fed(hi) >= 0.98 * hi * perResident) lo = hi;
+    else for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (fed(mid) >= 0.98 * mid * perResident) lo = mid; else hi = mid; }
+    r.foodResidents = lanes.length ? lo : undefined;
+  }
   const m = s.metrics;
   const utilityDeficit = Math.max(0, m.waterDemand ? 1 - m.waterSupply / m.waterDemand : 0,
     m.powerDemand ? 1 - m.powerSupply / m.powerDemand : 0);

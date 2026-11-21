@@ -61,8 +61,7 @@ calls it. Only the logic function changed, not the JSX. See the follow-ups below
   - `food` was ignored on non-crop, non-retail sites. Docks, boats, windmills, monasteries and machu_picchu now
     produce a harvest of `food × output(L) × 0.10`.
   - Malls are now a retail food site (food court) and also import groceries.
-- `transitRelief()` is kept as a reference figure only, since a test imports it. Live relief comes from
-  `mobility.reliefAtStops`.
+- `transitRelief()` was dead code and has been removed (balance round 2). Live relief comes from `mobility.reliefAtStops`.
 
 Unchanged on purpose: the crop, retail, draw and trip curves; road capacity (it has its own lane model, levels 1..11);
 sanctuary beds; blessing durations; the upgrade activity goal (×L time gate); vessel hull growth; the rail car table.

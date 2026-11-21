@@ -112,7 +112,7 @@ export interface MobilityState {
   /** Riders who gave up waiting in the last two minutes. */
   lost?: { time: number; count: number; stop: string; line: string }[];
   /** Last departure per line and stop, for headway keeping. */
-  departed?: Record<string, number>;
+  departed?: Record<string, { t: number; train: string }>;
 }
 export const lineKey = (l: Run) => l.group ?? l.id;
 export function lineTrains(s: GameState, key: string): Run[] {
@@ -688,11 +688,12 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
   const key = lineKey(l),
     trains = lineTrains(s, key).filter((t) => t.enabled);
   const startStop = route[0];
-  const leavingStart = !l.path.length && (parked || l.at === startStop) && !r.yielding;
+  // Only depot releases are spaced; in service, holding a train at a station on shared track does more harm than good.
+  const leavingStart = !l.path.length && parked && !r.yielding;
   if (leavingStart && trains.length > 1) {
     const last = (m.departed ??= {})[key + "|" + startStop];
     const headway = circuitSeconds(s, key) / trains.length;
-    if (last !== undefined && s.activePlaySec - last < headway * 0.85) {
+    if (last && typeof last === "object" && last.train !== l.id && s.activePlaySec - last.t < headway * 0.85) {
       l.status = parked ? "Ready in the depot · keeping the headway" : "Holding to keep the headway";
       return;
     }
@@ -706,7 +707,6 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
     l.plannedAt = s.activePlaySec;
     l.version = version;
     if (!parked && !r.yielding && (!inServiceHours(s, l) && !l.riders.length)) r.yielding = "hours";
-    if (!parked && !r.yielding && starvingBehind(s, l)) r.yielding = "clear";
     if (parked && r.yielding && r.yielding !== "recall") delete r.yielding;
     const target = r.yielding ? depot : net.byId.get(route[l.next % route.length]);
     if (!target) return;
@@ -714,10 +714,23 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
     const allEnds = net.connectors(target, "rail");
     const avoid = heldByOthers(s, l);
     const freeEnds = allEnds.filter(([x, z]) => !avoid.has(x + "," + z));
+    const tr = r.trail;
+    const facing: Point | undefined =
+      !parked && tr.length > 1
+        ? (() => {
+            const dx = tr[0][0] - tr[1][0],
+              dz = tr[0][1] - tr[1][1];
+            return Math.abs(dx) > Math.abs(dz) ? [Math.sign(dx), 0] : [0, Math.sign(dz)];
+          })()
+        : undefined;
     const path =
-      (freeEnds.length && net.path(starts, freeEnds, "rail", undefined, undefined, avoid)) ||
-      net.path(starts, freeEnds.length ? freeEnds : allEnds, "rail") ||
-      net.path(starts, allEnds, "rail");
+      net.railPath(starts, freeEnds.length ? freeEnds : allEnds, avoid, 30, facing) || net.railPath(starts, allEnds, avoid, 30, facing);
+    // Someone has waited a long time behind this train: get out of the way if moving on would not help them.
+    if (path && !parked && !r.yielding && starvingBehind(s, l, path, net.railPath(starts, net.connectors(depot, "rail"), new Set()))) {
+      r.yielding = "clear";
+      l.version = -1;
+      return;
+    }
     if (!path) {
       r.reservation = undefined;
       const issue = net.diagnose(starts, perimeter(target), "rail");
@@ -729,7 +742,7 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
     }
     if (parked) {
       l.position = path[0];
-      if (!r.yielding) (m.departed ??= {})[key + "|" + startStop] = s.activePlaySec;
+      if (!r.yielding) (m.departed ??= {})[key + "|" + startStop] = { t: s.activePlaySec, train: l.id };
     } else if (l.position && path.length > 1) {
       // Re-planned mid-leg: continue from where the head actually is, not from the tile centre.
       const [hx, hz] = l.position,
@@ -809,7 +822,7 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
   if (r.service === "freight" && s.railYard?.works?.[target.id]?.crane) dwell *= 0.7;
   if (terminus) dwell = Math.max(dwell, Math.min(r.frequency, 90) * (nightNow(s) ? 1.4 : 1) * 0.5);
   l.dwell = dwell;
-  if (index === 0) (m.departed ??= {})[key + "|" + target.id] = s.activePlaySec + dwell;
+  if (index === 0) (m.departed ??= {})[key + "|" + target.id] = { t: s.activePlaySec + dwell, train: l.id };
   l.status = (wasGhost ? "Squeezed past · build a passing loop · " : "") + (r.service === "freight" ? "Loading at " : "Boarding at ") + ELEMENT_BY_ID[target.defId].name;
 }
 function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: TravelNetwork, version: number) {
@@ -1196,7 +1209,7 @@ export function reliefAtStops(s: GameState): Map<string, number> {
   for (const r of s.mobility?.deliveries ?? [])
     if (s.activePlaySec - r.time <= 120)
       // Per-minute riders (two-minute window), the same unit as the street trips they replace.
-      relief.set(r.stop, (relief.get(r.stop) ?? 0) + (r.count / 2) * (r.freight ? 0.25 : 1));
+      relief.set(r.stop, (relief.get(r.stop) ?? 0) + r.count * (r.freight ? 0.25 : 1));
   return relief;
 }
 export function transitLayer(s: GameState): { gx: number; gz: number; intensity: number }[] {

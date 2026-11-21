@@ -86,17 +86,31 @@ function step(s: GameState, seconds: number) {
     stepMobility(s, 0.25);
   }
 }
+// ---------------------------------------------------------------- round 2: blocks, lines with N trains, physics
+import { addTrainToLine, lineHeadway, transitReadout } from "../src/game/mobility";
+import { railLeg } from "../src/game/railMovement";
+function loopDistrict(withLoop: boolean) {
+  const s = createInitialGameState("god");
+  s.timeOfDay = 12;
+  for (let x = -12; x <= 12; x++) put(s, "train_tracks", x, 0);
+  if (withLoop) {
+    for (const x of [-3, 3]) put(s, "train_tracks", x, -1);
+    for (let x = -3; x <= 3; x++) put(s, "train_tracks", x, -2);
+  }
+  for (let x = -13; x <= 13; x++) put(s, "roads", x, 3);
+  const depot = put(s, "train_depots", -12, 1, 2),
+    west = put(s, "train_stops", -9, 1, 2),
+    east = put(s, "train_stops", 9, 1, 2),
+    eastDepot = put(s, "train_depots", 11, 1, 2);
+  for (let x = -11; x <= 11; x += 2) put(s, "house", x, 4, 1, 2);
+  s.population = 80;
+  return { s, depot, west, east, eastDepot };
+}
 test("dbg", () => {
-  const { s, depot, a, b } = district(), f = defaultFormation();
-  addLine(s, "rail", depot.id, [a.id, b.id], f);
-  addLine(s, "rail", depot.id, [b.id, a.id], { ...f, name: "Express", priority: "express" });
-  for (let t = 0; t < 165; t += 0.25) {
-    s.activePlaySec += 0.25; stepMobility(s, 0.25);
-    const [x, y] = s.mobility!.lines;
-    const held = x.rail?.reservation ?? [];
-    const bad = (y.rail?.reservation ?? []).filter((k) => held.includes(k));
-    let near = 9;
-    for (const p of railBodies(x)) for (const q of railBodies(y)) near = Math.min(near, Math.hypot(p.point[0]-q.point[0], p.point[1]-q.point[1]));
-    if (t % 5 === 0 || bad.length || near < 0.48) console.log(t, x.status, "|", y.status, x.departures, y.departures, bad.join(" "), near.toFixed(2));
+  const { s, depot, west, east, eastDepot } = loopDistrict(true);
+  addLine(s, "rail", depot.id, [west.id, east.id], defaultFormation());
+  addLine(s, "rail", eastDepot.id, [east.id, west.id], { ...defaultFormation(), name: "Counter" });
+  for (let t = 0; t < 160; t += 0.25) { s.activePlaySec += 0.25; stepMobility(s, 0.25);
+    if (t % 2 === 0) console.log(t, s.mobility!.lines.map(l => `${l.status.slice(0,30)+' '+(l.rail!.claimEnd??'').toString().slice(0,4)+' p='+l.path.map(p=>p.map(Math.round).join(',')).filter((_,i)=>i%2==0).join(' ')} @${l.position?.map(v=>v.toFixed(1))} y=${l.rail!.yielding??""} by=${l.rail!.blockedBy??""}`).join(" || "));
   }
 });

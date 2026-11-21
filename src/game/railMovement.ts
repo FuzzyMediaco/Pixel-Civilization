@@ -351,6 +351,28 @@ export function claimRailLeg(s: GameState, l: Run, net: TravelNetwork): boolean 
     return true;
   }
   const from = tileIndexAt(leg, r.dist ?? 0);
+  // Auto-blocks: claim through the next junction(s) up to the end of the first plain stretch beyond them that
+  // can hold the whole train - a safe place to stand. Trains therefore wait in passing loops, not at stations.
+  const degree = leg.tiles.map((k) => {
+    const [x, z] = k.split(",").map(Number);
+    return railDegree(net, x, z);
+  });
+  let horizon = leg.tiles.length - 1;
+  {
+    const need = Math.ceil(trainLength(r));
+    let seenJunction = false,
+      run = 0;
+    for (let i = from + 1; i < leg.tiles.length; i++) {
+      if (degree[i] >= 3) {
+        if (seenJunction && run >= need) {
+          horizon = i - 1;
+          break;
+        }
+        seenJunction = true;
+        run = 0;
+      } else if (seenJunction) run++;
+    }
+  }
   const owners = new Map<string, Run>();
   for (const o of railLines(s)) if (o !== l) for (const k of occupiedTiles(o)) owners.set(k, o);
   let conflict = -1,
@@ -362,29 +384,39 @@ export function claimRailLeg(s: GameState, l: Run, net: TravelNetwork): boolean 
       break;
     }
   if (!blocker)
-    for (let i = from; i < leg.tiles.length; i++)
+    for (let i = from; i <= horizon; i++)
       if (owners.has(leg.tiles[i])) {
         conflict = i;
         blocker = owners.get(leg.tiles[i]);
         break;
       }
   if (!blocker) {
-    r.reservation = [...new Set([...body, ...leg.tiles.slice(from)])];
+    r.reservation = [...new Set([...body, ...leg.tiles.slice(from, horizon + 1)])];
+    if (horizon < leg.tiles.length - 1) {
+      r.claimEnd = leg.at[horizon];
+      delete r.blockedBy;
+      return true;
+    }
     delete r.claimEnd;
     delete r.waitingSince;
     delete r.blockedBy;
     return true;
   }
-  // Moving block: follow a train running away from us on signalled track, two tiles behind its tail.
+  // Partial claims. (a) Moving block: follow a train running away from us on signalled track, two tiles
+  // behind its tail. (b) Passing place: an oncoming or crossing train has reserved track further ahead; run up
+  // to two tiles short of it (typically into a loop) and wait there - its route does not touch ours.
   const end = conflict - 2;
-  if (end > from && blocker.rail && blocker.path.length && (blocker.rail.speed ?? 0) > 0 && blocker.dwell <= 0) {
+  if (end > from && blocker.rail && blocker.path.length && blocker.dwell <= 0) {
     const prefix = leg.tiles.slice(from, end + 1);
     const ahead = new Set(blocker.rail.reservation ?? []);
     const towardUs = prefix.some((k) => ahead.has(k));
-    if (!towardUs && prefix.every((k) => signalled(s, l, net, k))) {
+    const theirBody = new Set(bodyTiles(blocker.rail, blocker.position));
+    const following = theirBody.has(leg.tiles[conflict]) && (blocker.rail.speed ?? 0) > 0;
+    const merge = degree.slice(end + 1, conflict + 1).some((d) => d >= 3);
+    const passing = merge && !theirBody.has(leg.tiles[conflict]) && !blocker.path.some((p) => prefix.includes(key(p[0], p[1])));
+    if (!towardUs && ((following && prefix.every((k) => signalled(s, l, net, k))) || passing)) {
       r.reservation = [...new Set([...body, ...prefix])];
       r.claimEnd = leg.at[end];
-      delete r.waitingSince;
       r.blockedBy = blocker.id;
       return true;
     }
@@ -437,16 +469,24 @@ export function resolveRailConflicts(s: GameState) {
     } else if (s.activePlaySec - since > 25) r.ghost = true;
   }
 }
-/** Someone has waited 25 s behind this standing train: it should get out of the way. */
-export function starvingBehind(s: GameState, l: Run) {
-  return railLines(s).some(
-    (o) =>
-      o !== l &&
-      o.enabled &&
-      o.rail?.blockedBy === l.id &&
-      o.rail.waitingSince !== undefined &&
-      s.activePlaySec - o.rail.waitingSince > (l.rail?.priority === "express" && o.rail.priority !== "express" ? 45 : 25),
-  );
+/**
+ * Someone has waited 25 s (45 s behind an express) for this standing train. Yield to the depot when the
+ * planned leg would leave the train in their way again (head-on, or standing on their route), and the trip
+ * to the depot does not itself run through them.
+ */
+export function starvingBehind(s: GameState, l: Run, next?: Point[], toDepot?: Point[] | null) {
+  const mine = new Set((next ?? []).map((p) => key(p[0], p[1])));
+  const end = new Set((next ?? []).slice(-4).map((p) => key(p[0], p[1])));
+  return railLines(s).some((o) => {
+    if (o === l || !o.enabled || o.rail?.blockedBy !== l.id || o.rail.waitingSince === undefined) return false;
+    const limit = l.rail?.priority === "express" && o.rail.priority !== "express" ? 45 : 25;
+    if (s.activePlaySec - o.rail.waitingSince <= limit) return false;
+    const body = new Set(onTrack(o) ? bodyTiles(o.rail, o.position) : []);
+    const theirs = new Set(o.path.map((p) => key(p[0], p[1])));
+    const stuck = [...mine].some((k) => body.has(k)) || [...end].some((k) => theirs.has(k));
+    if (!stuck) return false;
+    return !(toDepot ?? []).some((p) => body.has(key(p[0], p[1])));
+  });
 }
 
 /* ------------------------------------------------------------------ reversal at termini */

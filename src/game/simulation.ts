@@ -422,7 +422,9 @@ export function populationLimiterFor(state: GameState, m: CityMetrics, housingBa
     ["housing", Math.max(housingBase, economy.capacity || housingBase)],
     // Half of all residents work (cityEconomy workforce), so this is the population the reachable jobs employ.
     ["jobs", economy.reachable / 0.5],
-    ["food", m.foodSupply / foodPerResident],
+    // Food reaches homes through their own district's shops and farm gates (cityEconomy.foodResidents).
+    ["food", Math.min(m.foodSupply / foodPerResident,
+      economy.foodResidents ?? Infinity)],
     ["waste", m.wasteCapacity / (WASTE_PER_UNIT / 5 * perCapita)],
     ["water", state.population + (m.waterSupply - m.waterDemand) * RESIDENTS_PER_WATER / perCapita],
     ["power", state.population + (m.powerSupplySteady - m.powerDemand) * RESIDENTS_PER_POWER / perCapita],
@@ -2881,6 +2883,16 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     }
   }
 
+  // Residents who can't be fed, employed, housed or served drift away slowly (0.2%/s) until the city is
+  // back at its cap. Weather-driven water/power dips are left to happiness and utility strain instead.
+  if (state.metrics.connectedHouses > 0 && dtSec > 0) {
+    const limit = state.metrics.populationLimiter;
+    const held = state.mode === "god" && economyOf(state).holds.some((h) => h.key === "population");
+    if (!held && limit.limitingNeed !== "water" && limit.limitingNeed !== "power" && state.population > limit.cap * 1.02) {
+      state.growthPool -= Math.min(state.population - limit.cap, Math.max(1, state.population * 0.002) * dtSec);
+      dirty = true;
+    }
+  }
   if (dirty) {
     recomputeConnectivityAndMetrics(state);
   }

@@ -232,6 +232,87 @@ export class TravelNetwork {
     }
     return null;
   }
+  /**
+   * Rail route that prefers free track: tiles in `penalty` (held by other trains) cost extra, so a train picks
+   * the other side of a passing loop or the second track of a double line when one is busy. Same turn rules as
+   * path(): turnouts, bridge spans, and straight-through only on a diamond.
+   */
+  railPath(starts: Point[], ends: Point[], penalty: Set<string>, cost = 30, heading?: Point, reverseCost = 40): Point[] | null {
+    const goal = new Set(ends.filter(([x, z]) => this.canUse(x, z, "rail")).map(([x, z]) => tileKey(x, z)));
+    if (!goal.size) return null;
+    const best = new Map<number, number>(),
+      parent = new Map<number, number>();
+    const heap: [number, number][] = [];
+    const push = (c: number, n: number) => {
+      heap.push([c, n]);
+      let i = heap.length - 1;
+      while (i > 0) {
+        const p = (i - 1) >> 1;
+        if (heap[p][0] <= heap[i][0]) break;
+        [heap[p], heap[i]] = [heap[i], heap[p]];
+        i = p;
+      }
+    };
+    const pop = () => {
+      const top = heap[0],
+        last = heap.pop()!;
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = 2 * i + 1,
+            r = l + 1;
+          let m = i;
+          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+          if (m === i) break;
+          [heap[m], heap[i]] = [heap[i], heap[m]];
+          i = m;
+        }
+      }
+      return top;
+    };
+    // Node = tile * 4 + arrival direction (0..3, or 4 for a start tile with no direction yet) → use tile*5+dir.
+    for (const [x, z] of starts) {
+      if (!this.canUse(x, z, "rail")) continue;
+      // Facing a known direction: going on is free, reversing costs a little (drivers change ends).
+      const facing = heading ? sides.findIndex(([dx, dz]) => dx === heading[0] && dz === heading[1]) : -1;
+      const n = tileKey(x, z) * 5 + (facing >= 0 ? facing : 4);
+      best.set(n, 0);
+      parent.set(n, -1);
+      push(0, n);
+    }
+    while (heap.length) {
+      const [c, n] = pop();
+      if (c > (best.get(n) ?? Infinity)) continue;
+      const cell = Math.floor(n / 5),
+        dir = n % 5,
+        [x, z] = point(cell);
+      if (goal.has(cell)) {
+        const route: Point[] = [];
+        for (let k = n; k >= 0; k = parent.get(k)!) route.push(point(Math.floor(k / 5)));
+        return route.reverse();
+      }
+      const diamond = this.crossings.has(cell);
+      for (let d = 0; d < 4; d++) {
+        const [dx, dz] = sides[d];
+        const reversing = dir < 4 && d === (dir + 2) % 4;
+        if (reversing && parent.get(n) !== -1) continue;
+        if (diamond && dir < 4 && d !== dir && !reversing) continue;
+        const nx = x + dx,
+          nz = z + dz;
+        if (!this.canUse(nx, nz, "rail")) continue;
+        if (!switchAllows(this.state, x, z, dx, dz) || !switchAllows(this.state, nx, nz, -dx, -dz) || !railSpanAllows(this.state, x, z, dx, dz)) continue;
+        const m = tileKey(nx, nz) * 5 + d;
+        const nc = c + 1 + (penalty.has(nx + "," + nz) ? cost : 0) + (reversing ? reverseCost : 0);
+        if (nc >= (best.get(m) ?? Infinity)) continue;
+        best.set(m, nc);
+        parent.set(m, n);
+        push(nc, m);
+      }
+    }
+    return null;
+  }
   private canTurn(x: number, z: number, hull: Hull): boolean {
     if (!hull.turningWidth) return true;
     if (this.water.cell(x, z).width < hull.turningWidth) return false;
