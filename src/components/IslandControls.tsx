@@ -7,46 +7,8 @@ import { getParcelEdges, PARCEL_SIDES, EDGE_LABELS } from "../game/parcelEdges";
 import { getRoadTripNetwork } from "../game/roadTraffic";
 import { mobilityOf } from "../game/mobility";
 import { igniteSite } from "../game/projectOperations";
-import { cityWealth } from "../game/cityEconomy";
 import type { ChangeCity } from "./MobilityPanel";
-export type DeskTab = "works" | "transit" | "city" | "god" | "connections";
-export const tabs: Record<DeskTab, string> = {
-  works: "Land & water",
-  transit: "Transit & harbor",
-  city: "City accounts",
-  god: "God controls",
-  connections: "Connections",
-};
-export function CityBar({
-  s,
-  onOpen,
-}: {
-  s: GameState;
-  onOpen: (score: "population" | "happiness" | "wealth") => void;
-}) {
-  const held = (keys: string[]) => (s.economy?.holds.some((h) => keys.includes(h.key)) ? " · Held" : "");
-  const n = (v: number) =>
-    new Intl.NumberFormat("en", {
-      notation: v >= 10000 ? "compact" : "standard",
-      maximumFractionDigits: v >= 10000 ? 1 : 0,
-    }).format(v);
-  return (
-    <div className="city-pulse" aria-label="City totals">
-      <button onClick={() => onOpen("population")}>
-        <span>Population{held(["population"])}</span>
-        <b>{n(s.population)}</b>
-      </button>
-      <button onClick={() => onOpen("happiness")}>
-        <span>Happiness{held(["happiness"])}</span>
-        <b>{Math.round(s.happiness)}%</b>
-      </button>
-      <button onClick={() => onOpen("wealth")}>
-        <span>City wealth{held(["treasury", "businesses", "households"])}</span>
-        <b>${n(cityWealth(s))}</b>
-      </button>
-    </div>
-  );
-}
+export type LinkTarget = "info" | "transit" | "works";
 function CarAccess({city, site}: {city: GameState; site: PlacedElement}) {
   const def = ELEMENT_BY_ID[site.defId];
   const isStreet = Boolean(def.isRoadNetwork && !PEDESTRIAN_IDS.has(def.id) && !site.pedestrianDeck);
@@ -75,7 +37,7 @@ export function Connections({
   s: GameState;
   el?: PlacedElement;
   change: ChangeCity;
-  go: (tab: DeskTab) => void;
+  go: (tab: LinkTarget) => void;
 }) {
   if (!el) return <p>Tap a building or vessel on the island to inspect its neighbors.</p>;
   const d = ELEMENT_BY_ID[el.defId],
@@ -102,9 +64,9 @@ export function Connections({
         <p>No shared edge here yet. Place a compatible neighbor or connect the front entrance.</p>
       )}
       <div className="island-actions">
-        <button onClick={() => go("city")}>Services & upgrade</button>
-        <button onClick={() => go("transit")}>Reachable transport</button>
-        <button onClick={() => go("works")}>Inspect surrounding ground</button>
+        <button onClick={() => go("info")}>Services &amp; upgrade</button>
+        <button onClick={() => go("transit")}>Transit nearby</button>
+        <button onClick={() => go("works")}>Land &amp; water here</button>
       </div>
       {s.mode === "god" && (
         <fieldset>
@@ -146,13 +108,6 @@ export function Connections({
           </label>
         </fieldset>
       )}
-      <a
-        target="_blank"
-        rel="noreferrer"
-        href={"./field-guide.html?id=" + d.id + "&level=" + el.level + "&variant=" + (el.variant + 1)}
-      >
-        Inspect this design in the field guide ↗
-      </a>
     </div>
   );
 }
@@ -160,33 +115,21 @@ interface GodProps {
   s: GameState;
   el?: PlacedElement;
   change: ChangeCity;
-  go: (tab: DeskTab) => void;
-  onWeather: () => void;
-  onDefense: () => void;
   onSave: () => void;
   onRestore: () => void;
   canRestore: boolean;
-  paused: boolean;
-  onPause: () => void;
   onStep: () => void;
   onDistrict: () => void;
-  onExamples: () => void;
 }
 export function GodControls({
   s,
   el,
   change,
-  go,
-  onWeather,
-  onDefense,
   onSave,
   onRestore,
   canRestore,
-  paused,
-  onPause,
   onStep,
   onDistrict,
-  onExamples,
 }: GodProps) {
   const [scope, setScope] = useState<"island" | "district" | "item">("island"),
     [radius, setRadius] = useState(4);
@@ -221,23 +164,11 @@ export function GodControls({
   }
   return (
     <div className="island-content">
-      <h3>Sandbox controls</h3>
       <div className="island-actions">
-        <button onClick={onPause}>{paused ? "Resume clock" : "Pause clock"}</button>
         <button onClick={onStep}>Step one second</button>
-        <button onClick={onWeather}>Weather, camera & clock</button>
-        <button onClick={onDefense}>Defense & incidents</button>
       </div>
       <fieldset>
-        <legend>World systems</legend>
-        <div className="island-actions">
-          <button onClick={() => go("works")}>Terrain, water & crossings</button>
-          <button onClick={() => go("transit")}>Dispatch & routes</button>
-          <button onClick={() => go("city")}>Set or hold city values</button>
-          <button disabled={!el} onClick={() => go("connections")}>
-            Selected building
-          </button>
-        </div>
+        <legend>Travel</legend>
         <label>
           Island travel demand ×
           <input
@@ -294,7 +225,6 @@ export function GodControls({
           Apply to scope
         </button>
       </fieldset>
-      <button type="button" onClick={onExamples}>Example islands</button>
       <fieldset>
         <legend>Experiment snapshots</legend>
         <div className="island-actions">

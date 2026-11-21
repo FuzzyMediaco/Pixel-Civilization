@@ -90,7 +90,7 @@ function build(s: GameState, ox: number, oz: number) {
     ],
   );
   if (!loopBridge.valid) throw Error(loopBridge.reason);
-  const lay = (x: number, z: number, level = 2) => {
+  const lay = (x: number, z: number, level = 1) => {
     const at = s.elements.find((e) => e.gx === ox + x && e.gz === oz + z);
     if (!at) put("train_tracks", x, z, level);
     else if (ELEMENT_BY_ID[at.defId]?.isRailNetwork) at.level = Math.max(at.level, level);

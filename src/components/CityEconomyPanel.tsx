@@ -226,7 +226,9 @@ export function CityEconomyPanel({
           </p>
           <Figures
             rows={[
-              ["Occupied / capacity", n(s.population) + " / " + n(r.capacity)],
+              ...(s.metrics.populationLimiter?.cap
+                ? [["Room for", n(s.metrics.populationLimiter.cap) + " · limited by " + ({housing:"homes",jobs:"jobs",food:"food",waste:"waste",water:"water",power:"power"} as Record<string,string>)[s.metrics.populationLimiter.limitingNeed]] as [string, string]]
+                : []),
               ["Working residents", n(r.workers)],
               ["Filled local jobs", n(Object.values(e.sites).reduce((sum, site) => sum + site.workers, 0))],
               ["Reachable jobs / all jobs", n(r.reachable) + " / " + n(r.jobs)],

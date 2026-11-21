@@ -4,9 +4,8 @@ import { dispatchFire } from "./game/projectOperations";
 import { dispatchVessel, previewWaterPassage } from "./game/mobility";
 import { buildingCharges, transfer } from "./game/cityEconomy";
 import "./islandDesk.css";
-import { CityBar, Connections, GodControls, tabs, type DeskTab } from "./components/IslandControls";
-import { MobilityPanel } from "./components/MobilityPanel";
-import { InfrastructurePanel } from "./components/InfrastructurePanel";
+import { Connections, GodControls } from "./components/IslandControls";
+import { InfrastructurePanel, worksToolLabel } from "./components/InfrastructurePanel";
 import { CityEconomyPanel } from "./components/CityEconomyPanel";
 import { applyInfrastructureStroke, applyLandformPlacement, planInfrastructureStroke, type GridPoint, type InfrastructureTool } from "./game/terrain";
 import { visitPracticeRailway } from "./game/practiceRailway";
@@ -15,18 +14,22 @@ import { EXAMPLE_WORLDS, createExampleWorld, type ExampleWorldId } from "./game/
 import { loadModeState, persistMode, resumeIsland } from "./game/activeIsland";
 import { createCanalDistrict } from "./game/canalDistrict";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertOctagon, Flame, Menu, RotateCcw, ShieldAlert, Sparkles, X } from "lucide-react";
+import { AlertOctagon, Check, Layers, Minus, Plus, RotateCcw, RotateCw, ShieldAlert, X } from "lucide-react";
 import { settleStreetFacing } from "./game/streetFacing";
-import { AdvisorModal } from "./components/AdvisorModal";
-import { BottomDock } from "./components/BottomDock";
-import { type CursorBehavior, CursorControlButton } from "./components/CursorControlButton";
-import { HamburgerMenuModal } from "./components/HamburgerMenuModal";
-import { HeatmapPanel } from "./components/HeatmapPanel";
-import { RightIconRail, type IslandPanel } from "./components/RightIconRail";
 import { GameDialog } from "./components/GameDialog";
 import { SaveSlotsModal } from "./components/SaveSlotsModal";
-import { TopHud } from "./components/TopHud";
 import { ViewEnvPanel, type ViewEnvTab } from "./components/ViewEnvPanel";
+import { BottomNav, type NavSheet } from "./components/BottomNav";
+import { AlertPill, Hud, type HudStat } from "./components/Hud";
+import { BuildSheet, type BuildCategory } from "./components/BuildSheet";
+import { PlacementBar } from "./components/PlacementBar";
+import { InspectorSheet } from "./components/InspectorSheet";
+import { LayersSheet, LAYERS } from "./components/LayersSheet";
+import { CitySheet, type CityTab } from "./components/CitySheet";
+import { TransitSheet } from "./components/TransitSheet";
+import { MoreSheet, type CursorBehavior, type MorePage } from "./components/MoreSheet";
+import { Button, ConfirmDialog, IconButton, Toasts, type SheetHeight, type UiToast } from "./components/ui";
+import { alertIssues, type IssueFix } from "./game/cityIssues";
 import {
   ELEMENT_BY_ID,
   type GameMode,
@@ -72,11 +75,20 @@ import {
   PixelWorldRenderer,
 } from "./game/worldRenderer";
 
+/** Outside God mode the sky runs on its own, so a save made with a locked clock or weather is unlocked on load. */
+function unlockSky(state: GameState) {
+  if (state.mode !== "god") { state.timeLocked = false; state.weatherLocked = false; }
+  return state;
+}
+
+const DEFAULT_HEIGHT: Record<NavSheet, SheetHeight> = {build: "half", layers: "peek", city: "half", transit: "half", more: "half"};
+const idleBrush = (b: BuildBrush): BuildBrush => ({...b, kind: "none", defId: undefined, movingElementId: undefined});
+
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<PixelWorldRenderer | null>(null);
 
-  const [gameState, setGameState] = useState<GameState>(() => resumeIsland(location.hash));
+  const [gameState, setGameState] = useState<GameState>(() => unlockSky(resumeIsland(location.hash)));
   const stateRef = useRef<GameState>(gameState);
   const [examplesOpen,setExamplesOpen] = useState(false);
   const [railSite,setRailSite] = useState<string>();
@@ -92,7 +104,6 @@ export const App: React.FC = () => {
     return saveModeState(state);
   }, [captureView, saveModeState]);
 
-
   useEffect(() => {
     const route = new URLSearchParams(location.hash.slice(1));
     if (!gameState.exampleWorldId && !route.has("world")) return;
@@ -105,12 +116,7 @@ export const App: React.FC = () => {
   const selectedIdsRef = useRef<string[]>(selectedIds);
   selectedIdsRef.current = selectedIds;
 
-  const [brush, setBrush] = useState<BuildBrush>({
-    kind: "none",
-    level: 1,
-    variantMode: -1,
-    rotation: 0,
-  });
+  const [brush, setBrush] = useState<BuildBrush>({kind: "none", level: 1, variantMode: -1, rotation: 0});
   const brushRef = useRef<BuildBrush>(brush);
   brushRef.current = brush;
 
@@ -118,9 +124,22 @@ export const App: React.FC = () => {
   const simSpeedRef = useRef<number>(simSpeed);
   simSpeedRef.current = simSpeed;
 
-  const [desk,setDesk]=useState<DeskTab|null>(null);
-  const [folded,setFolded]=useState(false);
-  const [score,setScore]=useState<"population"|"happiness"|"wealth"|"safety"|"site"|"controls">("wealth");
+  // One sheet at a time (plus the contextual inspector for a selection).
+  const [sheet,setSheetState]=useState<NavSheet|null>(null);
+  const sheetRef=useRef<NavSheet|null>(null);sheetRef.current=sheet;
+  const [sheetHeight,setSheetHeight]=useState<SheetHeight>("half");
+  const [inspectorHeight,setInspectorHeight]=useState<SheetHeight>("half");
+  const [cityTab,setCityTab]=useState<CityTab>("issues");
+  const [morePage,setMorePage]=useState<MorePage>(null);
+  const [buildCat,setBuildCat]=useState<BuildCategory>("suggested");
+  const buildCatRef=useRef(buildCat);buildCatRef.current=buildCat;
+  const [buildQuery,setBuildQuery]=useState("");
+  const [buildFix,setBuildFix]=useState<IssueFix>();
+  const [uiToasts,setUiToasts]=useState<UiToast[]>([]);
+  const [confirmDemolish,setConfirmDemolish]=useState<string[]|null>(null);
+  const [placeStats,setPlaceStats]=useState<{defId:string;count:number;spent:number}>();
+  const [hintsLeft,setHintsLeft]=useState(()=>{try{return Number(localStorage.getItem("pixel_civ_place_hints")??3);}catch{return 3;}});
+
   const [followedService, setFollowedService] = useState<string>();
   const [returnLine,setReturnLine]=useState<string>();
   const [dispatchTarget,setDispatchTarget]=useState<string>();
@@ -144,11 +163,6 @@ export const App: React.FC = () => {
     setAutoSpin(restored && state.cameraView!.autoSpin === true);
   }, []);
 
-
-  // Default layout: all menus start closed as compact right-side icons + standalone hamburger button
-  const [hamburgerOpen, setHamburgerOpen] = useState(false);
-  const [overlay,setOverlay] = useState<IslandPanel|null>(null);
-  const topMenuOpen=overlay==="status", bottomMenuOpen=overlay==="build", heatmapsOpen=overlay==="layers", viewEnvOpen=overlay==="view";
   const [viewEnvTab, setViewEnvTab] = useState<ViewEnvTab>("weather");
   const [activeHeatmap, setActiveHeatmap] = useState<HeatmapKind>("none");
   const [attackSeverity, setAttackSeverity] = useState<number>(2);
@@ -157,25 +171,44 @@ export const App: React.FC = () => {
   cursorBehaviorRef.current = cursorBehavior;
   const [selectionFilter, setSelectionFilter] = useState<SelectionFilter>("all");
 
-  const [advisorOpen, setAdvisorOpen] = useState(false);
   const [savesModalOpen, setSavesModalOpen] = useState(false);
   const [saveSlots, setSaveSlots] = useState<(CivilizationSaveSlot | null)[]>(() => loadSaveSlots());
   const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
-  const [hoverInfo, setHoverInfo] = useState<{
-    gx: number;
-    gz: number;
-    valid: boolean;
-    reason?: string;
-  } | null>(null);
+  const [hoverInfo, setHoverInfo] = useState<{gx: number; gz: number; valid: boolean; reason?: string} | null>(null);
 
-  const collapseOverlayMenus = useCallback(()=>setOverlay(null),[]);
-  const revealOverlay = useCallback((panel:IslandPanel,toggle=false)=>{
-    setDesk(null);setFolded(false);setPendingWorks(null);setWorksTool(null);setDispatchTarget(undefined);
-    setOverlay(current=>toggle && current===panel ? null : panel);
+  /** Toasts made by the interface (placement, demolish, upgrade), each optionally actionable. */
+  const toastTimers=useRef(new Map<string,number>());
+  const showToast=useCallback((t:UiToast,ms=4500)=>{
+    setUiToasts(list=>[t,...list.filter(x=>x.id!==t.id)].slice(0,3));
+    const timers=toastTimers.current;
+    window.clearTimeout(timers.get(t.id));
+    timers.set(t.id,window.setTimeout(()=>{setUiToasts(list=>list.filter(x=>x.id!==t.id));timers.delete(t.id);},ms));
   },[]);
-  const navigation=useRef({overlay,desk,pendingWorks,dispatchTarget});
-  navigation.current={overlay,desk,pendingWorks,dispatchTarget};
+  const dismissToast=useCallback((id:string)=>setUiToasts(list=>list.filter(x=>x.id!==id)),[]);
+  const undoRef=useRef<()=>void>(()=>{});
+
+  /** Open a home (or close it if it is already open). Every sheet replaces whatever was open. */
+  const openSheet=useCallback((id:NavSheet|null,toggle=false)=>{
+    setPendingWorks(null);setWorksTool(null);setDispatchTarget(undefined);
+    setBrush(idleBrush);
+    setSheetState(current=>{
+      const next=toggle&&current===id?null:id;
+      if(next&&next!==current)setSheetHeight(DEFAULT_HEIGHT[next]);
+      if(next)setSelectedIds(ids=>next==="transit"?ids:[]);
+      return next;
+    });
+    if(id!=="more")setMorePage(null);
+  },[]);
+  const openWorks=useCallback(()=>{setBuildFix(undefined);setBuildQuery("");setBuildCat("works");openSheet("build");},[openSheet]);
+  const openTransit=useCallback(()=>openSheet("transit"),[openSheet]);
+  const openCity=useCallback((tab:CityTab)=>{setCityTab(tab);openSheet("city");},[openSheet]);
+  const openFix=useCallback((fix:IssueFix)=>{setBuildQuery("");setBuildFix(fix);openSheet("build");},[openSheet]);
+  const showLayer=useCallback((layer:HeatmapKind)=>{setActiveHeatmap(layer);openSheet("layers");setSheetHeight("peek");},[openSheet]);
+  const openMore=useCallback((page:MorePage)=>{openSheet("more");setMorePage(page);},[openSheet]);
+
+  const navigation=useRef({sheet,morePage,pendingWorks,dispatchTarget,worksTool});
+  navigation.current={sheet,morePage,pendingWorks,dispatchTarget,worksTool};
 
   const commitState = useCallback((mutator: (draft: GameState) => void) => {
     const next: GameState = structuredClone(stateRef.current);
@@ -200,10 +233,11 @@ export const App: React.FC = () => {
       const result=undoBuildingEdit(draft);
       if(result.ok) {
         setSelectedIds(ids=>ids.filter(id=>draft.elements.some(e=>e.id===id)));
-        pushToast(draft,"stage","Building edit undone",result.refunded ? "Treasury refunded $" + result.refunded.toLocaleString() + "." : result.label ?? "");
-      } else pushToast(draft,"alert","Undo unavailable",result.reason??"");
+        showToast({id:"undo",title:"Undone",subtitle:result.refunded ? "Treasury refunded $" + result.refunded.toLocaleString() + "." : result.label ?? ""});
+      } else showToast({id:"undo",title:"Nothing to undo",subtitle:result.reason??"",tone:"alert"});
     });
   };
+  undoRef.current=handleUndoBuilding;
 
   // Place tile callback from 3D canvas
   const handleTilePlace = useCallback(
@@ -219,7 +253,7 @@ export const App: React.FC = () => {
       const plan = planConstruction(cur, brushDef, gx, gz, curBrush.level, curBrush.rotation, curBrush.faceManually);
       if (!plan.valid) {
         if (buildingCharges(cur) && cur.money < plan.def.cost) {
-          commitState(draft => pushToast(draft, "alert", "Insufficient Treasury", `Need $${plan.def.cost.toLocaleString()} to build ${plan.def.name}.`));
+          showToast({id:"funds",title:"Not enough money",subtitle:`Need $${plan.def.cost.toLocaleString()} to build ${plan.def.name}.`,tone:"alert"});
         }
         return;
       }
@@ -228,9 +262,10 @@ export const App: React.FC = () => {
         cur.mode === "god" && curBrush.variantMode >= 0
           ? curBrush.variantMode
           : randomVariant();
+      const charged = buildingCharges(cur) ? def.cost : 0;
 
       commitBuildingEdit("Place "+def.name,(draft) => {
-        if (buildingCharges(draft)) transfer(draft,"treasury","outside",def.cost,"Construction");
+        if (charged) transfer(draft,"treasury","outside",def.cost,"Construction");
         const placed: PlacedElement = {
           id: makeElementId(),
           defId: def.id,
@@ -267,17 +302,18 @@ export const App: React.FC = () => {
         recomputeConnectivityAndMetrics(draft);
       });
 
+      // One running toast per brush: "Placed 6 × Road −$60 · Undo".
+      setPlaceStats(prev=>{
+        const next=prev&&prev.defId===brushDef.id?{defId:brushDef.id,count:prev.count+1,spent:prev.spent+charged}:{defId:brushDef.id,count:1,spent:charged};
+        showToast({id:"placed",title:"Placed "+(next.count>1?next.count+" × ":"")+def.name,subtitle:next.spent?"−$"+next.spent.toLocaleString()+" from the treasury":"Free in God mode",
+          action:{label:"Undo",run:()=>undoRef.current()}});
+        return next;
+      });
+
       const beh = cursorBehaviorRef.current;
-      if (beh === "select" || (beh === "auto" && !def.isNetwork)) {
-        setBrush((b) => ({
-          ...b,
-          kind: "none",
-          defId: undefined,
-          movingElementId: undefined,
-        }));
-      }
+      if (beh === "select" || (beh === "auto" && !def.isNetwork)) setBrush(idleBrush);
     },
-    [commitState,commitBuildingEdit],
+    [commitBuildingEdit,showToast],
   );
 
   // Move commit callback (God Mode relocation)
@@ -295,14 +331,17 @@ export const App: React.FC = () => {
           recomputeConnectivityAndMetrics(draft);
         }
       });
-
+      showToast({id:"moved",title:"Moved "+ELEMENT_BY_ID[el.defId].name,action:{label:"Undo",run:()=>undoRef.current()}});
       setBrush((b) => ({ ...b, kind: "none", movingElementId: undefined }));
     },
-    [commitBuildingEdit],
+    [commitBuildingEdit,showToast],
   );
 
+  // Tapping a building shows its inspector; sheets that work with a selection (Transit, Land & water) stay open.
   const handleSelectElement = useCallback((elementId: string | null) => {
     setSelectedIds(elementId ? [elementId] : []);
+    const open=sheetRef.current;
+    if(elementId && open && open!=="transit" && !(open==="build"&&buildCatRef.current==="works")) setSheetState(null);
   }, []);
 
   // Initialize Three.js renderer once
@@ -315,12 +354,12 @@ export const App: React.FC = () => {
       onTileMoveCommit: handleTileMoveCommit,
       onSelectElement: handleSelectElement,
       onFollowChange: setFollowedService,
-      onSelectService:id=>{setSelectedIds([]);setReturnLine(id);setDesk("transit");setFolded(false);setOverlay(null);setWorksTool(null);},
+      onSelectService:id=>{setReturnLine(id);openTransit();setSelectedIds([]);},
       onHoverInfo: setHoverInfo,
       onInspectTile: (gx,gz)=>{
         setInspectPoint({gx,gz});
         const target=targetRef.current;
-        if(target){commitState(s=>dispatchVessel(s,target,"sail",[gx,gz]));setDispatchTarget(undefined);setDesk("transit");setFolded(false);return true;}
+        if(target){commitState(s=>dispatchVessel(s,target,"sail",[gx,gz]));setDispatchTarget(undefined);openTransit();return true;}
       },
       onInfrastructureStroke: (tool,points)=>setPendingWorks({tool:{...tool},points:points.map(p=>({...p}))}),
     });
@@ -332,33 +371,20 @@ export const App: React.FC = () => {
       world.dispose();
       rendererRef.current = null;
     };
-  }, [handleTilePlace, handleTileMoveCommit, handleSelectElement, commitState, restoreIslandView]);
+  }, [handleTilePlace, handleTileMoveCommit, handleSelectElement, commitState, restoreIslandView, openTransit]);
 
-  // Sync game state & selection into 3D renderer
-  useEffect(() => {
-    rendererRef.current?.syncState(gameState, selectedIds);
-  }, [gameState, selectedIds]);
-
+  useEffect(() => {rendererRef.current?.syncState(gameState, selectedIds);}, [gameState, selectedIds]);
   useEffect(()=>{rendererRef.current?.setInfrastructureTool(worksTool);},[worksTool]);
-  // Sync brush into 3D renderer
+  useEffect(() => {rendererRef.current?.setBrush(brush);}, [brush]);
+  useEffect(() => {rendererRef.current?.setHeatmap(activeHeatmap);}, [activeHeatmap]);
+  useEffect(() => {rendererRef.current?.setAutoSpin(autoSpin);}, [autoSpin]);
+  useEffect(() => {rendererRef.current?.setSelectionFilter(selectionFilter);}, [selectionFilter]);
+  // A new brush starts a new running placement total; the first few brushes show a how-to hint.
   useEffect(() => {
-    rendererRef.current?.setBrush(brush);
-  }, [brush]);
-
-  // Sync heatmap overlay into 3D renderer
-  useEffect(() => {
-    rendererRef.current?.setHeatmap(activeHeatmap);
-  }, [activeHeatmap]);
-
-  // Sync 360 auto-spin into 3D renderer
-  useEffect(() => {
-    rendererRef.current?.setAutoSpin(autoSpin);
-  }, [autoSpin]);
-
-  // Sync Layer Click Filter into 3D renderer
-  useEffect(() => {
-    rendererRef.current?.setSelectionFilter(selectionFilter);
-  }, [selectionFilter]);
+    if (brush.kind !== "place") return;
+    setPlaceStats(prev => prev?.defId === brush.defId ? prev : undefined);
+    return () => setHintsLeft(h => {const n = Math.max(0, h - 1); try {localStorage.setItem("pixel_civ_place_hints", String(n));} catch {/* private mode */} return n;});
+  }, [brush.kind, brush.defId]);
 
   // Simulation loop (250ms tick, pauses active Survival timers when tab is hidden)
   useEffect(() => {
@@ -384,7 +410,6 @@ export const App: React.FC = () => {
 
       const changed = stepSimulation(next, rawDt * spd, visible);
       stateRef.current = next;
-      // Update React UI whenever metrics/animations/weather/crime/attacks tick
       if (
         changed ||
         next.mode === "survival" ||
@@ -395,7 +420,6 @@ export const App: React.FC = () => {
         setGameState(next);
         if(now-lastSave>=5000){saveActiveMode(next);lastSave=now;}
       } else {
-        // Still sync animProgress & clock smoothly to rendererRef
         rendererRef.current?.syncState(next, selectedIdsRef.current);
       }
     }, 250);
@@ -403,34 +427,57 @@ export const App: React.FC = () => {
     return () => {window.clearInterval(timer);window.removeEventListener("pagehide",flush);document.removeEventListener("visibilitychange",visibility);};
   }, []);
 
-  // Keyboard controls for selection, building and view.
+  const rotateSelected=useCallback((id:string)=>{
+    commitBuildingEdit("Rotate building",(draft) => {
+      const el = draft.elements.find((item) => item.id === id);
+      if (!el) return;
+      delete el.awaitingStreet;
+      const nextRot = (el.rotation + 1) % 4;
+      if (el.spanX !== el.spanZ && nextRot % 2 !== el.rotation % 2) {
+        const def = ELEMENT_BY_ID[el.defId];
+        if (def && checkPlacementValid(draft, def, el.gx, el.gz, el.spanZ, el.spanX, new Set([el.id])).valid) {
+          const tmp = el.spanX;
+          el.spanX = el.spanZ;
+          el.spanZ = tmp;
+          el.rotation = nextRot;
+        } else {
+          el.rotation = (el.rotation + 2) % 4;
+        }
+      } else {
+        el.rotation = nextRot;
+      }
+      recomputeConnectivityAndMetrics(draft);
+    });
+  },[commitBuildingEdit]);
+
+  // Keyboard: B/L/C/T/M homes, R rotate, Del demolish (confirmed), Ctrl+Z undo, Esc steps back one level.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if(e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || document.querySelector("dialog[open]")) return;
+      if(e.defaultPrevented || document.querySelector("dialog[open]")) return;
       const target=e.target instanceof HTMLElement ? e.target : undefined;
+      const typing=!!target?.closest('input,textarea,select,[contenteditable="true"]');
+      if((e.ctrlKey||e.metaKey) && e.code==="KeyZ" && !typing){e.preventDefault();undoRef.current();return;}
+      if(e.ctrlKey || e.metaKey || e.altKey) return;
       if(e.key==="Escape") {
         const ui=navigation.current;
-        if(ui.pendingWorks || ui.dispatchTarget) {
-          setPendingWorks(null);setDispatchTarget(undefined);setFolded(false);return;
-        }
-        if(ui.overlay) {
-          setOverlay(null);
-          document.querySelector<HTMLButtonElement>('[data-panel-toggle="'+ui.overlay+'"]')?.focus({preventScroll:true});
-          return;
-        }
-        if(ui.desk){
-          setWorksTool(null);setDesk(null);setFolded(false);
-          requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>(".island-launch")?.focus({preventScroll:true}));
+        if(ui.pendingWorks || ui.dispatchTarget) {setPendingWorks(null);setDispatchTarget(undefined);return;}
+        if(ui.worksTool){setWorksTool(null);return;}
+        if(brushRef.current.kind!=="none"){setBrush(idleBrush);return;}
+        if(ui.sheet==="more"&&ui.morePage){setMorePage(null);return;}
+        if(ui.sheet) {
+          setSheetState(null);
+          document.querySelector<HTMLButtonElement>('[data-panel-toggle="'+ui.sheet+'"]')?.focus({preventScroll:true});
           return;
         }
         rendererRef.current?.followService();
-        setBrush(b=>({...b,kind:"none",defId:undefined,movingElementId:undefined}));
         setSelectedIds([]);
-      } else if(target?.closest('input,textarea,select,[contenteditable="true"]')) return;
-      else if(e.repeat && ["KeyB","KeyT","KeyV","KeyH","KeyR"].includes(e.code)) return;
-      else if (["KeyB","KeyT","KeyH","KeyV"].includes(e.code)) {
-        const keys:Record<string,IslandPanel>={KeyT:"status",KeyB:"build",KeyH:"layers",KeyV:"view"};
-        revealOverlay(keys[e.code],true);
+      } else if(typing) return;
+      else if(e.repeat && ["KeyB","KeyL","KeyC","KeyT","KeyM","KeyH","KeyV","KeyR"].includes(e.code)) return;
+      else if (["KeyB","KeyL","KeyC","KeyT","KeyM","KeyH"].includes(e.code)) {
+        const keys:Record<string,NavSheet>={KeyB:"build",KeyL:"layers",KeyH:"layers",KeyC:"city",KeyT:"transit",KeyM:"more"};
+        openSheet(keys[e.code],true);
+      } else if (e.code==="KeyV") {
+        openSheet("more");setMorePage("view");
       } else if (e.key === "=" || e.key === "+") {
         rendererRef.current?.zoomBy(0.8);
       } else if (e.key === "-" || e.key === "_") {
@@ -439,72 +486,39 @@ export const App: React.FC = () => {
         if (brushRef.current.kind === "place") {
           setBrush((b) => ({ ...b, rotation: (b.rotation + 1) % 4, faceManually:true }));
         } else if (stateRef.current.mode === "god" && selectedIdsRef.current.length === 1) {
-          const id = selectedIdsRef.current[0];
-          commitBuildingEdit("Rotate building",(draft) => {
-            const el = draft.elements.find((item) => item.id === id);
-            if (!el) return;
-            delete el.awaitingStreet;
-            const nextRot = (el.rotation + 1) % 4;
-            if (el.spanX !== el.spanZ && nextRot % 2 !== el.rotation % 2) {
-              const def = ELEMENT_BY_ID[el.defId];
-              if (def && checkPlacementValid(draft, def, el.gx, el.gz, el.spanZ, el.spanX, new Set([el.id])).valid) {
-                const tmp = el.spanX;
-                el.spanX = el.spanZ;
-                el.spanZ = tmp;
-                el.rotation = nextRot;
-              } else {
-                el.rotation = (el.rotation + 2) % 4;
-              }
-            } else {
-              el.rotation = nextRot;
-            }
-            recomputeConnectivityAndMetrics(draft);
-          });
+          rotateSelected(selectedIdsRef.current[0]);
         }
-      } else if (
-        (e.key === "Delete" || e.key === "Backspace") &&
-        selectedIdsRef.current.length > 0
-      ) {
-        const toDel = new Set(selectedIdsRef.current);
-        commitBuildingEdit("Remove building",(draft) => {
-          removePlacedElements(draft, toDel);
-          recomputeConnectivityAndMetrics(draft);
-        });
-        setSelectedIds([]);
+      } else if ((e.key === "Delete" || e.key === "Backspace") && selectedIdsRef.current.length > 0) {
+        setConfirmDemolish([...selectedIdsRef.current]);
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [commitBuildingEdit,revealOverlay]);
+  }, [openSheet,rotateSelected]);
+
+  const resetTools=()=>{setDispatchTarget(undefined);setPendingWorks(null);setWorksTool(null);setSheetState(null);setMorePage(null);rendererRef.current?.followService();};
 
   // UI Handlers
   const handleSwitchMode = (mode: GameMode) => {
-    setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
+    resetTools();
     if(!saveActiveMode(stateRef.current))return false;
-    const loaded = loadModeState(mode);
+    const loaded = unlockSky(loadModeState(mode));
     if (!saveModeState(loaded)) return false;
     restoreIslandView(loaded);
     stateRef.current = loaded;
     setGameState(loaded);
     setSelectedIds([]);
     setActiveSlotIndex(null);
-    setBrush({
-      kind: "none",
-      level: 1,
-      variantMode: -1,
-      rotation: 0,
-    });
+    setBrush({kind: "none", level: 1, variantMode: -1, rotation: 0});
     return true;
   };
 
   const handleSelectBrushDef = (defId: string | null) => {
-    setWorksTool(null);setDesk(null);
-    if (!defId) {
-      setBrush((b) => ({ ...b, kind: "none", defId: undefined, movingElementId: undefined }));
-      return;
-    }
+    setWorksTool(null);
+    if (!defId) {setBrush(idleBrush);return;}
     setSelectedIds([]);
+    setSheetState(null);
     setBrush((b) => ({
       ...b,
       kind: "place",
@@ -515,58 +529,35 @@ export const App: React.FC = () => {
     }));
   };
 
-  const handleReturnToSelect = () => {
-    setBrush((b) => ({
-      ...b,
-      kind: "none",
-      defId: undefined,
-      movingElementId: undefined,
-    }));
-    setSelectedIds((prev) => (prev.length === 2 ? [prev[0]] : prev));
-  };
-
   const handleChangeCursorBehavior = (mode: CursorBehavior) => {
     setCursorBehavior(mode);
-    if (mode === "select") {
-      setBrush((b) => ({
-        ...b,
-        kind: "none",
-        defId: undefined,
-        movingElementId: undefined,
-      }));
-    }
+    if (mode === "select") setBrush(idleBrush);
   };
 
   const handleUpgradeSelected = (id: string) => {
     commitBuildingEdit("Upgrade building",(draft) => {
+      const before = draft.money;
       const res = upgradeElementDirect(draft, id);
-      if (!res.ok && res.reason) {
-        pushToast(draft, "alert", "Upgrade Unavailable", res.reason);
+      if (!res.ok && res.reason) showToast({id:"upgrade",title:"Can't upgrade yet",subtitle:res.reason,tone:"alert"});
+      else if (res.ok) {
+        const el = draft.elements.find(e => e.id === id)!;
+        const spent = Math.round(before - draft.money);
+        showToast({id:"upgrade",title:ELEMENT_BY_ID[el.defId].name+" is now Lv "+el.level,subtitle:spent>0?"−$"+spent.toLocaleString():undefined,action:{label:"Undo",run:()=>undoRef.current()}});
       }
     });
   };
 
   const handleMaintainSelected = (id: string) => {
     commitState((draft) => {
-      if(draft.elements.find(e=>e.id===id)?.onFire) {
-        dispatchFire(draft,id);
-        setScore("safety");
-        openDesk("city");
-      } else maintainElement(draft, id);
+      if(draft.elements.find(e=>e.id===id)?.onFire) dispatchFire(draft,id);
+      else maintainElement(draft, id);
     });
   };
 
   const handleMaintainAll = () => {
     commitState((draft) => {
       const fixed = maintainAllElements(draft);
-      if (fixed > 0) {
-        pushToast(
-          draft,
-          "merge",
-          `Maintained ${fixed} Building${fixed > 1 ? "s" : ""}`,
-          "All 5-minute maintenance timers reset and fires extinguished.",
-        );
-      }
+      if (fixed > 0) showToast({id:"maint",title:`Maintained ${fixed} building${fixed > 1 ? "s" : ""}`,subtitle:"Timers reset and fires put out."});
     });
   };
 
@@ -581,45 +572,31 @@ export const App: React.FC = () => {
         const crossing=draft.infrastructure?.spans[el.gx+","+el.gz];
         if (patch.level !== el.level && !(crossing&&!crossing.run.startsWith("junction-")?resizeCrossing(draft,el,patch.level):resizeElementForLevel(draft, el, patch.level))) {
           const [w, h] = getStandardFootprintForLevel(ELEMENT_BY_ID[el.defId], patch.level);
-          pushToast(draft, "alert", "More room needed", `Clear a ${w}×${h} site for this level.`);
+          showToast({id:"upgrade",title:"More room needed",subtitle:`Clear a ${w}×${h} site for this level.`,tone:"alert"});
           return;
         }
       }
       if (patch.variant !== undefined) el.variant = patch.variant;
-      if (patch.rotation !== undefined) {
-        delete el.awaitingStreet;
-        const nextRot = ((patch.rotation % 4) + 4) % 4;
-        if (el.spanX !== el.spanZ && nextRot % 2 !== el.rotation % 2) {
-          const def = ELEMENT_BY_ID[el.defId];
-          if (def && checkPlacementValid(draft, def, el.gx, el.gz, el.spanZ, el.spanX, new Set([el.id])).valid) {
-            const tmp = el.spanX;
-            el.spanX = el.spanZ;
-            el.spanZ = tmp;
-            el.rotation = nextRot;
-          } else {
-            el.rotation = (el.rotation + 2) % 4;
-          }
-        } else {
-          el.rotation = nextRot;
-        }
-      }
       el.animProgress = 0.75;
       el.animKind = "upgrade";
       recomputeConnectivityAndMetrics(draft);
     });
   };
 
-  const handleDeleteSelected = () => {
-    const ids = new Set(selectedIds);
+  const demolish = (ids: string[]) => {
+    const set = new Set(ids);
+    const names = stateRef.current.elements.filter(e => set.has(e.id)).map(e => ELEMENT_BY_ID[e.defId].name);
     commitBuildingEdit("Remove building",(draft) => {
-      removePlacedElements(draft, ids);
+      removePlacedElements(draft, set);
       recomputeConnectivityAndMetrics(draft);
     });
     setSelectedIds([]);
+    setConfirmDemolish(null);
+    showToast({id:"removed",title:"Demolished "+(names.length>1?names.length+" buildings":names[0]??"building"),action:{label:"Undo",run:()=>undoRef.current()}});
   };
 
   const handleResetCurrentIsland = () => {
-    setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
+    resetTools();
     const previous = stateRef.current;
     const fresh = previous.exampleWorldId ? createExampleWorld(previous.exampleWorldId) : createInitialGameState(previous.mode);
     fresh.exampleReturnMode = previous.exampleReturnMode;
@@ -638,40 +615,23 @@ export const App: React.FC = () => {
     setSaveSlots(updated);
     setActiveSlotIndex(slotIndex);
     const savedName = updated[slotIndex]?.name ?? `Civilization ${slotIndex + 1}`;
-    commitState((draft) => {
-      pushToast(
-        draft,
-        "merge",
-        `Saved "${savedName}"`,
-        `Stored in Civilization Slot #${slotIndex + 1}`,
-      );
-    });
+    showToast({id:"saved",title:`Saved "${savedName}"`,subtitle:`Slot ${slotIndex + 1}`});
   };
 
   const handleLoadSlot = (slotIndex: number) => {
-    setDispatchTarget(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);rendererRef.current?.followService();
+    resetTools();
     const slot = saveSlots[slotIndex];
     if (!slot) return;
     if(!saveActiveMode(stateRef.current))return;
-    const restored = cloneGameStateSnapshot(slot.state);
-    pushToast(
-      restored,
-      "stage",
-      `Loaded "${slot.name}"`,
-      `Restored Slot #${slotIndex + 1} · ${restored.population.toLocaleString()} pop`,
-    );
+    const restored = unlockSky(cloneGameStateSnapshot(slot.state));
+    pushToast(restored, "stage", `Loaded "${slot.name}"`, `Restored Slot #${slotIndex + 1} · ${restored.population.toLocaleString()} pop`);
     restoreIslandView(restored);
     stateRef.current = restored;
     setGameState(restored);
     saveModeState(restored);
     setSelectedIds([]);
     setActiveSlotIndex(slotIndex);
-    setBrush({
-      kind: "none",
-      level: 1,
-      variantMode: -1,
-      rotation: 0,
-    });
+    setBrush({kind: "none", level: 1, variantMode: -1, rotation: 0});
     setSavesModalOpen(false);
   };
 
@@ -681,11 +641,8 @@ export const App: React.FC = () => {
 
   const handleDeleteSlot = (slotIndex: number) => {
     try{setSaveSlots(deleteCivilizationSlot(slotIndex));setSlotError("");}catch{setSlotError("The slot could not be removed from browser storage.");return;}
-    if (activeSlotIndex === slotIndex) {
-      setActiveSlotIndex(null);
-    }
+    if (activeSlotIndex === slotIndex) setActiveSlotIndex(null);
   };
-
   // Clock, weather and wind are sandbox controls: in real and survival the sky runs on its own.
   const envLocked = () => stateRef.current.mode !== "god";
   const handleSetTimeOfDay = (hour: number) => {
@@ -788,27 +745,22 @@ export const App: React.FC = () => {
     });
   };
 
+
   const selected=gameState.elements.find(e=>e.id===selectedIds[0]);
+  const selectedDef=selected?ELEMENT_BY_ID[selected.defId]:undefined;
   const editCity=(fn:(draft:GameState)=>void)=>commitState(draft=>{fn(draft);recomputeConnectivityAndMetrics(draft);});
-  const openDesk=(tab:DeskTab)=>{
-    setPendingWorks(null);setDispatchTarget(undefined);
-    setDesk(tab);setFolded(false);setOverlay(null);
-    if(tab!=="works")setWorksTool(null);
-    setBrush(b=>({...b,kind:"none",defId:undefined,movingElementId:undefined}));
-  };
-  const openScore=(id:"population"|"happiness"|"wealth")=>{setScore(id);openDesk("city");};
   const focusSite=(id:string)=>{setSelectedIds([id]);rendererRef.current?.focusElement(id);};
   const snapshot=(s:GameState)=>{
     try{localStorage.setItem("pixel_civ_lab_snapshot",JSON.stringify({...s,toasts:[]}));setHasSnapshot(true);return true;}
-    catch{commitState(d=>pushToast(d,"alert","Snapshot could not be saved","Free a save slot or browser storage, then try again."));return false;}
+    catch{showToast({id:"snap",title:"Snapshot could not be saved",subtitle:"Free a save slot or browser storage, then try again.",tone:"alert"});return false;}
   };
   const activateSandbox=(s:GameState)=>{
     s.mode="god";s.gameOver=false;s.gameOverReason="";s.toasts=[];
     recomputeConnectivityAndMetrics(s);restoreIslandView(s);stateRef.current=s;setGameState(s);saveModeState(s);
-    setSelectedIds([]);setActiveSlotIndex(null);setWorksTool(null);rendererRef.current?.followService();openDesk("god");
+    setSelectedIds([]);setActiveSlotIndex(null);setWorksTool(null);rendererRef.current?.followService();openMore("god");
   };
   const activeExample = EXAMPLE_WORLDS.find(world => world.id === gameState.exampleWorldId);
-  const openExamples = () => { setHamburgerOpen(false); setOverlay(null); setExamplesOpen(true); };
+  const openExamples = () => { setSheetState(null); setExamplesOpen(true); };
   const visitExample = (id: ExampleWorldId) => {
     const previous = stateRef.current;
     if (!saveActiveMode(previous)) return;
@@ -818,9 +770,9 @@ export const App: React.FC = () => {
     stateRef.current = next;
     setGameState(next);
     setExamplesOpen(false);
-    setDesk(null); setOverlay(null); setFolded(false); setPendingWorks(null); setWorksTool(null);
-    setReturnLine(undefined); setDispatchTarget(undefined); setSelectedIds([]); setActiveSlotIndex(null);
-    setBrush(b => ({...b, kind:"none", defId:undefined, movingElementId:undefined}));
+    resetTools();
+    setReturnLine(undefined); setSelectedIds([]); setActiveSlotIndex(null);
+    setBrush(idleBrush);
     restoreIslandView(next);
   };
   const openRailYard=()=>{
@@ -831,7 +783,7 @@ export const App: React.FC = () => {
       const site=next.elements.find(e=>e.id===depot)!;
       setSelectedIds([depot]);setCameraMode("pan");rendererRef.current?.setCameraMode("pan");
       rendererRef.current?.focusGrid(site.gx+5,site.gz-1,50);setRailSite(depot);
-    } catch(error) {commitState(d=>pushToast(d,"alert","Orchard Valley rail yard",error instanceof Error?error.message:"The yard could not be opened."));}
+    } catch(error) {showToast({id:"yard",title:"Orchard Valley rail yard",subtitle:error instanceof Error?error.message:"The yard could not be opened.",tone:"alert"});}
   };
   const visitViewpoint = (index: number) => {
     if (!activeExample) return;
@@ -845,379 +797,152 @@ export const App: React.FC = () => {
     if(!snapshot(loadModeState("god")))return;
     activateSandbox(cloneGameStateSnapshot(current));
   };
-  const closeDesk=()=>{setReturnLine(undefined);setPendingWorks(null);setDesk(null);setWorksTool(null);setFolded(false);};
   const worksPreview=pendingWorks?planInfrastructureStroke(gameState,pendingWorks.tool,pendingWorks.points):null;
   const passagePreview=useMemo(()=>pendingWorks?previewWaterPassage(stateRef.current,pendingWorks.tool,pendingWorks.points):[],[pendingWorks,gameState.infrastructure?.stamp,gameState.elements.length]);
   const savedCount = saveSlots.filter(Boolean).length;
 
+  const onHudStat=(stat:HudStat)=>{
+    if(stat==="power"){setActiveHeatmap("power");openSheet("layers");return;}
+    openCity(stat==="people"?"people":stat==="money"?"money":"issues");
+  };
+  const showPanel=(p:"transit"|"money"|"people")=>p==="transit"?openTransit():openCity(p);
+
+  // Context layer: placing / moving / drawing wins over sheets; the inspector shows a selection when no sheet is open.
+  const brushDef=brush.kind==="place"&&brush.defId?ELEMENT_BY_ID[brush.defId]:undefined;
+  const movingEl=brush.kind==="move"?gameState.elements.find(e=>e.id===brush.movingElementId):undefined;
+  const placing=!!(brushDef||movingEl||worksTool||pendingWorks||dispatchTarget);
+  const showInspector=!!(selected&&selectedDef&&!sheet&&!placing);
+  const issues=alertIssues(gameState);
+  const showAlert=!sheet&&!placing&&!showInspector&&issues.length>0;
+  const charges=buildingCharges(gameState);
+  const gameToasts:UiToast[]=gameState.toasts.map(t=>({id:t.id,title:t.title,subtitle:t.subtitle,tone:t.kind==="stage"?"gold":t.kind==="raid"||t.kind==="alert"?"alert":"normal"}));
+  const layerName=LAYERS.find(l=>l.id===activeHeatmap)?.label;
+  const hoverBad=brush.kind!=="none"&&hoverInfo&&!hoverInfo.valid?hoverInfo.reason:undefined;
+  const sheetProps={height:sheetHeight,onHeight:setSheetHeight,onClose:()=>openSheet(null)};
+
+  const worksPanel=<>
+    {returnLine&&<Button variant="quiet" small label={"← Back to "+returnLine.replace("line-","service #")} onClick={openTransit}/>}
+    <InfrastructurePanel onUseMap={t=>{setWorksTool(t);setSheetState(null);}} state={gameState} mutate={editCity} selected={selected}
+      onPreview={(tool,points)=>{setPendingWorks({tool,points});setSheetState(null);}} inspectPoint={inspectPoint} tool={worksTool}
+      onToolChange={t=>{setPendingWorks(null);setWorksTool(t);}} onClose={()=>openSheet(null)}/>
+  </>;
+
   return (
-    <main className="island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]">
-      {/* Full-Viewport 3D Sunlit Pixel-Voxel Island Canvas */}
-      <canvas
-        ref={canvasRef}
-        className="block h-full w-full cursor-crosshair touch-none"
-        aria-label="Pixel Civilization 3D Voxel Island"
-      />
+    <main className={"island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]"+(showAlert?" has-alert":"")}>
+      <canvas ref={canvasRef} className="block h-full w-full cursor-crosshair touch-none" aria-label="Pixel Civilization 3D Voxel Island"/>
+
+      <Hud state={gameState} speed={simSpeed} onSpeed={setSimSpeed} onStat={onHudStat}/>
+      {showAlert&&<AlertPill issues={issues} onOpen={()=>openCity("issues")}/>}
+      {saveError&&<p className="storage-notice" role="alert">This island could not be saved in browser storage. Keep the game open while you free space.</p>}
+      {gameState.activeAttack&&<div className="ui-banner" role="alert">
+        <ShieldAlert size={18} aria-hidden="true"/>
+        <span style={{flex:1}}>{gameState.activeAttack.units.length} enemies · {gameState.activeAttack.defenders.length} defenders
+          {gameState.activeAttack.defenders.length?"":" · no defenders!"} · lost {gameState.activeAttack.buildingsDestroyed}</span>
+        {gameState.mode==="god"&&<Button small label="Stop" onClick={handleClearAttack}/>}
+      </div>}
+      <Toasts items={[...uiToasts,...gameToasts]} onDismiss={dismissToast}/>
+
+      {activeExample && !sheet && !showInspector && !placing &&
+        <WorldGuide key={activeExample.id} world={activeExample} selected={gameState.exampleViewpoint} onVisit={visitViewpoint} onBrowse={openExamples} onRailYard={openRailYard}/>}
+      {activeHeatmap!=="none"&&!sheet&&!placing&&!showInspector&&!activeExample&&<div className="ui-layer-chip">
+        <button type="button" onClick={()=>openSheet("layers")} aria-label={"Layer: "+layerName+". Open Layers"}><Layers size={16} aria-hidden="true"/>{layerName}</button>
+        <IconButton variant="quiet" aria-label="Clear layer" icon={<X size={16}/>} onClick={()=>setActiveHeatmap("none")}/>
+      </div>}
+
+      {/* Context layer */}
+      {brushDef&&<PlacementBar label="Placing" def={brushDef} title={brushDef.name+(gameState.mode==="god"?" · Lv "+brush.level:"")}
+        subtitle={(charges?"$"+brushDef.cost.toLocaleString()+(brushDef.isNetwork?" / tile":" each"):"Free")+(placeStats?.defId===brushDef.id?" · "+placeStats.count+" placed"+(placeStats.spent?" = $"+placeStats.spent.toLocaleString():""):"")}
+        hint={hoverBad??(hintsLeft>0?"Tap or drag on the map to place"+(brushDef.isNetwork||cursorBehavior==="place"?" · keeps placing until you tap ✓":""):undefined)} hintBad={!!hoverBad}>
+        {!brushDef.isNetwork&&<IconButton aria-label="Rotate 90° (R)" icon={<RotateCw size={18}/>} onClick={()=>setBrush(b=>({...b,rotation:(b.rotation+1)%4,faceManually:true}))}/>}
+        {gameState.mode==="god"&&<span className="ui-level" role="group" aria-label="Placement level">
+          <IconButton variant="quiet" aria-label="Lower placement level" icon={<Minus size={16}/>} disabled={brush.level<=1} onClick={()=>setBrush(b=>({...b,level:Math.max(1,b.level-1)}))}/>
+          <span>Lv{brush.level}</span>
+          <IconButton variant="quiet" aria-label="Raise placement level" icon={<Plus size={16}/>} disabled={brush.level>=getMaxElementLevel(brushDef.id)} onClick={()=>setBrush(b=>({...b,level:Math.min(getMaxElementLevel(brushDef.id),b.level+1)}))}/>
+        </span>}
+        <IconButton variant="primary" aria-label="Done placing" icon={<Check size={20}/>} onClick={()=>setBrush(idleBrush)}/>
+      </PlacementBar>}
+      {movingEl&&<PlacementBar label="Moving" def={ELEMENT_BY_ID[movingEl.defId]} title={"Moving "+ELEMENT_BY_ID[movingEl.defId].name} subtitle="Tap a free spot on the map" hint={hoverBad} hintBad={!!hoverBad}>
+        <Button label="Cancel" onClick={()=>setBrush(idleBrush)}/>
+      </PlacementBar>}
+      {worksTool&&!pendingWorks&&<PlacementBar label="Land and water" title={worksToolLabel(worksTool.kind)} subtitle="Drag on the map to preview the works">
+        <Button small label="Options" onClick={openWorks}/>
+        <IconButton variant="primary" aria-label="Done with land and water tool" icon={<Check size={20}/>} onClick={()=>setWorksTool(null)}/>
+      </PlacementBar>}
+      {pendingWorks&&worksPreview&&<div className="ui-placebar is-works" role="toolbar" aria-label="Confirm works">
+        <span className="ui-icard-body"><span className="ui-icard-title">{worksToolLabel(pendingWorks.tool.kind)} · {worksPreview.points.length} tiles</span>
+          <span className={"ui-icard-sub"+(worksPreview.valid?"":" is-bad")}>{worksPreview.valid?("$"+worksPreview.cost.toLocaleString()+" · "+worksPreview.affected.length+" sites affected"):worksPreview.reason}</span></span>
+        <Button label="Cancel" small onClick={()=>setPendingWorks(null)}/>
+        <Button variant="primary" small label="Apply" disabled={!worksPreview.valid} onClick={()=>{const edit=pendingWorks;editCity(st=>{const p=applyInfrastructureStroke(st,edit.tool,edit.points);if(!p.valid)pushToast(st,"alert","Public works",p.reason);});setPendingWorks(null);}}/>
+        {worksPreview.valid&&passagePreview.length>0&&<small>{passagePreview.join(" ")}</small>}
+      </div>}
+      {dispatchTarget&&<PlacementBar label="Send vessel" title="Choose a destination" subtitle="Tap the water where this vessel should sail">
+        <Button label="Cancel" onClick={()=>{setDispatchTarget(undefined);openTransit();}}/>
+      </PlacementBar>}
+
+      {showInspector&&selected&&selectedDef&&<InspectorSheet key={selected.id} state={gameState} el={selected} def={selectedDef}
+        height={inspectorHeight} onHeight={setInspectorHeight} onClose={()=>setSelectedIds([])}
+        onUpgrade={()=>gameState.mode==="god"?handleGodMutateSelected(selected.id,{level:selected.level+1}):handleUpgradeSelected(selected.id)}
+        onLevelDown={()=>handleGodMutateSelected(selected.id,{level:Math.max(1,selected.level-1)})}
+        onMove={()=>setBrush(b=>({...b,kind:"move",movingElementId:selected.id,defId:undefined}))}
+        onRotate={()=>rotateSelected(selected.id)} onVariant={()=>handleGodMutateSelected(selected.id,{variant:(selected.variant+1)%4})}
+        onMaintain={()=>handleMaintainSelected(selected.id)} onDemolish={()=>setConfirmDemolish([selected.id])}
+        onRailOps={()=>setRailSite(selected.id)} onFix={openFix} onShowLayer={showLayer}
+        links={<Connections s={gameState} el={selected} change={editCity} go={t=>t==="transit"?openTransit():t==="works"?(setInspectPoint({gx:selected.gx,gz:selected.gz}),openWorks()):undefined}/>}
+        info={<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel="site"/>}/>}
+
+      {sheet==="build"&&<BuildSheet {...sheetProps} state={gameState} brush={brush} cat={buildCat} onCat={setBuildCat} query={buildQuery} onQuery={setBuildQuery}
+        fix={buildFix} onClearFix={()=>setBuildFix(undefined)} onPick={id=>handleSelectBrushDef(id)} works={worksPanel}/>}
+      {sheet==="layers"&&<LayersSheet {...sheetProps} state={gameState} active={activeHeatmap} onSelect={setActiveHeatmap} onFix={openFix}/>}
+      {sheet==="city"&&<CitySheet {...sheetProps} state={gameState} tab={cityTab} onTab={setCityTab} mutate={editCity} selected={selected} onFocus={focusSite}
+        onFix={openFix} onShowLayer={showLayer} onShowPanel={showPanel} onMaintainAll={handleMaintainAll}/>}
+      {sheet==="transit"&&<TransitSheet {...sheetProps} state={gameState} mutate={editCity} selected={selected} onFocus={focusSite}
+        onPickDestination={id=>{setDispatchTarget(id);setSheetState(null);}} onFollow={id=>rendererRef.current?.followService(id)} following={followedService}
+        focusLine={returnLine} onGrid={(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openWorks();}}
+        onRailOps={id=>setRailSite(id)}/>}
+      {sheet==="more"&&<MoreSheet {...sheetProps} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
+        onSaves={()=>setSavesModalOpen(true)} onExamples={openExamples} onChangeMode={m=>{if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={copyIsland}
+        onReset={()=>setConfirmResetOpen(true)} cursorBehavior={cursorBehavior} onCursorBehavior={handleChangeCursorBehavior}
+        selectionFilter={selectionFilter} onSelectionFilter={setSelectionFilter}
+        view={<ViewEnvPanel activeTab={viewEnvTab} state={gameState} cameraMode={cameraMode} autoSpin={autoSpin} attackSeverity={attackSeverity}
+          onChangeTab={setViewEnvTab} onChangeCameraMode={m=>{setCameraMode(m);rendererRef.current?.setCameraMode(m);}}
+          onSpinLeft={()=>rendererRef.current?.rotateCameraBy(-Math.PI/4)} onSpinRight={()=>rendererRef.current?.rotateCameraBy(Math.PI/4)}
+          onToggleAutoSpin={()=>setAutoSpin(s=>!s)} onZoomIn={()=>rendererRef.current?.zoomBy(0.76)} onZoomOut={()=>rendererRef.current?.zoomBy(1.3)}
+          onRecentre={()=>rendererRef.current?.recentreCamera()} onSetTimeOfDay={handleSetTimeOfDay} onToggleTimeLocked={handleToggleTimeLocked}
+          onSetWeather={handleSetWeather} onToggleWeatherLocked={handleToggleWeatherLocked} onSetWeatherIntensity={handleSetWeatherIntensity}
+          onSetWindSpeed={handleSetWindSpeed} onTriggerLightning={handleTriggerLightning} onChangeAttackSeverity={setAttackSeverity}
+          onLaunchAttack={handleLaunchAttack} onClearAttack={handleClearAttack} onToggleGodCrime={handleToggleGodCrime} onTriggerCrime={handleTriggerCrime}
+          onClose={()=>setMorePage(null)}/>}
+        godTools={gameState.mode==="god"&&<GodControls s={gameState} el={selected} change={editCity}
+          onStep={()=>{setSimSpeed(0);commitState(s=>{stepSimulation(s,1,true);recomputeConnectivityAndMetrics(s);});rendererRef.current?.advanceStreetTraffic(1);}}
+          onSave={()=>{if(snapshot(stateRef.current))showToast({id:"snap",title:"Snapshot saved",subtitle:"Restore it from God tools at any time."});}}
+          canRestore={hasSnapshot} onRestore={()=>{try{const raw=localStorage.getItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{showToast({id:"snap",title:"Unable to restore snapshot",subtitle:"The saved data could not be opened.",tone:"alert"});}}}
+          onDistrict={()=>{const current=stateRef.current;const district=createCanalDistrict();if(saveActiveMode(current)&&snapshot(current.exampleWorldId?loadModeState("god"):current)){activateSandbox(district);openTransit();setSheetHeight("peek");rendererRef.current?.focusGrid(0,-1,74);}}}/>}/>}
+
+      <BottomNav active={sheet} onToggle={id=>openSheet(id,true)} badges={{city:issues.length}}/>
 
       {railSite && gameState.elements.some(e=>e.id===railSite) && <RailOperations state={gameState} selected={gameState.elements.find(e=>e.id===railSite)!} change={editCity}
-        onClose={()=>setRailSite(undefined)} onFocus={e=>{setRailSite(undefined);focusSite(e.id);}}
+        onClose={()=>setRailSite(undefined)} onFocus={e=>{setRailSite(undefined);setSheetState(null);focusSite(e.id);}}
         onTrack={e=>{setRailSite(undefined);rendererRef.current?.focusElement(e.id);handleSelectBrushDef("train_tracks");}}/>}
       {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
         error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
-      {activeExample && !overlay && (!desk || folded) && !pendingWorks && !dispatchTarget &&
-        <WorldGuide key={activeExample.id} world={activeExample} selected={gameState.exampleViewpoint} onVisit={visitViewpoint} onBrowse={openExamples} onRailYard={openRailYard}/>}
-      {saveError&&<p className="storage-notice" role="alert">This island could not be saved in browser storage. Keep the game open while you free space.</p>}
-      {dispatchTarget&&<div className="works-confirm" role="status">Tap the water where you want this vessel to sail.<button onClick={()=>{setDispatchTarget(undefined);setFolded(false);}}>Cancel voyage</button></div>}
-      {pendingWorks&&worksPreview&&<div className="works-confirm" role="status"><strong>{pendingWorks.tool.kind} · {worksPreview.points.length} tiles</strong>
-        <span>{worksPreview.valid?("$"+worksPreview.cost+" · "+worksPreview.affected.length+" affected sites"):worksPreview.reason}</span>
-        {worksPreview.valid&&passagePreview.length>0&&<small>{passagePreview.join(" ")}</small>}
-        <button disabled={!worksPreview.valid} onClick={()=>{const edit=pendingWorks;editCity(st=>{const p=applyInfrastructureStroke(st,edit.tool,edit.points);if(!p.valid)pushToast(st,"alert","Public works",p.reason);});setPendingWorks(null);}}>Apply works</button>
-        <button onClick={()=>setPendingWorks(null)}>Cancel</button></div>}
-      {!topMenuOpen&&<CityBar s={gameState} onOpen={openScore}/>}
-      {(!desk||folded)&&<button className="island-launch" onClick={()=>{if(desk)setFolded(false);else openDesk("works");}}>{folded?"Return to "+tabs[desk!]:"Island tools"}</button>}
-      {desk&&!folded&&<aside key={desk === "connections" ? desk + selected?.id : desk} className="island-desk" aria-label="Island tools">
-        <header><h2>{tabs[desk]}</h2><div className="island-actions"><button aria-label="Fold tools to view the map" onClick={()=>setFolded(true)}>View map</button><button aria-label="Close island tools" onClick={closeDesk}>×</button></div></header>
-        <nav aria-label="Island tool sections">{(Object.keys(tabs) as DeskTab[]).filter(t=>(t!=="god"||gameState.mode==="god")&&(t!=="connections"||selected)).map(t=><button key={t} aria-current={desk===t} onClick={()=>openDesk(t)}>{tabs[t]}</button>)}</nav>
-        {desk==="works"&&returnLine&&<button className="desk-back" onClick={()=>openDesk("transit")}>← Back to {returnLine.replace("line-","service #")}</button>}
-        {desk==="works"&&<div className="desk-works"><InfrastructurePanel onUseMap={t=>{setWorksTool(t);setFolded(true);}} state={gameState} mutate={editCity} selected={selected} onPreview={(tool,points)=>{setPendingWorks({tool,points});setFolded(true);}} inspectPoint={inspectPoint} tool={worksTool} onToolChange={t=>{setPendingWorks(null);setWorksTool(t);}} onClose={closeDesk}/></div>}
-        {desk==="transit"&&<MobilityPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} onPickDestination={id=>{setDispatchTarget(id);setFolded(true);}} onFollow={id=>rendererRef.current?.followService(id)} following={followedService} focusLine={returnLine} onGrid={(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openDesk("works");}}/>}
-        {desk==="city"&&<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel={score}/>}
-        {desk==="connections"&&<Connections s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("site");openDesk(tab);}}/>}
-        {desk==="god"&&gameState.mode==="god"&&<GodControls s={gameState} el={selected} change={editCity} go={tab=>{if(tab==="city")setScore("controls");openDesk(tab);}} paused={simSpeed===0} onPause={()=>setSimSpeed(simSpeed?0:1)}
-          onStep={()=>{
-            setSimSpeed(0);
-            commitState(s=>{stepSimulation(s,1,true);recomputeConnectivityAndMetrics(s);});
-            rendererRef.current?.advanceStreetTraffic(1);
-          }}
-          onWeather={()=>{closeDesk();setViewEnvTab("weather");revealOverlay("view");}} onDefense={()=>{closeDesk();setViewEnvTab("defense");revealOverlay("view");}}
-          onSave={()=>{if(snapshot(stateRef.current))commitState(s=>pushToast(s,"stage","Snapshot saved","Restore it from God controls at any time."));}}
-          canRestore={hasSnapshot} onRestore={()=>{try{const raw=localStorage.getItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{commitState(s=>pushToast(s,"alert","Unable to restore snapshot","The saved data could not be opened."));}}}
-          onExamples={openExamples} onDistrict={()=>{const current=stateRef.current; const district=createCanalDistrict();if(saveActiveMode(current) && snapshot(current.exampleWorldId ? loadModeState("god") : current)){activateSandbox(district);openDesk("transit");setFolded(true);rendererRef.current?.focusGrid(0,-1,74);}}}/>}
-      </aside>}
-      {/* Standalone Top-Left 3-Line Hamburger Menu Button */}
-      <button
-        type="button"
-        onClick={() => setHamburgerOpen(true)}
-        className="game-menu-trigger pointer-events-auto fixed left-2.5 top-2 z-35 flex h-9 w-9 items-center justify-center rounded-lg border border-stone-900/20 bg-[#fcfaf5]/95 text-stone-900 shadow-md hover:bg-white"
-        title="Open Game Menu & Modes"
-        aria-label="Open Game Menu"
-      >
-        <Menu className="h-4.5 w-4.5" />
-      </button>
+      <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState}
+        onClose={() => setSavesModalOpen(false)} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
+        onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}/>
+      {confirmDemolish&&<ConfirmDialog title={"Demolish "+(confirmDemolish.length>1?confirmDemolish.length+" buildings":ELEMENT_BY_ID[gameState.elements.find(e=>e.id===confirmDemolish[0])?.defId??""]?.name??"building")+"?"}
+        message="It is removed from the island. You can undo right after." confirmLabel="Demolish" onCancel={()=>setConfirmDemolish(null)} onConfirm={()=>demolish(confirmDemolish)}/>}
+      {confirmResetOpen&&<ConfirmDialog title={"Reset "+(gameState.mode==="god"?"God mode":gameState.mode==="real"?"Real mode":"Survival")+" island?"}
+        message="This clears every placed element on this mode's island. Other modes and your save slots stay as they are."
+        confirmLabel="Reset island" onCancel={()=>setConfirmResetOpen(false)} onConfirm={handleResetCurrentIsland}/>}
 
-      {/* Right-Edge Compact Icon Rail (Always Accessible in Every Mode) */}
-      <RightIconRail active={overlay} onToggle={id=>revealOverlay(id,true)} />
-
-      {/* Persistent Bottom-Right Cursor & Layer Click Filter Control */}
-      <CursorControlButton
-        brush={brush}
-        cursorBehavior={cursorBehavior}
-        selectionFilter={selectionFilter}
-        onReturnToSelect={handleReturnToSelect}
-        onChangeCursorBehavior={handleChangeCursorBehavior}
-        onChangeSelectionFilter={setSelectionFilter}
-      />
-
-      {/* Active Heatmap Quick Pill when panel is collapsed */}
-      {activeHeatmap !== "none" && !heatmapsOpen && (
-        <div
-          className={`active-layer-pill pointer-events-auto fixed left-13 z-25 flex items-center gap-1.5 rounded-lg border border-stone-900/20 bg-[#fcfaf5]/95 px-2.5 py-1 text-[11px] font-bold text-stone-900 shadow-md ${
-            topMenuOpen ? "top-13" : "top-2"
-          }`}
-        >
-          <Flame className="h-3.5 w-3.5 text-amber-600" />
-          <span className="capitalize">{activeHeatmap}</span>
-          <button
-            type="button"
-            onClick={() => revealOverlay("layers")}
-            className="rounded bg-stone-200 px-1.5 py-0.5 text-[10px] font-bold hover:bg-stone-300"
-          >
-            Switch
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveHeatmap("none")}
-            className="rounded p-0.5 text-stone-600 hover:bg-stone-200"
-            aria-label="Clear heat map" title="Clear Heat Map"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Active Invasion Status Banner */}
-      {gameState.activeAttack && (
-        <div
-          className={`pointer-events-auto fixed left-1/2 z-25 flex max-w-[calc(100vw-7rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-rose-500/50 bg-rose-950/95 px-3 py-1.5 text-[11px] text-rose-50 shadow-xl ${
-            topMenuOpen ? "top-13" : "top-2"
-          }`}
-        >
-          <ShieldAlert className="h-4 w-4 shrink-0 text-amber-300" />
-          <div className="font-mono-num flex flex-wrap items-center gap-x-2 gap-y-0.5 font-bold">
-            <span>
-              {gameState.activeAttack.units.length} Enemies ·{" "}
-              {gameState.activeAttack.defenders.length} Defenders
-            </span>
-            <span className="text-rose-200">
-              {gameState.activeAttack.defenders.length > 0
-                ? "Defense Engaging"
-                : "NO DEFENDERS — Taking Fire"}
-            </span>
-            <span className="text-amber-300">
-              Lost: {gameState.activeAttack.buildingsDestroyed} · Pop:{" "}
-              {gameState.activeAttack.casualties}
-            </span>
-          </div>
-          {gameState.mode === "god" && (
-            <button
-              type="button"
-              onClick={handleClearAttack}
-              className="shrink-0 rounded border border-rose-300/40 bg-rose-900 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-rose-800"
-            >
-              Stop
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Top HUD (Skinny single bar without Mode selector) */}
-      <TopHud
-        open={topMenuOpen}
-        state={gameState}
-        simSpeed={simSpeed}
-        autoSpin={autoSpin}
-        onChangeSimSpeed={setSimSpeed}
-        onSpinLeft={() => rendererRef.current?.rotateCameraBy(-Math.PI / 4)}
-        onSpinRight={() => rendererRef.current?.rotateCameraBy(Math.PI / 4)}
-        onToggleAutoSpin={() => setAutoSpin((s) => !s)}
-        onZoomIn={() => rendererRef.current?.zoomBy(0.76)}
-        onZoomOut={() => rendererRef.current?.zoomBy(1.3)}
-        onRecentre={() => rendererRef.current?.recentreCamera()}
-        onOpenWeatherStudio={() => {
-
-          setViewEnvTab("weather");
-          revealOverlay("view");
-        }}
-        onToggleDayNight={handleToggleDayNight}
-        onToggleGodCrime={handleToggleGodCrime}
-        onOpenDefenseTab={() => {
-
-          setViewEnvTab("defense");
-          revealOverlay("view");
-        }}
-        onOpenAdvisor={() => setAdvisorOpen(true)}
-        onOpenScore={openScore}
-        onMaintainAll={handleMaintainAll}
-        onClose={() => setOverlay(null)}
-      />
-
-      {/* Heat Maps Panel */}
-      <HeatmapPanel
-        open={heatmapsOpen}
-        activeHeatmap={activeHeatmap}
-        state={gameState}
-        onSelectHeatmap={setActiveHeatmap}
-        onClose={() => setOverlay(null)}
-      />
-
-      {/* Folded Studio Drawer: Weather Studio | 360 Cam | Defense & Attack */}
-      <ViewEnvPanel
-        open={viewEnvOpen}
-        activeTab={viewEnvTab}
-        state={gameState}
-        cameraMode={cameraMode}
-        autoSpin={autoSpin}
-        attackSeverity={attackSeverity}
-        onChangeTab={setViewEnvTab}
-        onChangeCameraMode={(m) => {
-          setCameraMode(m);
-          rendererRef.current?.setCameraMode(m);
-        }}
-        onSpinLeft={() => rendererRef.current?.rotateCameraBy(-Math.PI / 4)}
-        onSpinRight={() => rendererRef.current?.rotateCameraBy(Math.PI / 4)}
-        onToggleAutoSpin={() => setAutoSpin((s) => !s)}
-        onZoomIn={() => rendererRef.current?.zoomBy(0.76)}
-        onZoomOut={() => rendererRef.current?.zoomBy(1.3)}
-        onRecentre={() => rendererRef.current?.recentreCamera()}
-        onSetTimeOfDay={handleSetTimeOfDay}
-        onToggleTimeLocked={handleToggleTimeLocked}
-        onSetWeather={handleSetWeather}
-        onToggleWeatherLocked={handleToggleWeatherLocked}
-        onSetWeatherIntensity={handleSetWeatherIntensity}
-        onSetWindSpeed={handleSetWindSpeed}
-        onTriggerLightning={handleTriggerLightning}
-        onChangeAttackSeverity={setAttackSeverity}
-        onLaunchAttack={handleLaunchAttack}
-        onClearAttack={handleClearAttack}
-        onToggleGodCrime={handleToggleGodCrime}
-        onTriggerCrime={handleTriggerCrime}
-        onClose={() => setOverlay(null)}
-      />
-
-      {/* Floating Event Toasts (Positioned clear of the Right Icon Rail) */}
-      {gameState.toasts.length > 0 && (
-        <div
-          className={`event-toasts pointer-events-none fixed right-16 z-30 flex w-80 max-w-[calc(100vw-5rem)] flex-col gap-2 ${
-            topMenuOpen ? "top-20" : "top-4"
-          }`}
-        >
-          {gameState.toasts.map((t) => (
-            <div
-              key={t.id}
-              className={`rounded-lg border px-3.5 py-2.5 shadow-lg ${
-                t.kind === "stage"
-                  ? "border-amber-400 bg-stone-900/95 text-white"
-                  : t.kind === "raid" || t.kind === "alert"
-                    ? "border-rose-400 bg-rose-950/95 text-rose-50"
-                    : "border-emerald-500 bg-[#fcfaf5]/96 text-stone-900"
-              }`}
-            >
-              <div className="flex items-center gap-1.5 text-xs font-extrabold">
-                <Sparkles className="h-3.5 w-3.5 shrink-0 text-amber-400" />
-                <span>{t.title}</span>
-              </div>
-              <p className="mt-0.5 text-[11px] opacity-90">{t.subtitle}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Bottom Build Palette & Selection Dock */}
-      <BottomDock
-        open={bottomMenuOpen}
-        state={gameState}
-        brush={brush}
-        selectedIds={selectedIds}
-        hoverInfo={hoverInfo}
-        onSelectBrushDef={handleSelectBrushDef}
-        onUpdateBrushSettings={(patch) => setBrush((b) => ({ ...b, ...patch }))}
-        onStartMoveSelected={(id) =>
-          setBrush((b) => ({ ...b, kind: "move", movingElementId: id, defId: undefined }))
-        }
-        onInspectSystems={()=>openDesk("connections")}
-        onRailOperations={()=>setRailSite(selected?.id)}
-        onOpenWorks={()=>openDesk("works")}
-        onUpgradeSelected={handleUpgradeSelected}
-        onMaintainSelected={handleMaintainSelected}
-        onGodMutateSelected={handleGodMutateSelected}
-        onDeleteSelected={handleDeleteSelected}
-        onUndoBuilding={handleUndoBuilding}
-        onClearSelection={() => {
-          setSelectedIds([]);
-        }}
-        onClose={() => setOverlay(null)}
-      />
-
-      {/* City Info / Advisor & 20 Stages Modal */}
-      <AdvisorModal
-        state={gameState}
-        open={advisorOpen}
-        onShowMetric={id=>{setAdvisorOpen(false);if(["traffic","transit"].includes(id)){openDesk("transit");return;}
-          if(["wealth","money","fire","jobs","econ","recovery","crime"].includes(id)){setScore(["fire","crime"].includes(id)?"safety":id==="jobs"?"population":"wealth");openDesk("city");return;}
-          const map:Record<string,HeatmapKind>={edu:"education",food:"food",parks:"parks",water:"water",waste:"waste",power:"power",defense:"defense",pollution:"pollution"};
-          if(map[id]){setActiveHeatmap(map[id]);revealOverlay("layers");}else openDesk("city");}}
-        onClose={() => setAdvisorOpen(false)}
-      />
-
-      {/* Fullscreen Hamburger Main Menu (Game Modes, Stages & Shortcuts) */}
-      <HamburgerMenuModal
-        open={hamburgerOpen}
-        state={gameState}
-        simSpeed={simSpeed}
-        savedCount={savedCount}
-        onClose={() => setHamburgerOpen(false)}
-        onChangeMode={handleSwitchMode}
-        onChangeSimSpeed={setSimSpeed}
-        onOpenWeatherStudio={() => {
-
-          setViewEnvTab("weather");
-          revealOverlay("view");
-        }}
-        onOpenHeatmaps={() => {
-
-          revealOverlay("layers");
-        }}
-        onOpenAdvisor={() => setAdvisorOpen(true)}
-        onOpenSaves={() => setSavesModalOpen(true)}
-        onToggleGodCrime={handleToggleGodCrime}
-        onOpenIsland={openDesk} onCopyIsland={copyIsland} onOpenExamples={openExamples}
-        onResetIsland={() => setConfirmResetOpen(true)}
-      />
-
-      {/* 3-Slot Saved Civilizations Modal */}
-      <SaveSlotsModal
-        open={savesModalOpen}
-        slots={saveSlots}
-        activeSlotIndex={activeSlotIndex}
-        currentState={gameState}
-        onClose={() => setSavesModalOpen(false)}
-        onSaveToSlot={handleSaveToSlot}
-        onLoadSlot={handleLoadSlot}
-        error={slotError}
-        onRenameSlot={handleRenameSlot}
-        onDeleteSlot={handleDeleteSlot}
-      />
-
-      {/* Reset Island Confirmation Modal */}
-      {confirmResetOpen && (
-        <GameDialog label="Reset current island" onDismiss={()=>setConfirmResetOpen(false)} className="island-modal fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-stone-900/20 bg-[#fcfaf5] p-5 shadow-2xl">
-            <h3 className="font-display text-base font-extrabold text-stone-900">
-              Reset {gameState.mode === "god" ? "God Mode" : gameState.mode === "real" ? "Real Mode" : "Survival"} Island?
-            </h3>
-            <p className="mt-1.5 text-xs text-stone-600">
-              This clears all placed elements on your current mode's island and starts fresh. Your
-              other game modes remain saved separately.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setConfirmResetOpen(false)} data-dialog-focus
-                className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-bold text-stone-700 hover:bg-stone-100"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleResetCurrentIsland}
-                className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700"
-              >
-                Reset Island
-              </button>
-            </div>
-          </div>
-        </GameDialog>
-      )}
-
-      {/* Survival Mode Game Over Modal */}
       {gameState.gameOver && (
         <GameDialog label="Civilization collapsed" className="island-modal fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 p-4">
-          <div className="w-full max-w-md rounded-xl border border-rose-500/40 bg-[#fcfaf5] p-6 text-center shadow-2xl">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-rose-100 text-rose-700">
-              <AlertOctagon className="h-7 w-7" />
-            </div>
-            <h2 className="font-display mt-3 text-xl font-extrabold text-stone-900">
-              Civilization Collapsed
-            </h2>
-            <p className="mt-2 text-xs leading-relaxed text-stone-600">
-              {gameState.gameOverReason}
-            </p>
-            <div className="mt-5 flex justify-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleSwitchMode("real")}
-                className="rounded-md border border-stone-300 bg-white px-3.5 py-2 text-xs font-bold text-stone-800 hover:bg-stone-100"
-              >
-                Switch to Real Mode
-              </button>
-              <button
-                type="button"
-                onClick={handleResetCurrentIsland}
-                className="flex items-center gap-1.5 rounded-md bg-stone-900 px-4 py-2 text-xs font-extrabold text-white hover:bg-stone-800"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span>Start Over</span>
-              </button>
+          <div className="ui-confirm" style={{textAlign:"center"}}>
+            <AlertOctagon size={36} color="var(--ui-bad)" style={{margin:"0 auto"}} aria-hidden="true"/>
+            <h3>Civilization collapsed</h3>
+            <p>{gameState.gameOverReason}</p>
+            <div className="ui-actions" style={{justifyContent:"center"}}>
+              <Button label="Switch to Real mode" onClick={() => handleSwitchMode("real")}/>
+              <Button variant="primary" icon={<RotateCcw size={18}/>} label="Start over" onClick={handleResetCurrentIsland}/>
             </div>
           </div>
         </GameDialog>

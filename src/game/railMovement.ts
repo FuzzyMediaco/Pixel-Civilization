@@ -351,6 +351,7 @@ export function claimRailLeg(s: GameState, l: Run, net: TravelNetwork): boolean 
     return true;
   }
   const from = tileIndexAt(leg, r.dist ?? 0);
+  const held = { reservation: r.reservation, claimEnd: r.claimEnd };
   // Auto-blocks: claim through the next junction(s) up to the end of the first plain stretch beyond them that
   // can hold the whole train - a safe place to stand. Trains therefore wait in passing loops, not at stations.
   const degree = leg.tiles.map((k) => {
@@ -360,7 +361,7 @@ export function claimRailLeg(s: GameState, l: Run, net: TravelNetwork): boolean 
   let horizon = leg.tiles.length - 1;
   {
     const need = Math.ceil(trainLength(r));
-    let seenJunction = false,
+    let seenJunction = degree[from] >= 3,
       run = 0;
     for (let i = from + 1; i < leg.tiles.length; i++) {
       if (degree[i] >= 3) {
@@ -421,8 +422,14 @@ export function claimRailLeg(s: GameState, l: Run, net: TravelNetwork): boolean 
       return true;
     }
   }
-  r.waitingSince ??= s.activePlaySec;
   r.blockedBy = blocker.id;
+  // Keep whatever stretch was already granted: run on to its end and wait there.
+  if (held.claimEnd !== undefined && held.reservation && held.claimEnd > (r.dist ?? 0) + 0.01) {
+    r.reservation = held.reservation;
+    r.claimEnd = held.claimEnd;
+    return true;
+  }
+  r.waitingSince ??= s.activePlaySec;
   r.reservation = onTrack(l) ? bodyTiles(r, l.position) : undefined;
   return false;
 }
@@ -535,29 +542,47 @@ export function prepareRailLeg(l: Run, path: Point[], net: TravelNetwork, ends: 
 }
 
 /* ------------------------------------------------------------------ depot parking (visual) */
-/** Where each vehicle of a parked train stands inside its depot: on a stub road parallel to the long side. */
+/**
+ * Where each vehicle of a parked train stands inside its depot: on the shed roads drawn by the depot model
+ * (designs/transit.ts buildTrainDepot: tracks along local x at z = -hz + 4 + 8i voxels, open shed end at +x),
+ * nose at the shed door. Local -z is the back edge that meets the running line.
+ */
 export function parkedBodies(depot: PlacedElement, l: Run, slot: number): RailBody[] {
   const r = trainFor(l);
   const models = [r.engine, ...r.cars];
-  const long = depot.spanX >= depot.spanZ ? "x" : "z";
-  const tracks = Math.max(1, Math.min(4, Math.floor((long === "x" ? depot.spanZ : depot.spanX) * 2)));
-  const lane = slot % tracks,
-    row = Math.floor(slot / tracks);
-  const across = (lane + 0.5) / tracks,
-    span = long === "x" ? depot.spanX : depot.spanZ;
-  const out: RailBody[] = [];
-  let offset = 0.15 + row * 0.2;
-  for (const [index, model] of models.entries()) {
-    const length = vehicleLength(model);
-    const along = Math.min(span - 0.1, offset + length / 2);
-    const point: Point =
-      long === "x"
-        ? [depot.gx - 0.5 + along, depot.gz - 0.5 + across * depot.spanZ]
-        : [depot.gx - 0.5 + across * depot.spanX, depot.gz - 0.5 + along];
-    out.push({ model, point, heading: long === "x" ? -Math.PI / 2 : Math.PI, complete: along < span - 0.1, length, index });
-    offset += length + GAP;
+  const rot = ((depot.rotation % 4) + 4) % 4;
+  const wide = rot % 2 ? depot.spanZ : depot.spanX,
+    deep = rot % 2 ? depot.spanX : depot.spanZ;
+  const hx = wide * 8,
+    hz = deep * 8,
+    lv = Math.max(1, Math.min(5, depot.level));
+  const lanes: number[] = [];
+  for (let i = 0; i < [1, 2, 3, 3, 4][lv - 1]; i++) {
+    const z = -hz + 4 + i * 8;
+    if (z + 3 > hz) break;
+    lanes.push(z + 0.5);
   }
-  return out.filter((b) => b.complete || b.index === 0);
+  const lane = lanes[slot % Math.max(1, lanes.length)] ?? 0;
+  const shedEnd = -hx + 1 + [18, 20, 22, 26, 30][lv - 1];
+  const turn = (x: number, z: number): Point => {
+    let [a, b] = [x, z];
+    for (let i = 0; i < rot; i++) [a, b] = [b, -a];
+    return [a, b];
+  };
+  const cx = depot.gx + depot.spanX / 2 - 0.5,
+    cz = depot.gz + depot.spanZ / 2 - 0.5;
+  const [fx, fz] = turn(1, 0);
+  const heading = Math.atan2(fx, fz);
+  const out: RailBody[] = [];
+  let nose = Math.min(hx - 1, shedEnd + 3) - Math.floor(slot / Math.max(1, lanes.length)) * 2;
+  for (const [index, model] of models.entries()) {
+    const length = vehicleLength(model) * 16;
+    const mid = nose - length / 2;
+    const [ox, oz] = turn(mid / 16, lane / 16);
+    out.push({ model, point: [cx + ox, cz + oz], heading, complete: nose - length >= -hx - 0.5, length: length / 16, index });
+    nose -= length + 1;
+  }
+  return out.filter((b) => b.complete);
 }
 export function stationOf(net: TravelNetwork, id: string) {
   return net.byId.get(id);

@@ -33,7 +33,7 @@ import { type CameraMode } from "../game/worldRenderer";
 export type ViewEnvTab = "weather" | "camera" | "defense";
 
 interface ViewEnvPanelProps {
-  open: boolean;
+  open?: boolean;
   activeTab: ViewEnvTab;
   state: GameState;
   cameraMode: CameraMode;
@@ -109,8 +109,8 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
   onTriggerCrime,
   onClose,
 }) => {
-  const [expanded, setExpanded] = useState(false);
-  if (!open) return null;
+  const weatherLocked = state.mode !== "god";
+  const tab: ViewEnvTab = weatherLocked && activeTab === "weather" ? "camera" : activeTab;
 
   const m = state.metrics;
   const night = isNightTime(state.timeOfDay ?? 10.5);
@@ -118,31 +118,27 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
   const wind = state.windSpeed ?? 1.0;
 
   return (
-    <aside id="island-panel-view" aria-label="View and weather"
-      className={`map-drawer pointer-events-auto fixed right-13 top-14 z-30 max-w-[calc(100vw-4.5rem)] overflow-y-auto rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 p-2.5 shadow-2xl transition-all ${
-        expanded ? "max-h-[calc(100vh-8rem)] w-80 sm:w-96" : "max-h-[46vh] w-68"
-      }`}
-    >
+    <div className="view-env">
       {/* Compact Header + Tabs */}
       <div className="flex items-center justify-between gap-1.5 border-b border-stone-200 pb-2">
-        <div className="grid flex-1 grid-cols-3 gap-1 rounded-md bg-stone-200/75 p-0.5">
-          <button
+        <div className={"grid flex-1 gap-1 rounded-md bg-stone-200/75 p-0.5 "+(weatherLocked?"grid-cols-2":"grid-cols-3")}>
+          {!weatherLocked && <button
             type="button"
-            aria-pressed={activeTab === "weather"}
+            aria-pressed={tab === "weather"}
             onClick={() => onChangeTab("weather")}
             className={`flex items-center justify-center gap-1 rounded py-1 text-[10px] font-extrabold transition-colors ${
-              activeTab === "weather" ? "bg-stone-900 text-white shadow-xs" : "text-stone-700 hover:bg-white/70"
+              tab === "weather" ? "bg-stone-900 text-white shadow-xs" : "text-stone-700 hover:bg-white/70"
             }`}
           >
             <CloudLightning className="h-3 w-3" />
             <span>Weather</span>
-          </button>
+          </button>}
           <button
             type="button"
-            aria-pressed={activeTab === "camera"}
+            aria-pressed={tab === "camera"}
             onClick={() => onChangeTab("camera")}
             className={`flex items-center justify-center gap-1 rounded py-1 text-[10px] font-extrabold transition-colors ${
-              activeTab === "camera" ? "bg-stone-900 text-white shadow-xs" : "text-stone-700 hover:bg-white/70"
+              tab === "camera" ? "bg-stone-900 text-white shadow-xs" : "text-stone-700 hover:bg-white/70"
             }`}
           >
             <Compass className="h-3 w-3" />
@@ -150,39 +146,20 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
           </button>
           <button
             type="button"
-            aria-pressed={activeTab === "defense"}
+            aria-pressed={tab === "defense"}
             onClick={() => onChangeTab("defense")}
             className={`flex items-center justify-center gap-1 rounded py-1 text-[10px] font-extrabold transition-colors ${
-              activeTab === "defense" ? "bg-stone-900 text-white shadow-xs" : "text-stone-700 hover:bg-white/70"
+              tab === "defense" ? "bg-stone-900 text-white shadow-xs" : "text-stone-700 hover:bg-white/70"
             }`}
           >
             <Shield className="h-3 w-3" />
             <span>Defense</span>
           </button>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setExpanded((e) => !e)}
-            className="rounded-md border border-stone-300 bg-white p-1 text-stone-600 hover:bg-stone-100"
-            title={expanded ? "Compact Panel" : "Expand Panel"}
-            aria-label={expanded ? "Compact Panel" : "Expand Panel"}
-          >
-            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-stone-300 bg-white p-1 text-stone-600 hover:bg-stone-100"
-            aria-label="Close view" title="Close Studio Drawer"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
       </div>
 
       {/* TAB 1: WEATHER STUDIO */}
-      {activeTab === "weather" && (
+      {tab === "weather" && (
         <div className="mt-2.5 space-y-2.5">
           {/* Weather Presets + Lock */}
           <div>
@@ -336,7 +313,7 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
       )}
 
       {/* TAB 2: 360 CAMERA */}
-      {activeTab === "camera" && (
+      {tab === "camera" && (
         <div className="mt-2.5 space-y-2">
           <div className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500">
             360° Island Camera & Zoom
@@ -432,7 +409,7 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
       )}
 
       {/* TAB 3: DEFENSE METRIC & ATTACK */}
-      {activeTab === "defense" && (
+      {tab === "defense" && (
         <div className="mt-2.5 space-y-2.5">
           {/* Readiness Bar */}
           <div className="rounded-lg border border-stone-200 bg-white p-2">
@@ -663,6 +640,6 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
           </div>
         </div>
       )}
-    </aside>
+    </div>
   );
 };

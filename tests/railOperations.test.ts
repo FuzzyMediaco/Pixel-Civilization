@@ -206,10 +206,11 @@ test("freight uses compatible cars, explicit terminal industries and completed d
   changeFormation(s, l.id, { ...oldForm, frequency: 12 });
   assert.equal(l.rail!.contract!.delivered, delivered);
   assert.deepEqual(l.rail!.trail, trail);
-  assert.equal(railFreightBonus(s, shop.id, "grain"), 1.08);
+  const bonus = railFreightBonus(s, shop.id, "grain");
+  assert.ok(bonus > 1.05 && bonus < 1.3, String(bonus));
   l.enabled = false;
   assert.equal(railFreightBonus(s, farm.id, "grain"), 1);
-  s.activePlaySec += 100;
+  s.activePlaySec += 200;
   l.enabled = true;
   assert.equal(railFreightBonus(s, shop.id, "grain"), 1);
 });

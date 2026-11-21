@@ -1,5 +1,6 @@
 import { buildRailModel } from "./railModels";
-import { railBodies } from "./railMovement";
+import { railBodies, parkedBodies, type RailBody } from "./railMovement";
+import { lineColor } from "./railOperations";
 import { cargoByCar } from "./railOperations";
 import { solidVoxels } from "./designs/kit";
 import * as THREE from "three";
@@ -23,7 +24,7 @@ type ModelKind =
   | "passenger"
   | "wake"
   | "bubbles";
-type RoadMesh = (kind: "bus" | "train" | "taxi", seed: number) => THREE.BufferGeometry;
+type RoadMesh = (kind: "bus" | "taxi", seed: number) => THREE.BufferGeometry;
 function model(kind: ModelKind) {
   const v = new PixelVox(51);
   const box = solidVoxels(v);
@@ -132,8 +133,8 @@ export class MobilityVisuals {
       if (mesh) this.root.remove(mesh);
       let geo = this.geometries.get(kind);
       if (!geo) {
-        geo = kind.startsWith("rolling:") ? buildRailModel(kind.slice(8)) : ["bus", "rail", "taxi"].includes(kind)
-          ? this.road(kind === "rail" ? "train" : (kind as "bus" | "taxi"), 1)
+        geo = kind.startsWith("rolling:") ? buildRailModel(kind.slice(8)) : ["bus", "taxi"].includes(kind)
+          ? this.road(kind as "bus" | "taxi", 1)
           : model(kind as ModelKind);
         this.geometries.set(kind, geo);
       }
@@ -197,19 +198,36 @@ export class MobilityVisuals {
           const yard=this.draw("loading-"+site.id,"rolling:loader-"+r.contract.type,site.id,fx*TILE_SIZE,getTerrainCell(s,site.gx,site.gz).elevation+.12,fz*TILE_SIZE,site.rotation*Math.PI/2,dt);
           if(l.at===id)yard.position.y+=Math.abs(Math.sin(t*2))*.035;
         }
-        let prior:{x:number;y:number;z:number}|undefined;
-        const loads=cargoByCar(r);
-        for(const [i,p] of bodies.entries()){
+        const loads=cargoByCar(r),colour=lineColor(l);
+        const place=(p:RailBody,i:number,parkedY?:number)=>{
           const [gx,gz]=p.point,axis=Math.abs(Math.sin(p.heading))>.5?"x":"z",ix=Math.round(gx),iz=Math.round(gz);
-          const pos={x:(gx+.5)*TILE_SIZE,y:surfaceTravelHeight(s,ix,iz,axis,.5+(axis==="x"?gx-ix:gz-iz))+.14,z:(gz+.5)*TILE_SIZE};
-          const fullness=loads[r.rearCab?r.cars.length-1-i:i-1]??0;
-          const id=i===0?l.id:l.id+"-car-"+i,mesh=this.draw(id,"rolling:"+p.model+(fullness>=.80?"/full":fullness>0?"/partial":""),l.depot,pos.x,pos.y,pos.z,p.heading+(r.rearCab?Math.PI:0),dt);
+          const y=parkedY??surfaceTravelHeight(s,ix,iz,axis,.5+(axis==="x"?gx-ix:gz-iz))+.1;
+          const fullness=p.index>0?loads[p.index-1]??0:0;
+          const kind="rolling:"+p.model+(fullness>=.8?"/full":fullness>0?"/partial":"")+"/"+colour;
+          const flip=r.rearCab&&parkedY===undefined?Math.PI:0;
+          const mesh=this.draw(i===0?l.id:l.id+"-car-"+i,kind,l.depot,(gx+.5)*TILE_SIZE,y,(gz+.5)*TILE_SIZE,p.heading+flip,dt);
           mesh.userData.serviceId=l.id;
-          if(prior){const cx=(pos.x+prior.x)/2,cz=(pos.z+prior.z)/2,angle=Math.atan2(prior.x-pos.x,prior.z-pos.z);
-            const coupler=this.draw(l.id+"-link-"+i,"rolling:coupler",l.depot,cx,(pos.y+prior.y)/2+.24,cz,angle,dt);
-            coupler.scale.z=Math.max(1,(Math.hypot(prior.x-pos.x,prior.z-pos.z)-1.58)/.39);coupler.userData.serviceId=l.id;}
-          if(p.model==="steam" && !l.at&&!l.blocked){const phase=t%1;const puff=this.draw(l.id+"-steam","rolling:steam-puff",l.depot,pos.x,pos.y+1.25+phase*.85,pos.z,.2,dt);puff.scale.setScalar(.55+phase*.5);}
-          prior=pos;
+          // A little sway while running; still at platforms and in the shed.
+          mesh.rotation.z=parkedY===undefined&&(r.speed??0)>.2?Math.sin(t*7+i*1.7)*.012*(r.speed??0):0;
+          return mesh;
+        };
+        if(l.at===l.depot&&!r.trail.length){
+          const depot=nav?.byId.get(l.depot);
+          if(depot){
+            const slot=(s.mobility?.lines??[]).filter(o=>o.mode==="rail"&&o.depot===l.depot&&o.at===o.depot&&!o.rail?.trail.length).indexOf(l);
+            const floor=getTerrainCell(s,depot.gx,depot.gz).elevation+.5;
+            parkedBodies(depot,l,Math.max(0,slot)).forEach((p,i)=>place(p,i,floor));
+          }
+          continue;
+        }
+        for(const [i,p] of bodies.entries()){
+          const mesh=place(p,i);
+          if(p.model==="steam"&&!l.at&&!l.blocked){
+            const phase=(t*(0.6+(r.speed??0)*.8))%1;
+            const fx=Math.sin(p.heading)*(r.rearCab?-1:1),fz=Math.cos(p.heading)*(r.rearCab?-1:1);
+            const puff=this.draw(l.id+"-steam","rolling:steam-puff",l.depot,mesh.position.x+fx*1.0,mesh.position.y+2.3+phase*1.1,mesh.position.z+fz*1.0,.2,dt);
+            puff.scale.setScalar(.7+phase*.9);puff.castShadow=false;
+          }
         }
         if(l.blocked||l.rail?.waitingSince!==undefined||l.at){
           const red=l.blocked||l.rail?.waitingSince!==undefined;

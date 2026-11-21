@@ -142,7 +142,7 @@ interface VoxelParticle {
 
 const vehicleGeoCache = new Map<string, THREE.BufferGeometry>();
 
-function getVehicleGeometry(kind: RoadVehicleKind | "train", variantSeed: number): THREE.BufferGeometry {
+function getVehicleGeometry(kind: RoadVehicleKind, variantSeed: number): THREE.BufferGeometry {
   const key = `${kind}_${variantSeed % 4}`;
   const cached = vehicleGeoCache.get(key);
   if (cached) return cached;
@@ -202,18 +202,6 @@ function getVehicleGeometry(kind: RoadVehicleKind | "train", variantSeed: number
       for(const x of [-3,3])for(let z=-4;z<4;z++)v.put(x,3,z,z%2?"#3d4140":"#f9eacd");
       break;
     }
-    case "train": {
-      for(const z of [-12,1]){
-        v.box(-3,1,z,3,3,z+10,"#aa3e31");
-        v.box(-3,4,z,3,6,z+10,"#f0e9d3");
-        for(const window of [1,4,7])v.box(-3,4,z+window,3,5,z+window+1,"#435b6d",.18);
-        v.box(-2,7,z+1,2,7,z+9,"#9bacae");
-      }
-      v.box(-2,2,-1,2,5,0,"#525865");
-      v.box(-2,4,11,2,5,11,"#364c58",.25);
-      v.box(-2,1,12,2,3,12,"#ad4231");v.put(0,4,12,"warmGlow",.8);
-      break;
-    }
     default: {
       // sedan
       v.box(-2, 0, -4, 2, 2, 4, paint);
@@ -223,13 +211,13 @@ function getVehicleGeometry(kind: RoadVehicleKind | "train", variantSeed: number
     }
   }
 
-  if(["train","bus","taxi"].includes(kind)){
-    const axle=kind==="train"?9:kind==="bus"?6:4,nose=kind==="train"?12:kind==="bus"?9:6;
+  if(["bus","taxi"].includes(kind)){
+    const axle=kind==="bus"?6:4,nose=kind==="bus"?9:6;
     for(const x of [-3,3])for(const z of [-axle,axle])v.box(x,0,z-1,x,1,z+1,"rubber");
     for(const x of [-2,2]){v.put(x,2,nose,"warmGlow",.8);v.put(x,2,-nose,"#ce583d",.3);}
   }
   // Wheels
-  const wz = kind === "train" ? 5 : kind === "bus" || kind === "truck" ? 4 : 3;
+  const wz = kind === "bus" || kind === "truck" ? 4 : 3;
   v.put(-2, 0, -wz + 1, "rubber");
   v.put(1, 0, -wz + 1, "rubber");
   v.put(-2, 0, wz - 1, "rubber");

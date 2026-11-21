@@ -254,10 +254,13 @@ export interface RailState {
   stock?: Record<string, Partial<Record<Cargo, number>>>;
   received?: Record<string, Partial<Record<Cargo, number>>>;
   practice?: { depot: string; gx: number; gz: number };
+  /** Player-chosen station names. */
+  names?: Record<string, string>;
   works?: Record<string, Partial<Record<YardWork, true>>>;
   turnouts: Record<string, SwitchSetting>;
   revision: number;
-  benefits: Record<string, { line: string; until: number; type: Cargo }[]>;
+  /** Recent deliveries per served site (source and sink of a contract); the bonus scales with their volume. */
+  benefits: Record<string, { line: string; until: number; type: Cargo; amount?: number }[]>;
 }
 export function railYard(s: GameState): RailState {
   return (s.railYard ??= { turnouts: {}, revision: 0, benefits: {} });
@@ -701,17 +704,16 @@ export function freightCall(
     quantity * 0.09,
     "Rail freight delivery",
   );
+  // Only the two industries this contract actually serves benefit, in proportion to the tonnage moved.
   for (const id of [c.source, c.sink]) {
-    const benefits = (yard.benefits[id] ??= []).filter(
-      (x) =>
-        x.until > s.activePlaySec && !(x.line === l.id && x.type === c.type),
-    );
+    const benefits = (yard.benefits[id] ??= []).filter((x) => x.until > s.activePlaySec);
     yard.benefits[id] = [
       ...benefits,
       {
         type: c.type,
         line: l.id,
-        until: s.activePlaySec + (s.railYard?.works?.[b.id]?.sorting ? 75 : 60),
+        amount: quantity,
+        until: s.activePlaySec + (s.railYard?.works?.[b.id]?.sorting ? 150 : 120),
       },
     ];
   }
@@ -759,22 +761,99 @@ function readyContract(s: GameState, l: Run) {
   cache.set(key, !!ready);
   return !!ready;
 }
-export function railFreightBonus(s: GameState, site: string, type: Cargo) {
+/**
+ * Output multiplier for a site served by rail freight: 1 + 0.3 x q/(q + 60), where q is the units of this
+ * cargo delivered to or collected from the site over the last two minutes by lines that are still running.
+ * About x1.05 for a trickle, x1.15 at 60 units, approaching x1.3 for heavy flows.
+ */
+export function railFreightVolume(s: GameState, site: string, type: Cargo) {
   const list = s.railYard?.benefits[site];
-  if (!list) return 1;
-  return list.some(
-    (b) =>
+  if (!list) return 0;
+  let q = 0;
+  for (const b of list)
+    if (
       b.type === type &&
       b.until > s.activePlaySec &&
       s.mobility?.lines.some(
-        (l) =>
-          l.id === b.line &&
-          l.enabled &&
-          !l.blocked &&
-          l.rail?.contract?.type === type &&
-          readyContract(s, l),
-      ),
-  )
-    ? 1.08
-    : 1;
+        (l) => l.id === b.line && l.enabled && !l.blocked && l.rail?.contract?.type === type && readyContract(s, l),
+      )
+    )
+      q += b.amount ?? 22;
+  return q;
+}
+export function railFreightBonus(s: GameState, site: string, type: Cargo) {
+  const q = railFreightVolume(s, site, type);
+  return q > 0 ? 1 + (0.3 * q) / (q + 60) : 1;
+}
+/** Sites currently fed by a running freight line (for proximity bonuses that should need real service). */
+export function railServedSites(s: GameState): Set<string> {
+  const out = new Set<string>();
+  for (const [id, list] of Object.entries(s.railYard?.benefits ?? {}))
+    if (list.some((b) => b.until > s.activePlaySec)) out.add(id);
+  return out;
+}
+/** Line colours (Mini Metro-ish, readable on grass and at night). Stable per line. */
+export const LINE_COLOURS = ["#d9482b", "#2f7fc1", "#e0a22a", "#3c9a5f", "#8a4fb3", "#d16a9c", "#1fa3a3", "#7a5a3a"];
+export function lineColor(l: { id: string; group?: string }) {
+  const key = l.group ?? l.id;
+  const n = Number(key.replace(/\D/g, "")) || [...key].reduce((a, c) => a + c.charCodeAt(0), 0);
+  return LINE_COLOURS[n % LINE_COLOURS.length];
+}
+/* ------------------------------------------------------------------ station names */
+const NAME_SKIP = /track|road|path|street|tree|grass|lawn|pond|lake|river|canal|bridge|fence|wall|garden|park|plaza|field|water_tower|wells|pine|flower|bush/i;
+function singular(name: string) {
+  if (/(ss|x|ch|sh)es$/.test(name)) return name.slice(0, -2);
+  if (/ies$/.test(name)) return name.slice(0, -3) + "y";
+  if (/[^s]s$/.test(name)) return name.slice(0, -1);
+  return name;
+}
+/**
+ * Players never see coordinates: stations are named after the most prominent neighbour
+ * ("Grocery Store Halt", "Farm Yard", "Bank Central"), or the name the player gave.
+ */
+export function stationName(s: GameState, e: PlacedElement): string {
+  const custom = s.railYard?.names?.[e.id];
+  if (custom) return custom;
+  const base = autoStationName(s, e);
+  const twins = s.elements.filter((o) => o.id !== e.id && isRailStation(o.defId) && !s.railYard?.names?.[o.id] && autoStationName(s, o) === base);
+  if (!twins.length) return base;
+  const all = [e, ...twins];
+  const cx = all.reduce((n, o) => n + o.gx, 0) / all.length,
+    cz = all.reduce((n, o) => n + o.gz, 0) / all.length;
+  const dx = e.gx - cx,
+    dz = e.gz - cz;
+  const side = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? "East" : "West") : dz > 0 ? "South" : "North";
+  return base + " " + side;
+}
+const autoNames = new WeakMap<PlacedElement, { key: string; name: string }>();
+function autoStationName(s: GameState, e: PlacedElement): string {
+  const key = e.gx + "," + e.gz + "," + e.level + "," + s.elements.length;
+  const hit = autoNames.get(e);
+  if (hit?.key === key) return hit.name;
+  let best: PlacedElement | undefined,
+    score = -Infinity;
+  for (const o of s.elements) {
+    if (o === e || isRailStation(o.defId)) continue;
+    const d = ELEMENT_BY_ID[o.defId];
+    if (!d || d.isNetwork || NAME_SKIP.test(o.defId)) continue;
+    const dist = Math.max(0, o.gx - (e.gx + e.spanX), e.gx - (o.gx + o.spanX)) + Math.max(0, o.gz - (e.gz + e.spanZ), e.gz - (o.gz + o.spanZ));
+    if (dist > 5) continue;
+    const prominence = (d.jobs ?? 0) * 0.05 + (d.popBase ?? 0) * 0.02 + o.spanX * o.spanZ + (d.category === "landmarks" || d.category === "wealth_projects" ? 8 : d.category === "nature_terrain" ? -6 : 0);
+    const sc = prominence - dist * 1.5;
+    if (sc > score) {
+      score = sc;
+      best = o;
+    }
+  }
+  const suffix =
+    e.defId === "train_depots" ? "Depot" : e.defId === "freight_rail_terminal" ? "Yard" : e.level >= 4 ? "Central" : e.level >= 3 ? "Station" : "Halt";
+  const name = (best ? singular(ELEMENT_BY_ID[best.defId].name) : "Meadow") + " " + suffix;
+  autoNames.set(e, { key, name });
+  return name;
+}
+export function renameStation(s: GameState, id: string, name: string) {
+  const yard = railYard(s);
+  const clean = name.trim().slice(0, 32);
+  if (!clean) delete yard.names?.[id];
+  else (yard.names ??= {})[id] = clean;
 }

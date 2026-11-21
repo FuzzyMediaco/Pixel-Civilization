@@ -54,7 +54,7 @@
 
 .ui-tabs { display: flex; background: #eceee4; border-radius: 12px; padding: 3px; gap: 2px; }
 .ui-tabs button {
-  flex: 1; min-width: 0; min-height: 40px !important; border-radius: 10px; color: var(--ui-muted);
+  flex: 1; min-width: 0; min-height: 44px !important; border-radius: 10px; color: var(--ui-muted);
   font: 700 var(--ui-t-sm)/1 var(--ui-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 6px;
 }
 .ui-tabs button[aria-selected="true"] { background: var(--ui-card); color: var(--ui-ink); box-shadow: 0 1px 3px #0002; }
@@ -100,7 +100,7 @@ button.ui-row:hover { border-color: var(--ui-green); }
 
 .ui-alert {
   position: fixed; z-index: 29; top: calc(var(--hud-top) + 56px); left: 50%; transform: translateX(-50%);
-  max-width: calc(100vw - 16px); display: inline-flex; align-items: center; gap: 8px; min-height: 40px !important; padding: 0 8px 0 14px;
+  max-width: calc(100vw - 16px); display: inline-flex; align-items: center; gap: 8px; min-height: 44px !important; padding: 0 8px 0 14px;
   background: #fff4ec; border: 1px solid #e6b897; color: #7a3a12; border-radius: 999px; box-shadow: var(--ui-shadow);
   font: 700 var(--ui-t-sm)/1.15 var(--ui-font); white-space: nowrap;
 }
@@ -141,9 +141,10 @@ button.ui-row:hover { border-color: var(--ui-green); }
 .ui-sheet[data-height="half"] { height: min(64dvh, 680px); }
 .ui-sheet[data-height="full"] { height: calc(100dvh - var(--hud-top) - 56px); }
 .ui-sheet.is-context { z-index: 33; }
-.ui-sheet-grab { flex: none; display: grid; place-items: center; height: 22px !important; min-height: 22px !important; width: 100%; cursor: grab; touch-action: none; }
+.ui-sheet { position: fixed; }
+.ui-sheet-grab { position: absolute; z-index: 3; top: 0; left: 30%; right: 30%; display: grid; place-items: start center; padding-top: 8px; height: 44px; min-width: 0 !important; cursor: grab; touch-action: none; }
 .ui-sheet-grab::before { content: ""; width: 44px; height: 5px; border-radius: 9px; background: #c4cbbf; }
-.ui-sheet-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px 8px 16px; }
+.ui-sheet-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 22px 12px 8px 16px; }
 .ui-sheet-head h2 { flex: 1; min-width: 0; font: 750 var(--ui-t-lg)/1.15 var(--ui-font); letter-spacing: -.02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ui-sheet-head .ui-sheet-sub { display: block; font: 500 var(--ui-t-xs)/1.2 var(--ui-font); color: var(--ui-muted); letter-spacing: 0; }
 .ui-sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 12px 12px; }
@@ -177,8 +178,8 @@ button.ui-row:hover { border-color: var(--ui-green); }
 .ui-menu .ui-btn { justify-content: flex-start; border-color: transparent; }
 
 /* ---------- Build cards ---------- */
-.ui-search { display: flex; align-items: center; gap: 8px; height: var(--ui-tap); padding: 0 12px; margin-bottom: 8px; border: 1px solid var(--ui-line); border-radius: 12px; background: var(--ui-card); color: var(--ui-muted); }
-.ui-search input { flex: 1; min-width: 0; min-height: 40px !important; border: 0; background: transparent; color: var(--ui-ink); font: 500 var(--ui-t-md)/1 var(--ui-font); outline: none; }
+.ui-search { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px; margin-bottom: 8px; border: 1px solid var(--ui-line); border-radius: 12px; background: var(--ui-card); color: var(--ui-muted); }
+.ui-search input { flex: 1; min-width: 0; min-height: 44px !important; border: 0; background: transparent; color: var(--ui-ink); font: 500 var(--ui-t-md)/1 var(--ui-font); outline: none; }
 .ui-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
 .ui-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 118px; padding: 8px 4px; border-radius: 12px; border: 1px solid var(--ui-line); background: var(--ui-card); text-align: center; color: var(--ui-ink); }
 .ui-card img { width: 56px; height: 56px; object-fit: contain; }
@@ -197,7 +198,7 @@ button.ui-row:hover { border-color: var(--ui-green); }
 .ui-placebar .ui-icard-thumb { width: 44px; height: 44px; }
 .ui-placebar .ui-icard-thumb img { width: 40px; height: 40px; }
 .ui-placebar .ui-level { display: inline-flex; align-items: center; border: 1px solid var(--ui-line); border-radius: 12px; background: var(--ui-card); }
-.ui-placebar .ui-level button { min-width: 36px !important; width: 36px; }
+.ui-placebar .ui-level button { min-width: 44px !important; width: 44px; }
 .ui-placebar .ui-level span { min-width: 28px; text-align: center; font-weight: 800; font-size: var(--ui-t-sm); }
 .ui-placebar-hint { position: fixed; z-index: 33; left: 8px; right: 8px; bottom: calc(var(--above-nav) + 72px); margin: 0 auto; width: max-content; max-width: calc(100vw - 16px); padding: 6px 12px; border-radius: 12px; background: #1f3d34e6; color: #fff; font-size: var(--ui-t-xs); font-weight: 600; text-align: center; }
 .ui-placebar-hint.is-bad { background: #6b221be6; }
@@ -242,3 +243,7 @@ button.ui-row:hover { border-color: var(--ui-green); }
   .ui-toasts { left: auto; right: 12px; margin: 0; width: 380px; top: calc(var(--hud-top)); }
   .island-app.has-alert .ui-toasts { top: var(--hud-top); }
 }
+
+/* Inspector-card text stacks; long row subtitles clamp to two lines (full text in City → Issues detail on tap is not needed). */
+.ui-icard-title, .ui-icard-sub { display: block; }
+.ui-row-body small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
