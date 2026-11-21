@@ -590,7 +590,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
 
                       <div className="mt-0.5 flex items-center justify-between gap-0.5 text-[8px] font-semibold leading-none">
                         <span className={`truncate ${selected ? "text-stone-300" : "text-stone-500"}`}>
-                          {formatElementStatSummary(def)}
+                          {formatElementStatSummary(def, brush.kind === "place" && brush.defId === def.id ? brush.level : 1)}
                         </span>
 
                         {!unlocked ? (

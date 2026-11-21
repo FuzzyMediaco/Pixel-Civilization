@@ -1741,7 +1741,7 @@ function glasshouse(c: Ctx, x0: number, z0: number, x1: number, z1: number, y: n
   const { v } = c,
     s = ps(c),
     k = c.variant & 3;
-  const frame = ["white", "white", "#2f5d3a", "#2b333c"][k];
+  const frame = ["white", "white", "#2f5d3a", "#8a96a3"][k];
   const pane = k === 3 ? "#d77bd8" : "#bfe6ea";
   const e = k === 3 ? 0.7 : 0.25;
   if (k === 2) v.box(x0, y, z0, x1, y + 2, z1, "brick");
@@ -1750,6 +1750,7 @@ function glasshouse(c: Ctx, x0: number, z0: number, x1: number, z1: number, y: n
   if (k === 1) {
     const r = Math.min(x1 - x0, z1 - z0) / 2;
     v.dome((x0 + x1) / 2, by, (z0 + z1) / 2, r, pane, e);
+    v.dome((x0 + x1) / 2, by, (z0 + z1) / 2, r - 1.2, null as unknown as string);
     const cx = (x0 + x1) / 2,
       cz = (z0 + z1) / 2;
     for (let a = 0; a < 4; a++) {
@@ -1768,14 +1769,20 @@ function glasshouse(c: Ctx, x0: number, z0: number, x1: number, z1: number, y: n
   }
   const h = k === 3 ? 7 : 3;
   v.box(x0, by, z0, x1, by + h, z1, pane, e);
+  if (x1 - x0 > 2 && z1 - z0 > 2) v.clear(x0 + 1, by, z0 + 1, x1 - 1, by + h, z1 - 1);
   for (let x = x0; x < x1; x += 3) v.box(x, by, z0, x + 1, by + h, z1, frame);
   v.box(x1 - 1, by, z0, x1, by + h, z1, frame);
   if (k === 0) gable(v, x0, by + h, z0, x1, z1, "z", pane, frame);
   else if (k === 2) K.barrelRoof(v, x0, by + h, z0, x1, z1, "z", pane, frame);
   else {
     v.box(x0, by + h, z0, x1, by + h + 1, z1, frame);
-    for (let yy = by + 2; yy < by + h; yy += 2) v.box(x0, yy, z0, x1, yy + 1, z1, "#5b2a6b");
-    v.box(x0 + 1, by + h + 1, z0 + 1, x1 - 1, by + h + 2, z1 - 1, "solarBlue", 0.2);
+    for (let yy = by + 2; yy < by + h; yy += 2) {
+      v.box(x0, yy, z0, x1, yy + 1, z1, "#5b2a6b");
+      v.clear(x0 + 1, yy, z0 + 1, x1 - 1, yy + 1, z1 - 1);
+    }
+    v.box(x0 + 1, by + h + 1, z0 + 1, x1 - 1, by + h + 2, z1 - 1, "#f0a8f0", 0.9);
+    v.clear(x0 + 2, by + h + 1, z0 + 2, x1 - 2, by + h + 2, z1 - 2);
+    for (let x = x0 + 2; x < x1 - 2; x += 3) v.box(x, by + h + 1, z0 + 2, x + 2, by + h + 2, z1 - 2, "solarBlue", 0.2);
   }
   for (let x = x0 + 1; x < x1 - 1; x += 2) v.put(x, by, z1, ["red", "orange", "leaf", "yellow"][(x >> 1) & 3]);
 }
@@ -1844,6 +1851,458 @@ function flowerBedRow(c: Ctx, x0: number, z: number, x1: number) {
   }
 }
 
+// Shared waterside pieces: water always sits at the BACK (-z) of the parcel, the street at the front.
+function waterBack(c: Ctx, depth: number, quayCol: string) {
+  const { v, hx, hz } = c;
+  const qz = -hz + depth;
+  K.waterPlane(v, -hx, -hz, hx, qz, 0, "water");
+  v.box(-hx, 0, qz, hx, 1, hz, quayCol);
+  v.box(-hx, 1, qz, hx, 2, qz + 1, "stone");
+  for (let x = -hx + 2; x < hx; x += 6) v.box(x, 2, qz, x + 1, 3, qz + 1, "charcoal");
+  return qz;
+}
+function pier(c: Ctx, x0: number, x1: number, z0: number, z1: number) {
+  const { v } = c;
+  v.box(x0, 1, z0, x1, 2, z1, "woodLight");
+  for (let z = z0; z < z1; z += 4)
+    for (const x of [x0, x1 - 1]) v.box(x, 0, z, x + 1, 3, z + 1, "woodDark");
+}
+/** Passenger ferry along z, bow toward -z. w = beam (x), len along z. */
+function ferryBoat(c: Ctx, x: number, z0: number, len: number, decks: number, w = 5) {
+  const { v } = c,
+    s = ps(c);
+  const half = Math.floor(w / 2);
+  for (let z = z0; z < z0 + len; z++) {
+    const t = z - z0;
+    const ww = t < 3 ? Math.max(1, half - (3 - t)) : half;
+    v.box(x - ww, 0, z, x + ww + 1, 1, z + 1, "#7a2a22");
+    v.box(x - ww, 1, z, x + ww + 1, 3, z + 1, s.livery);
+    v.box(x - ww, 3, z, x + ww + 1, 4, z + 1, "white");
+  }
+  for (let d = 0; d < decks; d++) {
+    const y = 4 + d * 3,
+      a = 3 + d,
+      b = z0 + len - 1 - d;
+    v.box(x - half + 1, y, z0 + a, x + half, y + 2, b, "white");
+    v.box(x - half + 1, y + 1, z0 + a, x + half, y + 2, b, "glassDark", 0.5);
+    for (let z = z0 + a; z < b; z += 2) {
+      v.put(x - half + 1, y + 1, z, "#9fd8ea", 0.6);
+      v.put(x + half - 1, y + 1, z, "#9fd8ea", 0.6);
+    }
+    v.box(x - half, y + 2, z0 + a - 1, x + half + 1, y + 3, b + 1, d === decks - 1 ? s.livery : "white");
+  }
+  const top = 4 + decks * 3;
+  v.box(x - 1, top, z0 + 4, x + 2, top + 2, z0 + 6, "glassDark");
+  v.box(x - 1, top, z0 + len - 5, x + 2, top + 3, z0 + len - 3, c.variant === 3 ? "gold" : s.livery);
+  v.box(x - 1, top + 3, z0 + len - 5, x + 2, top + 4, z0 + len - 3, "charcoal");
+  c.smoke(x, top + 4, z0 + len - 4, "smoke");
+  v.put(x, top + 2, z0 + 5, "red", 1);
+}
+
+// FERRY EXCHANGE — a passenger harbour whose piers, boats and terminal grow together. Lv1 timber pier,
+// launch and ticket hut → Lv2 twin finger piers with two ferries and a waiting shelter → Lv3 transfer
+// pier with a covered gangway, departure board and transfer hall → Lv4 covered concourse canopy along the
+// whole quay, three ferries → Lv5 harbour exchange: grand hall with clock tower & beacon, four berths
+// incl. a big car ferry. Variants: 0 terracotta loggia, 1 white streamline, 2 brick & green iron pier, 3 slate & brass deco.
+function departureBoard(c: Ctx, x: number, z: number, w: number) {
+  const { v } = c;
+  v.box(x, 1, z, x + 1, 6, z + 1, "steelDark");
+  v.box(x + w - 1, 1, z, x + w, 6, z + 1, "steelDark");
+  v.box(x, 6, z, x + w, 9, z + 1, "charcoal");
+  for (let i = 1; i < w - 1; i += 2) v.put(x + i, 7 + (i % 2), z + 1, i % 3 ? "amber" : "screenGreen", 1);
+}
+function concourseRoof(c: Ctx, x0: number, x1: number, z0: number, z1: number, y: number) {
+  const { v } = c,
+    s = ps(c),
+    k = c.variant & 3;
+  for (let x = x0; x < x1; x += 6) for (const z of [z0, z1 - 1]) v.box(x, 1, z, x + 1, y, z + 1, s.metal);
+  if (k === 0) {
+    for (let x = x0; x < x1; x += 6) gable(v, x, y, z0 - 1, Math.min(x1, x + 6), z1 + 1, "z", s.roof, s.trim);
+  } else if (k === 1) {
+    for (let x = x0; x < x1; x++) {
+      const dy = Math.round(Math.sin(((x - x0) / 12) * Math.PI) * 2);
+      v.box(x, y + dy, z0 - 1, x + 1, y + dy + 1, z1 + 1, "white");
+    }
+  } else if (k === 2) K.barrelRoof(v, x0, y, z0 - 1, x1, z1 + 1, "x", "#bfe6ea", "#2f5d3a");
+  else {
+    v.box(x0, y, z0 - 1, x1, y + 1, z1 + 1, s.wall2);
+    v.box(x0, y + 1, z1, x1, y + 2, z1 + 1, "brass", 0.4);
+    for (let x = x0 + 2; x < x1; x += 6) v.box(x, y + 1, z0, x + 2, y + 4, z0 + 2, "brass");
+  }
+}
+function ferryExchange(c: Ctx) {
+  const { v, lv, hx, hz } = c,
+    s = ps(c),
+    k = c.variant & 3;
+  const depth = lvPick(c, [7, 12, 12, 16, 18]);
+  const qz = waterBack(c, depth, s.path);
+  if (lv === 1) {
+    pier(c, -9, -5, -hz, qz);
+    ferryBoat(c, -1, -hz, 7, 1, 3);
+    sbldg(c, 4, qz + 2, 12, hz - 1, 4, { axis: "x" });
+    lamp(v, -4, 1, qz + 2, 5);
+    bench(v, -10, 1, hz - 2, "x", "wood");
+    crowd(c, -8, qz + 2, 0, hz - 1, 3);
+    return;
+  }
+  if (lv === 2) {
+    pier(c, -11, -7, -hz, qz);
+    pier(c, 5, 9, -hz, qz);
+    ferryBoat(c, -2, -hz + 1, 10, 1);
+    ferryBoat(c, 13, -hz, 11, 2);
+    const top = sbldg(c, -hx + 2, qz + 3, 2, hz - 2, 5, { axis: "x" });
+    flag(v, 6, 1, qz + 3, Math.max(8, top - 1), [s.livery, "white"]);
+    departureBoard(c, 5, hz - 4, 7);
+    crowd(c, -8, qz + 1, 12, qz + 3, 4);
+    return;
+  }
+  if (lv === 3) {
+    pier(c, -3, 3, -hz, qz);
+    for (let z = -hz + 2; z < qz; z += 4) v.box(-3, 2, z, -2, 6, z + 1, s.metal);
+    v.box(-3, 6, -hz + 1, 3, 7, qz, k === 1 ? "white" : s.roof);
+    ferryBoat(c, -8, -hz, 11, 2);
+    ferryBoat(c, 8, -hz + 1, 10, 1);
+    ferryBoat(c, 19, -hz, 9, 1, 3);
+    sbldg(c, -hx + 2, qz + 3, -4, hz - 1, 7, { axis: "x" });
+    departureBoard(c, 2, qz + 3, 10);
+    K.clockFace(v, 16, 8, qz + 4, 2);
+    v.box(16, 1, qz + 3, 17, 7, qz + 4, s.metal);
+    crowd(c, -2, qz + 1, 14, hz - 2, 6);
+    return;
+  }
+  // Lv4/5: concourse canopy all along the quay + piers
+  const piers = lv === 4 ? [-18, -2, 14] : [-26, -10, 6, 22];
+  for (const px of piers) pier(c, px, px + 4, -hz, qz);
+  const boats = lv === 4 ? [-10, 6, 21] : [-18, -2, 14, 29];
+  boats.forEach((bx, i) => {
+    if (lv === 5 && i === 1) ferryBoat(c, bx, -hz, 17, 3, 9);
+    else ferryBoat(c, bx, -hz + (i % 2), lv === 4 ? 13 : 12, 2 + (i % 2), i === boats.length - 1 ? 3 : 5);
+  });
+  concourseRoof(c, -hx + 1, hx - 1, qz + 1, qz + 7, 8);
+  crowd(c, -hx + 3, qz + 1, hx - 3, qz + 7, 10);
+  if (lv === 4) {
+    sbldg(c, -hx + 3, qz + 10, hx - 3, hz - 2, 8, { axis: "x" });
+    departureBoard(c, -6, qz + 8, 12);
+    return;
+  }
+  // Lv5 grand harbour hall with a clock & beacon tower
+  const hz0 = qz + 10;
+  const top = sbldg(c, -hx + 3, hz0, hx - 3, hz - 2, 10, { axis: "x" });
+  const tx = 0,
+    tz = Math.round((hz0 + hz - 2) / 2);
+  v.box(tx - 3, top - 2, tz - 3, tx + 3, top + 12, tz + 3, s.wall);
+  K.clockFace(v, tx, top + 8, tz + 3, 2);
+  v.box(tx - 4, top + 12, tz - 4, tx + 4, top + 13, tz + 4, s.trim);
+  v.box(tx - 2, top + 13, tz - 2, tx + 2, top + 16, tz + 2, "warmGlow", 1.1);
+  const cap = k === 1 ? top + 17 : K.hip(v, tx - 3, top + 16, tz - 3, tx + 3, tz + 3, k === 3 ? "brass" : s.roof, s.trim);
+  if (k === 1) v.box(tx - 3, top + 16, tz - 3, tx + 3, top + 17, tz + 3, "teal");
+  c.blink(tx, cap + 1, tz, "red");
+  departureBoard(c, -hx + 6, qz + 8, 12);
+  departureBoard(c, hx - 18, qz + 8, 12);
+  for (const x of [-hx + 2, hx - 3]) flag(v, x, 1, hz - 1, 12, [s.livery, "white", s.accent]);
+}
+
+// CANAL BOAT LIFT — boats rise from the lower basin at the back to an aqueduct leaving the front.
+// Lv1 cradle lock with balance-beam gates → Lv2 a single caisson hoisted between two towers, spinning
+// pulley sheaves → Lv3 twin caissons (one up, one down) with hanging counterweights → Lv4 taller frame
+// crowned by a glass viewing gallery with visitors → Lv5 Falkirk-style rotating navigation wheel whose
+// two water-filled gondolas swap boats between basin and aqueduct.
+// Variants: 0 stone & terracotta arches, 1 white concrete & teal, 2 brick piers & riveted green iron, 3 slate & brass deco.
+function canalBoat(c: Ctx, x: number, y: number, z: number, axis: "x" | "z") {
+  const { v } = c,
+    s = ps(c);
+  if (axis === "z") {
+    v.box(x - 1, y, z - 3, x + 2, y + 1, z + 4, s.livery);
+    v.box(x - 1, y + 1, z - 1, x + 2, y + 3, z + 3, "cream");
+    v.box(x - 1, y + 3, z - 1, x + 2, y + 4, z + 3, s.livery);
+    v.put(x, y + 2, z + 3, "glass", 0.5);
+  } else {
+    v.box(x - 3, y, z - 1, x + 4, y + 1, z + 2, s.livery);
+    v.box(x - 1, y + 1, z - 1, x + 3, y + 3, z + 2, "cream");
+    v.box(x - 1, y + 3, z - 1, x + 3, y + 4, z + 2, s.livery);
+  }
+}
+function caisson(c: Ctx, x0: number, x1: number, z0: number, z1: number, y: number) {
+  const { v } = c,
+    s = ps(c);
+  v.box(x0, y, z0, x1, y + 4, z1, c.variant === 1 ? "white" : s.metal);
+  v.box(x0 + 1, y + 1, z0 + 1, x1 - 1, y + 4, z1 - 1, "water", 0.15);
+  v.box(x0, y + 4, z0, x1, y + 5, z0 + 1, "hazard");
+  v.box(x0, y + 4, z1 - 1, x1, y + 5, z1, "hazard");
+  canalBoat(c, Math.floor((x0 + x1) / 2), y + 3, Math.floor((z0 + z1) / 2), "x");
+}
+function liftTower(c: Ctx, x: number, z0: number, z1: number, h: number) {
+  const { v } = c,
+    s = ps(c),
+    k = c.variant & 3;
+  const col = ["#d9c39a", "white", "brick", "#4f5d6b"][k];
+  v.box(x, 1, z0, x + 4, h, z1, col);
+  if (k === 2) for (let y = 3; y < h; y += 4) v.box(x, y, z0, x + 4, y + 1, z1, "#2f5d3a");
+  if (k === 3) for (let y = 4; y < h; y += 5) v.box(x - 1, y, z0, x + 5, y + 1, z1, "brass");
+  if (k === 0) for (let z = z0 + 1; z + 2 < z1; z += 4) v.clear(x, 1, z, x + 4, 5, z + 2);
+  if (k === 1) v.box(x + 1, 2, z1 - 1, x + 3, h - 2, z1, "teal", 0.3);
+  v.box(x - 1, h, z0 - 1, x + 5, h + 1, z1 + 1, s.trim);
+}
+function sheave(c: Ctx, x: number, y: number, z: number, r: number) {
+  const wheel = new PixelVox();
+  for (let a = 0; a < 16; a++) {
+    const ang = (a / 16) * Math.PI * 2;
+    wheel.put(0, Math.round(Math.sin(ang) * r), Math.round(Math.cos(ang) * r), c.variant === 3 ? "brass" : "steelDark");
+  }
+  for (let d = -r; d <= r; d++) {
+    wheel.put(0, d, 0, "silver");
+    wheel.put(0, 0, d, "silver");
+  }
+  c.addRotor({ vox: wheel, pivot: [x, y, z], axis: "x", speed: 0.7 });
+}
+function aqueduct(c: Ctx, x0: number, x1: number, z0: number, z1: number, y: number) {
+  const { v } = c,
+    s = ps(c),
+    k = c.variant & 3;
+  v.box(x0, y - 1, z0, x1, y + 2, z1, ["#d9c39a", "concrete", "brick", "#4f5d6b"][k]);
+  v.box(x0 + 1, y, z0, x1 - 1, y + 2, z1, "water", 0.15);
+  for (let z = z0 + 2; z < z1; z += 6) {
+    v.box(x0, 1, z, x0 + 2, y - 1, z + 2, k === 2 ? "#2f5d3a" : s.metal === "brass" ? "#36424e" : ["#d9c39a", "concrete"][k]);
+    v.box(x1 - 2, 1, z, x1, y - 1, z + 2, k === 2 ? "#2f5d3a" : s.metal === "brass" ? "#36424e" : ["#d9c39a", "concrete"][k]);
+  }
+  for (let z = z0; z < z1; z += 2) {
+    v.put(x0, y + 2, z, s.trim);
+    v.put(x1 - 1, y + 2, z, s.trim);
+  }
+}
+function canalBoatLift(c: Ctx) {
+  const { v, lv, hx, hz } = c,
+    s = ps(c),
+    k = c.variant & 3;
+  const depth = lvPick(c, [5, 11, 11, 14, 16]);
+  const qz = waterBack(c, depth, s.ground);
+  K.speckle(c, s.path, 0.2, 0, 0);
+  K.waterPlane(v, -hx, -hz, hx, qz, 0, "water");
+  if (lv === 1) {
+    // a lock chamber climbing toward the front
+    const wallCol = ["#d9c39a", "concrete", "brick", "#4f5d6b"][k];
+    v.box(-6, 1, qz, -4, 6, hz, wallCol);
+    v.box(4, 1, qz, 6, 6, hz, wallCol);
+    v.box(-4, 0, qz, 4, 3, hz - 7, "water", 0.15);
+    v.box(-4, 0, hz - 7, 4, 5, hz, "water", 0.15);
+    for (const gz of [qz, hz - 7]) {
+      v.box(-4, 1, gz, 4, 6, gz + 1, "woodDark");
+      v.box(-12, 6, gz, -4, 7, gz + 1, "wood");
+      v.box(4, 6, gz, 12, 7, gz + 1, "wood");
+    }
+    canalBoat(c, 0, 3, qz + 3, "z");
+    sbldg(c, 8, qz + 1, 15, hz, 4, { door: false });
+    person(v, -9, 1, qz + 2, "white");
+    return;
+  }
+  const UH = lvPick(c, [0, 14, 16, 20, 22]);
+  if (lv === 2) {
+    liftTower(c, -12, -hz + 2, qz, UH + 8);
+    liftTower(c, 8, -hz + 2, qz, UH + 8);
+    caisson(c, -8, 8, -hz + 3, qz - 1, Math.round(UH * 0.55));
+    v.box(-12, UH + 8, -hz + 3, 12, UH + 10, -hz + 5, s.trim);
+    v.box(-12, UH + 8, qz - 3, 12, UH + 10, qz - 1, s.trim);
+    for (const x of [-7, 6]) for (const z of [-hz + 4, qz - 2]) v.box(x, Math.round(UH * 0.55) + 5, z, x + 1, UH + 8, z + 1, "steelDark");
+    sheave(c, -2, UH + 11, Math.round((-hz + qz) / 2), 3);
+    aqueduct(c, -5, 5, qz - 1, hz, UH);
+    sbldg(c, 8, qz + 4, hx - 1, hz - 1, 5, { axis: "x" });
+    return;
+  }
+  if (lv === 3 || lv === 4) {
+    const top = UH + 8;
+    const towers = [-hx + 2, -2, hx - 6];
+    for (const tx of towers) liftTower(c, tx, -hz + 2, qz, top);
+    v.box(-hx + 2, top, -hz + 3, hx - 2, top + 2, qz - 1, s.trim);
+    v.clear(-hx + 6, top, -hz + 5, hx - 6, top + 2, qz - 3);
+    // left caisson up (meets the aqueduct), right caisson down in the basin
+    caisson(c, -hx + 6, -2, -hz + 3, qz - 1, UH - 3);
+    caisson(c, 2, hx - 6, -hz + 3, qz - 1, 0);
+    // counterweights hang opposite: low on the left, high on the right
+    v.box(-hx + 7, 3, qz - 1, -hx + 10, 7, qz + 1, "concreteDark");
+    v.box(hx - 10, top - 6, qz - 1, hx - 7, top - 2, qz + 1, "concreteDark");
+    v.box(-hx + 8, 7, qz - 1, -hx + 9, top, qz, "steelDark");
+    v.box(hx - 9, top - 2, qz - 1, hx - 8, top, qz, "steelDark");
+    sheave(c, -hx + 4, top + 3, -hz + 6, 3);
+    sheave(c, hx - 4, top + 3, -hz + 6, 3);
+    aqueduct(c, -hx + 10, -6, qz - 1, hz, UH);
+    if (lv === 3) {
+      sbldg(c, 4, qz + 4, hx - 2, hz - 1, 6, { axis: "x" });
+      return;
+    }
+    // Lv4 viewing gallery
+    v.box(-hx + 4, top + 2, -hz + 2, hx - 4, top + 7, -hz + 9, "#9fd8ea", 0.5);
+    v.clear(-hx + 5, top + 2, -hz + 3, hx - 5, top + 6, -hz + 8);
+    v.box(-hx + 4, top + 2, -hz + 2, hx - 4, top + 3, -hz + 9, s.trim);
+    crowd(c, -hx + 6, -hz + 4, hx - 6, -hz + 7, 7, top + 3);
+    sroof(c, -hx + 4, top + 7, -hz + 2, hx - 4, -hz + 9, "x");
+    for (const x of [-hx + 3, hx - 4]) flag(v, x, top + 2, qz - 2, 8, [s.livery, "white"]);
+    sbldg(c, 4, qz + 4, hx - 2, hz - 1, 7, { axis: "x" });
+    return;
+  }
+  // Lv5 rotating wheel lift
+  const pz = qz + 1,
+    py = 13,
+    R = 10;
+  const pyl = ["#d9c39a", "white", "brick", "#4f5d6b"][k];
+  for (const x of [-12, 10]) {
+    v.box(x, 1, pz - 3, x + 3, py + 3, pz + 3, pyl);
+    v.box(x - 1, py + 1, pz - 4, x + 4, py + 4, pz + 4, s.trim);
+  }
+  const wheel = new PixelVox();
+  const ang = Math.PI / 3;
+  const ends: [number, number][] = [
+    [Math.round(-Math.cos(ang) * R), Math.round(-Math.sin(ang) * R)],
+    [Math.round(Math.cos(ang) * R), Math.round(Math.sin(ang) * R)],
+  ];
+  for (const ax of [-8, 7]) {
+    for (let t = -R; t <= R; t++) {
+      const dz = Math.round(Math.cos(ang) * t),
+        dy = Math.round(Math.sin(ang) * t);
+      // axe-head curve: arms bow outward
+      const bow = Math.round(Math.sin(((t + R) / (2 * R)) * Math.PI) * 2) * (t < 0 ? 1 : -1);
+      wheel.box(ax, dy - 1 + bow, dz - 1, ax + 1, dy + 1 + bow, dz + 1, k === 3 ? "brass" : k === 2 ? "#2f5d3a" : k === 1 ? "white" : "#b8b0a0");
+    }
+    for (let a = 0; a < 12; a++) {
+      const an = (a / 12) * Math.PI * 2;
+      wheel.put(ax, Math.round(Math.sin(an) * 3), Math.round(Math.cos(an) * 3), "steelDark");
+    }
+  }
+  wheel.box(-8, -1, -1, 8, 1, 1, "steelDark");
+  for (const [dz, dy] of ends) {
+    wheel.box(-7, dy - 2, dz - 2, 7, dy + 2, dz + 3, k === 1 ? "#dfe8e6" : s.metal);
+    wheel.box(-6, dy - 1, dz - 1, 6, dy + 2, dz + 2, "water", 0.15);
+    wheel.box(-2, dy + 1, dz - 1, 3, dy + 3, dz + 2, "cream");
+    wheel.box(-3, dy + 1, dz - 1, -2, dy + 2, dz + 2, s.livery);
+  }
+  c.addRotor({ vox: wheel, pivot: [0, py, pz], axis: "x", speed: 0.12 });
+  // the aqueduct leaves from the top-front gondola position
+  aqueduct(c, -7, 7, pz + ends[1][0] + 3, hz, py + ends[1][1] - 1);
+  sbldg(c, -hx + 2, qz + 4, -16, hz - 1, 7, { axis: "x" });
+  sbldg(c, 16, qz + 4, hx - 2, hz - 1, 7, { axis: "x" });
+  crowd(c, -14, hz - 4, 14, hz - 1, 6);
+  canalBoat(c, -20, 1, -hz + 4, "x");
+}
+
+// MARITIME COLLEGE — a sailing school around a practice basin at the back. Lv1 boathouse, slipway &
+// dinghies → Lv2 launch basin with pontoon, buoys and a motor launch → Lv3 harbour workshops: sawtooth
+// shed, hull on a cradle, jib crane → Lv4 nautical academy with clock tower and signal-flag yardarm,
+// training sloop → Lv5 college quad with a lighthouse (rotating beam), tall ship and navigation dome.
+function dinghy(c: Ctx, x: number, z: number, sail: string) {
+  const { v } = c;
+  v.box(x - 2, 0, z, x + 3, 1, z + 2, "white");
+  v.box(x, 1, z, x + 1, 6, z + 1, "woodDark");
+  for (let i = 0; i < 4; i++) v.box(x + 1, 2 + i, z, x + 4 - i, 3 + i, z + 1, sail);
+}
+function tallShip(c: Ctx, x0: number, x1: number, z: number, masts: number) {
+  const { v } = c,
+    s = ps(c);
+  for (let x = x0; x < x1; x++) {
+    const t = Math.min(x - x0, x1 - 1 - x);
+    const w = t < 3 ? 1 : 2;
+    v.box(x, 0, z - w, x + 1, 3, z + w + 1, x - x0 < 2 ? "woodDark" : "#3b2a1f");
+    v.put(x, 3, z - w, "gold");
+  }
+  v.box(x1, 2, z, x1 + 4, 3, z + 1, "woodDark");
+  v.box(x0, 3, z - 2, x0 + 4, 5, z + 3, "#5a3a26");
+  for (let m = 0; m < masts; m++) {
+    const mx = x0 + Math.round(((m + 1) * (x1 - x0)) / (masts + 1));
+    const h = m === Math.floor(masts / 2) ? 18 : 15;
+    v.box(mx, 3, z, mx + 1, 3 + h, z + 1, "woodDark");
+    for (let y = 6; y < 3 + h - 2; y += 4) v.box(mx, y, z - 3, mx + 1, y + 3, z + 4, "white");
+    v.put(mx, 3 + h, z, s.livery);
+  }
+}
+function maritimeCollege(c: Ctx) {
+  const { v, lv, hx, hz } = c,
+    s = ps(c),
+    k = c.variant & 3;
+  lot(c, s.ground);
+  const depth = lvPick(c, [6, 11, 11, 13, 14]);
+  const qz = -hz + depth;
+  v.box(-hx, 0, -hz, hx, 1, qz, "water", 0.08);
+  v.box(-hx, 1, qz, hx, 2, qz + 1, "stone");
+  v.box(-hx, 1, -hz, -hx + 1, 2, qz, "stone");
+  v.box(hx - 1, 1, -hz, hx, 2, qz, "stone");
+  const sails = [s.livery, "red", "yellow", "white", s.accent, "orange"];
+  if (lv === 1) {
+    sbldg(c, -hx + 2, qz + 2, -2, hz - 1, 5, { axis: "z" });
+    for (let i = 0; i < 4; i++) v.box(-hx + 5, 0, qz + 1 - i, -hx + 9, 1 + (i === 0 ? 0 : 0), qz + 2 - i, "concrete");
+    for (let i = 0; i < 2; i++) dinghy(c, -2 + i * 9, -hz + 1 + i, sails[i]);
+    v.box(4, 1, qz + 3, 11, 2, qz + 5, "woodLight");
+    dinghy(c, 6, qz + 3, sails[2]);
+    person(v, 2, 1, qz + 3, "orange");
+    return;
+  }
+  // pontoon and dinghy fleet
+  v.box(-hx + 4, 1, qz - 6, hx - 4, 2, qz - 4, "woodLight");
+  const nd = lvPick(c, [2, 4, 4, 3, 2]);
+  for (let i = 0; i < nd; i++) dinghy(c, -hx + 6 + i * 7, -hz + 1 + (i % 2) * 2, sails[i % sails.length]);
+  for (let x = -hx + 3; x < hx - 3; x += 7) v.put(x, 1, -hz + 1, "orange");
+  if (lv === 2) {
+    sbldg(c, -hx + 2, qz + 2, -2, hz - 1, 6, { axis: "z" });
+    v.box(6, 0, qz - 3, 11, 1, qz - 1, "white");
+    v.box(8, 1, qz - 3, 10, 3, qz - 1, s.livery);
+    flag(v, 10, 1, qz + 3, 10, [s.livery, "white"]);
+    crowd(c, 2, qz + 2, hx - 2, hz - 1, 4);
+    return;
+  }
+  // Lv3+ workshops
+  const wx0 = lv === 3 ? -hx + 2 : -hx + 2;
+  const wshop = sbldg(c, wx0, qz + 3, wx0 + 16, qz + 15, 7, { axis: "x" });
+  void wshop;
+  // hull on a cradle + jib crane
+  const hx0 = wx0 + 19;
+  for (let x = hx0; x < hx0 + 10; x++) {
+    const t = Math.min(x - hx0, hx0 + 9 - x);
+    v.box(x, 2, qz + 6 - Math.min(2, t), x + 1, 6, qz + 7 + Math.min(2, t), x % 2 ? s.livery : "#7a2a22");
+  }
+  v.box(hx0 + 1, 1, qz + 5, hx0 + 2, 2, qz + 9, "woodDark");
+  v.box(hx0 + 7, 1, qz + 5, hx0 + 8, 2, qz + 9, "woodDark");
+  K.crane(v, hx0 + 12, 1, qz + 2, 13, 8, ["terracotta", "teal", "#2f6b3e", "brass"][k], "x");
+  if (lv === 3) return;
+  // academy + clock tower + signal yardarm
+  const ax0 = lv === 4 ? -hx + 2 : -hx + 2,
+    az0 = qz + 18;
+  const atop = sbldg(c, ax0, az0, lv === 4 ? hx - 2 : 10, hz - 1, 9, { axis: "x" });
+  const tx = lv === 4 ? hx - 8 : 4,
+    tz = az0 + 2;
+  v.box(tx - 2, atop - 2, tz - 2, tx + 3, atop + 8, tz + 3, s.wall);
+  K.clockFace(v, tx, atop + 5, tz + 3, 2);
+  sroof(c, tx - 2, atop + 8, tz - 2, tx + 3, tz + 3);
+  const mx = lv === 4 ? -hx + 3 : -6,
+    mz = qz + 16;
+  v.box(mx, 1, mz, mx + 1, 20, mz + 1, "white");
+  v.box(mx - 5, 16, mz, mx + 6, 17, mz + 1, "white");
+  const fl = ["red", "yellow", "blue", "white", "leaf", "orange"];
+  for (let i = 0; i < 4; i++) {
+    v.put(mx - 4 + i, 15 - i, mz, fl[i]);
+    v.put(mx + 5 - i, 15 - i, mz, fl[i + 2]);
+  }
+  if (lv === 4) {
+    tallShip(c, 2, 20, -hz + 5, 2);
+    return;
+  }
+  // Lv5: tall ship, lighthouse, navigation dome
+  tallShip(c, -18, 14, -hz + 6, 3);
+  const lx = hx - 6,
+    lz = qz + 6;
+  for (let y = 1; y < 26; y += 3) v.cylinderY(lx + 0.5, lz + 0.5, y, y + 3, 2.5 - y * 0.03, (y / 3) % 2 < 1 ? "white" : k === 2 ? "#2f6b3e" : k === 3 ? "#1f2a44" : "red");
+  v.cylinderY(lx + 0.5, lz + 0.5, 26, 27, 3.2, s.trim);
+  v.cylinderY(lx + 0.5, lz + 0.5, 27, 30, 2, "warmGlow", 1.4);
+  v.cone(lx + 0.5, 30, 33, lz + 0.5, 2.6, 0.3, k === 3 ? "brass" : "red");
+  const beam = new PixelVox();
+  beam.box(1, 0, 0, 7, 1, 1, "#fff6c8", 1.5);
+  beam.box(-7, 0, 0, -1, 1, 1, "#fff6c8", 1.5);
+  c.addRotor({ vox: beam, pivot: [lx, 28, lz], axis: "y", speed: 1.2 });
+  c.blink(lx, 34, lz, "red");
+  v.cylinderY(hx - 14, hz - 7, 1, 6, 6, s.wall);
+  v.dome(hx - 14, 6, hz - 7, 6, k === 3 ? "brass" : k === 2 ? "#2f5d3a" : "white");
+  v.put(hx - 14, 12, hz - 7, "warmGlow", 1);
+  v.box(hx - 26, 0, az0, hx - 21, 1, hz - 1, "grass");
+  K.tree(v, hx - 24, 1, hz - 4, "round", 1);
+  crowd(c, -hx + 3, qz + 16, hx - 10, qz + 18, 6);
+}
+
 const REDESIGNED: Record<string, { growth: string; build: (c: Ctx) => void }> = {
   growers_exchange: {
     growth: "A fruit cart sprouts a three-stall court, a round auction ring, an arcaded market hall and finally a clock-towered exchange — the giant fruit mascot climbs higher every level.",
@@ -1877,6 +2336,18 @@ REDESIGNED.water_reuse_works = {
 REDESIGNED.terraced_glasshouses = {
   growth: "One glass cloche becomes twin ferneries, a petal-shaped dome hothouse, then glasshouses climbing three and four terraces crowned by a great glowing dome.",
   build: terracedGlasshouses,
+};
+REDESIGNED.ferry_exchange = {
+  growth: "A timber pier and launch grow into twin berths, a covered transfer pier, a canopy concourse along the whole quay and finally a clock-towered harbour hall with four ferries.",
+  build: ferryExchange,
+};
+REDESIGNED.canal_boat_lift = {
+  growth: "A balance-beam lock becomes a hoisted caisson between towers, twin counterweighted caissons, a glass viewing gallery and finally a rotating wheel that swaps boats between basin and aqueduct.",
+  build: canalBoatLift,
+};
+REDESIGNED.maritime_college = {
+  growth: "A boathouse and dinghies add a launch basin, workshops with a hull on the cradle, a clock-towered academy with signal flags and finally a lighthouse, a tall ship and a navigation dome.",
+  build: maritimeCollege,
 };
 // ==== ROUND2 END
 

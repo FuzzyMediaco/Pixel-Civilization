@@ -1311,149 +1311,215 @@ function foundry(c: Ctx) {
     p = pal(c),
     k = c.variant;
   lot(c, k === 2 ? "#a9a08e" : k === 3 ? "#7d817d" : "concrete2");
-  // sorting carousel (rotor) on a base ring
-  const sx = R(-hx * 0.4) + 2,
-    sz = R(hz * 0.35),
-    sr = lv5(c, [5, 5.5, 6, 6.5, 7]);
-  ring(v, sx, sz, 1, 3, sr + 1, sr - 2, "steelDark");
-  ring(v, sx, sz, 3, 4, sr + 1, sr - 2, k === 1 ? "teal" : "hazard");
-  v.cylinderY(sx, sz, 1, 4, 1.4, "steelDark");
+  const wall = k === 0 ? p.wall : k === 1 ? "white" : k === 2 ? "brick" : "slate";
+  const steel = k === 3 ? "brass" : k === 1 ? "teal" : "hazard";
+  const embCol = k === 1 ? "teal" : k === 3 ? "brass" : "leaf";
+  // ---- elevated sorting loop (front-left): a carousel of scrap over coloured chutes ----
+  const sr = lv5(c, [5, 5.5, 6, 7, 8]),
+    sx = R(-hx + sr + 3),
+    sz = R(hz - sr - 4),
+    ly = 5;
+  for (let a = 0; a < 6; a++) {
+    const px = R(sx + Math.cos((a * TAU) / 6) * (sr - 1)),
+      pz = R(sz + Math.sin((a * TAU) / 6) * (sr - 1));
+    v.box(px, 1, pz, px + 1, ly, pz + 1, "steelDark");
+  }
+  ring(v, sx, sz, ly, ly + 1, sr + 1, sr - 2, "steelDark");
+  ring(v, sx, sz, ly + 1, ly + 2, sr + 1, sr + 0.3, steel);
+  // central hopper (inverted cone) fed from above
+  v.box(F(sx), 1, F(sz), F(sx) + 1, ly + 2, F(sz) + 1, "steelDark");
+  v.cone(sx, ly + 2, ly + 7, sz, 1, 3, k === 1 ? "white" : k === 3 ? "copper" : "steel");
+  v.cylinderY(sx, sz, ly + 6, ly + 7, 2.2, "steelDark");
   const carousel = new PixelVox();
   const scrap = ["red", "blue", "leaf", "yellow", "silver", "copper", "white"];
-  for (let i = 0; i < 12; i++) {
-    const a = (i * TAU) / 12,
+  for (let i = 0; i < 14; i++) {
+    const a = (i * TAU) / 14,
       x = R(Math.cos(a) * (sr - 0.5)),
       z = R(Math.sin(a) * (sr - 0.5));
     carousel.box(x - 1, 0, z - 1, x + 1, 1, z + 1, scrap[i % scrap.length]);
     if (i % 3 === 0) carousel.put(x, 1, z, scrap[(i + 2) % scrap.length]);
   }
-  c.addRotor({ vox: carousel, pivot: [sx, 4, sz], axis: "y", speed: 0.6 });
-  // sorting bins
+  c.addRotor({ vox: carousel, pivot: [sx, ly + 1, sz], axis: "y", speed: 0.6 });
+  // chutes to colour bins below
   const bins = ["leaf", "blue", "yellow", "red"];
   for (let i = 0; i < 4; i++) {
-    const bx = sx - 6 + i * 4,
-      bz = hz - 3;
-    v.box(bx, 1, bz, bx + 3, 3, bz + 2, bins[i]);
-    v.box(bx, 3, bz, bx + 3, 4, bz + 1, "steelDark");
+    const a = Math.PI * 0.15 + (i * Math.PI) / 3.5,
+      bx = R(sx + Math.cos(a) * (sr + 2)),
+      bz = R(sz + Math.sin(a) * (sr + 2));
+    line(v, R(sx + Math.cos(a) * sr), ly, R(sz + Math.sin(a) * sr), bx, 3, bz, "steelLight");
+    v.box(bx - 1, 1, bz - 1, bx + 2, 3, bz + 2, bins[i]);
   }
-  // recycling emblem sign
-  const embCol = k === 1 ? "teal" : k === 3 ? "brass" : "leaf";
-  // shed / furnace hall
-  if (lv >= 2) {
-    const fx0 = 2,
-      fx1 = hx - 2,
-      fz0 = -hz + 2,
-      fz1 = lv5(c, [0, 2, 2, 4, 6]);
-    const fh = lv5(c, [0, 7, 8, 10, 12]);
-    const wall = k === 0 ? p.wall : k === 1 ? "white" : k === 2 ? "brick" : "slate";
-    v.hollowBox(fx0, 1, fz0, fx1, fh, fz1, wall, p.trim);
-    windows(c, fx0, 1, fz0, fx1, fh, fz1, { col: k === 3 ? "amber" : "warmGlow", emit: 0.8, faces: "sw", w: 2, h: 2, stepH: 4 });
-    if (k === 0) {
-      v.box(fx0 - 1, fh, fz0 - 1, fx1 + 1, fh + 1, fz1 + 1, "terracotta");
-      // beehive kilns
-      for (let i = 0; i < lv - 1; i++) {
-        const kx = fx0 + 3 + i * 7;
-        if (kx > fx1 - 3) break;
-        v.dome(kx, fh + 1, fz0 + 4, 3, "terracotta");
-        v.box(kx, fh + 3, fz0 + 4, kx + 1, fh + 7, fz0 + 5, "brickDark");
-        c.smoke(kx, fh + 7, fz0 + 4, "smoke");
-      }
-    } else if (k === 1) {
-      v.box(fx0 - 1, fh, fz0 - 1, fx1 + 1, fh + 1, fz1 + 1, "teal");
-      v.box(fx0 + 2, fh + 1, fz0 + 2, fx1 - 2, fh + 2, fz1 - 2, "solarBlue", 0.15);
-    } else if (k === 2) {
-      for (let x = fx0; x < fx1; x += 4) for (let s = 0; s < 3; s++) v.box(x + s, fh + s, fz0, Math.min(fx1, x + s + 1), fh + s + 1, fz1, "#2f6b4f");
-      for (let x = fx0 + 3; x < fx1; x += 4) v.box(x, fh, fz0, x + 1, fh + 3, fz1, "glass", 0.3);
-    } else {
-      v.box(fx0 - 1, fh, fz0 - 1, fx1 + 1, fh + 1, fz1 + 1, "brass");
-      barrelish(v, fx0, fh + 1, fz0, fx1, fz1, "iron");
+  // collection truck dumping into the loop
+  v.box(sx + R(sr) + 3, 1, sz - 2, sx + R(sr) + 9, 4, sz + 1, embCol);
+  v.box(sx + R(sr) + 9, 1, sz - 2, sx + R(sr) + 11, 3, sz + 1, "white");
+  crowd(c, sx - 3, sz + R(sr) + 1, sx + 4, sz + R(sr) + 3, lv + 1);
+  if (lv === 1) {
+    // sorting cabin with recycling emblem
+    const cx = hx - 10,
+      cz = -hz + 3;
+    v.box(cx, 1, cz, cx + 8, 6, cz + 7, wall);
+    v.box(cx + 1, 2, cz + 6, cx + 7, 4, cz + 7, "glass", 0.5);
+    v.box(cx - 1, 6, cz - 1, cx + 9, 7, cz + 8, k === 0 ? "terracotta" : k === 2 ? "#2f6b4f" : k === 3 ? "brass" : "teal");
+    emblem(v, cx + 4, 10, cz + 4, 2, embCol);
+    v.box(cx + 4, 7, cz + 4, cx + 5, 8, cz + 5, "steelDark");
+    return;
+  }
+  // ---- furnace tower (back-left) ----
+  const fx = R(-hx * 0.45),
+    fz = R(-hz * 0.45),
+    fh = lv5(c, [0, 11, 15, 19, 25]),
+    fr = lv5(c, [0, 3.5, 4, 4.5, 5.5]);
+  if (k === 0) {
+    // beehive kiln stack
+    v.cylinderY(fx, fz, 1, R(fh * 0.4), fr + 1, "terracotta");
+    v.dome(fx, R(fh * 0.4), fz, fr + 1, "#b95a3a");
+    v.cylinderY(fx, fz, R(fh * 0.4), fh, 1.5, "brickDark");
+    for (let y = 3; y < R(fh * 0.4); y += 3) ring(v, fx, fz, y, y + 1, fr + 1.3, fr + 0.4, "cream");
+  } else if (k === 1) {
+    v.cylinderY(fx, fz, 1, fh - 4, fr, "white");
+    ring(v, fx, fz, R(fh * 0.5), R(fh * 0.5) + 1, fr + 0.3, fr - 0.6, "teal", 0.9);
+    v.cylinderY(fx, fz, fh - 4, fh - 3, fr + 0.5, "steelLight");
+    for (let i = 0; i < 3; i++) {
+      const ex = R(fx + Math.cos((i * TAU) / 3) * 1.5),
+        ez = R(fz + Math.sin((i * TAU) / 3) * 1.5);
+      v.box(ex, fh - 3, ez, ex + 1, fh + 3, ez + 1, "charcoal");
+      v.put(ex, fh - 3, ez, "screenCyan", 1.4);
     }
-    // glowing furnace mouth with molten pour into a mould trough
-    const mx = fx0 + 2;
-    v.box(mx, 1, fz1 - 1, mx + 4, 5, fz1, "charcoal");
-    v.box(mx + 1, 1, fz1 - 1, mx + 3, 4, fz1, "fire", 1.6);
-    v.box(mx, 0, fz1, mx + 4, 1, fz1 + 4, "lava", 1.2);
-    c.smoke(mx + 2, 5, fz1, "spark");
-    // stacks
-    const stacks = lv5(c, [0, 1, 1, 2, 3]);
-    for (let i = 0; i < stacks; i++) {
-      const tx = fx1 - 3 - i * 5,
-        tz = fz0 + 2,
-        th = fh + 8 + lv * 2;
-      if (k === 2) {
-        v.box(tx - 1, 1, tz - 1, tx + 2, th, tz + 2, "brickDark");
-        v.box(tx - 1, th - 2, tz - 1, tx + 2, th - 1, tz + 2, "#efe2c4");
-      } else v.cylinderY(tx, tz, 1, th, 1.5, k === 1 ? "white" : k === 3 ? "brass" : "terracotta");
-      if (k === 1) v.cylinderY(tx, tz, th - 3, th - 2, 1.6, "teal");
-      c.smoke(tx, th + 1, tz, k === 1 ? "steam" : "smoke");
-      if (lv >= 4) c.blink(tx, th, tz, "red");
+  } else if (k === 2) {
+    for (let y = 1; y < fh; y++) {
+      const t = y / fh;
+      v.cylinderY(fx, fz, y, y + 1, fr * (1 - 0.35 * Math.abs(t - 0.3)), y % 5 === 0 ? "#efe2c4" : "brick");
     }
-    // big emblem on the hall front
-    const ex = R((fx0 + fx1) / 2),
-      ey = R(fh / 2) + 1;
-    for (let a = 0; a < 3; a++) {
-      const a0 = (a * TAU) / 3 + 0.4;
-      line(v, R(ex + Math.cos(a0) * 2), R(ey + Math.sin(a0) * 2), fz1, R(ex + Math.cos(a0 + 1.6) * 2), R(ey + Math.sin(a0 + 1.6) * 2), fz1, embCol, 0.8);
-    }
+    v.box(F(fx) - 1, fh, F(fz) - 1, F(fx) + 2, fh + 8, F(fz) + 2, "brickDark");
+  } else {
+    v.cylinderY(fx, fz, 1, R(fh * 0.55), fr + 1, "slate");
+    for (let y = 2; y < R(fh * 0.55); y += 3) ring(v, fx, fz, y, y + 1, fr + 1.3, fr + 0.4, "brass");
+    v.dome(fx, R(fh * 0.55), fz, fr + 1, "brass");
+    v.cylinderY(fx, fz, R(fh * 0.55), fh, 1.6, "iron");
+    v.cylinderY(fx, fz, fh - 1, fh, 2.2, "brass");
+  }
+  c.smoke(F(fx), fh + (k === 2 ? 8 : 1), F(fz), k === 1 ? "steam" : "dark");
+  if (lv >= 4) c.blink(F(fx), fh + (k === 2 ? 8 : 3), F(fz), "red");
+  // glowing tap hole & molten channel into the casting shed
+  const tz = R(fz + fr) + 1;
+  v.box(F(fx) - 1, 1, tz - 1, F(fx) + 2, 4, tz, "charcoal");
+  v.box(F(fx), 1, tz - 1, F(fx) + 1, 3, tz, "fire", 1.6);
+  v.box(F(fx), 0, tz, F(fx) + 1, 1, tz + 6, "lava", 1.3);
+  c.smoke(F(fx), 3, tz, "spark");
+  // inclined belt conveyor from the sorting loop up to the furnace top
+  const topY = k === 1 ? fh - 3 : k === 2 ? fh - 2 : R(fh * 0.5);
+  line(v, sx, ly + 6, sz - R(sr) + 1, fx + 1, topY, R(fz + fr), "steelDark", 0, 2);
+  for (let t = 0.15; t < 0.9; t += 0.18) {
+    const x = R(sx + (fx + 1 - sx) * t),
+      y = R(ly + 6 + (topY - ly - 6) * t),
+      z = R(sz - sr + 1 + (fz + fr - sz + sr - 1) * t);
+    v.put(x, y + 2, z, c.pick(scrap));
+    v.box(x, 1, z, x + 1, y, z + 1, "steelDark");
+  }
+  // ---- casting shed (back-right) ----
+  const hx0 = R(fx + fr) + 3,
+    hx1 = hx - 2,
+    hz0 = -hz + 2,
+    hz1 = R(-hz * 0.05) + lv5(c, [0, 0, 1, 2, 4]),
+    hh = lv5(c, [0, 7, 8, 10, 12]);
+  v.hollowBox(hx0, 1, hz0, hx1, hh, hz1, wall, p.trim);
+  windows(c, hx0, 1, hz0, hx1, hh, hz1, { col: k === 3 ? "amber" : "warmGlow", emit: 0.9, faces: "sw", w: 2, h: 2, stepH: 4 });
+  if (k === 0) v.box(hx0 - 1, hh, hz0 - 1, hx1 + 1, hh + 1, hz1 + 1, "terracotta");
+  else if (k === 1) {
+    v.box(hx0 - 1, hh, hz0 - 1, hx1 + 1, hh + 1, hz1 + 1, "teal");
+    for (let x = hx0 + 1; x < hx1 - 1; x += 3) v.box(x, hh + 1, hz0 + 1, x + 2, hh + 2, hz1 - 1, "solarBlue", 0.15);
+  } else if (k === 2) {
+    for (let x = hx0; x < hx1; x += 4) for (let s = 0; s < 3; s++) v.box(x + s, hh + s, hz0, Math.min(hx1, x + s + 1), hh + s + 1, hz1, "#2f6b4f");
+    for (let x = hx0 + 3; x < hx1; x += 4) v.box(x, hh, hz0, x + 1, hh + 3, hz1, "glass", 0.3);
+  } else {
+    v.box(hx0 - 1, hh, hz0 - 1, hx1 + 1, hh + 1, hz1 + 1, "brass");
+    barrelish(v, hx0, hh + 1, hz0, hx1, hz1, "iron");
+  }
+  // glowing doorway and a mould line of cooling ingots
+  v.box(hx0 + 2, 1, hz1 - 1, hx0 + 7, 6, hz1, "fire", 1.2);
+  for (let i = 0; i < lv + 1; i++) {
+    const ix = hx0 + 2 + i * 3;
+    if (ix + 2 > hx1) break;
+    v.box(ix, 1, hz1 + 2, ix + 2, 2, hz1 + 4, i < 2 ? "lava" : k === 3 ? "brass" : "silver", i < 2 ? 1 : 0);
+  }
+  emblem(v, R((hx0 + hx1) / 2) + 3, R(hh / 2) + 1, hz1, 2, embCol);
+  // stacks on the shed
+  const stacks = lv5(c, [0, 1, 1, 2, 3]);
+  for (let i = 0; i < stacks; i++) {
+    const tx = hx1 - 3 - i * 5,
+      tz = hz0 + 2,
+      th = hh + 8 + lv * 3;
+    if (k === 2) {
+      v.box(tx - 1, 1, tz - 1, tx + 2, th, tz + 2, "brickDark");
+      v.box(tx - 1, th - 2, tz - 1, tx + 2, th - 1, tz + 2, "#efe2c4");
+    } else v.cylinderY(tx, tz, 1, th, 1.5, k === 1 ? "white" : k === 3 ? "brass" : "terracotta");
+    if (k === 1) v.cylinderY(tx, tz, th - 3, th - 2, 1.6, "teal");
+    if (k !== 2) v.cylinderY(tx, tz, th - 6, th - 5, 1.6, k === 3 ? "iron" : "cream");
+    c.smoke(tx, th + 1, tz, k === 1 ? "steam" : "smoke");
+    if (lv >= 4) c.blink(tx, th, tz, "red");
   }
   if (lv >= 3) {
-    // gantry crane with magnet over a scrap mountain
-    const gx0 = -hx + 2,
-      gx1 = -2,
-      gz = -hz + 5,
+    // magnet gantry crane straddling a scrap mountain (centre)
+    const gx0 = R(-hx * 0.1) - 5,
+      gx1 = gx0 + 12,
+      gz = R(hz * 0.05),
       gh = lv5(c, [0, 0, 12, 14, 16]);
     for (const x of [gx0, gx1 - 1]) {
-      v.box(x, 1, gz - 2, x + 1, gh, gz - 1, k === 3 ? "brass" : "hazard");
-      v.box(x, 1, gz + 2, x + 1, gh, gz + 3, k === 3 ? "brass" : "hazard");
+      v.box(x, 1, gz - 3, x + 1, gh, gz - 2, steel);
+      v.box(x, 1, gz + 3, x + 1, gh, gz + 4, steel);
     }
-    v.box(gx0, gh, gz - 2, gx1, gh + 1, gz + 3, k === 3 ? "brass" : "hazard");
+    v.box(gx0, gh, gz - 3, gx1, gh + 1, gz + 4, steel);
     const mx = R((gx0 + gx1) / 2);
     v.box(mx - 1, gh - 1, gz - 1, mx + 2, gh, gz + 2, "steelDark");
-    v.box(mx, gh - 6, gz, mx + 1, gh - 1, gz + 1, "iron");
-    v.cylinderY(mx + 0.5, gz + 0.5, gh - 7, gh - 6, 1.6, "charcoal");
-    // scrap pile
-    for (let i = 0; i < 26 + lv * 6; i++) {
+    v.box(mx, gh - 5, gz, mx + 1, gh - 1, gz + 1, "iron");
+    v.cylinderY(mx + 0.5, gz + 0.5, gh - 6, gh - 5, 1.6, "charcoal");
+    v.put(mx, gh - 7, gz, "silver");
+    for (let i = 0; i < 30 + lv * 6; i++) {
       const a = c.rand() * TAU,
         d = c.rand() * 5,
         x = R(mx + Math.cos(a) * d),
         z = R(gz + Math.sin(a) * d);
-      const hgt = Math.max(1, R((5 - d) * 0.8));
-      v.box(x, 1, z, x + 1, 1 + hgt, z + 1, c.pick(["steel", "copper", "steelDark", "silver", "red", "blue"]));
+      v.box(x, 1, z, x + 1, 1 + Math.max(1, R((5 - d) * 0.9)), z + 1, c.pick(["steel", "copper", "steelDark", "silver", "red", "blue"]));
     }
   }
   if (lv >= 4) {
-    // circular yard hall (rotunda)
-    const rx = R(-hx * 0.55),
-      rz = R(hz * 0.05) - 3,
-      rr = lv === 4 ? 5 : 6;
-    if (rx - rr > -hx) {
-      ring(v, rx, rz, 1, 7, rr, rr - 1, k === 1 ? "white" : k === 2 ? "brick" : k === 3 ? "slate" : p.wall);
-      v.dome(rx, 7, rz, rr, k === 1 ? "glass" : k === 3 ? "brass" : k === 2 ? "#2f6b4f" : "terracotta", k === 1 ? 0.3 : 0);
-    }
-    // ingot stacks (export goods) + truck
-    for (let i = 0; i < 4; i++) v.box(hx - 12 + (i % 2) * 4, 1 + F(i / 2), hz - 6, hx - 9 + (i % 2) * 4, 2 + F(i / 2), hz - 4, k === 3 ? "brass" : "silver");
-    car(v, hx - 4, 1, hz - 3, "x", "orange");
+    // circular yard: a domed rotunda store at the front-right
+    const rx = R(hx * 0.55),
+      rz = R(hz * 0.55),
+      rr = lv === 4 ? 6 : 7.5;
+    ring(v, rx, rz, 1, 8, rr, rr - 1, wall);
+    for (let a = 0; a < 8; a++) v.box(R(rx + Math.cos((a * TAU) / 8) * rr) - 1, 1, R(rz + Math.sin((a * TAU) / 8) * rr) - 1, R(rx + Math.cos((a * TAU) / 8) * rr), 8, R(rz + Math.sin((a * TAU) / 8) * rr), p.trim);
+    v.box(R(rx) - 2, 1, R(rz + rr) - 1, R(rx) + 2, 5, R(rz + rr), "woodDark");
+    v.dome(rx, 8, rz, rr, k === 1 ? "glass" : k === 3 ? "brass" : k === 2 ? "#2f6b4f" : "terracotta", k === 1 ? 0.3 : 0);
+    emblem(v, R(rx), 8 + R(rr) + 3, R(rz), 2, embCol);
   }
   if (lv >= 5) {
-    // rail spur with gondola wagons
+    // rail spur with gondolas of export goods along the front
     v.box(-hx, 0, hz - 2, hx, 1, hz - 1, "#6e5a46");
     for (let x = -hx; x < hx; x += 2) v.put(x, 0, hz - 2, "steelDark");
     for (let i = 0; i < 3; i++) {
-      const wx = -hx + 4 + i * 9;
+      const wx = -2 + i * 9;
       v.box(wx, 1, hz - 3, wx + 7, 3, hz, i === 0 ? "red" : "steelDark");
       v.box(wx + 1, 3, hz - 2, wx + 6, 4, hz - 1, c.pick(["copper", "silver", "steel"]));
     }
-    // emblem beacon tower
-    const bx = hx - 4,
-      bz = -hz + 3;
-    v.box(bx, 1, bz, bx + 2, 20, bz + 2, k === 3 ? "iron" : "steelDark");
-    for (let a = 0; a < 3; a++) {
-      const a0 = (a * TAU) / 3;
-      line(v, bx + R(Math.cos(a0) * 3), 22 + R(Math.sin(a0) * 3), bz + 2, bx + R(Math.cos(a0 + 1.7) * 3), 22 + R(Math.sin(a0 + 1.7) * 3), bz + 2, embCol, 1.2);
-    }
-    c.blink(bx, 26, bz, "red");
+    // ladle crane pouring a molten stream
+    const lx = hx0 + 2,
+      lz = hz1 + 6;
+    v.box(lx - 1, 1, lz, lx, 16, lz + 1, steel);
+    v.box(lx - 1, 16, lz, lx + 8, 17, lz + 1, steel);
+    v.cylinderY(lx + 6, lz + 0.5, 11, 14, 1.8, "charcoal");
+    v.box(lx + 5, 2, lz, lx + 6, 11, lz + 1, "lava", 1.6);
+    v.box(lx + 4, 1, lz - 1, lx + 8, 2, lz + 2, "fire", 1.2);
+    c.smoke(lx + 5, 3, lz, "spark");
   }
-  crowd(c, sx - 4, sz + sr + 1, sx + 4, sz + sr + 3, lv + 1);
+}
+
+function emblem(v: PixelVox, x: number, y: number, z: number, r: number, col: string) {
+  for (let a = 0; a < 3; a++) {
+    const a0 = (a * TAU) / 3 + 0.4;
+    line(v, R(x + Math.cos(a0) * r), R(y + Math.sin(a0) * r), z, R(x + Math.cos(a0 + 1.6) * r), R(y + Math.sin(a0 + 1.6) * r), z, col, 0.9);
+    v.put(R(x + Math.cos(a0 + 1.6) * r), R(y + Math.sin(a0 + 1.6) * r) + 1, z, col, 0.9);
+  }
 }
 
 function barrelish(v: PixelVox, x0: number, y: number, z0: number, x1: number, z1: number, col: string) {

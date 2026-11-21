@@ -1,6 +1,6 @@
 import { ELEMENT_BY_ID } from "../game/catalog";
 import { CAMPUS_FARM_ART } from "../game/campusFarmArt";
-import { economyOf } from "../game/cityEconomy";
+import { economyOf, pondCisternCapacity } from "../game/cityEconomy";
 import { complexBoost, districtReport, isFarmPiece, SCHOOL_SPECIALTIES } from "../game/farmNetworks";
 import { FARM_MODULE_IDS } from "../game/expansionCatalog";
 import type { GameState, PlacedElement } from "../game/simulation";
@@ -67,7 +67,7 @@ export function ExpansionDetails({ s, el }: { s: GameState; el: PlacedElement })
           )}
           {el.defId === "irrigation_pond" && (
             <p>
-              Stored irrigation water {Number(account?.cistern ?? 0).toFixed(1)} / {el.level * 36} · supplying{" "}
+              Stored irrigation water {Number(account?.cistern ?? 0).toFixed(1)} / {Math.round(pondCisternCapacity(el.level))} · supplying{" "}
               {Number(account?.irrigationOut ?? 0).toFixed(2)}/s
             </p>
           )}

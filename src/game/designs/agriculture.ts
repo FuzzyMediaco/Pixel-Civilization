@@ -19,6 +19,7 @@ import {
   windows,
 } from "./kit";
 import { defineDesigns } from "./registry";
+import type { CritterKind } from "./kit";
 
 // =============================================================================================
 // Shared rural / nature helpers (also imported by nature.ts)
@@ -656,14 +657,9 @@ function pen(v: PixelVox, x0: number, z0: number, x1: number, z1: number, col = 
   fence(v, x0, z0, x1, z1, 1, 2, col, [Math.floor((x0 + x1) / 2) - 1, Math.floor((x0 + x1) / 2) + 1]);
 }
 
-function scatterCritters(c: Ctx, kind: Critter, x0: number, z0: number, x1: number, z1: number, n: number): void {
-  for (let i = 0; i < n; i++) {
-    const axis = c.rand() < 0.5 ? "x" : "z";
-    const dir = c.rand() < 0.5 ? 1 : -1;
-    const x = c.ri(x0 + 3, Math.max(x0 + 3, x1 - 4));
-    const z = c.ri(z0 + 3, Math.max(z0 + 3, z1 - 4));
-    critter(c.v, kind, x, 1, z, axis, dir, i + c.variant);
-  }
+/** Animated livestock wandering inside a pen (see c.critters / farmActivity.ts). */
+function scatterCritters(c: Ctx, kind: CritterKind, x0: number, z0: number, x1: number, z1: number, n: number): void {
+  c.critters({ kind, count: n, area: [x0 + 2, z0 + 2, x1 - 2, z1 - 2] });
 }
 
 function dirtPath(v: PixelVox, x0: number, z0: number, x1: number, z1: number): void {
@@ -703,8 +699,7 @@ function buildFarms(c: Ctx): void {
     v.box(-hx + 3, 1, -hz + 5, -hx + 5, 4, -hz + 6, "woodDark");
     gable(v, -hx, 5, -hz, sx1 + 1, -hz + 7, "x", barnRoof, "white");
     pen(v, sx1 + 1, -hz + 1, hx - 1, -1);
-    critter(v, animal, sx1 + 3, 1, -hz + 3, "x", 1, 0);
-    if (hx >= 8) critter(v, animal, hx - 4, 1, -hz + 5, "z", 1, 1);
+    c.critters({ kind: animal, count: hx >= 8 ? 2 : 1, area: [sx1 + 2, -hz + 2, hx - 2, -2] });
     v.box(-hx, 0, -1, hx, 1, 1, "path2");
     crops(c, -hx + 1, 1, hx - 1, hz - 1, mainCrop, "z");
     if (V === 3 || V === 2) scarecrow(v, 0, 1, Math.floor(hz / 2) + 1, V === 3 ? "orange" : "red");
@@ -846,7 +841,7 @@ function buildFarms(c: Ctx): void {
       tractor(v, fx0 + 8, 1, hz - 5, "x", 1, "orange", "#e2bd55");
       person(v, gx + 5, 1, gz + 3, "orange"); person(v, gx + 8, 1, gz + 3, "purple", "blue");
     } else {
-      critter(v, "pig", fx0 + 4, 1, hz - 4, "x", 1, 1);
+      c.critters({ kind: "pig", count: 3, area: [fx0 + 1, hz - 7, fx0 + 12, hz - 1] });
     }
     // farmhouse in the homestead corner? keep the flag & lamp posts
     flag(v, hx1 - 1, 1, -hz + 1, 12, ["red", "white", "blue"]);
@@ -971,7 +966,7 @@ function buildFarmHouses(c: Ctx): void {
     gable(v, sx - 1, 4, -hz, sx + 5, -hz + 5, "x", roof);
   }
   // chickens everywhere
-  for (let i = 0; i < 2 + lv; i++) critter(v, "chicken", c.ri(-hx + 2, hx - 3), 1, c.ri(z1 + 2, hz - 1), "x", c.rand() < 0.5 ? 1 : -1, i);
+  c.critters({ kind: "chicken", count: 2 + lv, area: [-hx + 2, z1 + 2, hx - 2, hz - 1] });
   if (lv >= 2) {
     // vegetable garden / flower box
     if (V === 1) flowerBed(c, x0, hz - 2, x0 + 4, hz - 1);
@@ -982,8 +977,7 @@ function buildFarmHouses(c: Ctx): void {
       // horse corral
       const cx0 = Math.max(x1 + 2, hx - 13);
       pen(v, cx0, hz - 9, hx - 1, hz - 1, "#7d5530");
-      critter(v, "horse", cx0 + 3, 1, hz - 6, "x", 1, 1);
-      if (hx - cx0 > 10) critter(v, "horse", cx0 + 7, 1, hz - 3, "x", -1, 2);
+      c.critters({ kind: "horse", count: hx - cx0 > 10 ? 2 : 1, area: [cx0 + 1, hz - 8, hx - 2, hz - 2], coat: V });
     } else if (V === 2) {
       // little Dutch windmill
       const mx = hx - 4;
@@ -1015,12 +1009,15 @@ function buildFarmHouses(c: Ctx): void {
   if (lv >= 5) {
     flag(v, x0 - 1 >= -hx ? x0 - 1 : x0, 1, hz - 2, 11, V === 1 ? ["red", "white", "red"] : V === 2 ? ["red", "white", "blue"] : ["red", "white", "blue"]);
     car(v, x1 + 6, 1, hz - 7, "x", V === 3 ? "red" : "sky");
-    if (V === 1) { critter(v, "cow", hx - 8, 1, hz - 3, "x", 1, 2); critter(v, "goat", hx - 3, 1, 1, "z", 1, 0); }
+    if (V === 1) {
+      c.critters({ kind: "cow", count: 1, area: [hx - 10, hz - 5, hx - 2, hz - 1], coat: 2 });
+      c.critters({ kind: "goat", count: 2, area: [hx - 6, -2, hx - 1, 4], coat: 0 });
+    }
     if (V === 2) { crops(c, x1 + 2, hz - 8, hx - 9, hz - 1, "tulip", "z"); }
     // duck pond behind the house + beehives
     if (hz >= 12) {
       waterBlob(c, -hx + 8, -hz + 5.5, 6, 3.6, 7, "grass3");
-      critter(v, "duck", -hx + 6, 1, -hz + 5, "x", 1, 1); critter(v, "duck", -hx + 9, 1, -hz + 7, "x", -1, 2); critter(v, "duck", -hx + 11, 1, -hz + 4, "x", -1, 3);
+      c.critters({ kind: "duck", count: 3, area: [-hx + 4, -hz + 4, -hx + 12, -hz + 8], coat: 1 });
       for (let k = 0; k < 4; k++) v.box(-hx + 2 + k * 4, 1, -hz + 2, -hx + 3 + k * 4, 3, -hz + 3, "leafLight");
     }
     beehive(v, x1 - 3, 1, -hz + 2);
@@ -1498,6 +1495,8 @@ function buildPlantations(c: Ctx): void {
   const wall = ["#f3e2c3", "#f2e1c0", "white", "limestone"][V];
   const floors = lv >= 3 ? 2 : 1;
   const top = 1 + floors * 4;
+  // hens scratch about on the lane in front of the manor
+  if (lv >= 2 && V !== 0) c.critters({ kind: "chicken", count: 1 + lv, area: [mx0, mz1 + 1, mx1, mz1 + 3], coat: V });
   if (lv === 1) {
     // planter's hut
     v.box(mx0, 1, mz0, mx0 + 7, 5, mz0 + 6, V === 0 ? "woodLight" : "wood");
