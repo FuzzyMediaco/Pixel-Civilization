@@ -101,13 +101,16 @@ function build(s: GameState, ox: number, oz: number) {
   for (const x of [-5, 7]) lay(x, -1);
   for (let x = -5; x <= 7; x++) lay(x, -2);
   const depot = put("train_depots", -11, 1, 2, 0, 1),
-    a = put("train_stops", -3, 1, 2, 0, 0),
+    // The passenger platform faces the passing loop, so the main line stays free for freight.
+    a = put("train_stops", -3, -3, 2, 2, 0),
     b = put("train_stops", 10, -4, 2, 1, 1);
   const from = put("freight_rail_terminal", -6, 1, 1, 0, 0),
     to = put("freight_rail_terminal", 5, 1, 1, 0, 2),
     farm = put("farms", -7, 1),
     shop = put("grocery_store", 7, 1);
   for (let x = -9; x <= 9; x++) put("roads", x, 2);
+  for (let x = -9; x <= 2; x++) put("roads", x, -4);
+  for (const [i, x] of [-9, -7, -5, -3, -1, 1].entries()) put(i % 3 === 1 ? "shops" : "house", x, -5, 1, 0, i % 4);
   for (let x = -12; x <= -9; x++) put("roads", x, 3);
   for (let z = 3; z >= -4; z--) if (z !== 2 && z !== 0) put("roads", 12, z);
   for (let x = 10; x <= 12; x++) put("roads", x, 2);

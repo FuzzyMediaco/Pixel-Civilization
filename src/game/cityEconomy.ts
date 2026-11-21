@@ -733,17 +733,17 @@ export function advanceEconomy(s: GameState, dt: number) {
   let imported = 0,
     consumed = 0;
   let remainingCapacity = s.metrics.foodSupply * t;
-  const wages = transfer(s, "businesses", "households", workers * 0.34 * t, "Local wages");
-  const payroll = transfer(s, "households", "treasury", wages * taxFraction, "Payroll tax");
-  taxes += payroll;
+  // Spending and grocer imports come before this period's payroll, so stores restock from their
+  // takings before wages are paid out of what is left; both read last period's wage bill.
+  const lastWages = (r.wages ?? 0) * t;
   // Households spend part of their wages and savings at local commerce (shops, malls, banks…),
   // limited by what the staffed stores can serve. Businesses pay sales tax on it.
-  const spendable = Math.min(e.households, 0.012 * e.households * t + 0.25 * wages);
+  const spendable = Math.min(e.households, 0.012 * e.households * t + 0.25 * lastWages);
   const spent = transfer(s, "households", "businesses", Math.min(spendable, (r.commerce ?? 0) * t), "Household spending");
   r.spending = spent / t;
   taxes += transfer(s, "businesses", "treasury", spent * 0.08, "Sales tax");
   // The treasury can lend grocers a little working capital: at most a quarter of this period's payroll tax.
-  let credit = 0.25 * payroll;
+  let credit = 0.25 * lastWages * taxFraction;
   for (const g of groups.values()) {
     if (!g.people) continue;
     const need = (g.people / (s.mode==="survival"?103:115)) * t;
@@ -805,6 +805,8 @@ export function advanceEconomy(s: GameState, dt: number) {
     const sale = transfer(s, "households", "businesses", portion * MEAL_PRICE, "Household groceries");
     taxes += transfer(s, "businesses", "treasury", sale * 0.04, "Sales tax");
   }
+  const wages = transfer(s, "businesses", "households", workers * 0.34 * t, "Local wages");
+  taxes += transfer(s, "households", "treasury", wages * taxFraction, "Payroll tax");
   const m = s.metrics;
   const utilityDeficit = Math.max(0, m.waterDemand ? 1 - m.waterSupply / m.waterDemand : 0,
     m.powerDemand ? 1 - m.powerSupply / m.powerDemand : 0);
