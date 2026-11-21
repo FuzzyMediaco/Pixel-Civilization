@@ -437,7 +437,7 @@ export function evaluateEconomy(
     factories = live.filter((x) => industry(x.defId));
   let potable = 0,
     powerSaved = 0;
-  r.workers = Math.round(effective(s, "workforce", s.population * 0.54));
+  r.workers = Math.round(effective(s, "workforce", s.population * 0.5));
   r.capacity = Math.round(base * (s.mode==="god"?31:21));
   r.occupied = s.population;
   r.skilled = Math.round(

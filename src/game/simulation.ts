@@ -420,8 +420,8 @@ export function populationLimiterFor(state: GameState, m: CityMetrics, housingBa
   const foodPerResident = (state.mode === "survival" ? 0.32 : 0.28) * perCapita;
   const caps: [LimitingNeed, number][] = [
     ["housing", Math.max(housingBase, economy.capacity || housingBase)],
-    // 54% of residents work (cityEconomy workforce), so this is the population the reachable jobs employ.
-    ["jobs", economy.reachable / 0.54],
+    // Half of all residents work (cityEconomy workforce), so this is the population the reachable jobs employ.
+    ["jobs", economy.reachable / 0.5],
     ["food", m.foodSupply / foodPerResident],
     ["waste", m.wasteCapacity / (WASTE_PER_UNIT / 5 * perCapita)],
     ["water", state.population + (m.waterSupply - m.waterDemand) * RESIDENTS_PER_WATER / perCapita],
@@ -445,8 +445,8 @@ const LIMITER_LABELS: Record<LimitingNeed, { name: string; fix: string }> = {
 /** Garbage demand per citizen unit (5 residents): 0.16 per resident. */
 const WASTE_PER_UNIT = 0.8;
 /** Extra residents one surplus unit of water / power supports (and the matching per-resident draw). */
-const RESIDENTS_PER_WATER = 20;
-const RESIDENTS_PER_POWER = 25;
+const RESIDENTS_PER_WATER = 30;
+const RESIDENTS_PER_POWER = 35;
 
 export function isNightTime(timeOfDay: number): boolean {
   return timeOfDay >= 19.5 || timeOfDay < 5.5;
