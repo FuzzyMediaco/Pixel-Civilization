@@ -99,6 +99,13 @@ export class TravelNetwork {
         if (axis >= 0) this.crossings.set(tileKey(e.gx, e.gz), axis);
       }
     }
+    // A rail diamond (four arms) has no curves drawn: trains must leave on the axis they entered.
+    for (const e of state.elements) {
+      if (!ELEMENT_BY_ID[e.defId]?.isRailNetwork) continue;
+      let arms = 0;
+      for (const [dx, dz] of sides) if (this.canUse(e.gx + dx, e.gz + dz, "rail")) arms++;
+      if (arms === 4) this.crossings.set(tileKey(e.gx, e.gz), 0);
+    }
     for (const [key, span] of Object.entries(state.infrastructure?.spans ?? {}))
       if (span.run.startsWith("junction-")) {
         const [x, z] = key.split(",").map(Number);
@@ -156,7 +163,7 @@ export class TravelNetwork {
       return true;
     });
   }
-  path(starts: Point[], ends: Point[], mode: PathMode, hull?: Hull, entryAxis?: 0 | 1): Point[] | null {
+  path(starts: Point[], ends: Point[], mode: PathMode, hull?: Hull, entryAxis?: 0 | 1, avoid?: Set<string>): Point[] | null {
     if (!starts.length || !ends.length) return null;
     // Search from both ends. A blocked inland berth exhausts its small basin without
     // enumerating the entire ocean. Each frontier remembers the arrival axis at tight turns.
@@ -207,6 +214,7 @@ export class TravelNetwork {
             nz = z + dz;
           if (tight && parents[id] !== -1 && (id & 1) !== axis) continue;
           if (!this.canUse(nx, nz, mode, hull)) continue;
+          if (avoid?.has(nx + "," + nz)) continue;
           if(mode==="rail" && (!switchAllows(this.state,x,z,dx,dz) || !switchAllows(this.state,nx,nz,-dx,-dz) || !railSpanAllows(this.state,x,z,dx,dz)))continue;
           if (
             hull ? !this.water.canStep(x, z, nx, nz, hull) : mode !== "rail" && !roadPortOpen(this.state, x, z, dx, dz)

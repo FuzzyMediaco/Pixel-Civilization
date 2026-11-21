@@ -25,7 +25,6 @@ import {
   spire,
   column,
   tree,
-  bush,
   flowerBed,
   hedge,
   car,
@@ -542,21 +541,6 @@ function field(v: PixelVox, x0: number, z0: number, x1: number, z1: number, spor
     v.box(x1 - 7, 1, z1 - 4, x1 - 6, 4, z1 - 3, "white");
     v.box(x1 - 2, 1, z1 - 4, x1 - 1, 4, z1 - 3, "white");
     ring(v, mx + 0.5, mz + 0.5, 0, 1, 2.5, 1.6, "white");
-  }
-}
-
-/** Draws through to a target with x and z swapped (lets the field kit lay pitches along z). */
-class SwapVox extends PixelVox {
-  constructor(private t: PixelVox) {
-    super();
-  }
-  put(x: number, y: number, z: number, color: string | null, emit = 0): this {
-    this.t.put(z, y, x, color, emit);
-    return this;
-  }
-  box(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, color: string | null, emit = 0): this {
-    this.t.box(z0, y0, x0, z1, y1, x1, color, emit);
-    return this;
   }
 }
 
@@ -1698,7 +1682,7 @@ function community_college(c: Ctx) {
       ld = 10,
       lx = X0 + Math.floor(W * 0.35),
       lz = Z0 + Math.floor(D * 0.42);
-    library(c, lx, lz, lx + lw, lz + ld, 14);
+    library(c, lx, lz, lx + lw, lz + ld, lv >= 4 ? 18 : 14);
     v.box(lx - 4, 0, lz + ld + 2, lx + lw + 4, 1, lz + ld + 5, "concrete");
     bench(v, lx - 3, 1, lz + ld + 3);
   }

@@ -123,8 +123,10 @@ test("the economy's farm harvest, grocer throughput and mall earnings rise with 
     ["farms", (a) => a.yieldRate],
     ["grocery_store", (a) => a.retail],
     ["malls", (a) => a.retail],
-    ["malls", (a) => a.exportRate],
-    ["banks", (a) => a.exportRate],
+    // Commerce earns from household spending; landmarks earn tourism exports.
+    ["malls", (a) => a.spending ?? 0],
+    ["banks", (a) => a.spending ?? 0],
+    ["post_offices", (a) => a.exportRate],
   ];
   for (const [id, read] of cases) {
     const values = LEVELS.map((l) => {

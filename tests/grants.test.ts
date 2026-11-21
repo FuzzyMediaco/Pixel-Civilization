@@ -100,7 +100,8 @@ test("late grants are attainable from connected services and displayed requireme
     payEarnedGrants(city)
       .map((g) => g.id)
       .sort(),
-    CITY_GRANTS.map((g) => g.id).sort(),
+    // Stage-ladder grants pay on reaching a stage; this one-stage town earns only the service grants.
+    CITY_GRANTS.filter((g) => !g.id.startsWith("stage_")).map((g) => g.id).sort(),
   );
   const grid = CITY_GRANTS.find((g) => g.id === "clean_power")!;
   city.metrics.powerDemand = city.metrics.powerSupply + 1;

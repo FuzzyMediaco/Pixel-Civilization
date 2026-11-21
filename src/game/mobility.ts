@@ -1,5 +1,5 @@
 import { LOCOMOTIVES, defaultFormation, railCapacity, formationPrice, yardCapacity, trainFor, validateFormation, railPurchase, freightCall, advanceRailFreightStock, type RailFormation, type RailRun } from "./railOperations";
-import { claimRailBlock, clearRailBlock, noteRailTravel, prepareRailLeg, remainingRailBlock } from "./railMovement";
+import { claimRailLeg, clearRailBlock, heldByOthers, moveRail, onTrack, prepareRailLeg, railLeg, resolveRailConflicts, starvingBehind } from "./railMovement";
 import { ELEMENT_BY_ID } from "./catalog";
 import { levelMultiplier } from "./levelScaling";
 import type { GameState, PlacedElement } from "./simulation";
@@ -54,6 +54,8 @@ interface Delivery {
 export interface Run {
   rail?: RailRun;
   id: string;
+  /** Line this vehicle belongs to (several trains can share one line). Defaults to its own id. */
+  group?: string;
   mode: TravelMode;
   depot: string;
   stops: string[];
@@ -103,6 +105,18 @@ export interface MobilityState {
   demand: number;
   nextId: number;
   lastFleetCheck?: number;
+  /** Riders waiting per line and stop ("line|stop"), oldest cohort first. */
+  queues?: Record<string, { t: number; n: number }[]>;
+  /** When riders were last generated at a queue. */
+  generated?: Record<string, number>;
+  /** Riders who gave up waiting in the last two minutes. */
+  lost?: { time: number; count: number; stop: string; line: string }[];
+  /** Last departure per line and stop, for headway keeping. */
+  departed?: Record<string, number>;
+}
+export const lineKey = (l: Run) => l.group ?? l.id;
+export function lineTrains(s: GameState, key: string): Run[] {
+  return s.mobility?.lines.filter((l) => lineKey(l) === key) ?? [];
 }
 export function mobilityOf(s: GameState): MobilityState {
   return (s.mobility ??= { lines: [], voyages: {}, deliveries: [], transfers: {}, demand: 1, nextId: 1 });
@@ -143,6 +157,11 @@ const hullFor = (mode: TravelMode) => (marine(mode) ? waterHull[mode as keyof ty
 const allStops = (line: Run) => {
   const stops=line.stops.filter(id=>id!==line.depot);
   return line.rail?.pattern==="shuttle" ? [line.depot,...stops,...stops.slice(0,-1).reverse()] : [line.depot,...stops];
+};
+/** Trains run station to station; a shuttle reverses at both ends without calling twice at the termini. */
+export const railRoute = (line: Run) => {
+  const stops = line.stops.filter((id) => id !== line.depot);
+  return line.rail?.pattern === "shuttle" && stops.length > 2 ? [...stops, ...stops.slice(1, -1).reverse()] : stops;
 };
 const legOptions = (net: TravelNetwork, stop: PlacedElement, mode: TravelMode) =>
   net.connectors(stop, mode, hullFor(mode));
@@ -207,8 +226,8 @@ export function addLine(s: GameState, mode: TravelMode, depot: string, stops: st
     enabled: true,
     interval: consist?.frequency??8,
     schedule: consist?.schedule??"all",
-    ...(consist?{rail:{...consist,cars:[...consist.cars],trainId:"T-"+id,trail:[]}}:{}),
-    next: 1,
+    ...(consist?{rail:{...consist,cars:[...consist.cars],trainId:"T-"+id,trail:[],v:2}}:{}),
+    next: consist ? 0 : 1,
     at: depot,
     path: [],
     progress: 0,
@@ -218,11 +237,115 @@ export function addLine(s: GameState, mode: TravelMode, depot: string, stops: st
     riders: [],
     delivered: 0,
     departures: 0,
-    status: "Boarding at the depot",
+    status: consist ? "Ready in the depot" : "Boarding at the depot",
     blocked: false,
     demandScale: 1,
   });
   return id;
+}
+/** Buy another train for a line. Trains share the line's stations, formation and contract; headway shrinks. */
+export function addTrainToLine(s: GameState, key: string): string {
+  const m = mobilityOf(s),
+    trains = lineTrains(s, key),
+    lead = trains[0];
+  if (!lead || lead.mode !== "rail") throw Error("Choose a railway line.");
+  const net = getTravelNetwork(s),
+    depot = net.byId.get(lead.depot);
+  if (!depot) throw Error("Restore the depot first.");
+  if (m.lines.filter((l) => l.mode === "rail" && l.depot === lead.depot).length >= yardCapacity(s, depot))
+    throw Error("This depot is full. Add a siding or upgrade the depot.");
+  const r = trainFor(lead);
+  railPurchase(s, formationPrice(r), "Another train");
+  const id = "line-" + m.nextId++;
+  for (const t of trains) t.group = key;
+  m.lines.push({
+    ...structuredClone({ ...lead, rail: undefined }),
+    id,
+    group: key,
+    rail: {
+      ...r,
+      cars: [...r.cars],
+      trainId: "T-" + id,
+      trail: [],
+      v: 2,
+      rearCab: false,
+      contract: r.contract ? { ...r.contract, loaded: 0, delivered: 0 } : undefined,
+      reservation: undefined,
+      waitingSince: undefined,
+      blockedBy: undefined,
+      yielding: undefined,
+      ghost: undefined,
+      speed: 0,
+      dist: 0,
+      claimEnd: undefined,
+      circuitStart: undefined,
+    },
+    at: lead.depot,
+    next: 0,
+    path: [],
+    progress: 0,
+    dwell: 1,
+    riders: [],
+    delivered: 0,
+    departures: 0,
+    blocked: false,
+    status: "Ready in the depot",
+    lastBoarding: {},
+    waiting: {},
+  });
+  return id;
+}
+/** Retire one train from a line (the emptiest one; parked trains first). The last train stays. */
+export function removeTrainFromLine(s: GameState, key: string): void {
+  const m = mobilityOf(s),
+    trains = lineTrains(s, key);
+  if (trains.length < 2) throw Error("A line keeps at least one train. Delete the line instead.");
+  const pick = [...trains].sort(
+    (a, b) =>
+      Number(b.at === b.depot) - Number(a.at === a.depot) ||
+      a.riders.reduce((n, r) => n + r.count, 0) - b.riders.reduce((n, r) => n + r.count, 0),
+  )[0];
+  if (pick.rail?.contract?.loaded) throw Error("Wait until that train has unloaded.");
+  m.lines = m.lines.filter((l) => l !== pick);
+  if (pick.id === key) {
+    // The line keeps its id on the surviving trains.
+    for (const t of m.lines) if (lineKey(t) === key) t.group = key;
+  }
+}
+/** Seconds for one circuit of a line: measured once trains have run it, estimated from the track before. */
+export function circuitSeconds(s: GameState, key: string): number {
+  const trains = lineTrains(s, key),
+    lead = trains[0];
+  if (!lead) return 0;
+  const measured = trains.map((t) => t.rail?.circuit).filter((n): n is number => !!n);
+  if (measured.length) return measured.reduce((a, b) => a + b, 0) / measured.length;
+  return estimateCircuit(s, lead);
+}
+const circuitCache = new Map<string, number>();
+export function estimateCircuit(s: GameState, l: Run): number {
+  const net = getTravelNetwork(s),
+    r = trainFor(l),
+    route = railRoute(l);
+  const k = travelSignature(s).length + "|" + route.join(",") + "|" + r.engine + "|" + r.cars.length + "|" + r.frequency;
+  const hit = circuitCache.get(k);
+  if (hit !== undefined) return hit;
+  let tiles = 0;
+  for (let i = 0; i < route.length; i++) {
+    const a = net.byId.get(route[i]),
+      b = net.byId.get(route[(i + 1) % route.length]);
+    if (!a || !b) continue;
+    tiles += net.path(net.connectors(a, "rail"), net.connectors(b, "rail"), "rail")?.length ?? 0;
+  }
+  const cruise = Math.min(LOCOMOTIVES[r.engine].speed, 1.8) * 0.72;
+  const dwell = (r.service === "freight" ? 3.2 : 1.5) + r.cars.length * 0.3;
+  const seconds = tiles / cruise + route.length * dwell + Math.min(r.frequency, 12);
+  if (circuitCache.size > 200) circuitCache.clear();
+  circuitCache.set(k, seconds);
+  return seconds;
+}
+export function lineHeadway(s: GameState, key: string): number {
+  const n = lineTrains(s, key).filter((l) => l.enabled).length;
+  return n ? circuitSeconds(s, key) / n : 0;
 }
 export function replanRailStops(s:GameState,l:Run,stops:string[]){
   const r=trainFor(l),ordered=[...new Set(stops)],net=getTravelNetwork(s);

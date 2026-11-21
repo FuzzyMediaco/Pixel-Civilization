@@ -201,6 +201,8 @@ export interface RailRun extends RailFormation {
   /** Current speed in tiles/s and distance travelled along the current leg. */
   speed?: number;
   dist?: number;
+  /** Moving block: the train may only run to this distance along its leg. */
+  claimEnd?: number;
   /** Why the train is heading to its depot instead of the next station. */
   yielding?: "clear" | "hours" | "recall";
   /** Last resort when single track has no passing place: squeeze past and warn. */

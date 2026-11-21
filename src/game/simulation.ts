@@ -1350,7 +1350,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (def.recreation || def.id === "graveyards") m.recreationSupply += Math.round(edgeEffect.recreation * serviceHealth);
     // Wild nature is a land-value and clean-air asset; as a city service it counts at 25%, and it
     // only supplies drinking water where it touches a fresh river, lake or canal.
-    const wild = def.passiveNature && def.category === "nature_terrain";
+    const wild = def.passiveNature && def.category === "nature_terrain" && !def.isWaterFeature;
     if (def.popBase) {
       // Count access to a river or canal once per home, regardless of the length of its bank.
       const waterfront = state.infrastructure && PARCEL_SIDES.some(side => {

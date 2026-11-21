@@ -440,7 +440,8 @@ const AVERAGE_DAYLIGHT = (() => {
 export function steadyPowerOutputFactor(kind: PowerKind, weather: string, windSpeed: number): number {
   if (kind !== "solar") return powerOutputFactor(kind, 12, weather, windSpeed);
   const cloud = weather === "storm" ? 0.3 : weather === "rain" ? 0.45 : weather === "cloudy" ? 0.65 : 1;
-  return 0.18 + 0.95 * AVERAGE_DAYLIGHT * cloud;
+  // Panels carry a battery buffer: about 70% of the daytime surplus is banked for the night.
+  return 0.18 + 1.4 * AVERAGE_DAYLIGHT * cloud;
 }
 
 /** $ per tick to keep a building running (services & utilities without their own income) */
