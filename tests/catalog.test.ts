@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { test } from "node:test";
 import "../src/game/designs/index";
-import { ELEMENTS, getMaxElementLevel, getStandardFootprintForLevel } from "../src/game/catalog";
+import { ELEMENTS, getElementLevelName, getMaxElementLevel, getStandardFootprintForLevel } from "../src/game/catalog";
 import { DESIGNS } from "../src/game/designs/registry";
-import { makeCtx } from "../src/game/designs/kit";
+import {buildDesignVoxels} from "../src/game/voxelArchitect";
 import { PixelVox } from "../src/game/voxelCore";
 
 function hashVoxels(voxels: PixelVox, hx = Infinity, hz = Infinity): string {
@@ -30,16 +30,15 @@ for (const def of ELEMENTS) {
     const d = DESIGNS[def.id];
     assert.ok(d);
     const cap = getMaxElementLevel(def.id);
-    assert.equal(new Set(d.levels.slice(0, cap)).size, cap);
+    assert.equal(new Set(Array.from({length:cap},(_,i)=>getElementLevelName(def,i+1))).size, cap);
     const states = new Map<string, string>();
     for (let level = 1; level <= cap; level++) {
-      const [sx, sz] = d.footprints[level - 1];
+      const [sx, sz] = d.footprints[Math.min(level,d.footprints.length) - 1];
       assert.deepEqual(getStandardFootprintForLevel(def, level), [sx, sz]);
       assert.ok([sx, sz].every(n => Number.isInteger(n) && n >= 1 && n <= 4));
       for (let v = 0; v < 4; v++) {
         const signature = (def.isNetwork ? [5, 15, 5 | 256 | 4096] : [0]).map(mask => {
-          const c = makeCtx(def.id, level, v, sx, sz, mask);
-          d.build(c);
+          const c = buildDesignVoxels(def,level,v,sx,sz,mask);
           const parts = c.rotors.map(r => [r.pivot, r.axis, hashVoxels(r.vox)]);
           return JSON.stringify([hashVoxels(c.v, c.hx, c.hz), parts]);
         }).join("|");

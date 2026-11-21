@@ -1,3 +1,4 @@
+import { FARM_ANCHOR_IDS,FARM_MODULE_IDS,SCHOOL_IDS } from "./expansionCatalog";
 import { ELEMENT_BY_ID, type CivElementDef } from "./catalog";
 import type { RoadAccessKind } from "./roadTopology";
 import { getTerrainCell, roadPortOpen } from "./terrain";
@@ -7,6 +8,7 @@ export type LocalSide = "back" | "right" | "front" | "left";
 export type EdgeOverride = "auto" | "open" | "closed";
 export type ParcelPose = Pick<PlacedElement, "defId" | "gx" | "gz" | "spanX" | "spanZ" | "rotation"> & {
   edgeOverrides?: Partial<Record<LocalSide, EdgeOverride>>;
+  autoDrive?: {side:LocalSide;slot:number};
 };
 export const PARCEL_SIDES: readonly LocalSide[] = ["back", "right", "front", "left"];
 const offsets = [[0,-1],[1,0],[0,1],[-1,0]] as const;
@@ -38,8 +40,8 @@ export interface ParcelEdge {
   stairRise?: number;
 }
 const ids = (members: string) => new Set(members.split(" "));
-const farms = ids("farm_houses farms fields orchards groves_of_olives plantations solar_canopy_orchard terraced_glasshouses");
-const rows = ids("farms fields orchards groves_of_olives plantations");
+const farms = new Set([...FARM_ANCHOR_IDS,...FARM_MODULE_IDS,...ids("farm_houses farms fields orchards groves_of_olives plantations solar_canopy_orchard terraced_glasshouses")]);
+const rows = new Set([...FARM_ANCHOR_IDS,...FARM_MODULE_IDS]);
 const greens = ids("park little_parks large_parks gardens italian_gardens floodplain_park");
 const foodOutlets = ids("grocery_store restaurants cheesesteak_restaurants growers_exchange bakery_coop");
 const publicFaith = ids("churches christian_churches monasteries temples synagogues mosques lds_temples");
@@ -62,7 +64,7 @@ const localRoad = (d: CivElementDef) => d.isRoadNetwork && !hardRoad.has(d.id) &
 const heatUsers = ids("community_centers apartments apartment_buildings condos malls factories terraced_glasshouses hanging_garden_arcology");
 const transit = ids("bus_stops train_stops bus_depots taxi_ranks taxi_depots ferry_landings ferry_exchange regional_airport flying_car_depot teleportation_depot");
 const tall = ids("skyscrapers buildings hanging_garden_arcology skybridge_university");
-const pupils = ids("school community_centers smithsonian skybridge_university maritime_college");
+const pupils = new Set([...SCHOOL_IDS,...ids("school community_centers smithsonian skybridge_university maritime_college")]);
 const heatSources = ids("trash_burning_plants geothermal_power_plants data_centers district_heat_works");
 const frontage = (d: CivElementDef) => d.category === "commerce" && !industrial.has(d.id) && d.id !== "gas_stations";
 const electric = (d: CivElementDef) => (d.power ?? 0) > 0;
@@ -97,6 +99,7 @@ function joint(a: CivElementDef, b: CivElementDef, sa: LocalSide, sb: LocalSide,
   }
   if ((a.category === "housing" && y === "gardens" && (sa === "back" || explicit)) ||
       (b.category === "housing" && x === "gardens" && (sb === "back" || explicit))) return "garden";
+  if ((x==="high_school"&&y==="sports_field")||(y==="high_school"&&x==="sports_field")||(["university","skybridge_university"].includes(x)&&["research_institute","research_university"].includes(y))||(["university","skybridge_university"].includes(y)&&["research_institute","research_university"].includes(x))) return "ceremonial";
   if (farms.has(x) && farms.has(y)) return "farm";
   if (pair(x,y,"gardens","orchards") || pair(x,y,"plants","orchards") || pair(x,y,"gardens","groves_of_olives")) return "orchard";
   if ((farms.has(x) && foodOutlets.has(y)) || (farms.has(y) && foodOutlets.has(x)) || pair(x,y,"windmills","fields") ||
@@ -191,7 +194,10 @@ export function getParcelEdges(el: ParcelPose, occupancy: ReadonlyMap<string, Pl
       if (!other || n.edgeOverrides?.[otherSide] === "closed") continue;
       let kind = joint(def, other, side, otherSide, normalized(n.rotation) === normalized(el.rotation),
         el.edgeOverrides?.[side] === "open" || n.edgeOverrides?.[otherSide] === "open");
-      if (kind === "drive" && ((!def.isNetwork && !acceptsDriveSlot(el,side,slot)) ||
+      const otherSlot=slotAt(n,(world+2)%4,gx+dx,gz+dz);
+      const automatic=Boolean(localRoad(def)&&n.autoDrive?.side===otherSide&&n.autoDrive.slot===otherSlot || localRoad(other)&&el.autoDrive?.side===side&&el.autoDrive.slot===slot);
+      if(automatic && !kind)kind="drive";
+      if (!automatic && kind === "drive" && ((!def.isNetwork && !acceptsDriveSlot(el,side,slot)) ||
           (!other.isNetwork && !acceptsDriveSlot(n,otherSide,slotAt(n,(world+2)%4,gx+dx,gz+dz))))) continue;
       let stairRise:number|undefined;
       if ((kind==="drive" || kind==="freight" || kind==="bus") && (def.isRoadNetwork || other.isRoadNetwork)) {
@@ -261,7 +267,7 @@ export function autoFrontageRotation(def: CivElementDef, gx: number, gz: number,
     }
     if (overlapping) continue;
     const score = getParcelEdges(candidate, occupancy).reduce((sum,e) => sum + (
-      e.kind === "party" || e.kind === "platform" || e.kind === "bus" || (def.id==="atms" && e.kind==="arcade") ? 6 : e.kind === "garden" ? 3 : e.kind === "drive" ? 2 : e.kind==="arcade" ? 1 : 0),0);
+      e.kind==="drive" || e.kind==="freight" || e.kind==="bus" ? 18 : e.kind === "party" || e.kind === "platform" || (def.id==="atms" && e.kind==="arcade") ? 6 : e.kind === "garden" ? 3 : e.kind === "walk" ? 2 : e.kind==="arcade" ? 1 : 0),0);
     if (score > bestScore && (!fits || fits(candidate.spanX,candidate.spanZ))) {best = r; bestScore = score;}
   }
   return best;

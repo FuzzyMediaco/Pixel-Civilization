@@ -1,3 +1,4 @@
+import {placedUpgradeCost} from "../game/simulation";
 import { buildingCharges } from "../game/cityEconomy";
 import React, { useMemo, useState } from "react";
 import {
@@ -27,7 +28,7 @@ import {
   getElementGrowthNote,
   getElementLevelName,
   getStandardFootprintForLevel,
-  getUpgradeCost,
+
 } from "../game/catalog";
 import { SYNERGY_RULES } from "../game/cityDynamics";
 import {
@@ -55,6 +56,7 @@ interface BottomDockProps {
   onUndoBuilding: () => void;
   onClearSelection: () => void;
   onInspectSystems: () => void;
+  onRailOperations: () => void;
   onOpenWorks: () => void;
   onClose: () => void;
 }
@@ -97,7 +99,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
   onMaintainSelected,
   onGodMutateSelected,
   onDeleteSelected, onUndoBuilding,
-  onClearSelection, onInspectSystems, onOpenWorks,
+  onClearSelection, onInspectSystems, onRailOperations, onOpenWorks,
   onClose,
 }) => {
   const [activeCat, setActiveCat] = useState<ElementCategory | "all">("starter");
@@ -158,6 +160,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
       {/* Right-Handed Compact Selected Element Inspector */}
       {primaryEl && primaryDef && (
         <div className="selection-inspector pointer-events-auto relative flex w-auto max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 rounded-lg border border-stone-900/20 bg-[#fcfaf5]/96 px-2 py-1 shadow-lg">
+          {["train_depots","train_stops","freight_rail_terminal"].includes(primaryDef.id)&&<button className="rounded bg-emerald-900 px-2 py-1 text-xs font-bold text-white" onClick={onRailOperations}>Rail Operations</button>}
           <button type="button" onClick={onInspectSystems} className="rounded bg-emerald-900 px-2 py-1 text-xs font-bold text-white">Connections</button>
           {/* Element Identity (Favicon + Tiny Color Square + Name & Micro Metadata) */}
           <div className="flex min-w-0 items-center gap-1.5">
@@ -342,7 +345,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                     ? "Fully upgraded"
                     : state.mode === "god"
                       ? `Level Up to Lv.${primaryEl.level + 1}`
-                      : `Upgrade to Lv.${primaryEl.level + 1} “${getElementLevelName(primaryDef, primaryEl.level + 1)}” ($${getUpgradeCost(primaryDef, primaryEl.level)})`
+                      : `Upgrade to Lv.${primaryEl.level + 1} “${getElementLevelName(primaryDef, primaryEl.level + 1)}” ($${placedUpgradeCost(state,primaryEl)})`
                 }
                 aria-label="Level Up"
               >

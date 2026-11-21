@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { test } from "node:test";
 import "../src/game/designs/index";
-import { ELEMENTS, ELEMENT_BY_ID, getMaxElementLevel } from "../src/game/catalog";
+import { ELEMENTS, ELEMENT_BY_ID, getStandardFootprintForLevel, getElementLevelName, getMaxElementLevel } from "../src/game/catalog";
 import { findGuideElements, getGuidePartner, getGuideVariant, getNeighborPreview } from "../src/game/connectionPreview";
 import { DESIGNS } from "../src/game/designs/registry";
 import styleNames from "../src/game/designStyles.json";
@@ -43,10 +43,10 @@ test("handbook includes current metadata, images, and all five saved levels and 
     );
     assert.deepEqual(
       row.levels,
-      design.levels.map((name, i) => ({
-        name,
+      Array.from({ length: Math.max(5, max) }, (_, i) => ({
+        name: max > 5 ? getElementLevelName(def, i+1) : design.levels[i],
         level: i + 1,
-        dimensions: design.footprints[Math.min(i, max - 1)],
+        dimensions: getStandardFootprintForLevel(def, Math.min(i+1, max)),
         legacy: i >= max,
       })),
     );
@@ -74,11 +74,12 @@ test("handbook includes current metadata, images, and all five saved levels and 
 
 test("the illustrated viewer can isolate every style and level from its own sheet", () => {
   const { left, top, gap, cell } = handbookLayout;
-  for (let level = 1; level <= 5; level++)
+  for (const columns of [5, 11]) for (let level = 1; level <= columns; level++)
     for (let style = 0; style < 4; style++) {
-      const frame = getHandbookFrame(level, style);
+      const frame = getHandbookFrame(level, style, columns);
+      const width = left + columns * (cell + gap);
       const [x, y] = frame.backgroundPosition.split(" ").map(parseFloat);
-      assert.equal(Math.round((x * (sheetSize.width - cell)) / 100), left + (level - 1) * (cell + gap));
+      assert.equal(Math.round((x * (width - cell)) / 100), left + (level - 1) * (cell + gap));
       assert.equal(Math.round((y * (sheetSize.height - cell)) / 100), top + style * (cell + gap));
     }
 });
@@ -88,7 +89,7 @@ test("the starter shelf and multi-tile frontage previews follow the live catalog
     findGuideElements("", "starter"),
     ELEMENTS.filter((d) => d.isStarter),
   );
-  assert.equal(findGuideElements("", "starter").length, 10);
+  assert.equal(findGuideElements("", "starter").length, 12);
   assert.deepEqual(
     findGuideElements("taxi_ranks", "roads_transit").map((d) => d.id),
     ["taxi_ranks"],

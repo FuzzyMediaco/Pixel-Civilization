@@ -1,3 +1,5 @@
+import { LOCOMOTIVES, defaultFormation, railCapacity, formationPrice, yardCapacity, trainFor, validateFormation, railPurchase, freightCall, advanceRailFreightStock, type RailFormation, type RailRun } from "./railOperations";
+import { claimRailBlock, clearRailBlock, noteRailTravel, prepareRailLeg, remainingRailBlock } from "./railMovement";
 import { ELEMENT_BY_ID } from "./catalog";
 import type { GameState, PlacedElement } from "./simulation";
 import {
@@ -49,6 +51,7 @@ interface Delivery {
   freight: boolean;
 }
 export interface Run {
+  rail?: RailRun;
   id: string;
   mode: TravelMode;
   depot: string;
@@ -136,7 +139,10 @@ export function eligibleStops(s: GameState, mode: TravelMode): PlacedElement[] {
   return s.elements.filter((e) => allowed.includes(e.defId));
 }
 const hullFor = (mode: TravelMode) => (marine(mode) ? waterHull[mode as keyof typeof waterHull] : undefined);
-const allStops = (line: Run) => [line.depot, ...line.stops.filter((id) => id !== line.depot)];
+const allStops = (line: Run) => {
+  const stops=line.stops.filter(id=>id!==line.depot);
+  return line.rail?.pattern==="shuttle" ? [line.depot,...stops,...stops.slice(0,-1).reverse()] : [line.depot,...stops];
+};
 const legOptions = (net: TravelNetwork, stop: PlacedElement, mode: TravelMode) =>
   net.connectors(stop, mode, hullFor(mode));
 // A depot can face two disconnected streets or basins. Keep the same arrival berth
@@ -165,21 +171,31 @@ function servingNow(s: GameState, l: Run) {
   const night = s.timeOfDay < 6 || s.timeOfDay >= 21;
   return l.at !== l.depot || l.schedule === "all" || (night ? l.schedule === "night" : l.schedule === "day");
 }
-export function addLine(s: GameState, mode: TravelMode, depot: string, stops: string[]): string {
+export function addLine(s: GameState, mode: TravelMode, depot: string, stops: string[], formation?: RailFormation): string {
   if (!eligibleDepots(s, mode).some((e) => e.id === depot))
     throw new Error("Choose a depot or staffed landing for this service.");
   const ordered = [...new Set(stops)],
-    allowed = new Set(eligibleStops(s, mode).map((e) => e.id));
+    allowed = new Set((mode==="rail" && formation?.service==="freight" ? s.elements.filter(e=>e.defId==="freight_rail_terminal") : eligibleStops(s, mode)).map((e) => e.id));
   if (ordered.some((id) => !allowed.has(id)) || ordered.length < 2)
     throw new Error("Choose two different passenger stops or freight berths.");
   const m = mobilityOf(s),
     net = getTravelNetwork(s);
   const route = [depot, ...ordered.filter((id) => id !== depot), depot];
+  const consist = mode==="rail" ? formation??defaultFormation() : undefined;
+  if(consist) {
+    validateFormation(s,net.byId.get(depot)!,ordered.map(id=>net.byId.get(id)!),consist);
+    for(const id of [depot,...ordered]) if(!net.connectors(net.byId.get(id)!,"rail").length)
+      throw Error(ELEMENT_BY_ID[net.byId.get(id)!.defId].name+" at "+net.byId.get(id)!.gx+", "+net.byId.get(id)!.gz+" needs track along its rear platform.");
+  }
   const { departure, failedLeg } = circuitStart(net, mode, route);
   if (!departure) {
     const previous = net.byId.get(route[failedLeg - 1])!,
       next = net.byId.get(route[failedLeg])!;
     throw new Error(net.diagnose(perimeter(previous), perimeter(next), mode, hullFor(mode)).reason);
+  }
+  if(consist){
+    if(m.lines.filter(l=>l.mode==="rail"&&l.depot===depot).length>=yardCapacity(s,net.byId.get(depot)!))throw Error("This yard is full. Add a siding or upgrade your depot.");
+    railPurchase(s,formationPrice(consist),"Locomotive and cars");
   }
   const id = "line-" + m.nextId++;
   m.lines.push({
@@ -188,8 +204,9 @@ export function addLine(s: GameState, mode: TravelMode, depot: string, stops: st
     depot,
     stops: ordered,
     enabled: true,
-    interval: 8,
-    schedule: "all",
+    interval: consist?.frequency??8,
+    schedule: consist?.schedule??"all",
+    ...(consist?{rail:{...consist,cars:[...consist.cars],trainId:"T-"+id,trail:[]}}:{}),
     next: 1,
     at: depot,
     path: [],
@@ -205,6 +222,16 @@ export function addLine(s: GameState, mode: TravelMode, depot: string, stops: st
     demandScale: 1,
   });
   return id;
+}
+export function replanRailStops(s:GameState,l:Run,stops:string[]){
+  const r=trainFor(l),ordered=[...new Set(stops)],net=getTravelNetwork(s);
+  if(ordered.length<2||ordered.some(id=>net.byId.get(id)?.defId!==(r.service==="freight"?"freight_rail_terminal":"train_stops")))throw Error("Choose at least two distinct compatible platforms.");
+  if(l.riders.some(p=>!ordered.includes(p.destination))||r.contract&&(!ordered.includes(r.contract.pickup)||!ordered.includes(r.contract.drop)))throw Error("The revised route must serve every onboard rider and contracted platform.");
+  const depot=net.byId.get(l.depot);if(!depot)throw Error("Restore the depot first.");
+  validateFormation(s,depot,ordered.map(id=>net.byId.get(id)!),r);
+  const {departure}=circuitStart(net,"rail",[l.depot,...ordered,l.depot]);if(!departure)throw Error("Join all platforms and the depot with continuous track.");
+  if(!l.blocked&&l.at!==l.depot)throw Error("Replan while the train is at its depot or blocked.");
+  l.stops=ordered;l.next=1;l.at=l.depot;l.position=departure;l.blocked=false;l.path=[];l.progress=0;l.dwell=1;r.trail=[];r.rearCab=false;clearRailBlock(l);
 }
 export function autoStops(s: GameState, mode: TravelMode, depot: string): string[] {
   const net = getTravelNetwork(s),
@@ -245,9 +272,9 @@ function localDemand(net: TravelNetwork, stop: PlacedElement): number {
   return result;
 }
 function transferAt(s: GameState, m: MobilityState, l: Run, here: PlacedElement, net: TravelNetwork) {
-  if (l.mode === "freight") return undefined;
+  if (l.mode === "freight" || l.rail?.service==="freight") return undefined;
   for (const other of m.lines) {
-    if (other === l || !servingNow(s, other) || other.mode === "freight") continue;
+    if (other === l || !servingNow(s, other) || other.mode === "freight" || other.rail?.service==="freight") continue;
     for (const id of other.stops) {
       const pickup = net.byId.get(id);
       if (!pickup) continue;
@@ -261,6 +288,7 @@ function transferAt(s: GameState, m: MobilityState, l: Run, here: PlacedElement,
   }
 }
 function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElement, net: TravelNetwork) {
+  if(l.rail?.service==="freight"){freightCall(s,l,stop,net);return;}
   const arrived = l.riders.filter((r) => r.destination === stop.id);
   l.riders = l.riders.filter((r) => r.destination !== stop.id);
   for (const r of arrived) {
@@ -291,7 +319,8 @@ function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElemen
   if (!l.stops.includes(stop.id)) return;
   if (l.mode === "taxi" && (l.callsSinceDepot ?? 0) >= l.stops.length && !l.riders.length) return;
   const waiting = l.mode === "freight" ? [] : (m.transfers[stop.id] ?? []);
-  let room = capacities[l.mode] - l.riders.reduce((n, r) => n + r.count, 0);
+  const capacity=l.mode==="rail"?railCapacity(trainFor(l)):capacities[l.mode];
+  let room = capacity - l.riders.reduce((n, r) => n + r.count, 0);
   for (const r of waiting) {
     if (!room || !l.stops.includes(r.destination) || (r.readyAt ?? 0) > s.activePlaySec) continue;
     const n = Math.min(room, r.count);
@@ -333,7 +362,7 @@ function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElemen
     competition;
   const queue = (l.waiting[stop.id] ??= { people: 0, since: previous + elapsed * 0.5 });
   if (queue.people < 1) queue.since = previous + elapsed * 0.5;
-  queue.people = Math.min(capacities[l.mode] * 5, queue.people + rate * elapsed);
+  queue.people = Math.min(capacity * 5, queue.people + rate * elapsed);
   const count = Math.min(room, Math.floor(queue.people));
   if (count <= 0) return;
   const waited = Math.max(0, s.activePlaySec - queue.since);
@@ -406,7 +435,7 @@ function advance(
       registerRoadDemand(s, b[0], b[1], b[0] - a[0], b[1] - a[1], ds / speeds[mode]);
     const ok = hull
       ? requestVesselPassage(s, b[0], b[1], hull.height)
-      : roadTravelOpen(s, b[0], b[1], b[0] - a[0], b[1] - a[1]);
+      : mode === "rail" || roadTravelOpen(s, b[0], b[1], b[0] - a[0], b[1] - a[1]);
     if (!ok) {
       unit.progress = Math.max(unit.progress, i);
       unit.position = interpolate(unit.path, unit.progress);
@@ -419,18 +448,24 @@ function advance(
   return wanted >= end ? "arrived" : "moving";
 }
 function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: TravelNetwork, version: number) {
+  if(l.mode==="rail")trainFor(l);
   if (!l.enabled) {
+    clearRailBlock(l);
     l.status = "Service paused";
     return;
   }
   const route = allStops(l),
     dest = net.byId.get(route[l.next % route.length]);
   if (!dest || !net.byId.has(l.depot) || l.stops.some((id) => !net.byId.has(id))) {
+    clearRailBlock(l);
     l.blocked = true;
     l.status = "A stop was removed. Edit the line to replace it.";
     return;
   }
   const depot = net.byId.get(l.depot)!;
+  if(l.mode==="rail" && [depot,...l.stops.map(id=>net.byId.get(id)!)].some(e=>!net.connectors(e,"rail").length || e.disrepair || e.onFire)){
+    clearRailBlock(l);l.path=[];l.blocked=true;l.status="Restore service and track at each rear platform.";return;
+  }
   if (depot.onFire || dest.onFire) {
     l.blocked = true;
     l.path = [];
@@ -450,6 +485,7 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
     (l.version !== version || !l.path.length) &&
     (!l.blocked || l.version !== version || s.activePlaySec - (l.plannedAt ?? 0) > 8)
   ) {
+    if(l.version!==version)clearRailBlock(l);
     l.plannedAt = s.activePlaySec;
     l.version = version;
     const hull = hullFor(l.mode),
@@ -460,6 +496,7 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
     const starts = start ? [start] : [];
     const path = net.path(starts, ends, l.mode, hull);
     if (!path) {
+      clearRailBlock(l);
       const issue = net.diagnose(starts, perimeter(dest), l.mode, hull);
       l.status = issue.reason;
       l.blocker = issue.blocker;
@@ -467,20 +504,25 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
       l.path = [];
       return;
     }
-    l.path = path;
+    l.path = l.mode==="rail"?prepareRailLeg(l,path,net,ends):path;
     l.progress = 0;
     l.blocked = false;
     l.blocker = undefined;
-    l.at = undefined;
+    if(l.rail&&!l.rail.reservation)l.rail.blockPlan=remainingRailBlock(l,net,route);
+    if(l.mode!=="rail")l.at=undefined;
   }
   if (l.blocked || !l.path.length) return;
+  if(l.mode==="rail"&&!claimRailBlock(s,l)){l.status="Red signal · waiting for the shared track block";return;}
+  l.at=undefined;
+  const priorProgress=l.progress;
   const reached = advance(
     s,
     l,
-    seconds * speeds[l.mode] * (s.weather === "storm" ? 0.78 : 1),
+    seconds * (l.rail ? LOCOMOTIVES[l.rail.engine].speed : speeds[l.mode]) * (s.weather === "storm" ? 0.78 : 1),
     l.mode,
     hullFor(l.mode),
   );
+  if(l.rail&&l.position)noteRailTravel(l.rail,l.path,priorProgress,l.progress,l.position);
   if (reached === "following") {
     l.status = "Following a vessel through the channel";
     return;
@@ -493,6 +535,7 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
     l.status = "En route to " + ELEMENT_BY_ID[dest.defId].name;
     return;
   }
+  if(dest.id===l.depot){clearRailBlock(l);if(l.rail){l.rail.trail=[];l.rail.rearCab=false;}}
   completeStop(s, m, l, dest, net);
   l.departures++;
   l.at = dest.id;
@@ -515,7 +558,9 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
       if (pickup) l.next = route.indexOf(pickup);
     }
   }
-  l.dwell = dest.id === l.depot ? l.interval * (night ? 1.8 : 1) : 1.75;
+  l.dwell = dest.id === l.depot ? l.interval * (night ? 1.8 : 1) : l.rail ? (l.rail.service==="freight"?3.2:1.5)+l.rail.cars.length*.3/Math.sqrt(dest.level) : 1.75;
+  if(l.rail && s.railYard?.works?.[dest.id]?.signal && dest.id===l.depot)l.dwell*=.8;
+  if(l.rail?.service==="freight" && s.railYard?.works?.[dest.id]?.crane)l.dwell*=.7;
   l.path = [];
   l.progress = 0;
   l.status = dest.id === l.depot ? "At the depot" : "Boarding at " + ELEMENT_BY_ID[dest.defId].name;
@@ -687,6 +732,7 @@ export function stepMobility(s: GameState, dt: number): boolean {
     revision++;
   }
   const net = getTravelNetwork(s, signature);
+  advanceRailFreightStock(s,net,dt);
   for (const l of m.lines) stepLine(s, m, l, dt, net, revision);
   for (const e of vessels) {
     const v = (m.voyages[e.id] ??= newVoyage(e));
@@ -729,7 +775,7 @@ export function transitReadout(s: GameState): TransitReport {
     covered = 0;
   if (lines.length) {
     const net = getTravelNetwork(s);
-    const passenger = lines.filter((l) => l.mode !== "freight");
+    const passenger = lines.filter((l) => l.mode !== "freight" && l.rail?.service!=="freight");
     const groups = passenger.map((l) => l.id);
     for (let i = 0; i < passenger.length; i++)
       for (let j = 0; j < i; j++) {
@@ -764,10 +810,10 @@ export function transitReadout(s: GameState): TransitReport {
   }
   const coverage = potential ? Math.round((100 * covered) / potential) : 0;
   const scheduled =
-    m?.lines.filter((l) => l.mode !== "freight" && l.enabled && servingNow(s, { ...l, blocked: false })).length ??
+    m?.lines.filter((l) => l.mode !== "freight" && l.rail?.service!=="freight" && l.enabled && servingNow(s, { ...l, blocked: false })).length ??
     0;
   const reliability = scheduled
-    ? Math.round((100 * lines.filter((l) => l.mode !== "freight").length) / scheduled)
+    ? Math.round((100 * lines.filter((l) => l.mode !== "freight" && l.rail?.service!=="freight").length) / scheduled)
     : 0;
   const wait = served ? sumWait / served : 0;
   const score = served

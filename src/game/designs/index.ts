@@ -15,3 +15,5 @@ import "./networks";
 import "./projects";
 
 import "./landings";
+import "./campuses";
+import "./farmsteads";

@@ -8,3 +8,4 @@ dist/
 .aistudio-preflight-*/
 data/
 package-lock.json
+/portable/

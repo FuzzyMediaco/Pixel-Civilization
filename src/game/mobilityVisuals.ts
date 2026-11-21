@@ -1,3 +1,6 @@
+import { buildRailModel } from "./railModels";
+import { railBodies } from "./railMovement";
+import { cargoByCar } from "./railOperations";
 import { solidVoxels } from "./designs/kit";
 import * as THREE from "three";
 import { PixelVox, buildVoxelGeometry, getPixelVoxelMaterial, TILE_SIZE } from "./voxelCore";
@@ -105,6 +108,8 @@ export class MobilityVisuals {
   private geometries = new Map<string, THREE.BufferGeometry>();
   private target = new THREE.Vector3();
   private used = new Set<string>();
+  private trackMap?:TravelNetwork;
+  private switches:{gx:number;gz:number;id:string}[]=[];
   constructor(
     scene: THREE.Scene,
     private road: RoadMesh,
@@ -127,7 +132,7 @@ export class MobilityVisuals {
       if (mesh) this.root.remove(mesh);
       let geo = this.geometries.get(kind);
       if (!geo) {
-        geo = ["bus", "rail", "taxi"].includes(kind)
+        geo = kind.startsWith("rolling:") ? buildRailModel(kind.slice(8)) : ["bus", "rail", "taxi"].includes(kind)
           ? this.road(kind === "rail" ? "train" : (kind as "bus" | "taxi"), 1)
           : model(kind as ModelKind);
         this.geometries.set(kind, geo);
@@ -159,6 +164,18 @@ export class MobilityVisuals {
   }
   update(s: GameState, dt: number, nav?: TravelNetwork) {
     this.used.clear();
+    if(nav&&nav!==this.trackMap){
+      this.trackMap=nav;this.switches=s.elements.filter(e=>nav.canUse(e.gx,e.gz,"rail")&&[[0,1],[0,-1],[1,0],[-1,0]].filter(([dx,dz])=>nav.canUse(e.gx+dx,e.gz+dz,"rail")).length>=3);
+    }
+    const railLines=s.mobility?.lines.filter(l=>l.mode==="rail"&&l.enabled)??[];
+    for(const e of this.switches){
+      const k=e.gx+","+e.gz,setting=s.railYard?.turnouts[k]??"auto",active=railLines.find(l=>l.rail?.reservation?.includes(k)),
+        n=active?.path.findIndex(p=>p[0]===e.gx&&p[1]===e.gz)??-1,next=n>=0?active?.path[n+1]:undefined;
+      const x=(e.gx+.5)*TILE_SIZE,z=(e.gz+.5)*TILE_SIZE,y=surfaceTravelHeight(s,e.gx,e.gz,"x",.5);
+      const angle=setting==="east-west"?Math.PI/2:setting!=="auto"||!next?0:Math.atan2(next[0]-e.gx,next[1]-e.gz);
+      this.draw("points-"+e.id,"rolling:points",e.id,x,y+.17,z,angle,dt);
+      this.draw("signal-"+e.id,setting==="closed"||active?"rolling:signal-red":"rolling:signal-green",e.id,x+1.35,y,z+1.15,0,dt);
+    }
     for (const l of s.mobility?.lines ?? []) {
       if (!l.position || !l.enabled) continue;
       const [fx, fz] = l.position,
@@ -172,11 +189,37 @@ export class MobilityVisuals {
       const curb = water || l.mode === "rail" ? 0 : 0.38;
       const xx = (fx + 0.5) * TILE_SIZE - curb * Math.cos(l.heading),
         zz = (fz + 0.5) * TILE_SIZE + curb * Math.sin(l.heading);
-      this.draw(l.id, l.mode, l.depot, xx, y + 0.12, zz, l.heading, dt).userData.serviceId = l.id;
+      if(l.mode==="rail"){
+        const bodies=railBodies(l),r=l.rail!,t=s.activePlaySec;
+        if(r.contract)for(const id of [r.contract.pickup,r.contract.drop]){
+          const site=nav?.byId.get(id);if(!site)continue;
+          const fx=site.gx+site.spanX*.35,fz=site.gz+site.spanZ*.60;
+          const yard=this.draw("loading-"+site.id,"rolling:loader-"+r.contract.type,site.id,fx*TILE_SIZE,getTerrainCell(s,site.gx,site.gz).elevation+.12,fz*TILE_SIZE,site.rotation*Math.PI/2,dt);
+          if(l.at===id)yard.position.y+=Math.abs(Math.sin(t*2))*.035;
+        }
+        let prior:{x:number;y:number;z:number}|undefined;
+        const loads=cargoByCar(r);
+        for(const [i,p] of bodies.entries()){
+          const [gx,gz]=p.point,axis=Math.abs(Math.sin(p.heading))>.5?"x":"z",ix=Math.round(gx),iz=Math.round(gz);
+          const pos={x:(gx+.5)*TILE_SIZE,y:surfaceTravelHeight(s,ix,iz,axis,.5+(axis==="x"?gx-ix:gz-iz))+.14,z:(gz+.5)*TILE_SIZE};
+          const fullness=loads[r.rearCab?r.cars.length-1-i:i-1]??0;
+          const id=i===0?l.id:l.id+"-car-"+i,mesh=this.draw(id,"rolling:"+p.model+(fullness>=.80?"/full":fullness>0?"/partial":""),l.depot,pos.x,pos.y,pos.z,p.heading+(r.rearCab?Math.PI:0),dt);
+          mesh.userData.serviceId=l.id;
+          if(prior){const cx=(pos.x+prior.x)/2,cz=(pos.z+prior.z)/2,angle=Math.atan2(prior.x-pos.x,prior.z-pos.z);
+            const coupler=this.draw(l.id+"-link-"+i,"rolling:coupler",l.depot,cx,(pos.y+prior.y)/2+.24,cz,angle,dt);
+            coupler.scale.z=Math.max(1,(Math.hypot(prior.x-pos.x,prior.z-pos.z)-1.58)/.39);coupler.userData.serviceId=l.id;}
+          if(p.model==="steam" && !l.at&&!l.blocked){const phase=t%1;const puff=this.draw(l.id+"-steam","rolling:steam-puff",l.depot,pos.x,pos.y+1.25+phase*.85,pos.z,.2,dt);puff.scale.setScalar(.55+phase*.5);}
+          prior=pos;
+        }
+        if(l.blocked||l.rail?.waitingSince!==undefined||l.at){
+          const red=l.blocked||l.rail?.waitingSince!==undefined;
+          const signal=this.draw(l.id+"-signal","rolling:signal-"+(red?"red":"green"),l.depot,xx+1.16,y+.02,zz,0,dt);signal.userData.serviceId=l.id;
+        }
+      }else this.draw(l.id, l.mode, l.depot, xx, y + 0.12, zz, l.heading, dt).userData.serviceId = l.id;
       if (water && l.path.length > 1 && l.dwell <= 0 && !l.blocked && !/waiting|following/i.test(l.status)) {
         this.trail(l.id, l.depot, xx, zz, y, l.heading, l.mode === "gondola" ? 1 : 1.85, false, dt, s.activePlaySec).userData.serviceId = l.id;
       }
-      if (l.at && l.dwell > 0 && l.mode !== "freight") {
+      if (l.at && l.dwell > 0 && l.mode !== "freight" && l.rail?.service!=="freight") {
         const stop = s.elements.find((e) => e.id === l.at);
         if (!stop) continue;
         const cx = (stop.gx + stop.spanX * 0.5) * TILE_SIZE,

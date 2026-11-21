@@ -3,9 +3,11 @@ import { createRoot } from "react-dom/client";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "./game/designs/index";
-import { CATEGORY_META, ELEMENT_BY_ID, getMaxElementLevel, type CivElementDef } from "./game/catalog";
+import { CATEGORY_META, ELEMENT_BY_ID, getStandardFootprintForLevel, getElementLevelName, getMaxElementLevel, type CivElementDef } from "./game/catalog";
 import designStyles from "./game/designStyles.json";
 import { getGuideUsage } from "./game/guideUsage";
+import {roadWidth,frontageWidth} from "./game/roadStandards";
+import {guideCarriageway} from "./game/designs/carriageways";
 import { getHandbookFrame } from "./game/handbookLayout";
 import { DESIGNS } from "./game/designs/registry";
 import { buildDesignAsset, buildPlacedGroupFromAsset } from "./game/voxelArchitect";
@@ -77,7 +79,7 @@ function Model({ def, level, variant, night, joined, onStatic }: { def: CivEleme
           const rotors = [];
           for(const [idx,plot] of plots.entries()) {
             const {el,mask,edges}=plot, def=ELEMENT_BY_ID[el.defId];
-            const [sx,sz]=DESIGNS[el.defId].footprints[el.level-1];
+            const [sx,sz]=getStandardFootprintForLevel(def,el.level);
             const asset=buildDesignAsset(def,el.level,getGuideVariant(d.id,el.defId,v,idx),sx,sz,mask,{edges});
             const group=buildPlacedGroupFromAsset(asset);
             group.position.set((el.gx+el.spanX*.5)*TILE_SIZE,0,(el.gz+el.spanZ*.5)*TILE_SIZE);
@@ -86,8 +88,14 @@ function Model({ def, level, variant, night, joined, onStatic }: { def: CivEleme
             rotors.push(...(group.userData.rotorList??[]));
           }
           model.userData.rotorList=rotors;
+        } else if(roadWidth(d.id)>1){
+          model=new THREE.Group();
+          for(let i=0;i<3;i++){
+            const part=buildPlacedGroupFromAsset(buildDesignAsset(d,lv,v,1,1,10,{corridor:guideCarriageway(d.id,i)}));
+            part.position.x=(i-1)*TILE_SIZE;model.add(part);
+          }
         } else {
-          const [sx, sz] = DESIGNS[d.id].footprints[lv - 1];
+          const [sx, sz] = getStandardFootprintForLevel(d,lv);
           model = buildPlacedGroupFromAsset(buildDesignAsset(d, lv, v, sx, sz, d.isNetwork ? 5 : 0));
         }
         scene.add(model);
@@ -146,7 +154,7 @@ function Model({ def, level, variant, night, joined, onStatic }: { def: CivEleme
   useEffect(() => viewer.current?.show(def, level, variant, joined), [def, level, variant, joined]);
   useEffect(() => viewer.current?.light(night), [night]);
   return <div ref={mount} className={"viewport"+(error ? " illustrated" : "")} role="img" aria-label={def.name + ", level " + level + ", variant " + (variant + 1)}>
-    {error && <div className="flat-model" style={{...getHandbookFrame(level,variant),backgroundImage:"url(./handbook/catalog/"+def.id+".webp)"}}/>}
+    {error && <div className="flat-model" style={{...getHandbookFrame(level,variant,Math.max(5,getMaxElementLevel(def.id))),backgroundImage:"url(./handbook/catalog/"+def.id+".webp)"}}/>}
   </div>;
 }
 
@@ -159,7 +167,7 @@ const numbered = (param: string, low: number, high: number, fallback: number) =>
 };
 function Guide() {
   const [id, setId] = useState(ELEMENT_BY_ID[initial.get("id") ?? ""]?.id ?? "house");
-  const [level, setLevel] = useState(Math.min(getMaxElementLevel(id), numbered("level", 1, 5, 3)));
+  const [level, setLevel] = useState(Math.min(getMaxElementLevel(id), numbered("level", 1, getMaxElementLevel(id), 3)));
   const [variant, setVariant] = useState(numbered("variant", 1, 4, 1) - 1);
   const [joined, setJoined] = useState(false);
   const [night, setNight] = useState(false);
@@ -167,7 +175,7 @@ function Guide() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const def = ELEMENT_BY_ID[id], d = DESIGNS[id];
-  const styleNames = designStyles[id as keyof typeof designStyles];
+  const styleNames = designStyles[id as keyof typeof designStyles] ?? ["A","B","C","D"];
   const partner = ELEMENT_BY_ID[getGuidePartner(id)];
   const joins = useMemo(() => {
     const plot = getNeighborPreview(id, level)[0];
@@ -201,9 +209,9 @@ function Guide() {
           <Model def={def} level={level} variant={variant} night={night} joined={joined} onStatic={setStaticImage} />
           <div className="stage-foot"><div className="style-info"><b>{styleNames[variant]}</b><span>{staticImage ? "Daylight illustration" : "Drag to rotate"}</span></div><div className="variants" aria-label="Visual variant">{["A","B","C","D"].map((letter, i) => <button key={letter} title={styleNames[i]} aria-label={"Variant " + letter} aria-pressed={variant === i} onClick={() => setVariant(i)}>{letter}</button>)}</div></div>
         </section>
-        <section className="progression"><div className="entry-title"><h3>{d.levels[level-1]}</h3><span>{d.footprints[level-1].join(" × ")} tiles</span></div>
+        <section className="progression"><div className="entry-title"><h3>{getElementLevelName(def,level)}</h3><span>{roadWidth(id)>1?frontageWidth(id):getStandardFootprintForLevel(def,level).join(" × ")+" tiles"}</span></div>
           <p>{d.growth}</p>
-          <div className="steps" aria-label="Growth stages">{d.levels.slice(0,getMaxElementLevel(id)).map((name, i) => <button key={i} aria-pressed={level === i+1} onClick={() => setLevel(i+1)}>
+          <div className="steps" aria-label="Growth stages">{Array.from({length:getMaxElementLevel(id)},(_,i)=>getElementLevelName(def,i+1)).map((name, i) => <button key={i} aria-pressed={level === i+1} onClick={() => setLevel(i+1)}>
             <small>Level {i+1}</small><strong>{name}</strong></button>)}</div>
         </section>
         <section className="connection-entry"><div className="join-heading"><h3>Neighbor connections</h3>

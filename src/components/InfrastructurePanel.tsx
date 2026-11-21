@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import {RAIL_BRIDGES,railClearHeight,railShape,bridgeLandmark,bridgeTier,crossingPieces} from "../game/bridgeWorks";
+import {placedUpgradeCost,upgradeElementDirect} from "../game/simulation";
+import {buildingCharges} from "../game/cityEconomy";
 import { effective } from "../game/cityEconomy";
 import { GRID_MIN, GRID_MAX } from "../game/mapBounds";
 import type { GameState, PlacedElement } from "../game/simulation";
@@ -112,6 +115,7 @@ export function InfrastructurePanel({
         kind: "bridge",
         mode: span.mode,
         shape: span.shape,
+        railType:span.railType,
         height: Math.max(0.5, span.deck - bank),
         lift: span.lift,
       });
@@ -136,7 +140,12 @@ export function InfrastructurePanel({
     flow = waterSystem.runs.get(key),
     ground = getTerrainCell(state, point.gx, point.gz);
   const set = (patch: Partial<InfrastructureTool>) => {
-    const next={...current,...patch};setDraft(next);
+    const next={...current,...patch};
+    if(next.mode==="rail"&&(patch.mode==="rail"||patch.railType)){
+      next.railType=patch.railType??next.railType??"steel";next.shape=railShape[next.railType];
+      next.height=Math.max(next.height??2,railClearHeight[next.railType]);
+    }
+    setDraft(next);
     if(tool) onToolChange(next);
     setFeedback("");
   };
@@ -191,6 +200,7 @@ export function InfrastructurePanel({
     </fieldset>
   );
   const commit = (points: GridPoint[]) => onPreview(current, points);
+  const pieces=span?crossingPieces(state,point):[], road=span&&state.elements.find(e=>e.gx===point.gx&&e.gz===point.gz);
   const nav = buildWaterNavigation(state).cell(point.gx, point.gz);
   const art = [
     ["0", "Travertine arcade"],
@@ -247,7 +257,7 @@ export function InfrastructurePanel({
           choice("material", "Ground", groups(["grass", "sand", "clay", "rock", "wetland", "snow"] as const))}
         {kind === "bridge" && (
           <>
-            {choice("shape", "Span", groups(["arch", "truss", "suspension", "lift"]))}
+            {current.mode==="rail"?choice("railType","Rail structure",Object.entries(RAIL_BRIDGES)):choice("shape", "Span", groups(["arch", "truss", "suspension", "lift","beam"]))}
             {choice("mode", "Deck use", groups(["foot", "road", "rail", "highway", "freeway"]))}
             {current.shape === "lift" && choice("lift", "Lift gate", groups(["auto", "open", "closed"]))}
           </>
@@ -277,7 +287,7 @@ export function InfrastructurePanel({
         {["street", "interchange"].includes(kind) && (
           <>
             <label>Total lanes<select className={field} value={current.lanes??2} onChange={e=>set({lanes:Number(e.target.value)})}>
-              {[2,4,6,8].map(n=><option key={n} value={n}>{n} lanes</option>)}</select></label>
+              {[2,4,6,8,10,12].map(n=><option key={n} value={n}>{n} lanes</option>)}</select></label>
             {choice("signal", "Signal phase", [
               ["yield", "Yield"],
               ["auto", "Timed cycle"],
@@ -330,7 +340,7 @@ export function InfrastructurePanel({
         {cellInput("Start tile", coords, setCoords)}
         {kind!=="interchange" && cellInput("End tile", end, setEnd)}
         <div className="mt-1 flex gap-1">
-          {kind!=="bridge" && <button className={btn} onClick={() => commit([coords])}>Preview tile</button>}
+          {(kind!=="bridge"||span) && <button className={btn} onClick={() => commit([coords])}>Preview tile</button>}
           {kind!=="interchange" && <button className={btn} onClick={() => commit([coords, end])}>Preview run</button>}
         </div>
         {selected && (
@@ -344,10 +354,11 @@ export function InfrastructurePanel({
         </p>
         {span && (
           <p>
-            {span.shape} {span.mode} deck at {span.deck.toFixed(1)} m.{" "}
+            {bridgeLandmark(span,pieces.filter(([,s])=>!s.end).length)} · Level {bridgeTier(span)} · {pieces.length*4} m overall · {span.mode} deck at {span.deck.toFixed(1)} m.{" "}
             {Number.isFinite(nav.clearance)
               ? (nav.opening ? "Maximum raised headroom " : "Boat headroom ") + nav.clearance.toFixed(1) + " m."
               : "Opening available."}
+            {road&&pieces.length>0&&bridgeTier(span)<(span.mode==="rail"||span.mode==="foot"?5:11)&&<button className={btn} onClick={()=>mutate(d=>{const result=upgradeElementDirect(d,road.id);setFeedback(result.ok?"Whole crossing upgraded.":result.reason??"Upgrade unavailable.");})}>Upgrade whole crossing {buildingCharges(state)?"$"+placedUpgradeCost(state,road):"(free)"}</button>}
           </p>
         )}
         {ground.depth > 0 && ground.water === "fresh" && (

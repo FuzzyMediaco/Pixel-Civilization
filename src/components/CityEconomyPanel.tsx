@@ -1,10 +1,13 @@
+import {VEHICLE_ROADS,roadWidth,standardRoadLanes,frontageWidth} from "../game/roadStandards";
+import {streetLaneFactor} from "../game/terrain";
+import {roadCapacity} from "../game/cityDynamics";
 import { fireServiceReadiness } from "../game/projectOperations";
 import React, { useEffect, useState } from "react";
 import {
   ELEMENT_BY_ID,
   getMaxElementLevel,
   getStandardFootprintForLevel,
-  getUpgradeCost,
+
   STAGES,
 } from "../game/catalog";
 import {
@@ -29,6 +32,8 @@ import { dispatchFire, igniteSite, operationsOf, requestProjectJourney } from ".
 import {
   maintainElement,
   resizeElementForLevel,
+  legacyRoadWidening,widenLegacyRoad,placedUpgradeCost,
+  getTrafficLoadMap,
   upgradeElementDirect,
   type GameState,
   type PlacedElement,
@@ -131,8 +136,9 @@ export function CityEconomyPanel({
   );
   const upgrade = site && upgradeReadiness(s, site),
     growth = site && def && site.level < getMaxElementLevel(site.defId);
-  const next = site && def ? getStandardFootprintForLevel(def, Math.min(5, site.level + 1)) : [1, 1];
-  const price = site && def && buildingCharges(s) ? getUpgradeCost(def, site.level) : 0;
+  const next = site && def ? getStandardFootprintForLevel(def, Math.min(getMaxElementLevel(site.defId), site.level + 1)) : [1, 1];
+  const widening=site&&roadWidth(site.defId)>1&&!site.roadAxis?legacyRoadWidening(s,site):undefined;
+  const price = site && def && buildingCharges(s) ? placedUpgradeCost(s,site) : 0;
   const preview = site && growth ? { ...site } : undefined;
   const fits = preview && tab === "site" ? resizeElementForLevel(s, preview, preview.level + 1) : true;
   const runSite = (fn: (st: GameState, el: PlacedElement) => string) => {
@@ -352,7 +358,17 @@ export function CityEconomyPanel({
                     ? "Awaiting repairs"
                     : "Needs access"}
             </p>
-            <Figures
+            {VEHICLE_ROADS.has(site.defId)?<>
+              <h4>Street operations</h4>
+              <Figures rows={[
+                ["Capacity",Math.round(4*roadCapacity(def,site.level)*streetLaneFactor(s,site))+" traversals/hour"],
+                ["Current demand",Math.round((getTrafficLoadMap(s).get(site.gx+","+site.gz)??0)*4*roadCapacity(def,site.level)*streetLaneFactor(s,site))+" traversals/hour"],
+                ["Capacity used",Math.round(100*(getTrafficLoadMap(s).get(site.gx+","+site.gz)??0))+"%"],
+                ["Lane allocation",(s.infrastructure?.streets[site.gx+","+site.gz]?.lanes??standardRoadLanes(site.defId,site.level))+" lanes"],
+              ]}/>
+              <p>{site.roadAxis?frontageWidth(site.defId):"One-tile street"} · {(getTrafficLoadMap(s).get(site.gx+","+site.gz)??0)>1?"Upgrade this bottleneck, add a parallel route or link busy origins with transit.":"Traffic uses connected origin and destination gates. Compare the load here with adjoining streets."}</p>
+              {widening&&<><button disabled={Boolean(widening.reason)} onClick={()=>runSite((st,el)=>{const outcome=widenLegacyRoad(st,el);return outcome.ok?"Carriageway widened.":outcome.reason??"Unavailable.";})}>Widen existing carriageway · {money(widening.cost)}</button>{widening.reason&&<p>{widening.reason}</p>}</>}
+            </>:<Figures
               rows={[
                 ["Staff", n(a.workers) + " / " + n(a.jobs)],
                 site.defId === "rainwater_cathedral"
@@ -361,19 +377,20 @@ export function CityEconomyPanel({
                 ["Farm water", rate(readWaterService(s, site).irrigation)],
                 ["Produced / served", n(a.harvested) + " / " + n(a.served)],
               ]}
-            />
+            />}
             {growth && (
               <fieldset>
                 <legend>Upgrade · {money(price)}</legend>
                 <p>
-                  {upgrade.label} · {rate(upgrade.value)} / {upgrade.goal} · {next.join(" × ")} tiles.
+                  {VEHICLE_ROADS.has(site.defId)?"Next stage adds capacity and street equipment.":<>{upgrade.label} · {rate(upgrade.value)} / {upgrade.goal} · {next.join(" × ")} tiles.</>}
                 </p>
-                {preview && fits && (
+                {preview && fits && !def.isNetwork && (
                   <p>
                     Expansion from {preview.gx}, {preview.gz} · {preview.spanX} × {preview.spanZ}.
                   </p>
                 )}
                 {!fits && <p>Clear a neighboring {next.join(" × ")} footprint.</p>}
+
                 {upgrade.reasons.map((x) => (
                   <p key={x}>{x}</p>
                 ))}

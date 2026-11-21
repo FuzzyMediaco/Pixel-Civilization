@@ -1,3 +1,5 @@
+import {VEHICLE_ROADS,roadStageName} from "./roadStandards";
+import { EXPANSION_ELEMENTS } from "./expansionCatalog";
 import { WEALTH_PROJECTS } from "./wealthProjects";
 import { getDesign, getLevelName } from "./designs/registry";
 import { ELEMENT_LEVEL_SPANS } from "./levelSpans";
@@ -243,7 +245,7 @@ export const ELEMENTS: CivElementDef[] = [
     isRoadNetwork: true,
     passiveNature: true,
     accentHex: "#585b63",
-    description: "Join two building entrances to carry cars. Streets get busier at rush hour and quieter after dark.",
+    description: "The starter street has two opposing lanes. Join two building entrances to carry cars. Streets get busier at rush hour and quieter after dark.",
   },
   {
     id: "solar_panels",
@@ -2546,6 +2548,7 @@ export const ELEMENTS: CivElementDef[] = [
     description: "Eternal stepped limestone pyramids crowned in gleaming gold.",
   },
   ...WEALTH_PROJECTS,
+  ...EXPANSION_ELEMENTS,
 ];
 
 export const ELEMENT_BY_ID: Record<string, CivElementDef> = Object.fromEntries(
@@ -2569,7 +2572,7 @@ export const MAX_FOOTPRINT = 4;
 
 /** Local tile dimensions before the player rotates an element. Networks always tile one square. */
 export function getMaxElementLevel(id: string): number {
-  return id === "bus_stops" ? 3 : 5;
+  return VEHICLE_ROADS.has(id) ? 11 : id === "bus_stops" ? 3 : 5;
 }
 
 export function getStandardFootprintForLevel(
@@ -2586,11 +2589,12 @@ export function getStandardFootprintForLevel(
 }
 
 export function getUpgradeCost(def: CivElementDef, currentLevel: number): number {
-  return Math.round(def.cost * Math.pow(2.1, currentLevel));
+  return Math.round(def.cost * Math.pow(VEHICLE_ROADS.has(def.id)?1.55:2.1, currentLevel));
 }
 
 /** Element-specific level title, e.g. "Family Farm" — falls back to a generic tier name. */
 export function getElementLevelName(def: CivElementDef, level: number): string {
+  if(VEHICLE_ROADS.has(def.id))return roadStageName(def.id,level);
   return getLevelName(def.id, level) ?? ["Basic", "Improved", "Advanced", "Grand", "Legendary"][Math.max(0, Math.min(4, level - 1))];
 }
 

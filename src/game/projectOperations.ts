@@ -1,3 +1,4 @@
+import { activeBlessing, evacuate, faithServices, isSanctuary } from "./faith";
 import { ELEMENT_BY_ID, getStandardFootprintForLevel } from "./catalog";
 import {
   closeSites,
@@ -255,7 +256,8 @@ export function requestProjectJourney(s: GameState, originId: string) {
 export function igniteSite(s: GameState, id: string) {
   const el = s.elements.find((x) => x.id === id),
     d = el && ELEMENT_BY_ID[el.defId];
-  if (!el || !d || d.isNetwork || d.passiveNature || el.onFire) return false;
+  if (!el || !d || d.isNetwork || d.passiveNature || el.onFire || isSanctuary(el)) return false;
+  if (d.popBase) evacuate(s);
   el.onFire = true;
   operationsOf(s).fires++;
   return true;
@@ -440,7 +442,7 @@ export function advanceOperations(s: GameState, dt: number) {
         const vulnerable = s.elements.filter(
           (e) =>
             e.connected &&
-            !e.onFire &&
+            !e.onFire && !isSanctuary(e) &&
             !ELEMENT_BY_ID[e.defId]?.isNetwork &&
             !ELEMENT_BY_ID[e.defId]?.passiveNature,
         );
@@ -562,7 +564,7 @@ export function advanceOperations(s: GameState, dt: number) {
       c.status = "Crew on scene · connect water or add a well";
       continue;
     }
-    c.service += dt * (wet ? 1.35 : 1);
+    c.service += dt * (wet ? 1.35 : 1) * (1 + faithServices(s).volunteerSupport) * (activeBlessing(s) === "recovery" ? 1.4 : 1);
     c.status = "Drawing water and extinguishing fire";
     if (c.service >= (c.kind === "volunteer" ? 20 : 8)) {
       target.onFire = false;

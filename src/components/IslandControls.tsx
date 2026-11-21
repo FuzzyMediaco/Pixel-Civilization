@@ -1,3 +1,5 @@
+import { ExpansionDetails } from "./ExpansionDetails";
+import { FaithDetails } from "./FaithDetails";
 import React, { useState } from "react";
 import { ELEMENT_BY_ID } from "../game/catalog";
 import { buildOccupancyMap, PEDESTRIAN_IDS, type GameState, type PlacedElement } from "../game/simulation";
@@ -86,6 +88,8 @@ export function Connections({
         {el.gz}
       </p>
       <CarAccess city={s} site={el} />
+      <FaithDetails s={s} el={el} change={change} />
+      <ExpansionDetails s={s} el={el} />
       {edges.length ? (
         <ul>
           {edges.map((e, i) => (
@@ -197,6 +201,7 @@ export function GodControls({
           scope === "island" ||
           (el && (scope === "item" ? e.id === el.id : Math.hypot(e.gx - el.gx, e.gz - el.gz) <= radius)),
       );
+      let firesStarted = 0;
       for (const e of sites) {
         if (effect === "light" || effect === "dark" || effect === "auto")
           e.exteriorLighting = effect === "light" ? "lit" : effect;
@@ -205,9 +210,13 @@ export function GodControls({
           e.onFire = false;
           e.maintTimerSec = 0;
         }
-        if (effect === "ignite") igniteSite(state, e.id);
+        if (effect === "ignite" && igniteSite(state, e.id)) firesStarted++;
       }
-      setMessage(sites.length + " selected sites updated.");
+      setMessage(effect === "ignite"
+        ? firesStarted ? "Started fire at " + firesStarted + (firesStarted === 1 ? " site." : " sites.")
+          : sites.length === 1 && sites[0].defId === "lds_temples" ? "This temple shelters residents and is protected from fire."
+          : "No selected building can catch fire here."
+        : sites.length + " selected sites updated.");
     });
   }
   return (

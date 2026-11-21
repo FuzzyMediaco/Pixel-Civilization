@@ -1,10 +1,14 @@
+import {corridorConflict,shoulderAt} from "./roadCorridors";
+import {roadWidth,standardRoadLanes} from "./roadStandards";
+import {FARM_ANCHOR_IDS,FARM_MODULE_IDS} from "./expansionCatalog";
+import {railShape,railClearHeight, type RailBridgeKind} from "./bridgeWorks";
 import { cellIndex, withinMap as inBounds } from "./mapBounds";
 import { buildingCharges, effective, transfer } from "./cityEconomy";
-import { ELEMENT_BY_ID } from "./catalog";
+import { ELEMENT_BY_ID,getMaxElementLevel } from "./catalog";
 import type { GameState, PlacedElement } from "./simulation";
 import { TILE_SIZE, VOXEL_SIZE } from "./voxelCore";
 import { networkRoadProfile } from "./designs/networks";
-import { getNetworkConnMask } from "./simulation";
+import { buildOccupancyMap, getNetworkConnMask } from "./simulation";
 
 export const SEA = -0.62;
 export const DIRECTIONS = [
@@ -38,8 +42,12 @@ export interface GridPoint {
   gz: number;
 }
 export type SpanMode = "foot" | "road" | "rail" | "highway" | "freeway";
-export type SpanShape = "arch" | "truss" | "suspension" | "lift";
+export type SpanShape = "arch" | "truss" | "suspension" | "lift" | "beam";
 export interface Crossing {
+  tier?:number;
+  corridorWidth?:number;
+  railType?:RailBridgeKind;
+  catalog?:boolean;
   run: string;
   axis: "x" | "z";
   shape: SpanShape;
@@ -108,6 +116,7 @@ export interface InfrastructureTool {
   outlet?: Conduit["outlet"];
   mode?: SpanMode;
   shape?: SpanShape;
+  railType?: RailBridgeKind;
   lift?: Crossing["lift"];
   lanes?: number;
   signal?: StreetControl["signal"];
@@ -391,6 +400,10 @@ function interchangePorts(p: GridPoint, tool: InfrastructureTool) {
   return pieces;
 }
 export function roadPortOpen(state: GameState | undefined, x: number, z: number, dx: number, dz: number): boolean {
+  for(const [tx,tz] of [[x,z],[x+dx,z+dz]]){
+    const span=state?.infrastructure?.spans[tileKey(tx,tz)];
+    if(span&&!span.run.startsWith("junction-")&&(span.mode==="rail" || (span.axis==="x")!==Boolean(dx)))return false;
+  }
   const streets = state?.infrastructure?.streets;
   if (!streets) return true;
   const a = streets[tileKey(x, z)]?.ports,
@@ -405,8 +418,8 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
   let points = interpolate(input, tool.kind === "bridge");
   const fail = (reason: string): WorksPreview => ({ valid: false, reason, cost: 0, points, affected: [] });
   if (!points.length) return fail("Choose a tile.");
-  if (tool.kind === "street" && tool.lanes && ![2, 4, 6, 8].includes(tool.lanes))
-    return fail("Choose an even total of 2 to 8 lanes.");
+  if (tool.kind === "street" && tool.lanes && ![2, 4, 6, 8,10,12].includes(tool.lanes))
+    return fail("Choose an even total of 2 to 12 lanes.");
   if (
     (state.mode !== "god" || effective(state, "stageRules", 0) > 0) &&
     state.highestStageReached < requiredToolStage(tool)
@@ -448,6 +461,9 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
           seen.set(tileKey(gx + dx, gz + dz), { gx: gx + dx, gz: gz + dz });
   points = [...seen.values()];
   const affected = new Set<string>();
+  const wideId=tool.kind==="bridge" && (tool.mode==="highway"||tool.mode==="freeway")?(tool.mode==="highway"?"highways":"freeways"):undefined;
+  const crossAxis=points[0].gz===points.at(-1)!.gz?"x":"z";
+  const corridorOcc=wideId||isTerrain(tool)?buildOccupancyMap(state.elements):undefined;
   for (const p of points) {
     if (!inBounds(p.gx, p.gz)) return fail("Part of this project is outside the island.");
     const el = at(state.elements, p.gx, p.gz),
@@ -464,6 +480,11 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
           !damBanks(state, p.gx, p.gz))
       )
         return fail("The dam needs two dry banks on opposite sides of a flowing channel.");
+    }
+    if(isTerrain(tool)&&corridorOcc&&tool.kind!=="paint"&&shoulderAt(p.gx,p.gz,corridorOcc))return fail("This work would undermine a carriageway shoulder.");
+    if(wideId && corridorOcc){
+      const reason=corridorConflict(p.gx,p.gz,1,1,wideId,crossAxis,corridorOcc,()=>true);
+      if(reason)return fail(reason);
     }
     if (tool.kind === "bridge" || tool.kind === "interchange") {
       if (span && selectedSpan?.run !== span.run)
@@ -483,8 +504,9 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
       if (["paths", "walking_paths", "trails", "side_walks", "boardwalks"].includes(def.id))
         return fail("Pedestrian paths have no traffic lanes.");
       const min = def.id === "freeways" ? 6 : def.id === "highways" || def.id === "over_passes" ? 4 : 2;
-      if (tool.lanes && (tool.lanes < min || tool.lanes > min + 2))
-        return fail(def.name + " supports " + min + "–" + (min + 2) + " lanes.");
+      const max=Math.min(12,Math.max(min+2,standardRoadLanes(def.id,el!.level)));
+      if (tool.lanes && (tool.lanes < min || tool.lanes > max))
+        return fail(def.name + " supports " + min + "–" + max + " lanes.");
       if ((tool.lanes ?? 2) > 4 && points.some((q) => Math.abs(q.gx - p.gx) + Math.abs(q.gz - p.gz) === 1)) {
         const horizontal = points.every((q) => q.gz === p.gz);
         const neighbor = at(state.elements, p.gx + (horizontal ? 0 : 1), p.gz + (horizontal ? 1 : 0));
@@ -509,6 +531,7 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
     }
   }
   if (tool.kind === "bridge") {
+    if(tool.mode==="rail" && tool.railType && (tool.height??2)<railClearHeight[tool.railType])return fail("Choose at least "+railClearHeight[tool.railType]+" m of deck rise for this rail structure.");
     {
       if (points.length < 3) return fail("Start on one bank and end on the opposite bank.");
       const wet = (p: GridPoint) =>
@@ -518,7 +541,7 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
       const ramps = Math.ceil((tool.height ?? 2) / 2);
       if ([...points.slice(0, ramps), ...points.slice(-ramps)].some(wet))
         return fail("The higher deck needs longer dry approaches. Choose lower supports or extend the banks.");
-      if (points.length > 24 && tool.shape !== "suspension") return fail("Choose a suspension span for this distance.");
+      if (points.length > 24 && tool.shape !== "suspension" && tool.railType !== "highlevel") return fail("Choose a suspension span for this distance.");
     }
   }
   const base =
@@ -857,9 +880,9 @@ export function applyInfrastructureStroke(
   const { deck } = grade;
   const junction = tool.kind === "interchange" ? interchangePorts(input[0], tool) : undefined;
   const newCells = new Map<string, TerrainCell>();
-  const replaceRoad = (p: GridPoint, id: string) => {
+  const replaceRoad = (p: GridPoint, id: string, force=false) => {
     const old = at(state.elements, p.gx, p.gz);
-    if (old?.defId === id) return old;
+    if (old?.defId === id && !force) return old;
     if (old) {
       removed.push(old);
       state.elements = state.elements.filter((e) => e !== old);
@@ -973,7 +996,8 @@ export function applyInfrastructureStroke(
           : network?.defId === "highways" || network?.defId === "over_passes"
             ? [4, 6]
             : [2, 4];
-      const range = clip(tool.lanes ?? laneRange[0], laneRange[0], laneRange[1]);
+      const maxLanes=Math.min(12,Math.max(laneRange[1],standardRoadLanes(network?.defId??"roads",network?.level??1)));
+      const range = clip(tool.lanes ?? laneRange[0], laneRange[0],maxLanes);
       const longAxis =
         tool.kind === "interchange"
           ? undefined
@@ -1003,7 +1027,8 @@ export function applyInfrastructureStroke(
       axis === "x" ? Math.sign(points.at(-1)!.gx - points[0].gx) : Math.sign(points.at(-1)!.gz - points[0].gz);
     const { ramps, heightAt: rampHeight } = grade;
     const mode = tool.mode ?? prev?.mode ?? "road",
-      shape = tool.shape ?? prev?.shape ?? "arch";
+      railType=mode==="rail" ? tool.railType??prev?.railType??(tool.shape==="arch"?"viaduct":"steel") : undefined,
+      shape = railType ? railShape[railType] : tool.shape ?? prev?.shape ?? "arch";
     const id =
       mode === "foot"
         ? "walking_paths"
@@ -1014,7 +1039,9 @@ export function applyInfrastructureStroke(
             : mode === "freeway"
               ? "freeways"
               : "roads";
-    const road = replaceRoad(p, id);
+    const existing=at(state.elements,p.gx,p.gz);
+    const road = replaceRoad(p,id,roadWidth(id)>1&&existing?.roadAxis!==axis);
+    if(roadWidth(id)>1)road.roadAxis=axis;
     if (road.id.startsWith("works-"))
       road.overWater = !!road.waterUnderlay || getTerrainCell(state, p.gx, p.gz).depth > 0;
     i.spans[k] = {
@@ -1023,6 +1050,9 @@ export function applyInfrastructureStroke(
       mode,
       shape,
       deck,
+      corridorWidth:roadWidth(id)>1?roadWidth(id):undefined,
+      tier: Math.min(mode==="foot"||mode==="rail"?5:11,prev?.tier??1),
+      railType,
       startHeight: rampHeight(j),
       endHeight: rampHeight(j + 1),
       direction: direction || 1,
@@ -1030,6 +1060,7 @@ export function applyInfrastructureStroke(
       ramp: j < ramps || j >= points.length - ramps,
       lift: tool.lift ?? "auto",
     };
+    if(i.spans[k].tier!>1)road.level=Math.min(getMaxElementLevel(id),i.spans[k].tier!);
   });
   for (const [k, c] of newCells) i.cells[k] = c;
   if (newCells.size || tool.kind === "erase") accountCoastalWater(state, before);
@@ -1085,6 +1116,7 @@ const sourceIds = new Set([
   "wide_rivers",
 ]);
 const receiverIds = new Set([
+  ...FARM_ANCHOR_IDS,...FARM_MODULE_IDS,
   "data_centers",
   "factories",
   "water_treatment_plant",
@@ -1165,7 +1197,7 @@ function ringBerthPorts(e: PlacedElement, x: number, z: number) {
 }
 export const LIFT_TRAVEL = 5;
 function bridgeHeadroom(s: Crossing, water: number, open = false) {
-  return s.deck - water - (s.shape === "arch" ? 0.55 : 0.25) + (open && s.shape === "lift" ? LIFT_TRAVEL : 0);
+  return s.deck - water - (s.railType==="timber"?.5:s.shape === "arch" ? 0.55 : 0.25) + (open && s.shape === "lift" ? LIFT_TRAVEL : 0);
 }
 export function buildWaterNavigation(state: GameState) {
   const spans = new Map<string, { min: number; max: number }>();
@@ -1242,6 +1274,7 @@ export function buildWaterNavigation(state: GameState) {
     let blockedBy: string | undefined;
     if (span && !span.end) {
       clearance = bridgeHeadroom(span, w.level, opening);
+      if(span.railType==="timber" || span.railType==="viaduct")width=Math.min(width,3.45);
       const arch = spans.get(span.run);
       if (arch) {
         const length = arch.max - arch.min + 1,
@@ -1848,7 +1881,7 @@ export function freshWaterFactor(state: GameState, e: PlacedElement): number {
 export function streetLaneFactor(state: GameState, e: PlacedElement): number {
   const control = state.infrastructure?.streets[tileKey(e.gx, e.gz)];
   if (!control) return 1;
-  const defaultLanes = e.defId === "freeways" ? 6 : e.defId === "highways" ? 4 : 2;
+  const defaultLanes = standardRoadLanes(e.defId,e.level);
   return Math.max(0.25, control.lanes / defaultLanes);
 }
 

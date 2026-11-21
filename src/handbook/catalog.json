@@ -367,14 +367,14 @@
     "domain": "land",
     "isStarter": true,
     "stats": {},
-    "description": "Join two building entrances to carry cars. Streets get busier at rush hour and quieter after dark.",
+    "description": "The starter street has two opposing lanes. Join two building entrances to carry cars. Streets get busier at rush hour and quieter after dark.",
     "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
     "growth": "Kerbed asphalt street that gains lamps, street trees, hydrants, bus stops, signals and flower planters.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Fresh Asphalt Lane",
+        "name": "Two-lane access",
         "dimensions": [
           1,
           1
@@ -383,7 +383,7 @@
       },
       {
         "level": 2,
-        "name": "Lamplit Street",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -392,7 +392,7 @@
       },
       {
         "level": 3,
-        "name": "Tree-Lined Street",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -401,7 +401,7 @@
       },
       {
         "level": 4,
-        "name": "Main Street",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -410,7 +410,61 @@
       },
       {
         "level": 5,
-        "name": "Grand Avenue",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -5963,11 +6017,11 @@
     "description": "Rustic country lane connecting farms, cottages, and orchards.",
     "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
     "growth": "Rutted earth lane that picks up fences, hay bales, carts, lanterns, gravel and wildflowers.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Wagon Ruts",
+        "name": "Two-lane access",
         "dimensions": [
           1,
           1
@@ -5976,7 +6030,7 @@
       },
       {
         "level": 2,
-        "name": "Fenced Farm Track",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -5985,7 +6039,7 @@
       },
       {
         "level": 3,
-        "name": "Haybale Lane",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -5994,7 +6048,7 @@
       },
       {
         "level": 4,
-        "name": "Gravel Byway",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -6003,7 +6057,61 @@
       },
       {
         "level": 5,
-        "name": "Scenic Hedgerow Lane",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -6401,11 +6509,11 @@
     "description": "Striped arterial avenue with crisp curbs and streetlights.",
     "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
     "growth": "Wide double-yellow arterial that adds lighting, green bike lanes, bus stops and smart signals.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Striped Arterial",
+        "name": "Two-lane access",
         "dimensions": [
           1,
           1
@@ -6414,7 +6522,7 @@
       },
       {
         "level": 2,
-        "name": "Lit Arterial",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -6423,7 +6531,7 @@
       },
       {
         "level": 3,
-        "name": "Bike-Lane Avenue",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -6432,7 +6540,7 @@
       },
       {
         "level": 4,
-        "name": "Transit Boulevard",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -6441,7 +6549,61 @@
       },
       {
         "level": 5,
-        "name": "Smart Avenue",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -6489,11 +6651,11 @@
     "description": "Cobblestone boulevard lined with flower beds and brass lamps.",
     "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
     "growth": "Cobblestone boulevard that blooms with flower verges, avenue trees, baskets and fountain roundabouts.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Cobble Lane",
+        "name": "Two-lane access",
         "dimensions": [
           1,
           1
@@ -6502,7 +6664,7 @@
       },
       {
         "level": 2,
-        "name": "Flower-Verge Cobbles",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -6511,7 +6673,7 @@
       },
       {
         "level": 3,
-        "name": "Tree-Lined Boulevard",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -6520,7 +6682,7 @@
       },
       {
         "level": 4,
-        "name": "Flower-Basket Roundabout",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -6529,7 +6691,61 @@
       },
       {
         "level": 5,
-        "name": "Fountain Roundabout Boulevard",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -6842,11 +7058,11 @@
     "description": "Steel-truss road bridge spanning rivers, canals, and coastal bays.",
     "usage": "Connect street tiles along their edges. The road surface follows the directions of adjoining streets.",
     "growth": "Steel road bridge whose truss grows from a low girder to a lit, arched camelback landmark.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Steel Girder Span",
+        "name": "Two-lane access",
         "dimensions": [
           1,
           1
@@ -6855,7 +7071,7 @@
       },
       {
         "level": 2,
-        "name": "Pony Truss Bridge",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -6864,7 +7080,7 @@
       },
       {
         "level": 3,
-        "name": "Through-Truss Bridge",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -6873,7 +7089,7 @@
       },
       {
         "level": 4,
-        "name": "Lit Truss Bridge",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -6882,7 +7098,61 @@
       },
       {
         "level": 5,
-        "name": "Camelback Truss Landmark",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -6930,11 +7200,11 @@
     "description": "Arched limestone bridge with lanterns and parapets.",
     "usage": "Connect street tiles along their edges. The road surface follows the directions of adjoining streets.",
     "growth": "Masonry arch bridge that gains coped parapets, lanterns, flower boxes, statues and gilding.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Fieldstone Arch",
+        "name": "Two-lane access",
         "dimensions": [
           1,
           1
@@ -6943,7 +7213,7 @@
       },
       {
         "level": 2,
-        "name": "Dressed-Stone Arch",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -6952,7 +7222,7 @@
       },
       {
         "level": 3,
-        "name": "Lantern Arch Bridge",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -6961,7 +7231,7 @@
       },
       {
         "level": 4,
-        "name": "Statue Bridge",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -6970,7 +7240,61 @@
       },
       {
         "level": 5,
-        "name": "Gilded Royal Bridge",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -7375,11 +7699,11 @@
     "description": "Multi-lane expressway with median barrier and overhead gantry signs.",
     "usage": "Connect street tiles along their edges. The road surface follows the directions of adjoining streets.",
     "growth": "Four-lane divided highway gaining guard rails, median lighting, sign gantries and glowing smart lanes.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Divided Highway",
+        "name": "Four-lane divided highway",
         "dimensions": [
           1,
           1
@@ -7388,7 +7712,7 @@
       },
       {
         "level": 2,
-        "name": "Reflector Highway",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -7397,7 +7721,7 @@
       },
       {
         "level": 3,
-        "name": "Lit Expressway",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -7406,7 +7730,7 @@
       },
       {
         "level": 4,
-        "name": "Gantry Expressway",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -7415,7 +7739,61 @@
       },
       {
         "level": 5,
-        "name": "Smart Highway",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -7461,11 +7839,11 @@
     "description": "High-speed metropolitan freeway corridor with high-mast lighting.",
     "usage": "Connect street tiles along their edges. The road surface follows the directions of adjoining streets.",
     "growth": "Six-lane jersey-barrier freeway adding high-mast lights, overhead gantries, sound walls and LED signage.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Six-Lane Freeway",
+        "name": "Six-lane limited access",
         "dimensions": [
           1,
           1
@@ -7474,7 +7852,7 @@
       },
       {
         "level": 2,
-        "name": "High-Mast Freeway",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -7483,7 +7861,7 @@
       },
       {
         "level": 3,
-        "name": "Gantry Freeway",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -7492,7 +7870,7 @@
       },
       {
         "level": 4,
-        "name": "Sound-Wall Freeway",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -7501,7 +7879,61 @@
       },
       {
         "level": 5,
-        "name": "Mega Freeway",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -7547,11 +7979,11 @@
     "description": "Elevated concrete viaduct carrying traffic cleanly above intersections.",
     "usage": "Connect street tiles along their edges. The road surface follows the directions of adjoining streets.",
     "growth": "Elevated viaduct on hammerhead piers that adds lamps, sign gantries, sound walls and neon underglow.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Concrete Flyover",
+        "name": "Two-lane access",
         "dimensions": [
           1,
           1
@@ -7560,7 +7992,7 @@
       },
       {
         "level": 2,
-        "name": "Lit Flyover",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -7569,7 +8001,7 @@
       },
       {
         "level": 3,
-        "name": "Signed Viaduct",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -7578,7 +8010,7 @@
       },
       {
         "level": 4,
-        "name": "Sound-Wall Viaduct",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -7587,7 +8019,61 @@
       },
       {
         "level": 5,
-        "name": "Neon Skyway",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -7633,11 +8119,11 @@
     "description": "Retaining-wall tunnel portal easing downtown traffic congestion.",
     "usage": "Connect street tiles along their edges. The road surface follows the directions of adjoining streets.",
     "growth": "Sunken road between retaining walls that gets a covered lid, tunnel lights and a park on top.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Open Cutting",
+        "name": "Two-lane access",
         "dimensions": [
           1,
           1
@@ -7646,7 +8132,7 @@
       },
       {
         "level": 2,
-        "name": "Portal Underpass",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -7655,7 +8141,7 @@
       },
       {
         "level": 3,
-        "name": "Lit Tunnel",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -7664,7 +8150,7 @@
       },
       {
         "level": 4,
-        "name": "Park-Lid Tunnel",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -7673,7 +8159,61 @@
       },
       {
         "level": 5,
-        "name": "Grand Tunnel Portal",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -7721,11 +8261,11 @@
     "description": "Iconic Golden-Gate-style crimson tower & cable span across water.",
     "usage": "Connect street tiles along their edges. The road surface follows the directions of adjoining streets.",
     "growth": "Suspension span whose towers soar higher every level, adding art-deco tiers, necklace lights and beacons.",
-    "maxLevel": 5,
+    "maxLevel": 11,
     "levels": [
       {
         "level": 1,
-        "name": "Cable Footbridge Span",
+        "name": "Two-lane access",
         "dimensions": [
           1,
           1
@@ -7734,7 +8274,7 @@
       },
       {
         "level": 2,
-        "name": "Twin-Tower Suspension",
+        "name": "Marked approaches",
         "dimensions": [
           1,
           1
@@ -7743,7 +8283,7 @@
       },
       {
         "level": 3,
-        "name": "Art-Deco Suspension",
+        "name": "Passing bays",
         "dimensions": [
           1,
           1
@@ -7752,7 +8292,7 @@
       },
       {
         "level": 4,
-        "name": "Necklace-Lit Suspension",
+        "name": "Turning pockets",
         "dimensions": [
           1,
           1
@@ -7761,7 +8301,61 @@
       },
       {
         "level": 5,
-        "name": "Golden Gate Legend",
+        "name": "Refuges and islands",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 6,
+        "name": "Collector lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 7,
+        "name": "Protected turns",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 8,
+        "name": "Priority lanes",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 9,
+        "name": "Adaptive junctions",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 10,
+        "name": "Express approaches",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 11,
+        "name": "Metropolitan corridor",
         "dimensions": [
           1,
           1
@@ -7892,9 +8486,9 @@
     "domain": "land",
     "isStarter": false,
     "stats": {
+      "water": -1,
       "food": 8,
-      "recreation": 34,
-      "water": -1
+      "recreation": 34
     },
     "description": "Botanical flowerbeds, pergola trellis, and blooming hedges.",
     "usage": "Put a garden against the rear of the home to open a gate into its edible beds.",
@@ -15527,5 +16121,2830 @@
     },
     "image": "/handbook/catalog/ocean_habitat_ring.webp",
     "thumbnail": "/handbook/catalog/thumbs/ocean_habitat_ring.webp"
+  },
+  {
+    "id": "preschool",
+    "name": "Preschool & Daycare",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 75,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": true,
+    "stats": {
+      "jobs": 5,
+      "power": -1,
+      "water": -1,
+      "education": 30,
+      "recreation": 14
+    },
+    "description": "Colorful classrooms, slides, sandbox and a fenced yard. Family-friendly early education.",
+    "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
+    "growth": "Playroom → Discovery yard → Storybook wing → Adventure playground → Children’s village",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Playroom",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Discovery yard",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Storybook wing",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Adventure playground",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Children’s village",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Toybox"
+      },
+      {
+        "index": 1,
+        "name": "Forest playhouse"
+      },
+      {
+        "index": 2,
+        "name": "Sunflower"
+      },
+      {
+        "index": 3,
+        "name": "Seaside"
+      }
+    ],
+    "partner": {
+      "id": "roads",
+      "name": "Roads"
+    },
+    "image": "/handbook/catalog/preschool.webp",
+    "thumbnail": "/handbook/catalog/thumbs/preschool.webp"
+  },
+  {
+    "id": "country_schoolhouse",
+    "name": "Country Schoolhouse",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 65,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": true,
+    "stats": {
+      "jobs": 4,
+      "water": -1,
+      "education": 40
+    },
+    "description": "Affordable one-room rural school with bell tower, porch and country garden.",
+    "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
+    "growth": "One-room school → School bell → Teacher’s cottage → Reading garden → Harvest school fair",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "One-room school",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "School bell",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Teacher’s cottage",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Reading garden",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Harvest school fair",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Red clapboard"
+      },
+      {
+        "index": 1,
+        "name": "White chapel"
+      },
+      {
+        "index": 2,
+        "name": "Prairie timber"
+      },
+      {
+        "index": 3,
+        "name": "Fieldstone"
+      }
+    ],
+    "partner": {
+      "id": "roads",
+      "name": "Roads"
+    },
+    "image": "/handbook/catalog/country_schoolhouse.webp",
+    "thumbnail": "/handbook/catalog/thumbs/country_schoolhouse.webp"
+  },
+  {
+    "id": "elementary_school",
+    "name": "Elementary School",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 155,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 16,
+      "power": -2,
+      "water": -2,
+      "education": 90,
+      "recreation": 18
+    },
+    "description": "Neighborhood school with classrooms, playground and a yellow bus loop.",
+    "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
+    "growth": "Classroom porch → Shared playground → Library wing → School bus court → Neighborhood academy",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Classroom porch",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Shared playground",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Library wing",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "School bus court",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Neighborhood academy",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Garden brick"
+      },
+      {
+        "index": 1,
+        "name": "Coastal tiles"
+      },
+      {
+        "index": 2,
+        "name": "Maplewood"
+      },
+      {
+        "index": 3,
+        "name": "Sunburst"
+      }
+    ],
+    "partner": {
+      "id": "roads",
+      "name": "Roads"
+    },
+    "image": "/handbook/catalog/elementary_school.webp",
+    "thumbnail": "/handbook/catalog/thumbs/elementary_school.webp"
+  },
+  {
+    "id": "middle_school",
+    "name": "Middle School",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 230,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 28,
+      "power": -4,
+      "water": -3,
+      "education": 135,
+      "recreation": 38
+    },
+    "description": "Two-story campus with outdoor basketball courts, gymnasium and bike racks.",
+    "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
+    "growth": "Junior block → Science loft → Basketball courts → Gymnasium → Arts and athletics quad",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Junior block",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Science loft",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Basketball courts",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Gymnasium",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Arts and athletics quad",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Fieldstone"
+      },
+      {
+        "index": 1,
+        "name": "Copper roof"
+      },
+      {
+        "index": 2,
+        "name": "Lakeside"
+      },
+      {
+        "index": 3,
+        "name": "Red brick"
+      }
+    ],
+    "partner": {
+      "id": "roads",
+      "name": "Roads"
+    },
+    "image": "/handbook/catalog/middle_school.webp",
+    "thumbnail": "/handbook/catalog/thumbs/middle_school.webp"
+  },
+  {
+    "id": "high_school",
+    "name": "High School",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 360,
+    "stage": 4,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 46,
+      "power": -6,
+      "water": -5,
+      "education": 210,
+      "recreation": 60
+    },
+    "description": "Large high school with track, football field, bus entrance and gym.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Senior hall → Gymnasium → Athletics track → Grandstand → Championship campus",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Senior hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Gymnasium",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Athletics track",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Grandstand",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Championship campus",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Cardinals"
+      },
+      {
+        "index": 1,
+        "name": "Owls"
+      },
+      {
+        "index": 2,
+        "name": "Mariners"
+      },
+      {
+        "index": 3,
+        "name": "Hornets"
+      }
+    ],
+    "partner": {
+      "id": "sports_field",
+      "name": "School Sports Field"
+    },
+    "image": "/handbook/catalog/high_school.webp",
+    "thumbnail": "/handbook/catalog/thumbs/high_school.webp"
+  },
+  {
+    "id": "trade_school",
+    "name": "Trade & Technical College",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 420,
+    "stage": 5,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 48,
+      "power": -8,
+      "water": -3,
+      "education": 240
+    },
+    "description": "Workshops and vocational labs train skilled workers and improve industrial jobs.",
+    "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
+    "growth": "Workshop → Machine shop → Apprentice bays → Fabrication crane → Technical works",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Workshop",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Machine shop",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Apprentice bays",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Fabrication crane",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Technical works",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Boilermakers"
+      },
+      {
+        "index": 1,
+        "name": "Shipwrights"
+      },
+      {
+        "index": 2,
+        "name": "Machinists"
+      },
+      {
+        "index": 3,
+        "name": "Auto works"
+      }
+    ],
+    "partner": {
+      "id": "roads",
+      "name": "Roads"
+    },
+    "image": "/handbook/catalog/trade_school.webp",
+    "thumbnail": "/handbook/catalog/thumbs/trade_school.webp"
+  },
+  {
+    "id": "community_college",
+    "name": "Community College",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 480,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 58,
+      "power": -9,
+      "water": -5,
+      "education": 320,
+      "income": 24
+    },
+    "description": "Open-access modern campus with a library, green courtyard and classrooms.",
+    "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
+    "growth": "Learning center → Evening classrooms → Public library → Garden commons → Community quad",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Learning center",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Evening classrooms",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Public library",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Garden commons",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Community quad",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Adobe"
+      },
+      {
+        "index": 1,
+        "name": "Green glazed"
+      },
+      {
+        "index": 2,
+        "name": "Harbor modern"
+      },
+      {
+        "index": 3,
+        "name": "City brick"
+      }
+    ],
+    "partner": {
+      "id": "roads",
+      "name": "Roads"
+    },
+    "image": "/handbook/catalog/community_college.webp",
+    "thumbnail": "/handbook/catalog/thumbs/community_college.webp"
+  },
+  {
+    "id": "university",
+    "name": "University",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 880,
+    "stage": 8,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 125,
+      "power": -17,
+      "water": -12,
+      "education": 620,
+      "recreation": 100,
+      "income": 80
+    },
+    "description": "Collegiate quad, landmark clock tower, dormitories and a research library.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Founders hall → Reading cloister → Clock tower → Residential courts → Collegiate quadrangle",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Founders hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Reading cloister",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Clock tower",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Residential courts",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Collegiate quadrangle",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Limestone Gothic"
+      },
+      {
+        "index": 1,
+        "name": "Federal brick"
+      },
+      {
+        "index": 2,
+        "name": "Copper cloister"
+      },
+      {
+        "index": 3,
+        "name": "Pacific stone"
+      }
+    ],
+    "partner": {
+      "id": "research_institute",
+      "name": "Research Institute"
+    },
+    "image": "/handbook/catalog/university.webp",
+    "thumbnail": "/handbook/catalog/thumbs/university.webp"
+  },
+  {
+    "id": "research_university",
+    "name": "Research University",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 1550,
+    "stage": 15,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 220,
+      "power": -30,
+      "water": -15,
+      "education": 1050,
+      "income": 150
+    },
+    "description": "Advanced glass laboratories, observatory and research towers supporting high-tech growth.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Laboratory → Cleanroom → Research dome → Instrument tower → Discovery campus",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Laboratory",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Cleanroom",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Research dome",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Instrument tower",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Discovery campus",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Ocean institute"
+      },
+      {
+        "index": 1,
+        "name": "Alpine sciences"
+      },
+      {
+        "index": 2,
+        "name": "Photon lab"
+      },
+      {
+        "index": 3,
+        "name": "Desert observatory"
+      }
+    ],
+    "partner": {
+      "id": "university",
+      "name": "University"
+    },
+    "image": "/handbook/catalog/research_university.webp",
+    "thumbnail": "/handbook/catalog/thumbs/research_university.webp"
+  },
+  {
+    "id": "sports_field",
+    "name": "School Sports Field",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 190,
+    "stage": 4,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 15,
+      "water": -2,
+      "recreation": 110
+    },
+    "description": "Football/soccer field with running track, bleachers and stadium lights. Beside a high school: Athletic Campus.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Practice pitch → School league → Athletics oval → Floodlit stands → Championship ground",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Practice pitch",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "School league",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Athletics oval",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Floodlit stands",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Championship ground",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Soccer green"
+      },
+      {
+        "index": 1,
+        "name": "Gridiron"
+      },
+      {
+        "index": 2,
+        "name": "Red clay"
+      },
+      {
+        "index": 3,
+        "name": "Blue track"
+      }
+    ],
+    "partner": {
+      "id": "high_school",
+      "name": "High School"
+    },
+    "image": "/handbook/catalog/sports_field.webp",
+    "thumbnail": "/handbook/catalog/thumbs/sports_field.webp"
+  },
+  {
+    "id": "research_institute",
+    "name": "Research Institute",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 690,
+    "stage": 12,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 95,
+      "power": -18,
+      "water": -8,
+      "education": 295,
+      "income": 125
+    },
+    "description": "Scientific laboratories, telescope dome and glass atrium. Beside a university: Innovation District.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Instrument lab → Glass atrium → Observatory → Survey array → National laboratory",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Instrument lab",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Glass atrium",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Observatory",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Survey array",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "National laboratory",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Geosciences"
+      },
+      {
+        "index": 1,
+        "name": "Astronomy"
+      },
+      {
+        "index": 2,
+        "name": "Photonics"
+      },
+      {
+        "index": 3,
+        "name": "Atmospheric"
+      }
+    ],
+    "partner": {
+      "id": "university",
+      "name": "University"
+    },
+    "image": "/handbook/catalog/research_institute.webp",
+    "thumbnail": "/handbook/catalog/thumbs/research_institute.webp"
+  },
+  {
+    "id": "vegetable_farm",
+    "name": "Vegetable Farm",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 90,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 17,
+      "water": -4,
+      "food": 145,
+      "income": 18
+    },
+    "description": "Pumpkins, tomatoes, carrots and fresh produce on irrigated beds.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Market garden → Tool shed → Wash house → Produce packing → Market cooperative",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Market garden",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Tool shed",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Wash house",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Produce packing",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Market cooperative",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Pumpkins"
+      },
+      {
+        "index": 1,
+        "name": "Tomatoes"
+      },
+      {
+        "index": 2,
+        "name": "Carrots"
+      },
+      {
+        "index": 3,
+        "name": "Cabbage"
+      }
+    ],
+    "partner": {
+      "id": "vegetable_fields",
+      "name": "Vegetable Field"
+    },
+    "image": "/handbook/catalog/vegetable_farm.webp",
+    "thumbnail": "/handbook/catalog/thumbs/vegetable_farm.webp"
+  },
+  {
+    "id": "grain_farm",
+    "name": "Grain Farm",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 100,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 19,
+      "water": -3,
+      "food": 170,
+      "income": 18
+    },
+    "description": "Golden grain fields, silos, combine and stacked hay bales.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Grain croft → Threshing barn → Grain elevator → Harvester yard → Prairie granary",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Grain croft",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Threshing barn",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Grain elevator",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Harvester yard",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Prairie granary",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Golden wheat"
+      },
+      {
+        "index": 1,
+        "name": "Amber barley"
+      },
+      {
+        "index": 2,
+        "name": "Silver oats"
+      },
+      {
+        "index": 3,
+        "name": "Rye"
+      }
+    ],
+    "partner": {
+      "id": "dairy_farm",
+      "name": "Dairy Farm"
+    },
+    "image": "/handbook/catalog/grain_farm.webp",
+    "thumbnail": "/handbook/catalog/thumbs/grain_farm.webp"
+  },
+  {
+    "id": "dairy_farm",
+    "name": "Dairy Farm",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 155,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 28,
+      "water": -5,
+      "food": 195,
+      "income": 29
+    },
+    "description": "Milk production with red barns, grazing cows, silos and a delivery truck.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Milking shed → Grazing yard → Milking parlor → Chilled tanks → Creamery",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Milking shed",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Grazing yard",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Milking parlor",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Chilled tanks",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Creamery",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Holstein"
+      },
+      {
+        "index": 1,
+        "name": "Jersey"
+      },
+      {
+        "index": 2,
+        "name": "Brown Swiss"
+      },
+      {
+        "index": 3,
+        "name": "Ayrshire"
+      }
+    ],
+    "partner": {
+      "id": "grain_farm",
+      "name": "Grain Farm"
+    },
+    "image": "/handbook/catalog/dairy_farm.webp",
+    "thumbnail": "/handbook/catalog/thumbs/dairy_farm.webp"
+  },
+  {
+    "id": "poultry_farm",
+    "name": "Poultry Farm",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 125,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 21,
+      "water": -2,
+      "food": 165,
+      "income": 23
+    },
+    "description": "Chicken coops, feed bins, shaded pens and egg distribution.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Henhouse → Free-range yard → Laying house → Brooder sheds → Egg cooperative",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Henhouse",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Free-range yard",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Laying house",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Brooder sheds",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Egg cooperative",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Buff hens"
+      },
+      {
+        "index": 1,
+        "name": "White layers"
+      },
+      {
+        "index": 2,
+        "name": "Red hens"
+      },
+      {
+        "index": 3,
+        "name": "Black hens"
+      }
+    ],
+    "partner": {
+      "id": "chicken_coop",
+      "name": "Chicken Coop"
+    },
+    "image": "/handbook/catalog/poultry_farm.webp",
+    "thumbnail": "/handbook/catalog/thumbs/poultry_farm.webp"
+  },
+  {
+    "id": "cattle_ranch",
+    "name": "Cattle Ranch",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 185,
+    "stage": 4,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 35,
+      "water": -6,
+      "food": 210,
+      "income": 36
+    },
+    "description": "Wide cattle paddocks, ranch house, feed stations and grazing herds.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Stock yard → Watering corral → Ranch house → Sorting pens → Cattle station",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Stock yard",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Watering corral",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Ranch house",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Sorting pens",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Cattle station",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Hereford"
+      },
+      {
+        "index": 1,
+        "name": "Angus"
+      },
+      {
+        "index": 2,
+        "name": "Longhorn"
+      },
+      {
+        "index": 3,
+        "name": "Shorthorn"
+      }
+    ],
+    "partner": {
+      "id": "grazing_pasture",
+      "name": "Grazing Pasture"
+    },
+    "image": "/handbook/catalog/cattle_ranch.webp",
+    "thumbnail": "/handbook/catalog/thumbs/cattle_ranch.webp"
+  },
+  {
+    "id": "horse_ranch",
+    "name": "Horse Ranch",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 165,
+    "stage": 4,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 26,
+      "water": -4,
+      "food": 25,
+      "recreation": 85,
+      "income": 48
+    },
+    "description": "Stables, paddocks and riding arenas that create jobs and recreation.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Loose box → Grooming shed → Riding arena → Paddock stables → Equestrian center",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Loose box",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Grooming shed",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Riding arena",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Paddock stables",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Equestrian center",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Chestnut"
+      },
+      {
+        "index": 1,
+        "name": "Palomino"
+      },
+      {
+        "index": 2,
+        "name": "Dapple grey"
+      },
+      {
+        "index": 3,
+        "name": "Bay"
+      }
+    ],
+    "partner": {
+      "id": "grazing_pasture",
+      "name": "Grazing Pasture"
+    },
+    "image": "/handbook/catalog/horse_ranch.webp",
+    "thumbnail": "/handbook/catalog/thumbs/horse_ranch.webp"
+  },
+  {
+    "id": "apiary",
+    "name": "Honey & Bee Farm",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 100,
+    "stage": 4,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 13,
+      "water": -1,
+      "food": 95,
+      "income": 28
+    },
+    "description": "Beehives, flowering meadows, honey processing and pollination.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Hive garden → Honey store → Pollinator rows → Extraction hut → Bee research garden",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Hive garden",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Honey store",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Pollinator rows",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Extraction hut",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Bee research garden",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Sunflower"
+      },
+      {
+        "index": 1,
+        "name": "Heather"
+      },
+      {
+        "index": 2,
+        "name": "Clover"
+      },
+      {
+        "index": 3,
+        "name": "Lavender"
+      }
+    ],
+    "partner": {
+      "id": "orchard_block",
+      "name": "Orchard Block"
+    },
+    "image": "/handbook/catalog/apiary.webp",
+    "thumbnail": "/handbook/catalog/thumbs/apiary.webp"
+  },
+  {
+    "id": "vineyard",
+    "name": "Vineyard",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 180,
+    "stage": 5,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 30,
+      "water": -3,
+      "food": 120,
+      "recreation": 40,
+      "income": 70
+    },
+    "description": "Trellised grapes, stone paths and a Mediterranean winery.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Vine garden → Trellis rows → Press house → Barrel cellar → Estate vineyard",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Vine garden",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Trellis rows",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Press house",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Barrel cellar",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Estate vineyard",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Burgundy"
+      },
+      {
+        "index": 1,
+        "name": "Chardonnay"
+      },
+      {
+        "index": 2,
+        "name": "RosÃ©"
+      },
+      {
+        "index": 3,
+        "name": "Concord"
+      }
+    ],
+    "partner": {
+      "id": "irrigation_pond",
+      "name": "Irrigation Pond"
+    },
+    "image": "/handbook/catalog/vineyard.webp",
+    "thumbnail": "/handbook/catalog/thumbs/vineyard.webp"
+  },
+  {
+    "id": "rice_farm",
+    "name": "Rice Farm",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 190,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 40,
+      "water": -11,
+      "food": 240,
+      "income": 34
+    },
+    "description": "Reflective rice paddies, raised earth paths and irrigation wheels.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Starter paddy → Levee steps → Waterwheel → Threshing shed → Terraced paddies",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Starter paddy",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Levee steps",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Waterwheel",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Threshing shed",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Terraced paddies",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Jade rice"
+      },
+      {
+        "index": 1,
+        "name": "Golden rice"
+      },
+      {
+        "index": 2,
+        "name": "Black rice"
+      },
+      {
+        "index": 3,
+        "name": "Red rice"
+      }
+    ],
+    "partner": {
+      "id": "irrigation_pond",
+      "name": "Irrigation Pond"
+    },
+    "image": "/handbook/catalog/rice_farm.webp",
+    "thumbnail": "/handbook/catalog/thumbs/rice_farm.webp"
+  },
+  {
+    "id": "greenhouse_farm",
+    "name": "Greenhouse Farm",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 245,
+    "stage": 7,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 36,
+      "power": -8,
+      "water": -5,
+      "food": 310,
+      "income": 52
+    },
+    "description": "Glass tunnels, glowing grow lamps and reliable all-weather yields.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Glass shed → Twin glasshouses → Climate house → Service boilers → Botanical range",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Glass shed",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Twin glasshouses",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Climate house",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Service boilers",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Botanical range",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Victorian"
+      },
+      {
+        "index": 1,
+        "name": "Hydroponic"
+      },
+      {
+        "index": 2,
+        "name": "Sawtooth"
+      },
+      {
+        "index": 3,
+        "name": "Hoop house"
+      }
+    ],
+    "partner": {
+      "id": "greenhouse_bay",
+      "name": "Greenhouse Bay"
+    },
+    "image": "/handbook/catalog/greenhouse_farm.webp",
+    "thumbnail": "/handbook/catalog/thumbs/greenhouse_farm.webp"
+  },
+  {
+    "id": "vertical_farm",
+    "name": "Vertical Farm",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 860,
+    "stage": 15,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 95,
+      "power": -35,
+      "water": -9,
+      "food": 780,
+      "income": 145
+    },
+    "description": "Multi-level indoor greenhouses on a compact urban lot.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Grow room → Two-tier racks → Stacked garden → Nutrient tower → Sky harvest",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Grow room",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Two-tier racks",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Stacked garden",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Nutrient tower",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Sky harvest",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Leaf tower"
+      },
+      {
+        "index": 1,
+        "name": "Helical trays"
+      },
+      {
+        "index": 2,
+        "name": "LED stack"
+      },
+      {
+        "index": 3,
+        "name": "Solar terrace"
+      }
+    ],
+    "partner": {
+      "id": "greenhouse_bay",
+      "name": "Greenhouse Bay"
+    },
+    "image": "/handbook/catalog/vertical_farm.webp",
+    "thumbnail": "/handbook/catalog/thumbs/vertical_farm.webp"
+  },
+  {
+    "id": "vegetable_fields",
+    "name": "Vegetable Field",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 34,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 4,
+      "water": -1,
+      "food": 85
+    },
+    "description": "Connect adjacent crop beds to a farm anchor; fields also relay connection to one another.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Seed bed → Early rows → Irrigated beds → Harvest rows → Produce allotments",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Seed bed",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Early rows",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Irrigated beds",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Harvest rows",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Produce allotments",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Carrot rows"
+      },
+      {
+        "index": 1,
+        "name": "Pumpkin beds"
+      },
+      {
+        "index": 2,
+        "name": "Red peppers"
+      },
+      {
+        "index": 3,
+        "name": "White onions"
+      }
+    ],
+    "partner": {
+      "id": "farm_houses",
+      "name": "Farm House"
+    },
+    "image": "/handbook/catalog/vegetable_fields.webp",
+    "thumbnail": "/handbook/catalog/thumbs/vegetable_fields.webp"
+  },
+  {
+    "id": "grain_fields",
+    "name": "Grain Field",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 34,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 4,
+      "water": -1,
+      "food": 95
+    },
+    "description": "Golden wheat rows link to farms and other agricultural modules.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Sown strip → Young grain → Golden stand → Sheaves → Harvest parcel",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Sown strip",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Young grain",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Golden stand",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Sheaves",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Harvest parcel",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Wheat"
+      },
+      {
+        "index": 1,
+        "name": "Barley"
+      },
+      {
+        "index": 2,
+        "name": "Oats"
+      },
+      {
+        "index": 3,
+        "name": "Rye"
+      }
+    ],
+    "partner": {
+      "id": "farm_houses",
+      "name": "Farm House"
+    },
+    "image": "/handbook/catalog/grain_fields.webp",
+    "thumbnail": "/handbook/catalog/thumbs/grain_fields.webp"
+  },
+  {
+    "id": "orchard_block",
+    "name": "Orchard Block",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 48,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 5,
+      "water": -1,
+      "food": 100
+    },
+    "description": "Additional fruit trees automatically join a neighboring agricultural operation.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Saplings → Flowering orchard → Fruit trees → Picking lanes → Crated orchard",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Saplings",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Flowering orchard",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Fruit trees",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Picking lanes",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Crated orchard",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Apple"
+      },
+      {
+        "index": 1,
+        "name": "Pear"
+      },
+      {
+        "index": 2,
+        "name": "Orange"
+      },
+      {
+        "index": 3,
+        "name": "Plum"
+      }
+    ],
+    "partner": {
+      "id": "apiary",
+      "name": "Honey & Bee Farm"
+    },
+    "image": "/handbook/catalog/orchard_block.webp",
+    "thumbnail": "/handbook/catalog/thumbs/orchard_block.webp"
+  },
+  {
+    "id": "grazing_pasture",
+    "name": "Grazing Pasture",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 38,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 4,
+      "water": -1,
+      "food": 70,
+      "recreation": 4
+    },
+    "description": "Fenced grassland with livestock; can connect through other pasture pieces.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Grass paddock → Water trough → Grazing shelter → Strip grazing → Rotational pasture",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Grass paddock",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Water trough",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Grazing shelter",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Strip grazing",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Rotational pasture",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Meadow"
+      },
+      {
+        "index": 1,
+        "name": "Alfalfa"
+      },
+      {
+        "index": 2,
+        "name": "Clover"
+      },
+      {
+        "index": 3,
+        "name": "Hill grass"
+      }
+    ],
+    "partner": {
+      "id": "farm_houses",
+      "name": "Farm House"
+    },
+    "image": "/handbook/catalog/grazing_pasture.webp",
+    "thumbnail": "/handbook/catalog/thumbs/grazing_pasture.webp"
+  },
+  {
+    "id": "livestock_pen",
+    "name": "Livestock Pen",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 48,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 8,
+      "water": -2,
+      "food": 105
+    },
+    "description": "Cows and feed troughs in a fenced paddock, connected through farm modules.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Stock pen → Feed rail → Handling gate → Holding pens → Sale yard",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Stock pen",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Feed rail",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Handling gate",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Holding pens",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Sale yard",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Timber"
+      },
+      {
+        "index": 1,
+        "name": "Stone"
+      },
+      {
+        "index": 2,
+        "name": "Pipe rail"
+      },
+      {
+        "index": 3,
+        "name": "Split rail"
+      }
+    ],
+    "partner": {
+      "id": "farm_houses",
+      "name": "Farm House"
+    },
+    "image": "/handbook/catalog/livestock_pen.webp",
+    "thumbnail": "/handbook/catalog/thumbs/livestock_pen.webp"
+  },
+  {
+    "id": "chicken_coop",
+    "name": "Chicken Coop",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 39,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 5,
+      "water": -1,
+      "food": 90
+    },
+    "description": "Roaming chickens, feed bins and a tiny coop near an anchor farm.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Nest box → Hen run → Roost house → Brooder court → Layer colony",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Nest box",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Hen run",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Roost house",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Brooder court",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Layer colony",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Red shingle"
+      },
+      {
+        "index": 1,
+        "name": "Sage roof"
+      },
+      {
+        "index": 2,
+        "name": "Straw coop"
+      },
+      {
+        "index": 3,
+        "name": "Blue tin"
+      }
+    ],
+    "partner": {
+      "id": "farm_houses",
+      "name": "Farm House"
+    },
+    "image": "/handbook/catalog/chicken_coop.webp",
+    "thumbnail": "/handbook/catalog/thumbs/chicken_coop.webp"
+  },
+  {
+    "id": "feed_silo",
+    "name": "Feed Silo",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 55,
+    "stage": 4,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 5,
+      "food": 20
+    },
+    "description": "Storage and feed support building connecting to neighboring fields and barns.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Feed bin → Raised hopper → Twin silos → Elevator leg → Bulk loading",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Feed bin",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Raised hopper",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Twin silos",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Elevator leg",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Bulk loading",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Galvanized"
+      },
+      {
+        "index": 1,
+        "name": "Red oxide"
+      },
+      {
+        "index": 2,
+        "name": "Cream enamel"
+      },
+      {
+        "index": 3,
+        "name": "Green steel"
+      }
+    ],
+    "partner": {
+      "id": "farm_houses",
+      "name": "Farm House"
+    },
+    "image": "/handbook/catalog/feed_silo.webp",
+    "thumbnail": "/handbook/catalog/thumbs/feed_silo.webp"
+  },
+  {
+    "id": "irrigation_pond",
+    "name": "Irrigation Pond",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 65,
+    "stage": 4,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 4,
+      "water": -2,
+      "food": 30,
+      "recreation": 8
+    },
+    "description": "A little irrigation reservoir with bridges and green banks.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Catch pond → Gated outlet → Pump house → Settling beds → Irrigation reservoir",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Catch pond",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Gated outlet",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Pump house",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Settling beds",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Irrigation reservoir",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Clay bank"
+      },
+      {
+        "index": 1,
+        "name": "Stone bank"
+      },
+      {
+        "index": 2,
+        "name": "Reed bed"
+      },
+      {
+        "index": 3,
+        "name": "Timber flume"
+      }
+    ],
+    "partner": {
+      "id": "farm_houses",
+      "name": "Farm House"
+    },
+    "image": "/handbook/catalog/irrigation_pond.webp",
+    "thumbnail": "/handbook/catalog/thumbs/irrigation_pond.webp"
+  },
+  {
+    "id": "greenhouse_bay",
+    "name": "Greenhouse Bay",
+    "category": "agriculture",
+    "categoryName": "Farms & Food",
+    "cost": 88,
+    "stage": 7,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 8,
+      "power": -3,
+      "water": -2,
+      "food": 180
+    },
+    "description": "Expandable glazed growing tunnel that joins a farm complex.",
+    "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
+    "growth": "Cold frame → Propagation bench → Glass bay → Heated bays → Nursery range",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Cold frame",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Propagation bench",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Glass bay",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Heated bays",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Nursery range",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Clear glass"
+      },
+      {
+        "index": 1,
+        "name": "Sage frames"
+      },
+      {
+        "index": 2,
+        "name": "Blue glass"
+      },
+      {
+        "index": 3,
+        "name": "Copper ribs"
+      }
+    ],
+    "partner": {
+      "id": "farm_houses",
+      "name": "Farm House"
+    },
+    "image": "/handbook/catalog/greenhouse_bay.webp",
+    "thumbnail": "/handbook/catalog/thumbs/greenhouse_bay.webp"
   }
 ]

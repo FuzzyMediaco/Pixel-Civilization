@@ -1,6 +1,7 @@
 import { sharesOceanSurface } from "./coastline";
 import { GRID_SIZE, GRID_HALF, cellIndex } from "./mapBounds";
 import { TILE_SIZE } from "./voxelCore";
+import {bridgeDetails} from "./bridgeWorks";
 import * as THREE from "three";
 import {
   DIRECTIONS,
@@ -593,10 +594,11 @@ export class EngineeringView {
     for (const [k, s] of Object.entries(infra.spans)) {
       if (s.run.startsWith("junction-")) continue;
       const [gx, gz] = k.split(",").map(Number),
-        cx = gx * 4 + 2,
-        cz = gz * 4 + 2;
+        cx = gx * 4 + 2+(s.corridorWidth===2&&s.axis==="z"?1.8:0),
+        cz = gz * 4 + 2+(s.corridorWidth===2&&s.axis==="x"?1.8:0);
       const g = s.shape === "lift" && !s.end ? new Blocks() : solid;
       const counter = new Blocks();
+      const archTier=s.tier??1;
       const along = (
         target: Blocks,
         a: number,
@@ -622,19 +624,20 @@ export class EngineeringView {
           : s.mode === "rail"
             ? 2.45
             : s.mode === "freeway"
-              ? 3.9
+              ? (s.corridorWidth===3?10.8:3.9)
               : s.mode === "highway"
-                ? 3.5
+                ? (s.corridorWidth===2?7.0:3.5)
                 : 2.8;
       const [lo, hi] = runs.get(s.run) ?? [0, 0],
         coordinate = s.axis === "x" ? gx : gz;
-      const bridgeColor = s.shape === "arch" ? 0xae9679 : s.shape === "truss" ? 0x974f37 : 0x587d83;
+      const bridgeColor = s.railType==="timber"?0x855d38:s.railType==="steel"||s.shape==="truss"&&archTier>=6?0x58727e:s.shape === "arch" ? 0xae9679 : s.shape === "truss" ? 0x974f37 : 0x587d83;
+      const landmark=hi-lo>=3&&archTier>=4;
       const center = (hi + lo + 1) * 2,
         length = Math.max(4, (hi - lo + 1) * 4);
       for (let n = 0; n < 8; n++) {
         const t = s.direction < 0 ? 1 - (n + 0.5) / 8 : (n + 0.5) / 8,
           y = s.startHeight + (s.endHeight - s.startHeight) * t;
-        along(
+        if(!s.ramp||s.mode==="foot")along(
           g,
           -2 + n * 0.5,
           y - 0.24,
@@ -659,6 +662,7 @@ export class EngineeringView {
           if (n === 0) along(g, -2, y + 0.012, -width / 2, 0.08, 0.025, width, 0x384b4f);
         }
         if (s.mode === "rail") {
+          along(g,-1.99+n*.5,y+.005,-.86,.15,.06,1.72,s.railType==="elevated"?0xb1b6af:0x755b47);
           along(g, -2 + n * 0.5, y + 0.01, -0.62, 0.51, 0.08, 0.1, 0xaeb8bb);
           along(g, -2 + n * 0.5, y + 0.01, 0.52, 0.51, 0.08, 0.1, 0xaeb8bb);
         } else if (s.mode !== "foot" && n % 4 < 2) along(g, -2 + n * 0.5, y + 0.01, -0.045, 0.5, 0.025, 0.09, 0xe6cb74);
@@ -699,7 +703,7 @@ export class EngineeringView {
             along(g, -2 + n * 0.5, y, z - 0.13, 0.51, 0.2, 0.32, 0xb89e7b);
             along(g, -2 + n * 0.5, y + 0.2, z - 0.17, 0.51, 0.08, 0.4, 0xd9c6a5);
           }
-          if (s.shape === "truss" && !s.end) {
+          if (s.shape === "truss" && !s.end && s.railType!=="timber") {
             along(g, -2 + n * 0.5, y + 0.35 + Math.min(n % 8, 8 - (n % 8)) * 0.26, z, 0.51, 0.2, 0.18, bridgeColor);
             along(g, -2 + n * 0.5, y + 1.46, z, 0.51, 0.18, 0.2, bridgeColor);
             if (n === 0 || n === 4) along(g, -2 + n * 0.5, y + 0.24, z, 0.16, 1.3, 0.19, 0xb6734d);
@@ -716,7 +720,7 @@ export class EngineeringView {
             along(solid, alongEdge, bed - 0.1, b - 0.18, 0.46, Math.max(0.15, s.deck - bed - 0.12), 0.46, bridgeColor);
             along(solid, alongEdge - 0.1, bed - 0.04, b - 0.25, 0.7, 0.24, 0.63, 0x8d8270);
           }
-          if (s.shape === "lift" || s.shape === "suspension") {
+          if (s.shape === "lift" || s.shape === "suspension"&&!landmark&&s.railType!=="highlevel") {
             const top = s.deck + (s.shape === "lift" ? 5.7 : 3.25);
             if (towerTile && s.shape === "suspension") {
               along(solid, 0, bed, b - 0.14, 0.34, Math.max(0.25, top - bed), 0.34, bridgeColor);
@@ -820,6 +824,22 @@ export class EngineeringView {
               }
           }
         }
+      }
+      const cable=(u:number,a:number,v:number,b:number,h:number,thick:number,color:number)=>{
+        const point=(p:number,y:number,w:number)=>[cx+(s.axis==="x"?p:w),y,cz+(s.axis==="x"?w:p)];
+        const w=v-thick/2,e=v+thick/2;
+        for(const sign of [w,e])solid.face(point(u,a,sign),point(b,h,sign),point(b,h+thick,sign),point(u,a+thick,sign),color);
+        solid.face(point(u,a+thick,w),point(u,a+thick,e),point(b,h+thick,e),point(b,h+thick,w),color);
+      };
+      bridgeDetails(s,coordinate,lo,hi,width,bed,(a,y,b,len,h,w,col)=>along(solid,a,y,b,len,h,w,col),cable);
+      if(s.ramp && s.mode!=="foot"){
+        const a=s.direction<0?s.endHeight:s.startHeight,b=s.direction<0?s.startHeight:s.endHeight;
+        const point=(u:number,v:number,h:number)=>[cx+(s.axis==="x"?u:v),h+.021,cz+(s.axis==="x"?v:u)];
+        const strip=(v:number,w:number,color:number)=>s.axis==="x"?g.face(point(-2,v,a),point(-2,v+w,a),point(2,v+w,b),point(2,v,b),color):g.face(point(-2,v,a),point(2,v,b),point(2,v+w,b),point(-2,v+w,a),color);
+        for(const side of [-width/2,width/2])g.face(point(-2,side,a-.24),point(2,side,b-.24),point(2,side,b),point(-2,side,a),0x767e7e);
+        strip(-width/2,width,0x535c61);
+        if(s.mode==="rail"){strip(-.62,.1,0xaeb8bb);strip(.52,.1,0xaeb8bb);}
+        else strip(-.035,.07,0xe6cb74);
       }
       if (counter.positions.length) {
         const mesh = counter.mesh(this.material);

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { roadWidth } from "../game/roadStandards";
 import catalog from "./catalog.json";
 import chapters from "./chapters.json";
 import { relatedLessons } from "./relatedLessons";
@@ -35,6 +36,8 @@ type Lesson = {
   title: string;
   steps: string[];
   examples: Picture[];
+  designs?: string[];
+  stock?: {image:string;name:string;detail:string}[];
   world?: string;
   summary?: string;
 };
@@ -236,7 +239,7 @@ function App() {
                           {l.legacy ? "*" : ""}
                         </td>
                         <td>{l.name}</td>
-                        <td>{l.dimensions.join(" × ")}</td>
+                        <td>{roadWidth(entry.id) > 1 ? roadWidth(entry.id) + " wide per segment" : l.dimensions.join(" × ")}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -340,6 +343,14 @@ function App() {
                         <li key={i}>{step}</li>
                       ))}
                     </ol>
+                    {l.stock && <div className="rolling-stock">{l.stock.map(item=><figure key={item.name}>
+                      <img loading="lazy" src={asset(item.image)} alt={item.name} width="144" height="90"/>
+                      <figcaption><strong>{item.name}</strong><small>{item.detail}</small></figcaption>
+                    </figure>)}</div>}
+                    {l.designs?.length ? <div className="lesson-designs" aria-label="Designs in this lesson">{l.designs.map(id => {
+                      const item = catalog.find(row=>row.id===id);
+                      return item && <a key={id} href={link({design:id})}><img loading="lazy" src={asset(item.thumbnail)} alt="" width="56" height="56"/><span>{item.name}<small>Levels 1–{item.maxLevel} · four styles</small></span></a>;
+                    })}</div> : null}
                     <div className={l.examples.length > 1 ? "plates pair" : "plates"}>
                       {(l.world ? l.examples.slice(0, 3) : l.examples).map((pic) => (
                         <Plate key={pic.image} pic={pic} />

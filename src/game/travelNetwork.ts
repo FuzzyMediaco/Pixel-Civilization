@@ -1,3 +1,5 @@
+import { switchAllows } from "./railOperations";
+import { railSpanAllows } from "./bridgeWorks";
 import { GRID_SIZE, cellIndex, cellFromIndex, withinMap } from "./mapBounds";
 import { roadSiteAccess, parcelAccessSteps, PARCEL_SIDES, type AccessStep } from "./parcelEdges";
 import { ELEMENT_BY_ID } from "./catalog";
@@ -109,7 +111,7 @@ export class TravelNetwork {
     const e = this.occupancy.get(x + "," + z),
       d = e && ELEMENT_BY_ID[e.defId];
     if (!e || !d) return false;
-    if (mode === "rail") return !!d.isRailNetwork;
+    if (mode === "rail") return !!d.isRailNetwork && !e.disrepair && !e.onFire;
     if (mode === "walk") return !!d.isRoadNetwork && !["highways", "freeways", "over_passes"].includes(d.id);
     return !!d.isRoadNetwork && !PEDESTRIAN_IDS.has(d.id) && !e.pedestrianDeck && !d.isRailNetwork;
   }
@@ -149,6 +151,7 @@ export class TravelNetwork {
         override = e.edgeOverrides?.[side];
       if (override === "closed") return false;
       if (override === "open") return true;
+      if (mode === "rail" && e.defId==="freight_rail_terminal") return side!=="front";
       if (mode === "rail" && ["train_depots", "train_stops"].includes(e.defId)) return side === "back";
       return true;
     });
@@ -204,6 +207,7 @@ export class TravelNetwork {
             nz = z + dz;
           if (tight && parents[id] !== -1 && (id & 1) !== axis) continue;
           if (!this.canUse(nx, nz, mode, hull)) continue;
+          if(mode==="rail" && (!switchAllows(this.state,x,z,dx,dz) || !switchAllows(this.state,nx,nz,-dx,-dz) || !railSpanAllows(this.state,x,z,dx,dz)))continue;
           if (
             hull ? !this.water.canStep(x, z, nx, nz, hull) : mode !== "rail" && !roadPortOpen(this.state, x, z, dx, dz)
           )
@@ -333,7 +337,7 @@ export function travelSignature(s: GameState): string {
     s.elements.some((e) => e.defId === "canal_boat_lift") &&
     (s.mode === "god" || (s.metrics.powerSupply > 0 && s.metrics.powerSupply >= s.metrics.powerDemand));
   return (
-    [s.terrainVersion ?? 1, cells ? terrainCopies.get(cells) : 0, s.infrastructure?.revision ?? 0, Number(lifted)].join(
+    [s.railYard?.revision??0,JSON.stringify(s.railYard?.turnouts??{}),s.terrainVersion ?? 1, cells ? terrainCopies.get(cells) : 0, s.infrastructure?.revision ?? 0, Number(lifted)].join(
       ".",
     ) +
     "|" +
@@ -342,6 +346,7 @@ export function travelSignature(s: GameState): string {
         [
           e.id,
           e.defId,
+          e.roadAxis??"", e.autoDrive?.side??"",e.autoDrive?.slot??"",
           e.gx,
           e.gz,
           e.spanX,
@@ -353,7 +358,7 @@ export function travelSignature(s: GameState): string {
           e.waterUnderlay?.level,
           e.level,
           Number(!!e.onFire),
-          e.defId === "canal_boat_lift" ? Number(e.disrepair) : 0,
+          Number(e.disrepair),
           Number(!!e.pedestrianDeck),
           JSON.stringify(e.edgeOverrides ?? {}),
         ].join(":"),
