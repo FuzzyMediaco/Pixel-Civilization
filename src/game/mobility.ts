@@ -813,22 +813,17 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
 function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: TravelNetwork, version: number) {
   if (l.mode === "rail") return stepRailLine(s, m, l, seconds, net, version);
   if (!l.enabled) {
-    clearRailBlock(l);
     l.status = "Service paused";
     return;
   }
   const route = allStops(l),
     dest = net.byId.get(route[l.next % route.length]);
   if (!dest || !net.byId.has(l.depot) || l.stops.some((id) => !net.byId.has(id))) {
-    clearRailBlock(l);
     l.blocked = true;
     l.status = "A stop was removed. Edit the line to replace it.";
     return;
   }
   const depot = net.byId.get(l.depot)!;
-  if(l.mode==="rail" && [depot,...l.stops.map(id=>net.byId.get(id)!)].some(e=>!net.connectors(e,"rail").length || e.disrepair || e.onFire)){
-    clearRailBlock(l);l.path=[];l.blocked=true;l.status="Restore service and track at each rear platform.";return;
-  }
   if (depot.onFire || dest.onFire) {
     l.blocked = true;
     l.path = [];
@@ -848,7 +843,6 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
     (l.version !== version || !l.path.length) &&
     (!l.blocked || l.version !== version || s.activePlaySec - (l.plannedAt ?? 0) > 8)
   ) {
-    if(l.version!==version)clearRailBlock(l);
     l.plannedAt = s.activePlaySec;
     l.version = version;
     const hull = hullFor(l.mode),
@@ -859,7 +853,6 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
     const starts = start ? [start] : [];
     const path = net.path(starts, ends, l.mode, hull);
     if (!path) {
-      clearRailBlock(l);
       const issue = net.diagnose(starts, perimeter(dest), l.mode, hull);
       l.status = issue.reason;
       l.blocker = issue.blocker;
@@ -867,25 +860,21 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
       l.path = [];
       return;
     }
-    l.path = l.mode==="rail"?prepareRailLeg(l,path,net,ends):path;
+    l.path = path;
     l.progress = 0;
     l.blocked = false;
     l.blocker = undefined;
-    if(l.rail&&!l.rail.reservation)l.rail.blockPlan=remainingRailBlock(l,net,route);
-    if(l.mode!=="rail")l.at=undefined;
+    l.at = undefined;
   }
   if (l.blocked || !l.path.length) return;
-  if(l.mode==="rail"&&!claimRailBlock(s,l)){l.status="Red signal · waiting for the shared track block";return;}
-  l.at=undefined;
-  const priorProgress=l.progress;
+  l.at = undefined;
   const reached = advance(
     s,
     l,
-    seconds * (l.rail ? LOCOMOTIVES[l.rail.engine].speed : speeds[l.mode]) * (s.weather === "storm" ? 0.78 : 1),
+    seconds * speeds[l.mode] * (s.weather === "storm" ? 0.78 : 1),
     l.mode,
     hullFor(l.mode),
   );
-  if(l.rail&&l.position)noteRailTravel(l.rail,l.path,priorProgress,l.progress,l.position);
   if (reached === "following") {
     l.status = "Following a vessel through the channel";
     return;
@@ -898,7 +887,6 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
     l.status = "En route to " + ELEMENT_BY_ID[dest.defId].name;
     return;
   }
-  if(dest.id===l.depot){clearRailBlock(l);if(l.rail){l.rail.trail=[];l.rail.rearCab=false;}}
   completeStop(s, m, l, dest, net);
   l.departures++;
   l.at = dest.id;
@@ -921,9 +909,7 @@ function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: 
       if (pickup) l.next = route.indexOf(pickup);
     }
   }
-  l.dwell = dest.id === l.depot ? l.interval * (night ? 1.8 : 1) : l.rail ? (l.rail.service==="freight"?3.2:1.5)+l.rail.cars.length*.3/Math.sqrt(dest.level) : 1.75;
-  if(l.rail && s.railYard?.works?.[dest.id]?.signal && dest.id===l.depot)l.dwell*=.8;
-  if(l.rail?.service==="freight" && s.railYard?.works?.[dest.id]?.crane)l.dwell*=.7;
+  l.dwell = dest.id === l.depot ? l.interval * (night ? 1.8 : 1) : 1.75;
   l.path = [];
   l.progress = 0;
   l.status = dest.id === l.depot ? "At the depot" : "Boarding at " + ELEMENT_BY_ID[dest.defId].name;

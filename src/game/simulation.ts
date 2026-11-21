@@ -420,7 +420,8 @@ export function populationLimiterFor(state: GameState, m: CityMetrics, housingBa
   const foodPerResident = (state.mode === "survival" ? 0.32 : 0.28) * perCapita;
   const caps: [LimitingNeed, number][] = [
     ["housing", Math.max(housingBase, economy.capacity || housingBase)],
-    ["jobs", economy.reachable / 0.5],
+    // 54% of residents work (cityEconomy workforce), so this is the population the reachable jobs employ.
+    ["jobs", economy.reachable / 0.54],
     ["food", m.foodSupply / foodPerResident],
     ["waste", m.wasteCapacity / (WASTE_PER_UNIT / 5 * perCapita)],
     ["water", state.population + (m.waterSupply - m.waterDemand) * RESIDENTS_PER_WATER / perCapita],
