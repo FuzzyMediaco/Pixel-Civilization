@@ -1,12 +1,14 @@
 import { ELEMENT_BY_ID } from "./catalog";
 import { rushHourFactor } from "./cityDynamics";
 import { roadSiteAccess } from "./parcelEdges";
+import {corridorArt,corridorTransform} from "./roadCorridors";
 import { separatedDeckAxis } from "./roadTopology";
 import {
   buildOccupancyMap,
   getNetworkConnMask,
   networkDeckClass,
   PEDESTRIAN_IDS,
+  type PlacedElement,
   type GameState,
 } from "./simulation";
 import { DIRECTIONS, roadPortOpen, surfaceTravelHeight, tileKey } from "./terrain";
@@ -199,7 +201,7 @@ export interface TripPoint {
   z: number;
   tile: Point;
 }
-export function roadTripPoints(trip: RoadTrip): TripPoint[] {
+export function roadTripPoints(trip: RoadTrip,occupancy?:ReadonlyMap<string,PlacedElement>): TripPoint[] {
   const { origin, destination, path } = trip;
   const gatePoint = (g: RoadGate): TripPoint => ({
     x: g.gx + 0.5 + g.dx * 0.495,
@@ -216,9 +218,12 @@ export function roadTripPoints(trip: RoadTrip): TripPoint[] {
       inZ = before ? gz - before[1] : -origin.dz;
     const outX = after ? after[0] - gx : destination.dx,
       outZ = after ? after[1] - gz : destination.dz;
+    let ox=-((inZ+outZ)*lane)/2,oz=((inX+outX)*lane)/2;
+    const road=occupancy?.get(tileKey(gx,gz)),corridor=road&&occupancy&&corridorArt(road,occupancy);
+    if(corridor){if(corridor.axis==="x")oz=corridorTransform(corridor,ox*4,oz*4)/4;else ox=corridorTransform(corridor,oz*4,ox*4)/4;}
     points.push({
-      x: gx + 0.5 - ((inZ + outZ) * lane) / 2,
-      z: gz + 0.5 + ((inX + outX) * lane) / 2,
+      x:gx+.5+ox,
+      z:gz+.5+oz,
       tile: [gx, gz],
     });
   }

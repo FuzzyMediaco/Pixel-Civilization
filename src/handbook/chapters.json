@@ -76,7 +76,8 @@
         "steps": [
           "Start at The blue crossing. Open Land & water and inspect the aqueduct. Read the flow at the bend, across the canyon and at the farm outlets.",
           "Visit Five Fields Farm. Select the farmhouse and its five neighbors. Compare each field’s irrigation and harvest with the grocer’s meals sold. A bus connects the farm district to the mine on the opposite rim.",
-          "At The millrace, inspect the dam and hydro plant, open the gate, and compare the available head and power. Use Undo to restore it. Visit Gorge gates to see the paired depots transfer passengers across the canyon."
+          "At The millrace, inspect the dam and hydro plant, open the gate, and compare the available head and power. Use Undo to restore it. Visit Gorge gates to see the paired depots transfer passengers across the canyon.",
+          "Visit The east campus and creamery to inspect a dairy, grain fields and a high school beside its sports field. The sanctuary on the ridge has God-mode blessing controls."
         ],
         "examples": [
           {
@@ -127,6 +128,20 @@
             "alt": "A spring high in the rocky rim above the elevated aqueduct.",
             "width": 960,
             "height": 600
+          },
+          {
+            "image": "/handbook/scenes/east-campus.jpg",
+            "alt": "The east campus and creamery share a street across the upper gorge.",
+            "caption": "The east campus and creamery share a street across the upper gorge.",
+            "width": 1190,
+            "height": 765
+          },
+          {
+            "image": "/handbook/scenes/temple-blessing.jpg",
+            "alt": "On the ridge, the sanctuary shows its shelter capacity and current blessing.",
+            "caption": "On the ridge, the sanctuary shows its shelter capacity and current blessing.",
+            "width": 1190,
+            "height": 765
           }
         ]
       },
@@ -138,7 +153,8 @@
         "steps": [
           "Start at Cheesesteak Row. Select the Level 5 Cheesesteak Spot, inspect the joined townhouses across the street, and visit Market and cashpoint to find the ATM facing the bank.",
           "Use Night train to find the railway platforms. In Transit & harbor, follow the passenger train, bus or taxi. Visit Northgate interchange to inspect the freeway lanes and traffic signals.",
-          "At Rocket works, open the Spaceport’s selected-site report to see a crew and its mission. Check Accounts after it returns. Open Fire & safety to follow the engine responding to the shop fire, then repair and reopen the shop after containment."
+          "At Rocket works, open the Spaceport’s selected-site report to see a crew and its mission. Check Accounts after it returns. Open Fire & safety to follow the engine responding to the shop fire, then repair and reopen the shop after containment.",
+          "Open Orchard Valley rail yard from the island guide to try its passenger and freight formations. Inspect the depot to manage the trains, or follow the steel crossing while both lines operate."
         ],
         "examples": [
           {
@@ -1047,6 +1063,554 @@
             "alt": "The aqueduct flow layer follows the water network through the district.",
             "width": 1030,
             "height": 710
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "districts",
+    "label": "Campuses & farms",
+    "title": "A campus, a creamery and a working valley",
+    "intro": "Follow Copper Gorge’s eastern street to see how a shared boundary can change a school day, a harvest and a neighborhood’s prospects. Open any design below to compare its five building stages in four styles.",
+    "cover": "/handbook/scenes/east-campus.jpg",
+    "lessons": [
+      {
+        "id": "campus-path",
+        "title": "Nine ways to teach a city",
+        "summary": "Choose the school for its students, neighborhood and employers. Each opens at its own stage and has five architectural levels in four styles.",
+        "steps": [
+          "Start with the $65 Country Schoolhouse for 40 places or the $75 Preschool & Daycare for 30 places and family happiness. Preschool coverage adds up to four happiness points as its seats reach 16% of the population.",
+          "The Elementary School opens with 90 places. Its schoolyard provides 10% extra recreation. Middle School opens with 135 places and 16% extra recreation. High School opens with 210 places and its own athletics program. Each successive education level doubles the starting capacity before local modifiers.",
+          "Place a Trade & Technical College in a district with industry for up to 16% more industrial positions and 18% more industrial receipts. A Community College supports local businesses with up to 12% more positions and 14% more receipts.",
+          "Universities and Research Universities expand skilled employment. Either can add up to 12% to advanced job capacity. A Research University also raises advanced-industry receipts by up to 18%. Program strength reaches its maximum when the relevant seats cover 35% of the district’s residents. Overlapping programs cap the combined specialist job bonus at 32%.",
+          "Select the building and open Connections for its current design, program, attendance, staffing and any active district. Follow the design links below to compare the five levels of each school.",
+          "The east campus in Copper Gorge has a working high school and sports field. Inspect either building in Connections, then choose its illustrated design to compare levels and styles."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/expansion/campus-districts.webp",
+            "caption": "On opposite sides of the avenue, a high school shares its athletics ground and a university shares a research institute. The workshop and preschool each occupy their own lot.",
+            "alt": "Actual game view of two education districts, a trade school and a playground around a tree-lined avenue.",
+            "width": 1024,
+            "height": 600
+          },
+          {
+            "image": "/handbook/scenes/athletic-campus.jpg",
+            "caption": "The high school inspector reads the Athletic Campus bonus from the adjacent sports field in Copper Gorge.",
+            "alt": "The high school inspector reads the Athletic Campus bonus from the adjacent sports field in Copper Gorge.",
+            "width": 1190,
+            "height": 765
+          },
+          {
+            "image": "/handbook/catalog/research_university.webp",
+            "caption": "Five stages of the Research University, from a single laboratory to the Discovery campus, shown in all four styles.",
+            "alt": "Five stages of the Research University, from a single laboratory to the Discovery campus, shown in all four styles.",
+            "width": 1095,
+            "height": 879
+          }
+        ],
+        "designs": [
+          "preschool",
+          "country_schoolhouse",
+          "elementary_school",
+          "middle_school",
+          "high_school",
+          "trade_school",
+          "community_college",
+          "university",
+          "research_university",
+          "sports_field",
+          "research_institute"
+        ]
+      },
+      {
+        "id": "farm-specialties",
+        "title": "Choose a product and a landscape",
+        "steps": [
+          "Begin with a Vegetable or Grain Farm for staple crops. For livestock, use a Dairy Farm, Poultry Farm, Cattle Ranch or Horse Ranch. Each design acquires equipment and working space appropriate to its product.",
+          "Use an Apiary beside an orchard for pollination. Vineyards grow along trellises, rice occupies wet paddies, greenhouses extend under glass and a Vertical Farm grows upward. Check the atlas for their land requirements before expanding.",
+          "At Copper Gorge, the dairy beside grain farmland forms Feed Production. Both sites gain yield. Inspect each producer to see the local effect."
+        ],
+        "designs": [
+          "vegetable_farm",
+          "grain_farm",
+          "dairy_farm",
+          "poultry_farm",
+          "cattle_ranch",
+          "horse_ranch",
+          "apiary",
+          "vineyard",
+          "rice_farm",
+          "greenhouse_farm",
+          "vertical_farm"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/catalog/dairy_farm.webp",
+            "caption": "The Dairy Farm grows from a milking shed to a creamery. The four styles represent different dairy herds.",
+            "alt": "The Dairy Farm grows from a milking shed to a creamery. The four styles represent different dairy herds.",
+            "width": 1095,
+            "height": 879
+          }
+        ]
+      },
+      {
+        "id": "farm-chain",
+        "title": "From one anchor to a hundred plots",
+        "summary": "A single working road entrance can serve an entire agricultural complex.",
+        "steps": [
+          "Place a farm, ranch, apiary, orchard, plantation or farmhouse with a working entrance against a local street. Add an agricultural parcel along an open edge, then extend the chain through other parcels. Diagonal corners and closed shared borders do not connect.",
+          "Mix crop beds, pasture, livestock pens, chicken coops, feed silos, orchard blocks, ponds and greenhouse bays. Every active parcel contributes its own yield to its road-facing anchor’s market district. Irrigate through a supplied pipe, a flowing channel or a working adjacent well. A supplied irrigation pond stores up to 36 water units per level and shares a finite outlet with dry parcels. A feed silo cuts farm stock spoilage by one third.",
+          "If several roadside anchors join the same complex, each module receives one nearest owner. Additional modules increase only their owner’s base output. Ten modules add about 37%, 50 add about 117%, and the increase approaches 160% in very large holdings.",
+          "Open Connections on any component to see its owner, complex size, local harvest and next activity threshold. A staffed, irrigated site produces more than a dry holding with unfilled jobs. A delivered agricultural freight contract can add 8% while its benefit lasts."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/expansion/farm-complex.webp",
+            "caption": "This 60-module complex shares a northern road. The integrated farm lanes serve grain, livestock, orchard trees, vegetables, henhouses, glass beds and irrigation ponds.",
+            "alt": "Aerial view of a playable mixed farm with roadside anchors and contiguous agricultural lots.",
+            "width": 1024,
+            "height": 600
+          },
+          {
+            "image": "/handbook/scenes/working-creamery.jpg",
+            "caption": "The dairy inspector counts its connected modules and identifies its feed-production partner across a shared edge.",
+            "alt": "The dairy inspector counts its connected modules and identifies its feed-production partner across a shared edge.",
+            "width": 1190,
+            "height": 765
+          }
+        ],
+        "designs": [
+          "vegetable_farm",
+          "grain_farm",
+          "dairy_farm",
+          "poultry_farm",
+          "cattle_ranch",
+          "horse_ranch",
+          "apiary",
+          "vineyard",
+          "rice_farm",
+          "greenhouse_farm",
+          "vertical_farm",
+          "vegetable_fields",
+          "grain_fields",
+          "orchard_block",
+          "grazing_pasture",
+          "livestock_pen",
+          "chicken_coop",
+          "feed_silo",
+          "irrigation_pond",
+          "greenhouse_bay"
+        ]
+      },
+      {
+        "id": "farm-activity",
+        "title": "Watch a harvest crew arrive",
+        "steps": [
+          "At five connected modules a tractor starts working the rows. At ten a grower joins in. Farms with a pasture or livestock pen gain a moving animal.",
+          "At 25 modules grain holdings send a combine. Other holdings send a picker. At 50 modules a delivery vehicle and a grain cart or additional picker join the crew.",
+          "Zoom down to the fields and follow a machine from one end of its lane to the other. Crews stay on farm parcels, turn around, and disappear if a disconnected block loses its anchor. Pausing city time stops their work."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/expansion/farm-crew.webp",
+            "caption": "A tractor and field worker work the grain rows. The combine sits near the red barn, and the blue delivery vehicle passes the adjoining livestock parcel.",
+            "alt": "Close view of a running farm with a green tractor, yellow combine, workers, cattle and a blue delivery vehicle among planted rows.",
+            "width": 1024,
+            "height": 600
+          }
+        ]
+      },
+      {
+        "id": "school-farm-districts",
+        "title": "Build four complementary districts",
+        "steps": [
+          "High School plus Sports Field forms an Athletic Campus. School places rise 16%, the school’s recreation rises 22%, and the field’s recreation rises 20%.",
+          "Dairy beside grain forms Feed Production. The livestock site gains 24% harvest and the grain site gains 12%. Pair an orchard with an apiary for 18% more fruit and 12% more apiary income.",
+          "An adjoining University and Research Institute or Research University form an Innovation District. University education rises 20%, jobs rise 12% at the university and 18% at the research partner, and earnings rise 18% and 15% respectively.",
+          "The two working buildings must share an open, compatible boundary. The inspector shows the bonus applied to the selected participant. Extra copies of the same partner grant the same class once. Distinct district classes cap each stat at +60%."
+        ],
+        "designs": [
+          "high_school",
+          "sports_field",
+          "dairy_farm",
+          "grain_farm",
+          "university",
+          "research_institute",
+          "orchard_block",
+          "apiary"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/east-campus.jpg",
+            "caption": "The eastern district of Copper Gorge. Across the road from the farm, the school and playing field share a boundary.",
+            "alt": "The eastern district of Copper Gorge. Across the road from the farm, the school and playing field share a boundary.",
+            "width": 1190,
+            "height": 765
+          }
+        ]
+      },
+      {
+        "id": "food-and-growth",
+        "title": "Feed people where they live",
+        "steps": [
+          "Connect homes, employers and food outlets to the same street or a working passenger district. A stocked farm across an isolated access network cannot feed a household on this one.",
+          "Farm output scales by 2.35 per level and grocery or restaurant shelf capacity scales by 2.25. Farm gates can sell 52% of current harvest directly. Staffed powered restaurants prepare extra portions from local deliveries, and funded markets can buy an import shortfall.",
+          "In God mode, connected housing welcomes the first residents quickly and mature towns grow toward the jobs, food, drinking water, power and sanitation they provide. God controls can hold population or happiness, direct local production, or increase resources while experimenting.",
+          "Real mode consumes one meal per 115 residents per simulation second. Survival consumes one per 103. Sustained loss of essentials still costs residents. Expand services alongside housing and check local inventory, farm harvest, employed workers and meal fulfillment in Accounts."
+        ],
+        "designs": [
+          "grocery_store",
+          "restaurants",
+          "farm_houses",
+          "greenhouse_farm"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/city/food-accounts.webp",
+            "caption": "City accounts separates agricultural production, distribution, consumption and stock. Watch consumption as the population changes.",
+            "alt": "City accounts separates agricultural production, distribution, consumption and stock. Watch consumption as the population changes.",
+            "width": 1160,
+            "height": 410
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "railworks",
+    "label": "Roads & rail",
+    "title": "From a two-lane street to a working railway",
+    "intro": "Use one entrance, one route and one delivery to diagnose a network before building a larger one.",
+    "cover": "/handbook/rail/steam.webp",
+    "lessons": [
+      {
+        "id": "road-tiers",
+        "title": "Widen the right road",
+        "steps": [
+          "Start with a connected two-lane street between two working entrances. Select a road in Connections to inspect demand and car access. A road serving a single isolated site generates no through journeys. Rush hour raises demand and traffic tails off at night.",
+          "Vehicle roads have a starting standard and ten upgrades. Passing bays, turning pockets, protected turns and collector lanes appear as the street evolves. Later standards add priority lanes, adaptive junctions and express approaches. Use the atlas to compare all eleven.",
+          "A new local street reserves one tile across, a highway two, and a freeway three. Leave the shoulder clear when laying a broad approach. Old highways retain their saved alignment. In Public works, inspect lane settings, entrances and shared traffic loads before widening a bottleneck."
+        ],
+        "designs": [
+          "roads",
+          "two_lane_roads",
+          "dirt_roads",
+          "pretty_roads",
+          "highways",
+          "freeways",
+          "over_passes",
+          "underpasses"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/street-cross-sections.webp",
+            "caption": "Game road models show the two-lane starter, advanced markings and the physical widths of highways and freeways.",
+            "alt": "Game road models show the two-lane starter, advanced markings and the physical widths of highways and freeways.",
+            "width": 1060,
+            "height": 888
+          },
+          {
+            "image": "/handbook/catalog/roads.webp",
+            "caption": "All eleven road standards in the design atlas. Open the plate to see markings and hardware at each level.",
+            "alt": "All eleven road standards in the design atlas. Open the plate to see markings and hardware at each level.",
+            "width": 2265,
+            "height": 879
+          },
+          {
+            "image": "/handbook/scenes/street-inspector.jpg",
+            "caption": "The road inspector reports the selected segment’s lanes, traffic and capacity along with its next upgrade.",
+            "alt": "The road inspector reports the selected segment’s lanes, traffic and capacity along with its next upgrade.",
+            "width": 668,
+            "height": 520
+          }
+        ]
+      },
+      {
+        "id": "building-spans",
+        "title": "Cross water, ravines and shipping lanes",
+        "steps": [
+          "Choose Bridge in Land & water. Select the transport mode and construction, then draw a straight run from bank to bank. Inspect the entire crossing before confirming. The ends need a usable approach and the deck must clear the channel.",
+          "Rail can use a timber trestle, masonry viaduct, riveted steel truss, modern elevated railway or high-level crossing. Continue the tracks along the span axis on each bank. A sideways track at midspan cannot reach the deck.",
+          "Select the span and upgrade the whole crossing. Short spans stay modest. Long stone spans acquire towers, suspension spans gain a vermilion cable profile, and steel crossings become blue lattice landmarks. Vessel clearance and opening lifts still affect the route beneath.",
+          "Minimum rise is 1 m for timber, 1.5 m for masonry, 2 m for steel, 2.5 m for modern elevated rail and 3.5 m for a high-level crossing. A whole-span upgrade adds 0.125 m of deck clearance while preserving the bank approaches. Road decks have eleven standards. Rail and foot decks have five."
+        ],
+        "designs": [
+          "bridges",
+          "stone_bridges",
+          "suspension_bridges",
+          "train_tracks"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/railway-crossings.webp",
+            "caption": "The installed rail bridge geometry for all five constructions.",
+            "alt": "The installed rail bridge geometry for all five constructions.",
+            "width": 1060,
+            "height": 888
+          },
+          {
+            "image": "/handbook/scenes/landmark-crossings.webp",
+            "caption": "Road spans acquire piers, towers and suspended sections across the whole crossing.",
+            "alt": "Road spans acquire piers, towers and suspended sections across the whole crossing.",
+            "width": 1060,
+            "height": 888
+          }
+        ]
+      },
+      {
+        "id": "operating-passengers",
+        "title": "Dispatch a passenger train",
+        "steps": [
+          "Build a depot and at least two passenger stops with a continuous track against the platform edges. Connect the stops to homes and jobs by road or foot. Select the depot and open Rail Operations.",
+          "Choose Lines, add passenger stops in travel order, then set a schedule and frequency. A shuttle reverses at the end. A working train follows its rails, waits at platforms and carries riders between real stops. Delivered riders can relieve road demand.",
+          "Steam and diesel can move passengers or freight. A commuter train carries local passengers. Electric locomotives require catenary at the depot. High-speed express is a passenger option at a developed depot. Fit a formation within the shortest served platform."
+        ],
+        "designs": [
+          "train_depots",
+          "train_stops",
+          "train_tracks"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/rail-passenger-bridge.webp",
+            "caption": "The Orchard Valley steam local climbs onto a steel railway bridge with its passenger coaches.",
+            "alt": "The Orchard Valley steam local climbs onto a steel railway bridge with its passenger coaches.",
+            "width": 1024,
+            "height": 592
+          }
+        ],
+        "stock": [
+          {
+            "image": "/handbook/rail/steam.webp",
+            "name": "Prairie steam",
+            "detail": "Depot level 1 · Passenger or freight"
+          },
+          {
+            "image": "/handbook/rail/diesel.webp",
+            "name": "Road diesel",
+            "detail": "Depot level 2 · Passenger or freight"
+          },
+          {
+            "image": "/handbook/rail/commuter.webp",
+            "name": "Double-deck commuter",
+            "detail": "Depot level 3 · Passenger service"
+          },
+          {
+            "image": "/handbook/rail/electric.webp",
+            "name": "Electric locomotive",
+            "detail": "Depot level 4 · Passenger or freight"
+          },
+          {
+            "image": "/handbook/rail/express.webp",
+            "name": "High-speed express",
+            "detail": "Depot level 5 · Passenger service"
+          }
+        ]
+      },
+      {
+        "id": "rail-console",
+        "title": "Use the six Rail Operations tabs",
+        "steps": [
+          "For a ready-to-run railway, open Switchyard City, expand the island guide and choose Open Orchard Valley rail yard. The passenger and freight trains share a turnout and a steel bridge. Reopen the yard to revisit your changes.",
+          "Overview shows actual stations, tracks, routes and connectivity problems. Inspect the switches if a reachable-looking branch is unavailable.",
+          "Lines sets the route, stations, frequency and active periods. Trains manages locomotives and assignments. Cars assembles the formation and shows the resulting capacity.",
+          "Cargo chooses eligible sources and recipients and matches them with appropriate freight cars. Upgrades extends platform length, adds sidings and signals, supports electric traction and improves freight handling. Read the current price and requirements before ordering."
+        ],
+        "designs": [
+          "train_depots"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/rail-operations-desktop.webp",
+            "caption": "Overview shows the actual yard, passenger stations, freight terminals and running trains.",
+            "alt": "Overview shows the actual yard, passenger stations, freight terminals and running trains.",
+            "width": 988,
+            "height": 680
+          },
+          {
+            "image": "/handbook/scenes/rail-operations-mobile.webp",
+            "caption": "On a phone, Cars shows the locomotive, each wagon in order, and controls for changing the formation.",
+            "alt": "On a phone, Cars shows the locomotive, each wagon in order, and controls for changing the formation.",
+            "width": 393,
+            "height": 796
+          }
+        ]
+      },
+      {
+        "id": "freight-delivery",
+        "title": "Send a load that benefits real businesses",
+        "steps": [
+          "Build freight terminals at both ends and join them by rail. In Cargo, choose a nearby supplier, a receiver and a contract. Add cars designed for the load. A grain hopper and a refrigerated wagon serve different contracts.",
+          "Grain and produce go from field to market. Refrigeration serves dairy and other cold food. Livestock, coal, waste and recycling, timber, fuel and manufactured goods each have eligible destinations. Coal can help a power station, waste can help a processing site, and goods can help a commercial district.",
+          "Watch a train finish loading, travel and unload. The delivery counter rises at the receiving terminal, trade receipts enter city accounts and a matching site receives a temporary benefit. Industry continues operating between deliveries.",
+          "Food cars draw down the supplier’s actual harvest. Other operating producers accumulate limited stock over time. Two trains at one platform share the available load. Unloading records a receipt and transferred food arrives in the receiver’s stock."
+        ],
+        "designs": [
+          "freight_rail_terminal",
+          "open_pit_mine",
+          "coal_powerplants",
+          "landfill",
+          "factories",
+          "grocery_store"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/rail-freight-terminal.webp",
+            "caption": "The grain service pulls freight cars alongside the loading platform in Orchard Valley.",
+            "alt": "The grain service pulls freight cars alongside the loading platform in Orchard Valley.",
+            "width": 1024,
+            "height": 592
+          }
+        ],
+        "stock": [
+          {
+            "image": "/handbook/rail/coach.webp",
+            "name": "Passenger coach",
+            "detail": "24 passenger places"
+          },
+          {
+            "image": "/handbook/rail/observation.webp",
+            "name": "Observation car",
+            "detail": "18 passenger places"
+          },
+          {
+            "image": "/handbook/rail/sleeper.webp",
+            "name": "Sleeper",
+            "detail": "16 passenger places"
+          },
+          {
+            "image": "/handbook/rail/hopper.webp",
+            "name": "Grain hopper",
+            "detail": "22 freight units"
+          },
+          {
+            "image": "/handbook/rail/gondola.webp",
+            "name": "Coal gondola",
+            "detail": "26 freight units"
+          },
+          {
+            "image": "/handbook/rail/reefer.webp",
+            "name": "Refrigerated car",
+            "detail": "18 freight units"
+          },
+          {
+            "image": "/handbook/rail/livestock.webp",
+            "name": "Livestock wagon",
+            "detail": "16 freight units"
+          },
+          {
+            "image": "/handbook/rail/waste.webp",
+            "name": "Waste container",
+            "detail": "24 freight units"
+          },
+          {
+            "image": "/handbook/rail/flat.webp",
+            "name": "Timber flat",
+            "detail": "24 freight units"
+          },
+          {
+            "image": "/handbook/rail/tanker.webp",
+            "name": "Fuel tanker",
+            "detail": "23 freight units"
+          },
+          {
+            "image": "/handbook/rail/container.webp",
+            "name": "Intermodal well car",
+            "detail": "30 freight units"
+          },
+          {
+            "image": "/handbook/rail/box.webp",
+            "name": "Boxcar",
+            "detail": "20 freight units"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sanctuaries",
+    "label": "Faith & recovery",
+    "title": "People, places of worship and a second chance",
+    "intro": "Community buildings contribute to daily life. An LDS Temple also gives an island a place to begin again after a catastrophe.",
+    "cover": "/handbook/scenes/temple-blessing.jpg",
+    "lessons": [
+      {
+        "id": "faith-services",
+        "title": "Read a community’s contribution",
+        "steps": [
+          "Connect a Church, Graveyard, Christian Church, Monastery, Mosque, Synagogue, Temple or LDS Temple and select Connections. The site shows the total happiness, crime relief, government-service relief and firefighting support provided across the island.",
+          "Coverage increases with upgraded sites and declines as population grows. Diminishing returns cap the island-wide bonuses at eight happiness points, twelve crime points, 15% government-demand relief and 22% faster fire response. Police, government and fire crews retain their own roles."
+        ],
+        "designs": [
+          "churches",
+          "graveyards",
+          "christian_churches",
+          "monasteries",
+          "mosques",
+          "synagogues",
+          "temples",
+          "lds_temples"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/temple-blessing.jpg",
+            "caption": "The faith inspector reports how connected community sites support city services.",
+            "alt": "The faith inspector reports how connected community sites support city services.",
+            "width": 1190,
+            "height": 765
+          }
+        ]
+      },
+      {
+        "id": "temple-events",
+        "title": "Watch for a temple blessing",
+        "steps": [
+          "A working LDS Temple can occasionally trigger Bountiful harvest, Clear passage, Day of fellowship, Helping hands or Flourishing trade. The city shows the event and colored lights rise around the temple. Open Connections to check the remaining time and recent events.",
+          "Harvest adds 20% production. Clear passage trims 18% of car trips. Fellowship adds six happiness points, Helping hands speeds firefighting by 40%, and Flourishing trade adds 15% to export income. One timed blessing can be active. Pausing or saving does not advance its timer.",
+          "In God mode, select a blessing and choose Invoke blessing to see its effect immediately. A rare Safe harbor blessing can repel a new invasion before it reaches the island."
+        ],
+        "designs": [
+          "lds_temples"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/temple-blessing.jpg",
+            "caption": "Bountiful harvest is active at the Copper Gorge temple. The inspector shows emergency places and the remaining blessing time.",
+            "alt": "Bountiful harvest is active at the Copper Gorge temple. The inspector shows emergency places and the remaining blessing time.",
+            "width": 1190,
+            "height": 765
+          },
+          {
+            "image": "/handbook/scenes/temple-mobile.jpg",
+            "caption": "On a phone, a blessing can be changed in the same contextual inspector.",
+            "alt": "On a phone, a blessing can be changed in the same contextual inspector.",
+            "width": 390,
+            "height": 844
+          }
+        ]
+      },
+      {
+        "id": "sanctuary-recovery",
+        "title": "Rebuild after a catastrophe",
+        "steps": [
+          "During an invasion or a residential fire, existing residents can take refuge. A level-one temple shelters eight people. Levels two through five provide 15, 25, 40 and 60 places. Temples remain standing even if roads and homes around them are destroyed.",
+          "Sheltered residents are counted once in the island population. Shelter pauses the Survival population-loss countdown. If a city loses its connected housing and runs out of funds, one emergency grant can replenish the treasury to $200.",
+          "Rebuild safe homes and connect them. Choose Rehouse residents in the temple inspector when enough beds are ready, or let residents return automatically. Reopening a save preserves their shelter and the blessing clock."
+        ],
+        "designs": [
+          "house",
+          "roads",
+          "lds_temples"
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/sanctuary-recovery.jpg",
+            "caption": "After an invasion destroyed both homes in this test island, eight surviving residents remained in the temple. The inspector lets them return when safe housing is ready.",
+            "alt": "After an invasion destroyed both homes in this test island, eight surviving residents remained in the temple. The inspector lets them return when safe housing is ready.",
+            "width": 1100,
+            "height": 720
           }
         ]
       }

@@ -126,9 +126,9 @@ export function createCanalDistrict() {
     ["bus_stops", -4, -6, 1, 1],
     ["bus_stops", 2, -6, 2, 0],
     ["villas", -4, 3, 2, 1],
-    ["gardens", -2, 3, 2, 0],
+    ["grocery_store", -2, 3, 2, 0],
     ["beach_houses", -1, 4, 2, 2],
-    ["townhomes", 0, 3, 1, 3],
+    ["townhomes", 4, 3, 1, 3],
     ["townhomes", 1, 3, 1, 0],
     ["restaurants", 9, 3, 2, 1],
     ["orchards", 11, 4, 2, 1],
@@ -202,6 +202,7 @@ export function createCanalDistrict() {
   onStreet("terraced_glasshouses", 12, 9, 1, 4, 1);
   onStreet("bakery_coop", 14, 3, 1, 3, 0);
   const facing: [string, number, number, number][] = [
+    ["grocery_store", -2, 3, 2],
     ["businesses", 5, 3, 2],
     ["municipal_reservoir", 6, 4, 2],
     ["cheesesteak_restaurants", -3, -8, 1],
@@ -230,6 +231,8 @@ export function createCanalDistrict() {
     [7, 6],
     [9, 6],
   ]);
+  // The west promenade has its own market and a kitchen garden behind the villas.
+  place("gardens", -2, 4, 2, 1);
   place("sail_boats", 11, 0);
   place("boats", 15, 0);
   recomputeConnectivityAndMetrics(s);

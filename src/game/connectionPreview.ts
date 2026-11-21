@@ -54,6 +54,21 @@ meets("terraced_glasshouses","farm_houses");
 meets("regional_airport flying_car_depot teleportation_depot","bus_stops");
 meets("floodplain_park hanging_garden_arcology skybridge_university spaceport","paths");
 
+meets("preschool country_schoolhouse elementary_school middle_school trade_school community_college","roads");
+meets("high_school","sports_field");
+meets("sports_field","high_school");
+meets("university","research_institute");
+meets("research_institute research_university","university");
+meets("vegetable_farm","vegetable_fields");
+meets("grain_farm","dairy_farm");
+meets("dairy_farm","grain_farm");
+meets("poultry_farm","chicken_coop");
+meets("cattle_ranch horse_ranch","grazing_pasture");
+meets("apiary","orchard_block");
+meets("orchard_block","apiary");
+meets("vineyard rice_farm","irrigation_pond");
+meets("greenhouse_farm vertical_farm","greenhouse_bay");
+meets("vegetable_fields grain_fields grazing_pasture livestock_pen chicken_coop feed_silo irrigation_pond greenhouse_bay","farm_houses");
 function model(id:string,level:number,rotation:number): PlacedElement {
   const [w,h]=getStandardFootprintForLevel(ELEMENT_BY_ID[id],level);
   return {id:id+"-guide",defId:id,gx:0,gz:0,rotation,level,spanX:rotation%2?h:w,spanZ:rotation%2?w:h,

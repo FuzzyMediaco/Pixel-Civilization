@@ -87,7 +87,7 @@
     "ids": [
       "mansions"
     ],
-    "join": "A walled estate keeps a formal street gate, adds a gardener’s gate toward planted land and opens views toward water.",
+    "join": "A walled estate keeps a formal street gate, adds a gardenerâ€™s gate toward planted land and opens views toward water.",
     "effect": "Grounds connected to a garden path gain recreation. Service calls use the working gate when it has a road connection."
   },
   {
@@ -95,7 +95,7 @@
       "skyscrapers"
     ],
     "join": "Keep the tower on its podium as it rises. Ground-floor arcades meet sidewalks and stations, and compatible high-level entrances may form a skybridge.",
-    "effect": "The station distributes a tower’s commuter peak. A skybridge moves pedestrians only between matching floors. Shade from the tower can reduce neighboring solar output."
+    "effect": "The station distributes a towerâ€™s commuter peak. A skybridge moves pedestrians only between matching floors. Shade from the tower can reduce neighboring solar output."
   },
   {
     "ids": [
@@ -319,14 +319,14 @@
       "trash_burning_plants"
     ],
     "join": "A covered waste receiving hall faces collection routes and a heat main can meet a neighboring industrial or civic site.",
-    "effect": "Waste supplies generation. A reachable heat customer gains useful heat, and downwind lots receive the plant’s emissions."
+    "effect": "Waste supplies generation. A reachable heat customer gains useful heat, and downwind lots receive the plantâ€™s emissions."
   },
   {
     "ids": [
       "wind_farms"
     ],
     "join": "Stagger neighboring rows of turbines, continuing their service tracks into a shared substation.",
-    "effect": "Ridge exposure improves wind yield. Placing rows directly in each other’s wake lowers the downstream row’s output."
+    "effect": "Ridge exposure improves wind yield. Placing rows directly in each otherâ€™s wake lowers the downstream rowâ€™s output."
   },
   {
     "ids": [
@@ -431,7 +431,7 @@
       "roads"
     ],
     "join": "Merge matching road edges into continuous pavement. End curbs open only for a front-facing driveway or a signed crossing.",
-    "effect": "Vehicles route through connected lanes and legal entrances. A road along a building’s unbroken back fence offers no vehicle access."
+    "effect": "Vehicles route through connected lanes and legal entrances. A road along a buildingâ€™s unbroken back fence offers no vehicle access."
   },
   {
     "ids": [
@@ -479,7 +479,7 @@
     "ids": [
       "pretty_roads"
     ],
-    "join": "Continue a boulevard’s planted verges and streetlights, opening the median only at junctions and formal crossings.",
+    "join": "Continue a boulevardâ€™s planted verges and streetlights, opening the median only at junctions and formal crossings.",
     "effect": "A connected boulevard supports walking and local commerce. Median placement determines where cars can turn."
   },
   {
@@ -704,7 +704,7 @@
       "military_base"
     ],
     "join": "A marked gate connects internal service roads to the city network. Leave a landscaped buffer beside neighboring housing.",
-    "effect": "The game’s garrison can receive supplies through a reachable gate. Planted buffers ease the base’s disturbance to residents."
+    "effect": "The gameâ€™s garrison can receive supplies through a reachable gate. Planted buffers ease the baseâ€™s disturbance to residents."
   },
   {
     "ids": [
@@ -718,7 +718,7 @@
       "swat_team_hq"
     ],
     "join": "The operations building shares a secured yard with an adjacent police station. A marked road exit remains free of public parking.",
-    "effect": "A shared yard supports the game’s emergency dispatch. Vehicles still need a connected road to reach an incident."
+    "effect": "A shared yard supports the gameâ€™s emergency dispatch. Vehicles still need a connected road to reach an incident."
   },
   {
     "ids": [
@@ -780,7 +780,7 @@
     "ids": [
       "temples"
     ],
-    "join": "Continue a ceremonial path through the gate toward a garden, hillside stair or public plaza. Retain the sanctuary’s own entry axis.",
+    "join": "Continue a ceremonial path through the gate toward a garden, hillside stair or public plaza. Retain the sanctuaryâ€™s own entry axis.",
     "effect": "Visitors follow the approach from the street. Hillside stairs and gardens add a pilgrimage walk where terrain allows."
   },
   {
@@ -836,7 +836,7 @@
     "ids": [
       "naval_vessels"
     ],
-    "join": "Match the hull’s side to a compatible naval berth. Project the hull clearance into the approach channel.",
+    "join": "Match the hullâ€™s side to a compatible naval berth. Project the hull clearance into the approach channel.",
     "effect": "The game fleet can use ports connected by passages wide and deep enough for that vessel class."
   },
   {
@@ -920,7 +920,7 @@
     "ids": [
       "beaches"
     ],
-    "join": "Reshape a real land–water boundary into dry sand, wet sand and shallows. Continue the strand sideways and meet steps or boardwalks inland.",
+    "join": "Reshape a real landâ€“water boundary into dry sand, wet sand and shallows. Continue the strand sideways and meet steps or boardwalks inland.",
     "effect": "An accessible coastline earns beach recreation. Inland sand becomes a beach only when it meets water."
   },
   {
@@ -990,7 +990,7 @@
     "ids": [
       "alligators"
     ],
-    "join": "Connect sheltered basking banks and reed beds to a pond or swamp. Raised viewing paths stay above the animal’s water route.",
+    "join": "Connect sheltered basking banks and reed beds to a pond or swamp. Raised viewing paths stay above the animalâ€™s water route.",
     "effect": "Suitable connected wet habitat supports wildlife. Managed viewing adds recreation without forcing animals across busy paths."
   },
   {
@@ -1005,7 +1005,7 @@
       "washington_monument"
     ],
     "join": "Continue its central axis into a reflecting mall and ring of paths. The flag circles and shade trees connect along the public perimeter.",
-    "effect": "A walkable mall increases visitor access. Tall intrusions along the viewing axis reduce the landmark’s scenic reach."
+    "effect": "A walkable mall increases visitor access. Tall intrusions along the viewing axis reduce the landmarkâ€™s scenic reach."
   },
   {
     "ids": [
@@ -1025,7 +1025,7 @@
     "ids": [
       "eiffel_tower"
     ],
-    "join": "Extend the lattice tower’s four feet into garden parterres and align the main walk with a boulevard, bridge or promenade.",
+    "join": "Extend the lattice towerâ€™s four feet into garden parterres and align the main walk with a boulevard, bridge or promenade.",
     "effect": "Clear approach views increase its draw. Night illumination needs power, and the visitor gate needs a walkable approach."
   },
   {
@@ -1041,5 +1041,78 @@
     ],
     "join": "Carry a stone causeway across desert ground between the pyramids, sphinx and mortuary court. Let the sand meet the landscape outside the monuments.",
     "effect": "Visitors enter along the causeway from a reachable road or walk. The protected monument footprint and the surrounding buildable desert remain distinct."
+  },
+  {
+    "ids": [
+      "preschool",
+      "country_schoolhouse",
+      "elementary_school",
+      "middle_school",
+      "trade_school",
+      "community_college"
+    ],
+    "join": "Face the entrance toward a local street. Households and employers can reach the school through their district.",
+    "effect": "School places increase with each upgrade. The inspector describes the campus specialty."
+  },
+  {
+    "ids": [
+      "high_school",
+      "sports_field"
+    ],
+    "join": "Join the high school and the sports field along a shared edge to extend the athletics walk.",
+    "effect": "An Athletic Campus adds 16% school places, 22% school recreation and 20% field recreation."
+  },
+  {
+    "ids": [
+      "research_institute",
+      "university",
+      "research_university"
+    ],
+    "join": "Share an edge between a university and an institute or a research university to join their academic walks.",
+    "effect": "An Innovation District adds education, jobs and export income. Multiple adjacent labs grant each type of bonus once."
+  },
+  {
+    "ids": [
+      "grain_farm",
+      "dairy_farm"
+    ],
+    "join": "Place a working dairy beside grain to join the feed lane and align the loading gates.",
+    "effect": "Feed Production increases dairy yield by 24% and grain yield by 12%."
+  },
+  {
+    "ids": [
+      "apiary",
+      "orchard_block"
+    ],
+    "join": "Share an edge between fruit trees and hives to open their pollinator lane.",
+    "effect": "Orchard Pollination increases fruit yield by 18% and the apiary's export income by 12%."
+  },
+  {
+    "ids": [
+      "vegetable_farm",
+      "poultry_farm",
+      "cattle_ranch",
+      "horse_ranch",
+      "rice_farm",
+      "vineyard",
+      "greenhouse_farm",
+      "vertical_farm"
+    ],
+    "join": "Give an anchor a road entrance, then share an edge with fields, a pasture or another agricultural attachment.",
+    "effect": "The anchored operation serves its connected modules. Its inspector reports each parcel once and shows how larger holdings unlock farm activity."
+  },
+  {
+    "ids": [
+      "vegetable_fields",
+      "grain_fields",
+      "grazing_pasture",
+      "livestock_pen",
+      "chicken_coop",
+      "feed_silo",
+      "irrigation_pond",
+      "greenhouse_bay"
+    ],
+    "join": "Touch an active anchor or continue a chain of agricultural parcels via shared open edges.",
+    "effect": "The module contributes its own harvest and one expansion credit to its nearest working anchor. A closed boundary interrupts the chain."
   }
 ]

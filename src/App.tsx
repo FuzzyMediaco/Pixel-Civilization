@@ -1,3 +1,4 @@
+import { RailOperations } from "./components/RailOperations";
 import { rememberBuildingEdit, undoBuildingEdit } from "./game/constructionHistory";
 import { dispatchFire } from "./game/projectOperations";
 import { dispatchVessel, previewWaterPassage } from "./game/mobility";
@@ -8,6 +9,7 @@ import { MobilityPanel } from "./components/MobilityPanel";
 import { InfrastructurePanel } from "./components/InfrastructurePanel";
 import { CityEconomyPanel } from "./components/CityEconomyPanel";
 import { applyInfrastructureStroke, applyLandformPlacement, planInfrastructureStroke, type GridPoint, type InfrastructureTool } from "./game/terrain";
+import { visitPracticeRailway } from "./game/practiceRailway";
 import { ExampleIslands, WorldGuide } from "./components/ExampleIslands";
 import { EXAMPLE_WORLDS, createExampleWorld, type ExampleWorldId } from "./game/exampleWorlds";
 import { loadModeState, persistMode, resumeIsland } from "./game/activeIsland";
@@ -59,7 +61,7 @@ import {
   pushToast,
   randomVariant,
   recomputeConnectivityAndMetrics,
-  resizeElementForLevel,
+  resizeCrossing,resizeElementForLevel,
   stepSimulation,
   triggerCrimeIncident,
   upgradeElementDirect,
@@ -77,6 +79,7 @@ export const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(() => resumeIsland(location.hash));
   const stateRef = useRef<GameState>(gameState);
   const [examplesOpen,setExamplesOpen] = useState(false);
+  const [railSite,setRailSite] = useState<string>();
   const [saveError,setSaveError]=useState(false);
   const [slotError,setSlotError]=useState("");
   const saveModeState=useCallback((s:GameState)=>{const ok=persistMode(s);setSaveError(!ok);return ok;},[]);
@@ -248,6 +251,7 @@ export const App: React.FC = () => {
           animProgress: 1.0,
           animKind: "place",
           ...(overWater ? { overWater: true } : {}),
+          ...(plan.roadAxis ? {roadAxis:plan.roadAxis} : {}),
           ...(plan.pedestrianDeck ? { pedestrianDeck: true } : {}),
         };
         if (replaceId) {
@@ -574,7 +578,8 @@ export const App: React.FC = () => {
       const el = draft.elements.find((item) => item.id === id);
       if (!el) return;
       if (patch.level !== undefined) {
-        if (patch.level !== el.level && !resizeElementForLevel(draft, el, patch.level)) {
+        const crossing=draft.infrastructure?.spans[el.gx+","+el.gz];
+        if (patch.level !== el.level && !(crossing&&!crossing.run.startsWith("junction-")?resizeCrossing(draft,el,patch.level):resizeElementForLevel(draft, el, patch.level))) {
           const [w, h] = getStandardFootprintForLevel(ELEMENT_BY_ID[el.defId], patch.level);
           pushToast(draft, "alert", "More room needed", `Clear a ${w}×${h} site for this level.`);
           return;
@@ -811,6 +816,16 @@ export const App: React.FC = () => {
     setBrush(b => ({...b, kind:"none", defId:undefined, movingElementId:undefined}));
     restoreIslandView(next);
   };
+  const openRailYard=()=>{
+    try {
+      const {state:next,depot}=visitPracticeRailway(stateRef.current);
+      stateRef.current=next;
+      setGameState(next);saveActiveMode(next);
+      const site=next.elements.find(e=>e.id===depot)!;
+      setSelectedIds([depot]);setCameraMode("pan");rendererRef.current?.setCameraMode("pan");
+      rendererRef.current?.focusGrid(site.gx+5,site.gz-1,50);setRailSite(depot);
+    } catch(error) {commitState(d=>pushToast(d,"alert","Orchard Valley rail yard",error instanceof Error?error.message:"The yard could not be opened."));}
+  };
   const visitViewpoint = (index: number) => {
     if (!activeExample) return;
     const point = activeExample.viewpoints[index] ?? activeExample.camera;
@@ -837,10 +852,13 @@ export const App: React.FC = () => {
         aria-label="Pixel Civilization 3D Voxel Island"
       />
 
+      {railSite && gameState.elements.some(e=>e.id===railSite) && <RailOperations state={gameState} selected={gameState.elements.find(e=>e.id===railSite)!} change={editCity}
+        onClose={()=>setRailSite(undefined)} onFocus={e=>{setRailSite(undefined);focusSite(e.id);}}
+        onTrack={e=>{setRailSite(undefined);rendererRef.current?.focusElement(e.id);handleSelectBrushDef("train_tracks");}}/>}
       {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
         error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
       {activeExample && !overlay && (!desk || folded) && !pendingWorks && !dispatchTarget &&
-        <WorldGuide key={activeExample.id} world={activeExample} selected={gameState.exampleViewpoint} onVisit={visitViewpoint} onBrowse={openExamples}/>}
+        <WorldGuide key={activeExample.id} world={activeExample} selected={gameState.exampleViewpoint} onVisit={visitViewpoint} onBrowse={openExamples} onRailYard={openRailYard}/>}
       {saveError&&<p className="storage-notice" role="alert">This island could not be saved in browser storage. Keep the game open while you free space.</p>}
       {dispatchTarget&&<div className="works-confirm" role="status">Tap the water where you want this vessel to sail.<button onClick={()=>{setDispatchTarget(undefined);setFolded(false);}}>Cancel voyage</button></div>}
       {pendingWorks&&worksPreview&&<div className="works-confirm" role="status"><strong>{pendingWorks.tool.kind} · {worksPreview.points.length} tiles</strong>
@@ -850,7 +868,7 @@ export const App: React.FC = () => {
         <button onClick={()=>setPendingWorks(null)}>Cancel</button></div>}
       {!topMenuOpen&&<CityBar s={gameState} onOpen={openScore}/>}
       {(!desk||folded)&&<button className="island-launch" onClick={()=>{if(desk)setFolded(false);else openDesk("works");}}>{folded?"Return to "+tabs[desk!]:"Island tools"}</button>}
-      {desk&&!folded&&<aside className="island-desk" aria-label="Island tools">
+      {desk&&!folded&&<aside key={desk === "connections" ? desk + selected?.id : desk} className="island-desk" aria-label="Island tools">
         <header><h2>{tabs[desk]}</h2><div className="island-actions"><button aria-label="Fold tools to view the map" onClick={()=>setFolded(true)}>View map</button><button aria-label="Close island tools" onClick={closeDesk}>×</button></div></header>
         <nav aria-label="Island tool sections">{(Object.keys(tabs) as DeskTab[]).filter(t=>(t!=="god"||gameState.mode==="god")&&(t!=="connections"||selected)).map(t=><button key={t} aria-current={desk===t} onClick={()=>openDesk(t)}>{tabs[t]}</button>)}</nav>
         {desk==="works"&&returnLine&&<button className="desk-back" onClick={()=>openDesk("transit")}>← Back to {returnLine.replace("line-","service #")}</button>}
@@ -1070,6 +1088,7 @@ export const App: React.FC = () => {
           setBrush((b) => ({ ...b, kind: "move", movingElementId: id, defId: undefined }))
         }
         onInspectSystems={()=>openDesk("connections")}
+        onRailOperations={()=>setRailSite(selected?.id)}
         onOpenWorks={()=>openDesk("works")}
         onUpgradeSelected={handleUpgradeSelected}
         onMaintainSelected={handleMaintainSelected}

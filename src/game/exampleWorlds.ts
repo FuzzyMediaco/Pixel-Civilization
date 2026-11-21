@@ -145,6 +145,10 @@ export const EXAMPLE_WORLDS: readonly ExampleWorld[] = [
         37,
         "Inspect the spring on the mountain and follow its water through the aqueduct. Redirect the final outlet to make a spill, or erase one segment and use Undo to restore the flow.",
       ),
+      view("The east campus and creamery", -46, -19, 38,
+        "Inspect the dairy and grain farms, follow the modules across the pens, and select the high school beside the sports field."),
+      view("The sanctuary on the ridge", -38, -20, 25,
+        "Inspect the LDS Temple in Connections. Try a blessing in God controls or help sheltered residents return to rebuilt homes."),
     ],
   },
   {
@@ -252,6 +256,7 @@ class District {
       animKind: "place",
       animProgress: 0,
       overWater: plan.overWater,
+      roadAxis: plan.roadAxis,
       pedestrianDeck: plan.pedestrianDeck,
     };
     if (plan.replaceId) {
@@ -308,6 +313,7 @@ class District {
     for (let i = 0; i < seconds; i++) stepSimulation(s, 1, true);
     s.timeLocked = s.weatherLocked = false;
     if (s.infrastructure) s.infrastructure.undo = [];
+    s.toasts = []; // Events earned during scenario preparation are already in its history.
     return s;
   }
 }
@@ -513,6 +519,18 @@ function copperGorge() {
   d.place("fields", 5, 1, 1, 2, 2);
   d.place("fields", 6, 1, 1, 2, 3);
   d.place("fields", 5, 3, 1, 0, 0);
+  // The eastern road leads from the original five-field farm to the new campus and creamery.
+  d.path("roads", [12,-1], [27,-1]);
+  d.front("dairy_farm", 14, -1, 1, 3, 0);
+  d.front("grain_farm", 16, -1, 1, 3, 1);
+  d.place("grazing_pasture", 14, 2, 1, 0, 0);
+  d.place("livestock_pen", 15, 2, 1, 0, 1);
+  d.place("feed_silo", 16, 2, 1, 0, 0);
+  d.place("grain_fields", 17, 2, 1, 0, 1);
+  d.place("grain_fields", 18, 2, 1, 0, 2);
+  d.front("high_school", 17, -1, -1, 3, 1);
+  d.front("sports_field", 20, -1, -1, 2, 2);
+  d.front("lds_temples", 24, -1, -1, 4, 0);
   d.front("grocery_store", 8, -1, -1, 3, 1);
   d.front("townhomes", 10, -1, 1, 1, 0);
   d.front("municipal_reservoir", 5, -1, -1, 3, 0);
@@ -677,7 +695,7 @@ function switchyardCity() {
   d.front("police_departments", 0, -9, -1, 2, 2);
   d.front("water_towers", 3, -9, -1, 3, 2);
   const call = d.front("shops", -6, -9, 1, 2, 0);
-  d.front("school", -9, -9, 1, 3, 0);
+  d.front("school", -8, -9, -1, 3, 0);
   d.front("park", 6, 7, 1, 3, 1);
   d.front("grocery_store", -2, 7, 1, 3, 1);
   d.front("townhomes", 1, 7, 1, 3, 0);

@@ -525,7 +525,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({ state, open, onClose
                 <div className="rounded-lg border border-stone-200 bg-white p-3">
                   <div className="font-display font-bold text-stone-900">Real Mode</div>
                   <p className="mt-1">
-                    Begin at Stage 1: Village with 10 core starters. Link homes to jobs & utilities
+                    Begin at Stage 1: Village with {ELEMENTS.filter(e => e.isStarter).length} starter choices. Link homes to jobs & utilities
                     via roads, keep Happiness above 65%, manage Crime & Police (Stage 5+) and
                     Defense (Stage 10+), and progress through all 20 Stages.
                   </p>

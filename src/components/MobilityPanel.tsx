@@ -1,3 +1,4 @@
+import { replanRailStops } from "../game/mobility";
 import { GRID_MIN, GRID_MAX } from "../game/mapBounds";
 import React, { useEffect, useState } from "react";
 import { ELEMENT_BY_ID } from "../game/catalog";
@@ -77,6 +78,11 @@ export function MobilityPanel({
   const create = () => {
     mutate((s) => {
       try {
+        const existing=s.mobility?.lines.find(l=>l.id===editing);
+        if(existing?.mode==="rail"){
+          if(mode!=="rail"||existing.depot!==chosen)throw Error("Reassign this train in Rail Operations.");
+          replanRailStops(s,existing,stops);setEditing("");setShowBuilder(false);setMessage("Updated the railway timetable.");return;
+        }
         const id = addLine(s, mode, chosen, stops);
         if (editing) {
           const prior = s.mobility!.lines.find((l) => l.id === editing),

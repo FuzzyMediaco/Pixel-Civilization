@@ -1,3 +1,4 @@
+import { activeBlessing } from "./faith";
 import { ELEMENT_BY_ID } from "./catalog";
 import { roadCapacity, tripsFor } from "./cityDynamics";
 import { reliefAtStops } from "./mobility";
@@ -52,7 +53,7 @@ export function streetDemand(state: GameState) {
   }
   let carTrips = 0;
   for (const [id, gross] of hourly) {
-    const net = gross - Math.min(0.7 * gross, relief.get(id) ?? 0);
+    const net = (gross - Math.min(0.7 * gross, relief.get(id) ?? 0)) * (activeBlessing(state) === "roads" ? .82 : 1);
     hourly.set(id, net / appearances.get(id)!);
     carTrips += net;
   }

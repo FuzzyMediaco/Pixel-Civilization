@@ -3,6 +3,7 @@ import { GRID_SIZE, GRID_HALF } from "./mapBounds";
 import { patrolPosition } from "./policeDispatch";
 import { getTravelNetwork, travelSignature, type TravelNetwork } from "./travelNetwork";
 import { advanceCarSegment, departureInterval, getRoadTripNetwork, roadTripPoints, trafficFleetTarget, type RoadTrip, type RoadTripNetwork, type TripPoint } from "./roadTraffic";
+import { FarmActivityVisuals } from "./farmActivity";
 import { MobilityVisuals, voyagePlacement } from "./mobilityVisuals";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -29,6 +30,7 @@ import {
   matchesSelectionFilter,
   worldToGrid,
 } from "./simulation";
+import { TempleLights } from "./faithVisuals";
 import { EngineeringView, maskOceanFragment } from "./engineeringView";
 import { elevationFromMargin, getTerrainCell, planInfrastructureStroke, registerRoadDemand, roadPortOpen, roadTravelOpen, surfaceTravelHeight, tileKey, type InfrastructureTool, type GridPoint } from "./terrain";
 import { networkRoadProfile } from "./designs/networks";
@@ -36,6 +38,7 @@ import { planFirstStreetFacing } from "./streetFacing";
 import { encodeRoadSitePort } from "./roadTopology";
 import { cellBeyondEdge, getParcelEdgeKey, getParcelEdges } from "./parcelEdges";
 import { getParcelSoils } from "./parcelGeometry";
+import {roadReservation,corridorArt} from "./roadCorridors";
 import { buildPlacedGroupFromAsset, getOrBuildElementAsset, releaseParcelGeometry } from "./voxelArchitect";
 import {
   PixelVox,
@@ -257,6 +260,7 @@ export class PixelWorldRenderer {
   private canvas: HTMLCanvasElement;
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
+  private farmActivity: FarmActivityVisuals;
   private mobilityVisuals: MobilityVisuals;
   private following?: string;
   private activeTravel?: TravelNetwork;
@@ -285,6 +289,7 @@ export class PixelWorldRenderer {
   private skyBgColor = new THREE.Color(0xc2e9ff);
   private fogColor = new THREE.Color(0xd7f0ff);
 
+  private templeLights = new TempleLights();
   private engineering = new EngineeringView(true);
   private worksTool:InfrastructureTool|null=null;
   private worksStroke:GridPoint[]=[];
@@ -472,6 +477,7 @@ export class PixelWorldRenderer {
 
     // 2. Scene, Sky & Environment
     this.scene = new THREE.Scene();
+    this.farmActivity = new FarmActivityVisuals(this.scene);
     this.mobilityVisuals = new MobilityVisuals(this.scene, getVehicleGeometry);
     this.scene.background = new THREE.Color(0xc2e9ff);
     this.scene.fog = new THREE.FogExp2(0xd7f0ff, 0.0021);
@@ -513,7 +519,7 @@ export class PixelWorldRenderer {
 
     // 5. Build Terrain + Ocean + Weather + Scene Hierarchy
     this.buildIslandAndOcean();
-    this.scene.add(this.engineering.group,this.engineering.preview);
+    this.scene.add(this.engineering.group,this.engineering.preview,this.templeLights.group);
     this.buildWeatherVisuals();
     this.scene.add(this.islandGroup);
     this.scene.add(this.heatmapGroup);
@@ -897,7 +903,8 @@ export class PixelWorldRenderer {
       const edges = getParcelEdges(pose, occupancy, state).filter(e => !["road","rail","channel"].includes(e.kind));
       const soils = def.domain === "land" ? getParcelSoils(state, pose) : undefined;
       const lighting = el.exteriorLighting ?? "auto";
-      const renderKey = `${terrainOverbuilt?"coexist":""}|${worksSpan?.run??""}|${el.defId}|L${el.level}|V${el.variant}|${localSpanX}x${localSpanZ}|R${el.rotation}|C${connMask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}`;
+      const corridor=corridorArt(el,occupancy);
+      const renderKey = `${JSON.stringify(corridor)??""}|${terrainOverbuilt?"coexist":""}|${worksSpan?.run??""}|${el.defId}|L${el.level}|V${el.variant}|${localSpanX}x${localSpanZ}|R${el.rotation}|C${connMask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}`;
 
       let entry = this.placedEntries.get(el.id);
       const [wx, wz] = gridToWorldCenter(el.gx, el.gz, el.spanX, el.spanZ);
@@ -925,7 +932,7 @@ export class PixelWorldRenderer {
           localSpanX,
           localSpanZ,
           connMask,
-          { edges, soils, lighting },
+          { edges, soils, lighting, corridor },
         );
         const group = buildPlacedGroupFromAsset(asset, false);
         group.position.set(wx, baseY, wz);
@@ -1246,12 +1253,15 @@ export class PixelWorldRenderer {
       const [wx, wz] = gridToWorldCenter(el.gx, el.gz, el.spanX, el.spanZ);
 
 
-      const box = new THREE.BoxGeometry(el.spanX * TILE_SIZE + 0.16, h, el.spanZ * TILE_SIZE + 0.16);
+      const reserved=el.roadAxis?roadReservation(el):undefined;
+      const minX=reserved?Math.min(...reserved.map(([x])=>x)):el.gx,minZ=reserved?Math.min(...reserved.map(([,z])=>z)):el.gz;
+      const width=reserved?Math.max(...reserved.map(([x])=>x))-minX+1:el.spanX,depth=reserved?Math.max(...reserved.map(([,z])=>z))-minZ+1:el.spanZ;
+      const box = new THREE.BoxGeometry(width * TILE_SIZE + 0.16, h, depth * TILE_SIZE + 0.16);
       const edges = new THREE.EdgesGeometry(box);
       box.dispose();
       const col = 0xf4c44e;
       const seg = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: col }));
-      seg.position.set(wx, baseY + h * 0.5, wz);
+      seg.position.set(reserved?(minX+width/2)*TILE_SIZE:wx, baseY+h*.5,reserved?(minZ+depth/2)*TILE_SIZE:wz);
       this.overlayGroup.add(seg);
       this.selectionOutlines.push(seg);
     });
@@ -1419,8 +1429,8 @@ export class PixelWorldRenderer {
     const pose = { ...moving, defId: def.id, gx, gz, spanX, spanZ, rotation: def.isNetwork ? 0 : rotation };
     // Use the same prospective orientation on the first local street as the committed edit.
     if (placement?.valid && def.isRoadNetwork) {
-      for (const {site,rotation:newFacing} of planFirstStreetFacing(pose,occupancy,this.gameState)) {
-        const turned={...site,rotation:newFacing};
+      for (const {site,rotation:newFacing,autoDrive} of planFirstStreetFacing(pose,occupancy,this.gameState)) {
+        const turned={...site,rotation:newFacing,autoDrive:autoDrive??site.autoDrive};
         for(let x=site.gx;x<site.gx+site.spanX;x++)for(let z=site.gz;z<site.gz+site.spanZ;z++){
           occupancy.set(tileKey(x,z),turned);
         }
@@ -1457,13 +1467,15 @@ export class PixelWorldRenderer {
     const oddRot = rotation % 2 === 1;
     const localSpanX = def.isNetwork || !oddRot ? spanX : spanZ;
     const localSpanZ = def.isNetwork || !oddRot ? spanZ : spanX;
-    const wantedGhostKey = `${def.id}|L${level}|V${variant}|${localSpanX}x${localSpanZ}|C${mask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}|${chk.valid ? "ok" : "bad"}`;
+    const corridor=corridorArt({gx,gz,defId:def.id,roadAxis:placement?.roadAxis??moving?.roadAxis},occupancy);
+    if(corridor){const a=corridor.axis==="x";this.cursorOutline.scale.set((a?1:corridor.width)*4,.25,(a?corridor.width:1)*4); if(corridor.width===2){this.cursorOutline.position.x+=a?0:2;this.cursorOutline.position.z+=a?2:0;}}
+    const wantedGhostKey = `${JSON.stringify(corridor)??""}|${def.id}|L${level}|V${variant}|${localSpanX}x${localSpanZ}|C${mask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}|${chk.valid ? "ok" : "bad"}`;
     if (this.ghostKey !== wantedGhostKey) {
       if (this.ghostGroup) {
         this.overlayGroup.remove(this.ghostGroup);
         releaseParcelGeometry(this.ghostGroup);
       }
-      const asset = getOrBuildElementAsset(def.id, level, variant, localSpanX, localSpanZ, mask, { edges, soils, lighting });
+      const asset = getOrBuildElementAsset(def.id, level, variant, localSpanX, localSpanZ, mask, { edges, soils, lighting, corridor });
       this.ghostGroup = buildPlacedGroupFromAsset(asset, true, chk.valid);
       this.overlayGroup.add(this.ghostGroup);
       this.ghostKey = wantedGhostKey;
@@ -1680,7 +1692,7 @@ export class PixelWorldRenderer {
         )
       )
         continue;
-      const points = roadTripPoints(trip);
+      const points = roadTripPoints(trip,buildOccupancyMap(state.elements));
       const id = this.carSequence++;
       const kinds: RoadVehicleKind[] = ["sedan", "mini_cooper", "truck", "sports_car", "sedan", "cybertruck"];
       const military = state.elements.some(
@@ -1783,6 +1795,7 @@ export class PixelWorldRenderer {
   }
 
   public advanceStreetTraffic(seconds: number): void {
+    this.farmActivity.update(this.gameState,seconds);
     // Keep lane following and braking stable when the simulation runs faster or steps a whole second.
     for (let left = seconds; left > 0; left -= .08) {
       const delta = Math.min(left, .08);
@@ -1900,6 +1913,7 @@ export class PixelWorldRenderer {
 
     this.oceanUniforms.uTime.value = elapsed;
     this.engineering.animate(this.gameState);
+    this.templeLights.update(this.gameState, this.placedEntries, elapsed);
     this.handleKeyboardNavigation(dt);
 
     // Animate rotors, boats bobbing, merge/place squash-stretch, and badges
@@ -3493,6 +3507,7 @@ export class PixelWorldRenderer {
     this.setHeatmap("none");
     this.clearGeography();
     this.engineering.dispose();
+    this.templeLights.dispose();
     this.disposed = true;
     this.canvas.removeEventListener("pointerdown", this.onPointerDown);
     window.removeEventListener("pointermove", this.onPointerMove);
@@ -3520,6 +3535,7 @@ export class PixelWorldRenderer {
     this.copHeadlightMat.dispose();
     this.sirenRedMat.dispose();
     this.sirenBlueMat.dispose();
+    this.farmActivity.dispose();
     this.mobilityVisuals.dispose();
     this.renderer.dispose();
   }

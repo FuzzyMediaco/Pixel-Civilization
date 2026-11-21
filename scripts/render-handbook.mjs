@@ -10,9 +10,11 @@ import path from "node:path";
 import { createCanvas } from "@napi-rs/canvas";
 import "../src/game/designs/index.ts";
 import { DESIGNS } from "../src/game/designs/registry.ts";
-import { ELEMENT_BY_ID, ELEMENTS, CATEGORY_META, getMaxElementLevel } from "../src/game/catalog.ts";
+import { ELEMENT_BY_ID, ELEMENTS, CATEGORY_META, getElementLevelName, getStandardFootprintForLevel, getMaxElementLevel } from "../src/game/catalog.ts";
 import { getGuidePartner, getNeighborPreview, getGuideVariant } from "../src/game/connectionPreview.ts";
 import { getGuideUsage } from "../src/game/guideUsage.ts";
+import {guideCarriagewayVoxels} from "../src/game/designs/carriageways.ts";
+import {roadWidth} from "../src/game/roadStandards.ts";
 import { buildDesignVoxels } from "../src/game/voxelArchitect.ts";
 import { getVoxelStyleColor, packVoxKey } from "../src/game/voxelCore.ts";
 import { handbookLayout, sheetSize } from "../src/game/handbookLayout.ts";
@@ -26,7 +28,8 @@ const CELL = handbookLayout.cell;
 function voxels(id, level, variant, mask, edges = []) {
   const def = ELEMENT_BY_ID[id],
     lv = Math.min(level, getMaxElementLevel(id));
-  const [width, depth] = DESIGNS[id].footprints[lv - 1];
+  if(mask===undefined&&roadWidth(id)>1)return guideCarriagewayVoxels(id,lv,variant);
+  const [width, depth] = getStandardFootprintForLevel(def, lv);
   const c = buildDesignVoxels(def, lv, variant, width, depth, mask ?? (def.isNetwork ? 5 : 0), { edges });
   const map = c.v.v;
   for (const r of c.rotors)
@@ -156,10 +159,10 @@ function metadata(def) {
     usage: getGuideUsage(def.id, kind, def.description),
     growth: d.growth,
     maxLevel,
-    levels: d.levels.map((name, i) => ({
+    levels: Array.from({length: Math.max(5, maxLevel)}, (_, i) => ({
       level: i + 1,
-      name,
-      dimensions: d.footprints[Math.min(maxLevel, i + 1) - 1],
+      name: maxLevel > 5 ? getElementLevelName(def, i + 1) : d.levels[i],
+      dimensions: getStandardFootprintForLevel(def, Math.min(maxLevel, i + 1)),
       legacy: i >= maxLevel,
     })),
     styles: names[def.id].map((name, index) => ({ index, name })),
@@ -190,7 +193,7 @@ function sheets() {
   for (const row of rows) {
     if (only && !only.includes(row.id)) continue;
     const { gap, left, top, cell } = handbookLayout,
-      { width: sw, height: sh } = sheetSize;
+      columns = row.levels.length, sw = left + (cell + gap) * columns, sh = sheetSize.height;
     const sheet = createCanvas(sw, sh);
     const ctx = sheet.getContext("2d");
     ctx.fillStyle = "#f8f6ed";
@@ -202,7 +205,7 @@ function sheets() {
     ctx.textAlign = "right";
     ctx.fillText(row.categoryName, sw - 11, 30);
     ctx.textAlign = "left";
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < columns; i++) {
       const l = row.levels[i],
         x = left + i * (cell + gap);
       ctx.fillStyle = l.legacy ? "#93482e" : "#376451";
@@ -223,7 +226,7 @@ function sheets() {
       ctx.fillText("STYLE " + String.fromCharCode(65 + v), 12, y + cell / 2 - 10);
       ctx.fillStyle = "#233b35";
       label(ctx, row.styles[v].name, 12, y + cell / 2 + 12, left - 20, 13, "normal", 5);
-      for (let j = 0; j < 5; j++) {
+      for (let j = 0; j < columns; j++) {
         const m = modelRows[v][Math.min(row.maxLevel, j + 1) - 1];
         if (!m.count) throw Error(row.id + " blank");
         ctx.drawImage(raster(m, (1.7 * (cell - 12)) / largest, cell, true), left + j * (cell + gap), y);

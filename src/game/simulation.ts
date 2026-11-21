@@ -1,4 +1,12 @@
+import { railFreightBonus } from "./railOperations";
+import {syncCatalogBridges} from "./catalogBridge";
+import {chooseRoadAxis,corridorConflict} from "./roadCorridors";
+import {roadWidth,type RoadAxis} from "./roadStandards";
+import {railSpanAllows, crossingPieces, crossingUpgradePrice, bridgeTier} from "./bridgeWorks";
+import { activeBlessing, advanceFaith, BLESSINGS, evacuate, faithServices, isSanctuary, repelInvasion, rehouseResidents, sanctuaryPopulation, type FaithRecord } from "./faith";
 import { advancePatrol, findPatrolDispatch } from "./policeDispatch";
+import { collectFarms,hasFarmRoad,setDistrictReport } from "./farmNetworks";
+import { FARM_MODULE_IDS } from "./expansionCatalog";
 import { GRID_MIN, GRID_MAX } from "./mapBounds";
 export { GRID_MIN, GRID_MAX, GRID_HALF } from "./mapBounds";
 import { hasNavigableHarbor, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
@@ -18,7 +26,7 @@ import {
   getUpgradeCost,
   getMaxElementLevel,
 } from "./catalog";
-import { advanceReservoirs, getTerrainCell, islandMargin, freshWaterFactor, hydroHead, roadPortOpen, hydraulics, buildWaterNavigation, type Infrastructure } from "./terrain";
+import { markInfrastructureChanged, advanceReservoirs, getTerrainCell, islandMargin, freshWaterFactor, hydroHead, roadPortOpen, hydraulics, buildWaterNavigation, type Infrastructure } from "./terrain";
 import { streetDemand } from "./streetDemand";
 import { generationExposure } from "./parcelExposure";
 import { roadSiteAccess, autoFrontageRotation, cellBeyondEdge, parcelAccessSteps, getParcelEdges, getParcelEffectSummary, PARCEL_SIDES, type LocalSide, type EdgeOverride } from "./parcelEdges";
@@ -74,6 +82,7 @@ export interface PlacedElement {
   variant: number; // 0..3
   edgeOverrides?: Partial<Record<LocalSide, EdgeOverride>>;
   awaitingStreet?: boolean;
+  autoDrive?: {side:LocalSide;slot:number};
   exteriorLighting?: "auto" | "dark" | "lit";
   connected: boolean;
   hasPoliceCover: boolean;
@@ -94,6 +103,7 @@ export interface PlacedElement {
   /** Waterway temporarily covered by a bridge. Restored when the deck is moved or removed. */
   waterUnderlay?: PlacedElement;
   sculptsTerrain?: boolean;
+  roadAxis?: RoadAxis;
   crossingAxis?: "x" | "z";
   pedestrianDeck?: boolean;
   lockCycleAt?: number;
@@ -211,6 +221,8 @@ export interface DefenseUnit {
 export interface ActiveAttackState {
   id: string;
   startedAt: number;
+  elapsedSec?: number;
+  initialExposed?: number;
   severity: number; // 1..5
   units: AttackUnit[];
   defenders: DefenseUnit[];
@@ -292,6 +304,8 @@ export interface GameEventToast {
 }
 
 export interface GameState {
+  railYard?: import("./railOperations").RailState;
+  faith?: FaithRecord;
   exampleWorldId?: import("./exampleWorlds").ExampleWorldId;
   exampleReturnMode?: GameMode;
   exampleViewpoint?: number;
@@ -530,6 +544,8 @@ export function checkPlacementValid(
   const lock = buildingLockReason(def, state);
   if (lock && !ignoreIds?.size) return { valid: false, reason: lock };
   const occ = buildOccupancyMap(state.elements, ignoreIds);
+  const shoulder = corridorConflict(gx,gz,spanX,spanZ,def.id,undefined,occ,()=>true);
+  if(shoulder)return {valid:false,reason:shoulder};
   let waterAccess = false;
   for (let dx = 0; dx < spanX; dx++) {
     for (let dz = 0; dz < spanZ; dz++) {
@@ -673,6 +689,9 @@ export function planConstruction(state: GameState, selected: CivElementDef, gx: 
       (width,height)=>checkPlacementValid(state,def,gx,gz,width,height).valid);
   const [spanX, spanZ] = rotation % 2 ? [sz, sx] : [sx, sz];
   const check = network ? { valid: network.ok, reason: network.reason } : checkPlacementValid(state, def, gx, gz, spanX, spanZ);
+  const occupancy=buildOccupancyMap(state.elements);
+  const roadAxis=roadWidth(def.id)>1?chooseRoadAxis(gx,gz,preferred,occupancy):undefined;
+  if(check.valid&&roadAxis){const reason=corridorConflict(gx,gz,1,1,def.id,roadAxis,occupancy,(x,z)=>getTerrainCell(state,x,z).depth<=.1);if(reason){check.valid=false;check.reason=reason;}}
   const lock = buildingLockReason(selected, state);
   if (check.valid && lock) {
     check.valid = false;
@@ -682,7 +701,7 @@ export function planConstruction(state: GameState, selected: CivElementDef, gx: 
     check.valid = false;
     check.reason = `Need $${def.cost.toLocaleString()} to build ${def.name}.`;
   }
-  return { ...check, def, level, rotation, spanX, spanZ, overWater: Boolean(network?.overWater), replaceId: network?.replaceId, pedestrianDeck: !!network?.overWater && PEDESTRIAN_IDS.has(selected.id) };
+  return { ...check, def, level, rotation, spanX, spanZ, roadAxis, overWater: Boolean(network?.overWater), replaceId: network?.replaceId, pedestrianDeck: !!network?.overWater && PEDESTRIAN_IDS.has(selected.id) };
 }
 
 export function planRelocation(state: GameState, el: PlacedElement, gx: number, gz: number) {
@@ -698,6 +717,7 @@ export function planRelocation(state: GameState, el: PlacedElement, gx: number, 
       ignore.add(occupied!.id);
     }
   }
+  if(el.roadAxis){const reason=corridorConflict(gx,gz,1,1,el.defId,el.roadAxis,buildOccupancyMap(state.elements,ignore),(x,z)=>getTerrainCell(state,x,z).depth<=.1);if(reason)return {valid:false,reason,underlay};}
   return { ...checkPlacementValid(state, def, gx, gz, el.spanX, el.spanZ, ignore), underlay };
 }
 
@@ -760,7 +780,7 @@ export function getNetworkConnMask(
     const nbDef = ELEMENT_BY_ID[nb.defId];
     if (!nbDef) continue;
     if (def.isRailNetwork) {
-      if (nbDef.isRailNetwork) {
+      if (nbDef.isRailNetwork && railSpanAllows(state,el.gx,el.gz,dx,dz)) {
         mask |= roadBit;
       }
     } else if (def.isWaterFeature) {
@@ -831,21 +851,64 @@ export function resizeElementForLevel(
   return true;
 }
 
+export function resizeCrossing(state:GameState,el:PlacedElement,nextLevel:number){
+  const pieces=crossingPieces(state,el),span=pieces[0]?.[1];
+  if(!span)return false;
+  const level=bridgeTier(span),cap=span.mode==="foot"||span.mode==="rail"?5:11;
+  if(!Number.isInteger(nextLevel)||nextLevel<1||nextLevel>cap)return false;
+  if(pieces.some(([key,part])=>(state.infrastructure!.conduits[key]?.height??Infinity)<part.deck+.125*(nextLevel-level)+.7))return false;
+    const ordered=pieces.slice().sort(([a],[b])=>(Number(a.split(",")[span.axis==="x"?0:1])-Number(b.split(",")[span.axis==="x"?0:1]))*span.direction);
+    const ramps=ordered.filter(([,p])=>p.ramp).length/2 || 1, rise=.125*(nextLevel-level), occ=buildOccupancyMap(state.elements);
+    for(let n=0;n<ordered.length;n++){
+      const [key,part]=ordered[n];
+      const frac=(j:number)=>Math.max(0,Math.min(1,j/ramps,(ordered.length-j)/ramps));
+      part.startHeight+=rise*frac(n);part.endHeight+=rise*frac(n+1);part.deck+=rise;part.tier=nextLevel;
+      const road=occ.get(key);if(road){road.level=Math.min(nextLevel,getMaxElementLevel(road.defId));road.animKind="upgrade";road.animProgress=1;road.disrepair=false;road.maintTimerSec=0;}
+    }
+    markInfrastructureChanged(state.infrastructure!);
+  return true;
+}
+/** Existing islands can widen a compact motorway in place when its full right of way is free. */
+export function legacyRoadWidening(state:GameState,el:PlacedElement){
+  const width=roadWidth(el.defId),cost=buildingCharges(state)?ELEMENT_BY_ID[el.defId].cost*(width-1):0;
+  const occ=buildOccupancyMap(state.elements,new Set([el.id])),axis=chooseRoadAxis(el.gx,el.gz,el.rotation,occ);
+  const reason=width===1||el.roadAxis?"Already at its design width.":state.infrastructure?.spans[el.gx+","+el.gz]?"Change the whole crossing in Public works.":
+    corridorConflict(el.gx,el.gz,1,1,el.defId,axis,occ,(x,z)=>getTerrainCell(state,x,z).depth<=.1)??(state.money<cost?"Insufficient treasury for widening.":undefined);
+  return {axis,cost,reason};
+}
+export function widenLegacyRoad(state:GameState,el:PlacedElement){
+  const {axis,cost,reason}=legacyRoadWidening(state,el);
+  if(reason)return {ok:false,reason};
+  el.roadAxis=axis;
+  transfer(state,"treasury","outside",cost,"Carriageway widening");recomputeConnectivityAndMetrics(state);
+  return {ok:true};
+}
+export function placedUpgradeCost(state:GameState,el:PlacedElement){
+  const pieces=crossingPieces(state,el);
+  return pieces.length?crossingUpgradePrice(pieces[0][1],pieces.length):getUpgradeCost(ELEMENT_BY_ID[el.defId],el.level);
+}
 export function upgradeElementDirect(state: GameState, id: string): { ok: boolean; reason?: string } {
   const el = state.elements.find((e) => e.id === id);
   if (!el) return { ok: false, reason: "Element not found" };
-  if (el.level >= getMaxElementLevel(el.defId)) return { ok: false, reason: "Already at maximum level" };
+  const pieces=crossingPieces(state,el), span=pieces[0]?.[1];
+  const level=span?bridgeTier(span):el.level;
+  if (level >= (span && (span.mode==="foot"||span.mode==="rail")?5:getMaxElementLevel(el.defId))) return { ok: false, reason: "Already at maximum level" };
 
   const def = ELEMENT_BY_ID[el.defId];
   if (!def) return { ok: false, reason: "Unknown element" };
 
-  const cost = buildingCharges(state) ? getUpgradeCost(def,el.level) : 0;
+  const cost = buildingCharges(state) ? placedUpgradeCost(state,el) : 0;
   if (state.money < cost) {
     return { ok: false, reason: `Need $${cost.toLocaleString()} to upgrade` };
   }
 
   const ready = upgradeReadiness(state, el);
   if (!ready.ready) return {ok:false,reason:ready.reasons.join(" ")};
+  if(span){
+    if(!resizeCrossing(state,el,level+1))return {ok:false,reason:"Raise the aqueduct above the upgraded deck."};
+    transfer(state,"treasury","outside",cost,"Crossing upgrade");
+    recomputeConnectivityAndMetrics(state);return {ok:true};
+  }
   if (!resizeElementForLevel(state, el, el.level + 1)) {
     const [w, h] = getStandardFootprintForLevel(def, el.level + 1);
     return { ok: false, reason: `Clear a ${w}×${h} site touching this ${def.name} to expand.` };
@@ -1051,11 +1114,15 @@ const HARBOR_IDS = new Set(["docks", "shipyards", "ship_building_areas", "naval_
 export const PEDESTRIAN_IDS = new Set(["paths", "walking_paths", "trails", "side_walks", "boardwalks"]);
 
 export function recomputeConnectivityAndMetrics(state: GameState): void {
+  syncCatalogBridges(state);
+  // Normalize old saves that predate protected sanctuaries.
+  for (const site of state.elements) if (isSanctuary(site)) {site.onFire = false; site.disrepair = false;}
   const elements = state.elements;
   const parcelOccupancy = buildOccupancyMap(elements);
   const waterSystem=hydraulics(state);
   const waterAtSites = waterSystem.services;
-  const borderEffects = new Map(elements.map(el => [el.id,getParcelEffectSummary(getParcelEdges(el,parcelOccupancy,state))]));
+  const parcelEdges = new Map(elements.map(el => [el.id,getParcelEdges(el,parcelOccupancy,state)]));
+  const borderEffects = new Map(elements.map(el => [el.id,getParcelEffectSummary(parcelEdges.get(el.id)!)]));
   let unportedVessels = 0;
   const freeAccess=state.mode==="god"&&effective(state,"access",0)>0;
   const service = transitReadout(state);
@@ -1093,6 +1160,13 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     el.connected = freeAccess || linked || service.reachable.has(el.id);
   }
 
+  const farms = collectFarms(state,parcelOccupancy,el=>hasFarmRoad(el,parcelOccupancy,parcelEdges.get(el.id)!),parcelEdges);
+  for(const el of elements){
+    const complex = farms.get(el.id);
+    if(complex?.live) el.connected=true;
+    else if(FARM_MODULE_IDS.has(el.defId) && el.defId!=="fields") el.connected=false;
+  }
+  const districts=setDistrictReport(state,farms,parcelOccupancy,parcelEdges);
   // 3. Spatial radii: Police coverage, Fire coverage, and Nuisance proximity
   const waterUnderlays = elements.flatMap(e => e.waterUnderlay ? [e.waterUnderlay] : []);
   const layout = analyzeLayout(waterUnderlays.length ? [...elements, ...waterUnderlays] : elements, (x,z) => isCoastalTile(x,z,state),String(state.terrainVersion??1)+"/"+(state.infrastructure?.stamp ?? state.infrastructure?.revision??0));
@@ -1160,7 +1234,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     m.synergyCount += synCount;
     const synMult = synergyMultiplier(synCount);
     const edgeEffect = borderEffects.get(el.id)!;
-    const lvMult = Math.pow(2, Math.min(el.level, getMaxElementLevel(el.defId)) - 1);
+    const lvMult = Math.pow(2, Math.min(el.level, 5) - 1);
     // Disrepair in Survival Mode cuts positive service output by 75%
     const serviceHealth = (el.disrepair ? 0.25 : 1.0) * synMult;
     upkeepSum += upkeepFor(def, el.level);
@@ -1192,7 +1266,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       const pk = powerKind(def);
       if (def.power > 0 && pk) {
         const live = powerOutputFactor(pk, state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * generationExposure(pk, state, el, parcelOccupancy);
-        const out = Math.round(def.power * lvMult * serviceHealth * live * (pk==="hydro"?Math.min(1,hydroHead(state,el)/1.5):1));
+        const railSupply=def.id==="coal_powerplants"?railFreightBonus(state,el.id,"coal"):def.id==="natural_gas_power_plants"?railFreightBonus(state,el.id,"fuel"):1;
+        const out = Math.round(def.power * railSupply * lvMult * serviceHealth * live * (pk==="hydro"?Math.min(1,hydroHead(state,el)/1.5):1));
         m.powerSupply += out;
         if (pk === "solar" || pk === "wind" || pk === "hydro" || pk === "geo") renewableOut += out;
       }
@@ -1203,16 +1278,16 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       else m.waterDemand += Math.abs(def.water) * Math.max(1, Math.round(lvMult * 0.75));
     }
     if (def.waste) {
-      m.wasteCapacity += Math.round((def.waste * lvMult + edgeEffect.waste) * serviceHealth);
+      m.wasteCapacity += Math.round((def.waste * lvMult + edgeEffect.waste) * serviceHealth * railFreightBonus(state,el.id,"waste"));
     }
     if (def.jobs) {
       m.jobsAvailable += Math.round(def.jobs * lvMult * serviceHealth);
     }
     if (def.education) {
-      m.educationSupply += Math.round((def.education * lvMult + edgeEffect.education) * serviceHealth);
+      m.educationSupply += Math.round((def.education * lvMult + edgeEffect.education) * serviceHealth * (districts.bonuses.educationMultiplier.get(el.id)??1));
     }
     if (def.recreation) {
-      m.recreationSupply += Math.round(def.recreation * lvMult * serviceHealth);
+      m.recreationSupply += Math.round(def.recreation * lvMult * serviceHealth * (districts.bonuses.recreationMultiplier.get(el.id)??1) * (el.defId==="middle_school"?1.16:el.defId==="elementary_school"?1.1:1));
     }
     if (def.government) {
       m.govSupply += Math.round(def.government * lvMult * serviceHealth);
@@ -1227,12 +1302,13 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     state.growthPool = 0;
   } else {
     // Allow thriving towns to attract denser settlement up to stage-scaled neighborhood capacity
-    const maxSettlementBonus = baseHousingPop * 18;
+    const maxSettlementBonus = baseHousingPop * (state.mode==="god"?30:20);
     state.growthPool = Math.max(-baseHousingPop * 0.8, Math.min(maxSettlementBonus, state.growthPool));
     state.population = Math.max(0, Math.round(baseHousingPop + state.growthPool));
   }
 
-  state.population = Math.round(effective(state,"population",state.population));
+  state.population = Math.round(effective(state,"population",sanctuaryPopulation(state, state.population)));
+  const community = faithServices(state);
 
   // Update stage progression before evaluating stage-gated systems (Crime & Defense)
   {
@@ -1269,10 +1345,10 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   m.powerDemand += Math.ceil(additionalResidents / 45);
   m.wasteDemand = Math.ceil(citizenUnits * 1.4);
   m.jobsNeeded = Math.ceil(citizenUnits * 2.2);
-  m.foodDemand = Math.ceil(citizenUnits * 1.8);
+  m.foodDemand = Math.ceil(citizenUnits * (state.mode==="survival"?1.6:1.4));
   m.educationDemand = Math.ceil(citizenUnits * 1.3);
   m.recreationDemand = Math.ceil(citizenUnits * 1.2);
-  m.govDemand = state.highestStageReached >= 3 ? Math.ceil(citizenUnits * 1.5) : 0;
+  m.govDemand = state.highestStageReached >= 3 ? Math.ceil(citizenUnits * 1.5 * (1-community.civicRelief)) : 0;
 
   m.educationSupply=effective(state,"schools",m.educationSupply);
   m.wasteCapacity=effective(state,"waste",m.wasteCapacity);
@@ -1391,7 +1467,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (night) {
       rawCrime = Math.round(rawCrime * 1.45 + 10);
     }
-    m.crimeRate = Math.max(0, Math.min(100, rawCrime));
+    m.crimeRate = Math.max(0, Math.min(100, rawCrime-community.crime));
   } else {
     m.crimeRate = 0;
   }
@@ -1590,7 +1666,9 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   if (m.connectedHouses && ledger.report.harvest > 0) {
     happiness += Math.min(3, Math.round(3 * Math.min(1, ledger.report.harvest / Math.max(1, ledger.report.required))));
   }
-  happiness = Math.min(100, happiness);
+  const preschoolSeats=elements.reduce((n,el)=>n+(el.defId==="preschool"&&el.connected&&!el.onFire&&!el.disrepair?30*2**(el.level-1):0),0);
+  happiness += community.happiness + (activeBlessing(state) === "joy" ? 6 : 0);
+  happiness = Math.min(100, happiness+4*Math.min(1,preschoolSeats/Math.max(1,state.population*.16)));
   if (authorized && state.population > 0) {
     const administration = Math.min(3, Math.max(1, Math.ceil(m.govSupply / state.population)));
     happiness -= administration;
@@ -1869,7 +1947,13 @@ function computeDefensePower(state: GameState): number {
   return Math.round(aggregateDefenseRoster(state).weightedPower);
 }
 
-export function launchIslandAttack(state: GameState, severityInput = 1): void {
+export function launchIslandAttack(state: GameState, severityInput = 1, random = Math.random): void {
+  if (state.activeAttack) return;
+  if (repelInvasion(state, random)) {
+    pushToast(state, "stage", BLESSINGS.protection.name, BLESSINGS.protection.detail);
+    return;
+  }
+  evacuate(state);
   // Real & Survival preset severity based on Stage (10..20 -> 1.0..5.0)
   const stagePreset = Math.max(
     1,
@@ -1887,7 +1971,7 @@ export function launchIslandAttack(state: GameState, severityInput = 1): void {
 
   const targets = state.elements.filter((e) => {
     const d = ELEMENT_BY_ID[e.defId];
-    return d && !d.isNetwork && !d.passiveNature;
+    return d && !d.isNetwork && !d.passiveNature && !isSanctuary(e);
   });
 
   const pickTargetId = () =>
@@ -2039,6 +2123,8 @@ export function launchIslandAttack(state: GameState, severityInput = 1): void {
   state.activeAttack = {
     id: `atk_${Date.now()}`,
     startedAt: Date.now(),
+    elapsedSec: 0,
+    initialExposed: Math.max(0, state.population - (state.faith?.sheltered ?? 0)),
     severity,
     units,
     defenders,
@@ -2229,9 +2315,11 @@ function stepActiveAttack(state: GameState, dtSec: number): boolean {
   }
 
   // Advance enemy units toward island buildings (or intercept nearby defenders)
+  atk.initialExposed ??= atk.casualties + Math.max(0, state.population - (state.faith?.sheltered ?? 0));
+  const exposed = () => Math.max(0, Math.min(state.population - (state.faith?.sheltered ?? 0), atk.initialExposed! - atk.casualties));
   const buildingPool = state.elements.filter((e) => {
     const d = ELEMENT_BY_ID[e.defId];
-    return d && !d.isNetwork && !d.passiveNature;
+    return d && !d.isNetwork && !d.passiveNature && !isSanctuary(e);
   });
 
   for (const unit of atk.units) {
@@ -2330,13 +2418,14 @@ function stepActiveAttack(state: GameState, dtSec: number): boolean {
                 targetEl.animKind = "place";
               } else {
                 removePlacedElements(state, new Set([targetEl.id]));
+                buildingPool.splice(buildingPool.indexOf(targetEl), 1);
                 atk.buildingsDestroyed += 1;
                 if (tDef?.popBase) {
-                  const lost = tDef.popBase * Math.pow(2, targetEl.level - 1);
+                  const lost = Math.min(exposed(), tDef.popBase * Math.pow(2, targetEl.level - 1));
                   atk.casualties += lost;
-                  state.growthPool = Math.max(-state.population, state.growthPool - Math.max(5, lost * 2));
+                  state.growthPool = Math.max(-state.population, state.growthPool - lost);
                 } else if (state.population > 0) {
-                  const lost = Math.min(state.population, 12);
+                  const lost = Math.min(exposed(), 12);
                   atk.casualties += lost;
                   state.growthPool -= lost;
                 }
@@ -2351,7 +2440,7 @@ function stepActiveAttack(state: GameState, dtSec: number): boolean {
   }
 
   // End invasion automatically once all attackers are defeated OR after timeout if defenders are gone
-  const elapsedSec = (Date.now() - atk.startedAt) / 1000;
+  const elapsedSec = atk.elapsedSec = (atk.elapsedSec ?? 0) + dtSec;
   if (atk.units.length === 0 || (atk.defenders.length === 0 && (buildingPool.length === 0 || elapsedSec > 34))) {
     const survived = atk.units.length === 0;
     pushToast(
@@ -2464,7 +2553,11 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
   }
 
   if (!isTabVisible) return dirty;
+  const previousBlessing = activeBlessing(state);
   state.activePlaySec += dtSec;
+  const blessing = advanceFaith(state);
+  if (blessing) pushToast(state, "stage", BLESSINGS[blessing].name, BLESSINGS[blessing].detail);
+  if (blessing || previousBlessing !== activeBlessing(state)) dirty = true;
   advanceReservoirs(state,dtSec);
   if (stepMobility(state, dtSec)) dirty = true;
 
@@ -2594,13 +2687,23 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     }
 
     const essentialDeficit = Math.max(economy.shortage, economy.utilityStrain ?? 0);
-    if (state.happiness >= 72 && essentialDeficit <= 0.35 && state.metrics.burningCount === 0) {
+    const m=state.metrics;
+    const supplied=Math.max(baseHousingPop,Math.min(economy.reachable/.50,m.foodSupply/(state.mode==="survival"?.32:.28),
+      m.wasteCapacity/.28, state.population+(m.waterSupply-m.waterDemand)*35, state.population+(m.powerSupply-m.powerDemand)*45));
+    const directedMood=state.mode==="god" && [...economyOf(state).holds,...economyOf(state).once].some(setting=>setting.key==="happiness");
+    if(state.mode==="god" && !effective(state,"stageRules",0) && !(directedMood&&state.happiness<65)){
+      // Open the first homes quickly. Large settlements grow toward the services this city actually built.
+      const welcoming=Math.max(baseHousingPop+Math.min(80,baseHousingPop*1.4),supplied*.97);
+      const room=Math.max(0,Math.min(economy.capacity,welcoming)-state.population);
+      const arrival=Math.min(room,Math.max(3,baseHousingPop*.55)*dtSec);
+      if(arrival>0){state.growthPool+=arrival;dirty=true;}
+    } else if (state.happiness >= 68 && essentialDeficit <= 0.35 && state.metrics.burningCount === 0) {
       // Smooth thriving growth toward neighborhood settlement capacity
-      const happyFactor = (state.happiness - 65) / 35;
+      const happyFactor = Math.max(.15,(state.happiness - 58) / 42);
       const employed = Math.min(1,economy.reachable/Math.max(1,economy.workers));
-      const growthRate = Math.max(1.2,baseHousingPop*.28)*happyFactor*(.18+.82*employed)*(1-.8*economy.shortage);
+      const growthRate = Math.max(1.2,baseHousingPop*.36)*happyFactor*(.18+.82*employed)*(1-.8*economy.shortage);
       // Prospective households compare the work, groceries and sanitation they can actually reach.
-      const supported=Math.max(baseHousingPop,Math.min(economy.reachable/.50,state.metrics.foodSupply/.35,state.metrics.wasteCapacity/.27));
+      const supported=supplied;
       const arrivals=Math.min(Math.max(0,supported-state.population),growthRate*dtSec);
       if(arrivals>0){state.growthPool+=arrivals;dirty=true;}
     } else if (state.happiness < 65 || essentialDeficit > 0.35) {
@@ -2618,6 +2721,16 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     recomputeConnectivityAndMetrics(state);
   }
   if (dtSec > 0) {
+    if (state.faith?.sheltered && state.activePlaySec >= (state.faith.nextHomeCheck ?? 0)) {
+      state.faith.nextHomeCheck = state.activePlaySec + 45;
+      const moved = rehouseResidents(state);
+      if (moved) pushToast(state, "stage", "Residents returned home", moved + " people moved from the sanctuary to safe housing.");
+    }
+    if (state.faith?.sheltered && !state.faith.recoveryGrant && !state.metrics.connectedHouses && state.money < 200 && state.mode !== "god") {
+      const amount = transfer(state,"outside","treasury",200-state.money,"Sanctuary rebuilding fund");
+      state.faith.recoveryGrant = true;
+      pushToast(state,"stage","Sanctuary rebuilding fund","Emergency aid of $"+Math.ceil(amount)+" is ready for housing and roads.");
+    }
     for (const grant of payEarnedGrants(state)) {
       pushToast(state, "stage", grant.name, `Public works grant received · +$${grant.reward.toLocaleString()}`);
       dirty = true;

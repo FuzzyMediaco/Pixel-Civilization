@@ -1,3 +1,7 @@
+import {dividedCarriageway} from "./designs/carriageways";
+import {corridorTransform} from "./roadCorridors";
+import {VEHICLE_ROADS} from "./roadStandards";
+import {paintRoadStage} from "./designs/roadStages";
 import * as THREE from "three";
 import { type CivElementDef, ELEMENT_BY_ID, getMaxElementLevel } from "./catalog";
 import { applyParcelAppearance, type ParcelAppearance } from "./parcelGeometry";
@@ -47,11 +51,12 @@ export function buildDesignVoxels(
 ) {
   const design = getDesign(def.id);
   if (!design) throw new Error(`Missing civilization design: ${def.id}`);
-  const [designX, designZ] = design.footprints[lv - 1];
+  const [designX, designZ] = design.footprints[Math.max(0,Math.min(lv - 1,design.footprints.length-1))];
   const c = makeCtx(def.id, lv, variant, designX, designZ, connMask);
   c.parcelEdges = appearance.edges;
   try {
     design.build(c);
+    if(VEHICLE_ROADS.has(def.id))paintRoadStage(c);
   } catch (err) {
     console.error(`Design build failed for ${def.id} L${lv} V${variant}`, err);
     c.v.box(-c.hx + 2, 0, -c.hz + 2, c.hx - 2, 6, c.hz - 2, "magenta");
@@ -70,8 +75,18 @@ export function buildDesignAsset(
   // Old saves retain their occupied cells. Fit the complete model, including its moving parts.
   const fit=Math.min(1,spanX/c.spanX,spanZ/c.spanZ), unit=VOXEL_SIZE*fit;
   const groundShift=def.domain==="land" ? VOXEL_SIZE-unit : 0;
-  const mesh = (v: PixelVox) => {
-    const geometry = buildVoxelGeometry(v, unit);
+  const mesh = (v: PixelVox,scale=1) => {
+    const geometry = buildVoxelGeometry(v, unit*scale);
+    const corridor=appearance.corridor;
+    if(corridor){
+      const pos=geometry.getAttribute("position");
+      for(let i=0;i<pos.count;i++){
+        if(pos.getY(i)>.25&&pos.getY(i)<=.376)pos.setY(i,.267);
+        if(corridor.axis==="x")pos.setZ(i,corridorTransform(corridor,pos.getX(i),pos.getZ(i)));
+        else pos.setX(i,corridorTransform(corridor,pos.getZ(i),pos.getX(i)));
+      }
+      geometry.computeVertexNormals();
+    }
     const boost = appearance.lighting === "dark" ? 0 : appearance.lighting === "lit" ? 2.1 : def.id === "bars" ? 1.8 : 1;
     if (boost !== 1) {
       const emission = geometry.getAttribute("aEmit");
@@ -79,11 +94,12 @@ export function buildDesignAsset(
     }
     return geometry;
   };
-  const baseGeo = mesh(c.v);
+  const corridor=appearance.corridor;
+  const baseGeo = corridor ? mesh(dividedCarriageway(def.id,lv,variant,connMask,corridor),.5):mesh(c.v);
   if (groundShift) baseGeo.translate(0, groundShift, 0);
   baseGeo.computeBoundingBox();
   let topY = baseGeo.boundingBox?.max.y ?? 1;
-  const rotors: BuiltRotor[] = c.rotors.map((r) => {
+  const rotors: BuiltRotor[] = (corridor?[]:c.rotors).map((r) => {
     const geo = mesh(r.vox);
     geo.computeBoundingBox();
     const pivot: [number, number, number] = [r.pivot[0] * fit, r.pivot[1] * fit + groundShift / VOXEL_SIZE, r.pivot[2] * fit];
@@ -96,8 +112,8 @@ export function buildDesignAsset(
     topY: Math.max(0.3, topY),
     bobOnWater: c.floating || def.domain === "water",
     rotors,
-    smokePoints: c.smokePoints.map(([x, y, z, k]) => [x * unit, y * unit + groundShift, z * unit, k]),
-    blinkers: (appearance.lighting === "dark" ? [] : c.blinkers).map(([x, y, z, col]) => [(x + 0.5) * unit, (y + 0.5) * unit + groundShift, (z + 0.5) * unit, col]),
+    smokePoints: (corridor?[]:c.smokePoints).map(([x, y, z, k]) => [x * unit, y * unit + groundShift, z * unit, k]),
+    blinkers: (corridor || appearance.lighting === "dark" ? [] : c.blinkers).map(([x, y, z, col]) => [(x + 0.5) * unit, (y + 0.5) * unit + groundShift, (z + 0.5) * unit, col]),
   };
 }
 
@@ -158,7 +174,7 @@ export function getOrBuildElementAsset(
   const def = ELEMENT_BY_ID[elementId];
   const clampedLv = Math.max(1, Math.min(getMaxElementLevel(elementId), level | 0));
   const clampedVar = ((variant | 0) % 4 + 4) % 4;
-  const key = `${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
+  const key = `${appearance.corridor?JSON.stringify(appearance.corridor):""}|${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
   if (def && (appearance.edges?.length || appearance.soils?.length || (appearance.lighting && appearance.lighting !== "auto"))) {
     const asset = buildDesignAsset(def, clampedLv, clampedVar, spanX, spanZ, connMask, appearance);
     asset.siteSpecific = true;
@@ -175,7 +191,7 @@ export function getOrBuildElementAsset(
     return asset;
   }
 
-  const asset = buildDesignAsset(def, clampedLv, clampedVar, spanX, spanZ, def.isNetwork ? connMask : 0);
+  const asset = buildDesignAsset(def, clampedLv, clampedVar, spanX, spanZ, def.isNetwork ? connMask : 0,appearance);
   assetCache.set(key, asset);
   return asset;
 }

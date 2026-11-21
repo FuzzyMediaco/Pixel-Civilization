@@ -1,3 +1,4 @@
+import {standardRoadLanes} from "./roadStandards";
 /**
  * City dynamics: spatial fields and systemic simulation layered on top of the core metrics.
  *
@@ -358,7 +359,7 @@ export function landValuePopMultiplier(lv: number): number {
 
 export function roadCapacity(def: CivElementDef, level: number): number {
   const base = ROAD_CAPACITY[def.id] ?? (def.isRoadNetwork ? 8 : 0);
-  return base * (1 + (level - 1) * 0.35);
+  return base * standardRoadLanes(def.id,level) / standardRoadLanes(def.id,1) * (1 + (level - 1) * .17);
 }
 
 export function transitRelief(def: CivElementDef, level: number): number {

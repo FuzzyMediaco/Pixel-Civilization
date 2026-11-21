@@ -1,16 +1,16 @@
 # Pixel Civilization · Connected Island
 
-The island has 173 buildable elements and four visual styles for each. The field guide shows every modeled stage, its footprint, moving parts and a real neighbor you can add beside it. Bus stops stay on one tile and finish upgrading at level three. Existing cities keep their older level-four and level-five shelters.
+The island has 204 buildable elements and four visual styles for each. The field guide shows every modeled stage, its footprint, moving parts and a real neighbor you can add beside it. Bus stops stay on one tile and finish upgrading at level three. Existing cities keep their older level-four and level-five shelters.
 
 ![The playable canal district](../previews/canal-district.jpg)
 
 ## Illustrated player handbook
 
-Open **Game menu → Illustrated player handbook** to explore the illustrated chapters. The **Design atlas** lets you search every element, compare all twenty modeled appearances on one sheet, check its footprint and requirements, and open the same design in the rotatable field guide. On a running server you can also visit `/handbook.html` directly.
+Open **Game menu → Illustrated player handbook** to explore the illustrated chapters. The **Design atlas** lets you search every element, compare every modeled level and style on one sheet, check its footprint and requirements, and open the same design in the rotatable field guide. On a running server you can also visit `/handbook.html` directly.
 
 ## Explore the three islands
 
-Open **Game menu → Example islands** in any mode. Pelican Reach has a working harbor and a navigable estuary. Copper Gorge follows freshwater from mountain springs to farms and hydropower. Switchyard City has night trains, a fire response and a working spaceport. Each island has seven guided stops and saves separately.
+Open **Game menu → Example islands** in any mode. Pelican Reach has a working harbor and a navigable estuary. Copper Gorge follows freshwater from mountain springs to farms and hydropower. Switchyard City has night trains, a fire response and a working spaceport. Each island has guided stops and saves separately. The east road in Copper Gorge connects its high school and sports field to the dairies and temple.
 
 The expanded map is 192 × 192 tiles. For a hands-on tour, see [the feature checklist and three island playthroughs](island-playchecks.md). The **Worlds** and **Land & water** chapters include photographs of the game and labeled engineering examples.
 
@@ -34,9 +34,17 @@ Use `npm install` and `npm run dev` for development. Run `npm run build` followe
 
 ## Working on an element
 
-Category builders in `src/game/designs/` define the five named stages, the four styles, and moving parts. The catalog's footprint table also works before any graphics are loaded. The catalog tests compare it against every builder, generate every visual state and detect repeated models across the twenty combinations.
+Category builders in `src/game/designs/` define building stages, eleven vehicle-road standards, the four styles, and moving parts. The catalog's footprint table also works before any graphics are loaded. The catalog tests compare it against every builder, generate every visual state and detect repeated models across the available combinations.
 
 The development gallery accepts element IDs, network connection patterns and lighting settings. For example, open `/gallery.html?cat=maritime&ids=sail_boats&mode=full&cell=220&water=1` on the development server to compare every sailboat.
+
+## Testing the expansion
+
+Choose **Game menu → Example islands → Copper Gorge**, then choose **The east campus and creamery** in the island guide. Select the High School or Dairy Farm and open **Connections**. The next viewpoint shows the temple and its sandbox controls. A Train Depot opens **Rail Operations**. The **Campuses & farms**, **Roads & rail** and **Faith & recovery** handbook chapters explain the systems and link directly to their designs.
+
+To create a portable testing copy, run `npm run build` followed by `node scripts/build-preview.mjs ./portable`. Open the generated **Connected Island/index.html**. The export includes the playable examples, handbook, field guide and a standalone searchable atlas. Browser saves belong to the preview location and browser profile.
+
+For the hands-on checks and screenshots, see [Playtesting the expansion](master-expansion.md).
 
 ## Earlier design notes
 

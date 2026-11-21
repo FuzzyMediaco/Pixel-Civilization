@@ -26,11 +26,12 @@ export function ExampleIslands({current, error, onOpen, onReturn, onClose}: {
   </GameDialog>;
 }
 
-export function WorldGuide({world, selected, onVisit, onBrowse}: {
+export function WorldGuide({world, selected, onVisit, onBrowse,onRailYard}: {
   world: ExampleWorld;
   selected?: number;
   onVisit: (index: number) => void;
   onBrowse: () => void;
+  onRailYard:()=>void;
 }) {
   const [open,setOpen]=useState(false);
   const point = world.viewpoints[selected ?? -1];
@@ -46,6 +47,7 @@ export function WorldGuide({world, selected, onVisit, onBrowse}: {
         </select>
       </label>
       <p>{point?.tryThis ?? world.description}</p>
+      {world.id==="switchyard-city"&&<div><button onClick={()=>{setOpen(false);onRailYard();}}>Open Orchard Valley rail yard</button></div>}
       <div><button type="button" onClick={()=>onVisit(((selected ?? -1)+1)%world.viewpoints.length)}>Next stop →</button>
         <button type="button" onClick={onBrowse}>Example islands</button></div>
     </div>}
