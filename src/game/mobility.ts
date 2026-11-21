@@ -470,17 +470,20 @@ function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElemen
     return goods;
   }
   const targets = l.stops.filter((id) => id !== stop.id && net.byId.has(id) && demand(net.byId.get(id)!) > 0);
-  if (!targets.length || room <= 0) return;
+  if (!targets.length) return;
   const busy = l.mode !== "freight" && (s.timeOfDay < 5 || s.timeOfDay >= 22) ? 0.38 : 1;
-  // Residents arrive between departures. Retain anyone left behind and the time their queue began.
-  l.lastBoarding ??= {};
-  l.waiting ??= {};
-  const previous = l.lastBoarding[stop.id] ?? Math.max(0, s.activePlaySec - 8);
+  // Riders arrive at the platform continuously, whichever train of the line calls next. The queue is
+  // shared by all trains of a line, kept oldest-first, and riders who wait too long give up (lost trips).
+  const key = lineKey(l) + "|" + stop.id;
+  const queues = (m.queues ??= {}),
+    generated = (m.generated ??= {});
+  const queue = (queues[key] ??= []);
+  const previous = generated[key] ?? Math.max(0, s.activePlaySec - 8);
   const elapsed = Math.max(0, s.activePlaySec - previous);
-  l.lastBoarding[stop.id] = s.activePlaySec;
+  generated[key] = s.activePlaySec;
   const competition = Math.max(
     1,
-    m.lines.filter((line) => servingNow(s, line) && line.stops.includes(stop.id) && line.mode === l.mode).length,
+    new Set(m.lines.filter((line) => servingNow(s, line) && line.stops.includes(stop.id) && line.mode === l.mode).map(lineKey)).size,
   );
   const rate =
     (demand(stop) *
@@ -489,19 +492,68 @@ function completeStop(s: GameState, m: MobilityState, l: Run, stop: PlacedElemen
       (l.mode === "freight" ? 1 : m.demand * Math.min(2, Math.sqrt(Math.max(s.population, 0)) / 7))) /
     10 /
     competition;
-  const queue = (l.waiting[stop.id] ??= { people: 0, since: previous + elapsed * 0.5 });
-  if (queue.people < 1) queue.since = previous + elapsed * 0.5;
-  queue.people = Math.min(capacity * 5, queue.people + rate * elapsed);
-  const count = Math.min(room, Math.floor(queue.people));
+  const arrivals = rate * elapsed;
+  if (arrivals > 0) queue.push({ t: previous + elapsed / 2, n: arrivals });
+  const patience = l.mode === "taxi" ? 60 : 150;
+  let gaveUp = 0;
+  while (queue.length && s.activePlaySec - queue[0].t > patience) gaveUp += queue.shift()!.n;
+  let total = queue.reduce((n, c) => n + c.n, 0);
+  const cap = capacity * 4;
+  while (total > cap && queue.length) {
+    const drop = Math.min(queue[0].n, total - cap);
+    queue[0].n -= drop;
+    total -= drop;
+    gaveUp += drop;
+    if (queue[0].n <= 0.0001) queue.shift();
+  }
+  if (gaveUp >= 1) (m.lost ??= []).push({ time: s.activePlaySec, count: Math.round(gaveUp), stop: stop.id, line: lineKey(l) });
+  if (room <= 0) return;
+  let count = Math.min(room, Math.floor(total));
   if (count <= 0) return;
-  const waited = Math.max(0, s.activePlaySec - queue.since);
-  queue.people -= count;
-  const destination = targets[l.departures % targets.length];
-  const dest = net.byId.get(destination)!;
-  const transferCount = transferAt(s, m, l, dest, net) ? Math.floor(count / 4) : 0;
-  if (transferCount)
-    l.riders.push({ destination, boarded: s.activePlaySec, waited, count: transferCount, transfer: true });
-  l.riders.push({ destination, boarded: s.activePlaySec, waited, count: count - transferCount });
+  // Board oldest first and remember how long each cohort really waited.
+  let waitSum = 0,
+    left = count;
+  while (left > 0 && queue.length) {
+    const take = Math.min(left, queue[0].n);
+    waitSum += take * Math.max(0, s.activePlaySec - queue[0].t);
+    queue[0].n -= take;
+    left -= take;
+    if (queue[0].n <= 0.0001) queue.shift();
+  }
+  count -= Math.max(0, Math.round(left));
+  const waited = count ? waitSum / count : 0;
+  // Destinations follow a light gravity model: busy places nearby attract more riders than a quiet far end.
+  const weights = targets.map((id) => {
+    const e = net.byId.get(id)!;
+    const d = Math.max(2, Math.abs(e.gx - stop.gx) + Math.abs(e.gz - stop.gz));
+    return { id, w: demand(e) / Math.pow(d, 0.8) };
+  });
+  const sum = weights.reduce((n, x) => n + x.w, 0) || 1;
+  let assigned = 0;
+  const shares = weights
+    .map((x) => ({ ...x, exact: (count * x.w) / sum }))
+    .map((x) => ({ ...x, n: Math.floor(x.exact) }));
+  assigned = shares.reduce((n, x) => n + x.n, 0);
+  shares.sort((a, b) => b.exact - b.n - (a.exact - a.n));
+  for (let i = 0; assigned < count; i = (i + 1) % shares.length, assigned++) shares[i].n++;
+  for (const share of shares) {
+    if (share.n <= 0) continue;
+    const dest = net.byId.get(share.id)!;
+    const transferCount = transferAt(s, m, l, dest, net) ? Math.floor(share.n / 4) : 0;
+    if (transferCount)
+      l.riders.push({ destination: share.id, boarded: s.activePlaySec, waited, count: transferCount, transfer: true });
+    if (share.n - transferCount > 0)
+      l.riders.push({ destination: share.id, boarded: s.activePlaySec, waited, count: share.n - transferCount });
+  }
+}
+/** People waiting for any line at a stop right now (rounded), and who gave up there in the last two minutes. */
+export function stopCrowd(s: GameState, stopId: string): { waiting: number; lost: number } {
+  const m = s.mobility;
+  let waiting = 0;
+  for (const [k, q] of Object.entries(m?.queues ?? {}))
+    if (k.endsWith("|" + stopId)) for (const c of q) if (s.activePlaySec - c.t <= 150) waiting += c.n;
+  const lost = (m?.lost ?? []).filter((x) => x.stop === stopId && s.activePlaySec - x.time <= 120).reduce((n, x) => n + x.count, 0);
+  return { waiting: Math.round(waiting), lost };
 }
 function interpolate(path: Point[], progress: number): Point {
   const i = Math.min(path.length - 1, Math.floor(progress)),
@@ -621,7 +673,6 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
   }
   if (l.dwell > 0) {
     l.dwell -= dt;
-    if (l.at && l.at !== l.depot && onTrack(l) && !r.reservation?.length) claimRailLeg(s, { ...l, path: [] } as Run, net);
     return;
   }
   const parked = l.at === l.depot && !r.trail.length;
@@ -676,7 +727,17 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
       l.path = [];
       return;
     }
-    if (parked) l.position = path[0];
+    if (parked) {
+      l.position = path[0];
+      if (!r.yielding) (m.departed ??= {})[key + "|" + startStop] = s.activePlaySec;
+    } else if (l.position && path.length > 1) {
+      // Re-planned mid-leg: continue from where the head actually is, not from the tile centre.
+      const [hx, hz] = l.position,
+        [ax, az] = path[0],
+        [bx, bz] = path[1];
+      if (Math.hypot(hx - ax, hz - az) > 0.01)
+        path.splice(0, (hx - ax) * (bx - ax) + (hz - az) * (bz - az) > 0 ? 1 : 0, [hx, hz]);
+    }
     l.path = prepareRailLeg(l, path, net, freeEnds.length ? freeEnds : allEnds, avoid);
     l.progress = 0;
     l.blocked = false;
@@ -1037,7 +1098,12 @@ export function stepMobility(s: GameState, dt: number): boolean {
   }
   const net = getTravelNetwork(s, signature);
   advanceRailFreightStock(s,net,dt);
-  for (const l of m.lines) stepLine(s, m, l, dt, net, revision);
+  // Trains already running move first and release track; then waiting trains claim it, longest wait first.
+  const order = m.lines
+    .map((l, i) => ({ l, i, w: l.mode === "rail" ? (l.rail?.waitingSince ?? -Infinity) : -Infinity }))
+    .sort((a, b) => a.w - b.w || a.i - b.i);
+  for (const { l } of order) stepLine(s, m, l, dt, net, revision);
+  resolveRailConflicts(s);
   for (const e of vessels) {
     const v = (m.voyages[e.id] ??= newVoyage(e));
     stepVoyage(s, e, v, dt, net, revision);
@@ -1045,6 +1111,7 @@ export function stepMobility(s: GameState, dt: number): boolean {
   const current = new Set(vessels.map((e) => e.id));
   for (const id of Object.keys(m.voyages)) if (!current.has(id)) delete m.voyages[id];
   m.deliveries = m.deliveries.filter((r) => s.activePlaySec - r.time <= 120);
+  if (m.lost) m.lost = m.lost.filter((r) => s.activePlaySec - r.time <= 120);
   return Math.floor(s.activePlaySec) !== Math.floor(s.activePlaySec - dt);
 }
 export interface TransitReport {
@@ -1055,6 +1122,8 @@ export interface TransitReport {
   wait: number;
   reliability: number;
   pressure: number;
+  /** Riders per minute who gave up waiting (they drive instead). */
+  lost: number;
   reachable: Set<string>;
   districts: Map<string, string>;
 }
@@ -1073,6 +1142,11 @@ export function transitReadout(s: GameState): TransitReport {
       sumWait += sample.wait * sample.count;
     }
   }
+  // Report flows per minute so they compare with per-minute street trips (the window is two minutes).
+  const wait = served ? sumWait / served : 0;
+  served /= 2;
+  freight /= 2;
+  const lost = (m?.lost ?? []).filter((r) => s.activePlaySec - r.time <= 120).reduce((n, r) => n + r.count, 0) / 2;
   const pressure = Math.max(0, Math.ceil(Math.sqrt(s.population) * 0.7 * (m?.demand ?? 1)));
   const districts = new Map<string, string>();
   let potential = 0,
@@ -1119,7 +1193,6 @@ export function transitReadout(s: GameState): TransitReport {
   const reliability = scheduled
     ? Math.round((100 * lines.filter((l) => l.mode !== "freight" && l.rail?.service!=="freight").length) / scheduled)
     : 0;
-  const wait = served ? sumWait / served : 0;
   const score = served
     ? Math.round(
         40 * Math.min(1, served / Math.max(1, pressure)) +
@@ -1128,13 +1201,14 @@ export function transitReadout(s: GameState): TransitReport {
           15 * Math.max(0, 1 - wait / 45),
       )
     : 0;
-  return { score, served, freight, coverage, wait, reliability, pressure, reachable, districts };
+  return { score, served, freight, coverage, wait, reliability, pressure, lost, reachable, districts };
 }
 export function reliefAtStops(s: GameState): Map<string, number> {
   const relief = new Map<string, number>();
   for (const r of s.mobility?.deliveries ?? [])
     if (s.activePlaySec - r.time <= 120)
-      relief.set(r.stop, (relief.get(r.stop) ?? 0) + r.count * (r.freight ? 0.25 : 1));
+      // Per-minute riders (two-minute window), the same unit as the street trips they replace.
+      relief.set(r.stop, (relief.get(r.stop) ?? 0) + (r.count / 2) * (r.freight ? 0.25 : 1));
   return relief;
 }
 export function transitLayer(s: GameState): { gx: number; gz: number; intensity: number }[] {

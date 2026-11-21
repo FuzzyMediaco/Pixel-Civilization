@@ -102,6 +102,14 @@ Screens: `phone-idle-home.png`, `phone-idle-switchyard.png`, `desk-idle-home.png
 
 Not present: there is **no merge flow** in the current UI. Upgrading grows the footprint into adjacent free land (`upgradeElementDirect` → `resizeElementForLevel`). "Merge" survives only as a toast kind and an animation kind (`simulation.ts:112,300`), and is used as a generic success colour.
 
+### 1.2b Desktop observations (1400x900)
+
+- The rail is vertical on the right (48x49 buttons) and the Build palette is a centred strip. When an element is selected, the inspector stacks on top of the palette, and **two "Select" buttons are visible at once** (palette and cursor control): `desk-build-open.png`, `desk-stacked.png`.
+- The Status drawer opens **top-right** on desktop but at the **bottom** on phone. The same panel moves between form factors, and the City pulse bar disappears while it is open (`desk-status-open.png`, `phone-status-open.png`).
+- Rail Operations is a centred modal on desktop and a bottom sheet on phone. Connections uses the left desk, with 5 edge `<select>`s and a field-guide link (`desk-connections-desk.png`, `desk-rail-ops.png`).
+- All Tailwind panels keep their phone-sized 9–11 px text on a 1400 px screen. Only the left desk uses 14 px, so the two styles look like two different apps side by side (`desk-connections-desk.png` vs `desk-layers-open.png`).
+- The inspector covers the World guide pill (`desk-inspector-depot.png`).
+
 ### 1.3 Inventory of entry points (duplicated functions)
 
 | Function | Entry points today | Names used |
@@ -250,7 +258,7 @@ Rail Operations tabs are 33 px tall.
 
 - Keyboard shortcuts (B / H / V / T / R / Del / Esc) exist but are discoverable only through `title` tooltips. There is no shortcut sheet.
 - After Escape, the build palette keeps its expanded state and category open (state leaks between sessions).
-- The Status drawer is called "Top Menu" in its aria label and shortcut, but on phone it renders at the bottom.
+- The Status drawer is called "Top Menu" in its aria label and shortcut. It renders top-right on desktop and at the bottom on phone.
 - "Resume Island" is the close button of the main menu (odd verb for a close).
 - Rail Operations is shown by a separate state (`railSite`) that bypasses `overlay`. Esc ordering and focus restore differ from the other panels.
 - The field guide opens in a new tab (`target=_blank`) from a 14 px link. On a phone that leaves the game.
