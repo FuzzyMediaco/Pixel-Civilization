@@ -1,4 +1,4 @@
-import { LOCOMOTIVES, defaultFormation, railCapacity, formationPrice, yardCapacity, trainFor, validateFormation, railPurchase, freightCall, advanceRailFreightStock, type RailFormation, type RailRun } from "./railOperations";
+import { stationName, LOCOMOTIVES, defaultFormation, railCapacity, formationPrice, yardCapacity, trainFor, validateFormation, railPurchase, freightCall, advanceRailFreightStock, type RailFormation, type RailRun } from "./railOperations";
 import { claimRailLeg, clearRailBlock, heldByOthers, moveRail, onTrack, prepareRailLeg, railLeg, resolveRailConflicts, starvingBehind } from "./railMovement";
 import { ELEMENT_BY_ID } from "./catalog";
 import { levelMultiplier } from "./levelScaling";
@@ -784,7 +784,7 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
       : r.claimEnd !== undefined && (r.speed ?? 0) < 0.05 ? "Signal at caution · following " + (s.mobility!.lines.find((o) => o.id === r.blockedBy)?.rail?.name ?? "a train")
       : r.yielding === "clear" ? "Clearing the line · heading to the depot"
       : r.yielding ? "Returning to the depot"
-      : "En route to " + ELEMENT_BY_ID[target.defId].name;
+      : "En route to " + stationName(s, target);
     return;
   }
   // Arrival.
@@ -823,7 +823,7 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
   if (terminus) dwell = Math.max(dwell, Math.min(r.frequency, 90) * (nightNow(s) ? 1.4 : 1) * 0.5);
   l.dwell = dwell;
   if (index === 0) (m.departed ??= {})[key + "|" + target.id] = { t: s.activePlaySec + dwell, train: l.id };
-  l.status = (wasGhost ? "Squeezed past · build a passing loop · " : "") + (r.service === "freight" ? "Loading at " : "Boarding at ") + ELEMENT_BY_ID[target.defId].name;
+  l.status = (wasGhost ? "Squeezed past · build a passing loop · " : "") + (r.service === "freight" ? "Loading at " : "Boarding at ") + stationName(s, target);
 }
 function stepLine(s: GameState, m: MobilityState, l: Run, seconds: number, net: TravelNetwork, version: number) {
   if (l.mode === "rail") return stepRailLine(s, m, l, seconds, net, version);

@@ -105,9 +105,9 @@ function build(s: GameState, ox: number, oz: number) {
     a = put("train_stops", -3, -3, 2, 2, 0),
     b = put("train_stops", 10, -4, 2, 1, 1);
   const from = put("freight_rail_terminal", -6, 1, 1, 0, 0),
-    to = put("freight_rail_terminal", 5, 1, 1, 0, 2),
+    to = put("freight_rail_terminal", 1, 1, 1, 0, 2),
     farm = put("farms", -7, 1),
-    shop = put("grocery_store", 7, 1);
+    shop = put("grocery_store", 3, 1);
   for (let x = -9; x <= 9; x++) put("roads", x, 2);
   for (let x = -9; x <= 2; x++) put("roads", x, -4);
   for (const [i, x] of [-9, -7, -5, -3, -1, 1].entries()) put(i % 3 === 1 ? "shops" : "house", x, -5, 1, 0, i % 4);
