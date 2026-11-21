@@ -576,7 +576,9 @@ export function hasNavigableHarbor(s: GameState, e: PlacedElement): boolean {
     cache = portCache.get(net) ?? new Map<string, boolean>();
   portCache.set(net, cache);
   if (cache.has(e.id)) return cache.get(e.id)!;
-  const hull = vesselHull(e),
+  // Home-port service is judged with the vessel's Lv.1 hull, so upgrading a boat never strands it from
+  // the harbor it was built for (a larger hull may still find some open-water routes too narrow).
+  const hull = vesselHull({ ...e, level: 1 }),
     a = net.connectors(e, "ferry", hull);
   const ok = ports.some((p) => !!net.path(a, net.connectors(p, "ferry", hull), "ferry", hull));
   cache.set(e.id, ok);

@@ -19,9 +19,24 @@ export function streetDemand(state: GameState) {
   const hourly = new Map<string, number>();
   const factor = ambientTrafficFactor(state.timeOfDay ?? 10.5);
   let trips = 0;
+  // Homes generate trips from the residents they actually hold (a share of the whole population, so
+  // settlers in the growth pool drive too); workplaces from their staff. Anything else, or a site the
+  // economy has not staffed yet, falls back to its nominal level-scaled trip rate.
+  let homeWeight = 0;
+  for (const site of state.elements) {
+    const d = ELEMENT_BY_ID[site.defId];
+    if (d?.popBase && site.connected && !site.onFire) homeWeight += d.popBase * levelMultiplier("output", site.level);
+  }
+  const sites = state.economy?.sites;
   for (const id of network.siteIds) {
     const site = byId.get(id)!;
-    const generation = Math.max(1, tripsFor(ELEMENT_BY_ID[site.defId])) * levelMultiplier("trips", site.level) * factor;
+    const def = ELEMENT_BY_ID[site.defId];
+    const nominal = Math.max(1, tripsFor(def)) * levelMultiplier("trips", site.level);
+    const residents = def.popBase && homeWeight ? (state.population * def.popBase * levelMultiplier("output", site.level)) / homeWeight : 0;
+    const workers = sites?.[id]?.workers ?? 0;
+    const visitors = ((def.category === "commerce" ? 2 : 0) + (def.category === "landmarks" ? 6 : 0)) * levelMultiplier("reach", site.level);
+    const people = residents / 6 + workers / 10 + visitors;
+    const generation = (people > 0 && (residents > 0 || sites?.[id]) ? Math.max(1, people) : nominal) * factor;
     hourly.set(id, generation);
     trips += generation;
   }

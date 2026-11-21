@@ -41,6 +41,7 @@ import {
   solarRow,
   tank,
   smokestack,
+  container,
   parking,
   type Ctx,
   type TreeKind,
@@ -448,9 +449,8 @@ function goal(v: PixelVox, x: number, z0: number, dir: 1 | -1, col = "white") {
   v.box(x - dir, 1, z0, x - dir + 1, 3, z0 + 5, "silver");
 }
 /** Running-track oval along x. Returns the infield rectangle. */
-function track(c: Ctx, x0: number, z0: number, x1: number, z1: number, col: string, lanes = 3) {
-  const v = c.v,
-    r = (z1 - z0) / 2,
+function track(v: PixelVox, x0: number, z0: number, x1: number, z1: number, col: string, lanes = 3) {
+  const r = (z1 - z0) / 2,
     cz = z0 + r,
     ca = x0 + r,
     cb = Math.max(ca, x1 - r);
@@ -474,9 +474,8 @@ function track(c: Ctx, x0: number, z0: number, x1: number, z1: number, col: stri
   };
 }
 type Sport = "soccer" | "gridiron" | "baseball" | "athletics";
-function field(c: Ctx, x0: number, z0: number, x1: number, z1: number, sport: Sport, accent = "red") {
-  const v = c.v,
-    mx = Math.floor((x0 + x1) / 2),
+function field(v: PixelVox, x0: number, z0: number, x1: number, z1: number, sport: Sport, accent = "red") {
+  const mx = Math.floor((x0 + x1) / 2),
     mz = Math.floor((z0 + z1) / 2);
   if (x1 - x0 < 6 || z1 - z0 < 5) return;
   if (sport === "baseball") {
@@ -543,6 +542,21 @@ function field(c: Ctx, x0: number, z0: number, x1: number, z1: number, sport: Sp
     v.box(x1 - 7, 1, z1 - 4, x1 - 6, 4, z1 - 3, "white");
     v.box(x1 - 2, 1, z1 - 4, x1 - 1, 4, z1 - 3, "white");
     ring(v, mx + 0.5, mz + 0.5, 0, 1, 2.5, 1.6, "white");
+  }
+}
+
+/** Draws through to a target with x and z swapped (lets the field kit lay pitches along z). */
+class SwapVox extends PixelVox {
+  constructor(private t: PixelVox) {
+    super();
+  }
+  put(x: number, y: number, z: number, color: string | null, emit = 0): this {
+    this.t.put(z, y, x, color, emit);
+    return this;
+  }
+  box(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, color: string | null, emit = 0): this {
+    this.t.box(z0, y0, x0, z1, y1, x1, color, emit);
+    return this;
   }
 }
 
@@ -622,9 +636,10 @@ function observatory(c: Ctx, cx: number, cz: number, r: number, h: number, wall:
     for (let y = 0; y < r; y++)
       for (let z = -r; z < r; z++) {
         const d = Math.hypot(x + 0.5, y + 0.5, z + 0.5);
-        if (d > r || d <= r - 1.3) continue;
-        if (Math.abs(x + 0.5) < 1.1 && z >= 0 && y >= 1) continue;
-        m.put(x, y, z, domeCol);
+        if (d > r) continue;
+        const slit = Math.abs(x + 0.5) < 1.1 && z >= 0 && y >= 1;
+        if (slit && d > r - 2) continue;
+        m.put(x, y, z, slit ? "charcoal" : d > r - 1.2 ? domeCol : "steelDark");
       }
   for (let t = 0; t <= r + 1; t++) {
     m.box(-1, 1 + Math.round(t * 0.8), Math.round(t * 0.75), 1, 2 + Math.round(t * 0.8), Math.round(t * 0.75) + 1, t > r - 1 ? "steelDark" : "white");
@@ -638,20 +653,23 @@ function dish(c: Ctx, cx: number, cz: number, r: number, mount: number, col = "w
   v.cone(cx, 1, mount, cz, Math.max(1.2, r * 0.35), Math.max(0.8, r * 0.18), "concrete");
   const m = new PixelVox(),
     s = Math.SQRT1_2,
-    f = r * 0.75;
-  const seen = new Set<string>();
-  for (let u = -r; u <= r; u += 0.5)
-    for (let w = -r; w <= r; w += 0.5) {
-      if (u * u + w * w > r * r) continue;
-      const d = (u * u + w * w) / (4 * f);
-      const px = u,
-        py = w * s + d * s,
-        pz = -w * s + d * s;
-      const key = `${Math.round(px)},${Math.round(py)},${Math.round(pz)}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      m.put(Math.round(px - 0.5), Math.round(py - 0.5), Math.round(pz - 0.5), u * u + w * w > r * r * 0.8 ? "silver" : col);
-    }
+    f = r * 0.75,
+    R = Math.ceil(r) + 2;
+  // solid paraboloid shell tilted 45° toward +z: sample every voxel and keep those near the surface
+  for (let x = -R; x < R; x++)
+    for (let y = -R; y < R; y++)
+      for (let z = -R; z < R; z++) {
+        const px = x + 0.5,
+          py = y + 0.5,
+          pz = z + 0.5;
+        const along = (py + pz) * s,
+          w = (py - pz) * s,
+          q = px * px + w * w;
+        if (q > r * r) continue;
+        const surf = q / (4 * f);
+        if (along < surf - 0.45 || along > surf + 0.75) continue;
+        m.put(x, y, z, q > (r - 1) * (r - 1) ? "silver" : col);
+      }
   for (let t = 1; t < f; t++) m.put(0, Math.round(t * s), Math.round(t * s), "steelDark");
   m.put(0, Math.round(f * s), Math.round(f * s), "red", 1);
   m.box(-1, -Math.ceil(r * 0.75), -1, 1, 0, 1, "steelLight");
@@ -957,28 +975,32 @@ function schoolhouse(c: Ctx, x0: number, z0: number, x1: number, z1: number, h: 
   return top;
 }
 function ferrisWheel(c: Ctx, x: number, z: number, r: number) {
-  const v = c.v;
-  for (const dz of [-2, 1]) for (let y = 1; y <= r + 1; y++) v.put(x + Math.round(((r + 1 - y) / (r + 1)) * 2) * 0, y, z + dz, "white");
-  for (const dz of [-2, 1]) {
-    for (let y = 1; y < r + 2; y++) {
-      const off = Math.round(((r + 2 - y) / (r + 1)) * (r * 0.5));
-      v.put(x - off, y, z + dz, "white");
-      v.put(x + off - 1, y, z + dz, "white");
+  const v = c.v,
+    hub = r + 2;
+  for (const dz of [-3, 2])
+    for (let y = 1; y <= hub; y++) {
+      const off = Math.round(((hub - y) / hub) * (r * 0.6));
+      v.put(x - 1 - off, y, z + dz, "white");
+      v.put(x + off, y, z + dz, "white");
     }
-  }
+  v.box(x - 1, hub, z - 3, x + 1, hub + 1, z + 3, "steelDark");
+  v.box(x - r, 0, z - 4, x + r, 1, z + 4, "woodLight");
   const m = new PixelVox(),
-    cols = ["red", "yellow", "blue", "lime", "orange", "pink"];
-  for (let a = 0; a < 64; a++) {
-    const t = (a / 64) * Math.PI * 2;
-    m.put(Math.round(Math.cos(t) * r - 0.5), Math.round(Math.sin(t) * r - 0.5), 0, "white");
-    m.put(Math.round(Math.cos(t) * r - 0.5), Math.round(Math.sin(t) * r - 0.5), -1, "white");
+    cols = ["red", "yellow", "blue", "lime", "orange", "pink", "purple", "teal"];
+  for (let a = 0; a < 96; a++) {
+    const t = (a / 96) * Math.PI * 2;
+    m.put(Math.round(Math.cos(t) * r - 0.5), Math.round(Math.sin(t) * r - 0.5), -1, "red");
+    m.put(Math.round(Math.cos(t) * r - 0.5), Math.round(Math.sin(t) * r - 0.5), 0, "red");
   }
-  for (let k = 0; k < 6; k++) {
-    const t = (k / 6) * Math.PI * 2;
-    for (let s = 1; s < r; s++) m.put(Math.round(Math.cos(t) * s - 0.5), Math.round(Math.sin(t) * s - 0.5), 0, "silver");
-    m.box(Math.round(Math.cos(t) * r - 1), Math.round(Math.sin(t) * r - 1), -1, Math.round(Math.cos(t) * r + 1), Math.round(Math.sin(t) * r + 1), 1, cols[k]);
+  for (let k = 0; k < 8; k++) {
+    const t = (k / 8) * Math.PI * 2;
+    for (let s = 1; s < r; s++) m.put(Math.round(Math.cos(t) * s - 0.5), Math.round(Math.sin(t) * s - 0.5), 0, "white");
+    const gx = Math.round(Math.cos(t) * r - 0.5),
+      gy = Math.round(Math.sin(t) * r - 0.5);
+    m.box(gx, gy - 1, -2, gx + 1, gy + 1, 2, cols[k]);
   }
-  c.addRotor({ vox: m, pivot: [x, r + 2, z], axis: "z", speed: 0.35 });
+  m.box(-1, -1, -1, 1, 1, 1, "gold");
+  c.addRotor({ vox: m, pivot: [x, hub, z], axis: "z", speed: 0.35 });
 }
 function country_schoolhouse(c: Ctx) {
   const { v, lv, variant: vr } = c,
@@ -991,7 +1013,7 @@ function country_schoolhouse(c: Ctx) {
     sz0 = Z0 + 1;
   const cx = sx0 + Math.floor(sw / 2);
   path(v, cx - 1, sz0 + sd + 3, cx + 1, Z1 + 1, "path");
-  schoolhouse(c, sx0, sz0, sx0 + sw, sz0 + sd, 6 + (vr === 1 ? 1 : 0), lv >= 2);
+  schoolhouse(c, sx0, sz0, sx0 + sw, sz0 + sd, 8 + (vr === 1 ? 1 : 0), lv >= 2);
   if (lv === 1) {
     kid(v, cx + 3, sz0 + sd + 3, "red");
     kid(v, cx - 3, sz0 + sd + 4, "blue");
@@ -1019,8 +1041,8 @@ function country_schoolhouse(c: Ctx) {
   }
   if (lv >= 4) {
     // reading garden: big shade tree with swing, benches and vegetable rows
-    const gx = X0 + Math.floor(W * 0.62),
-      gz = Z0 + Math.floor(D * 0.62);
+    const gx = X0 + Math.min(18, Math.floor(W * 0.62)),
+      gz = Z0 + Math.floor(D * 0.6);
     tree(v, gx, 1, gz, vr === 2 ? "oak" : "autumn", 1.8, 2);
     v.box(gx + 2, 3, gz, gx + 3, 7, gz + 1, "iron");
     v.put(gx + 2, 2, gz, "wood");
@@ -1033,26 +1055,27 @@ function country_schoolhouse(c: Ctx) {
     crowd(c, gx - 6, gz - 3, gx + 6, gz + 5, 4);
   }
   if (lv >= 5) {
-    // harvest fair
-    const fz = Z1 - 8,
+    // harvest fair: striped stalls, pumpkins, hay and a little Ferris wheel
+    const fz = Z1 - 7,
       cols = [
         ["red", "white"],
         ["blue", "white"],
         ["orange", "yellow"],
       ];
     for (let i = 0; i < 3; i++) {
-      const tx = X0 + 14 + i * 8;
-      if (tx + 6 > X1 - 1) break;
+      const tx = X0 + 12 + i * 8;
+      if (tx + 6 > X1 - 15) break;
       for (let x = tx; x < tx + 6; x++) for (let s = 0; s < 3; s++) v.box(x, 3 + s, fz + s, x + 1, 4 + s, fz + 6 - s, cols[i][x % 2]);
       for (const px of [tx, tx + 5]) for (const pz of [fz, fz + 5]) v.box(px, 1, pz, px + 1, 3, pz + 1, "woodDark");
       v.box(tx + 1, 1, fz + 4, tx + 5, 2, fz + 5, "woodLight");
       for (let k = 0; k < 3; k++) v.put(tx + 1 + k, 2, fz + 4, ["orange", "red", "yellow"][k]);
     }
-    for (let i = 0; i < 4; i++) v.box(X1 - 9 + (i % 2) * 3, 1 + Math.floor(i / 2) * 2, Z1 - 3, X1 - 6 + (i % 2) * 3, 3 + Math.floor(i / 2) * 2, Z1 - 1, "yellow");
-    for (let i = 0; i < 5; i++) v.sphere(X0 + 13 + i * 2 + 0.5, 1.5, Z1 - 2 + 0.5, 1, 0.8, 1, "orange");
-    ferrisWheel(c, X1 - 6, Z0 + Math.floor(D * 0.55), 6);
-    // bunting
-    for (let x = X0 + 13; x < X1 - 1; x++) v.put(x, 8 - ((x >> 1) % 2), fz - 1, SHIRTS[x % 6]);
+    const hy = Z0 + 16;
+    for (let i = 0; i < 3; i++) v.box(X1 - 14 + i * 3, 1, hy, X1 - 11 + i * 3, 3, hy + 2, "yellow");
+    v.box(X1 - 12, 3, hy, X1 - 9, 5, hy + 2, "yellow");
+    for (let i = 0; i < 4; i++) v.sphere(X1 - 14 + i * 2 + 0.5, 1.5, hy + 3.5, 1, 0.8, 1, "orange");
+    ferrisWheel(c, X1 - 7, Z1 - 5, 6);
+    for (let x = X0 + 12; x < X1 - 14; x++) v.put(x, 8 - ((x >> 1) % 2), fz - 1, SHIRTS[x % 6]);
     crowd(c, X0 + 12, fz - 4, X1 - 1, Z1 - 1, 12, false);
   }
   if (vr === 2) for (let i = 0; i < lv; i++) v.box(X0 + 1 + i * 3, 1, Z0 + 1, X0 + 3 + i * 3, 3, Z0 + 3, "yellow"); // hay
@@ -1110,7 +1133,7 @@ function elementary_school(c: Ctx) {
     e = ELE[vr];
   lot(c, "grass2");
   const floors = lv >= 3 ? 2 : 1;
-  const bw = lv === 1 ? W - 2 : lv === 2 ? Math.floor(W * 0.55) : Math.min(W - 4, Math.max(20, Math.floor(W * 0.72)));
+  const bw = lv === 1 ? W - 2 : lv === 2 ? Math.floor(W * 0.55) : lv === 5 ? W - 2 : Math.min(W - 4, Math.max(20, Math.floor(W * 0.72)));
   const bd = Math.min(9, Math.max(6, Math.floor(D * 0.4)));
   const bx0 = X0 + 1,
     bz0 = Z0 + 1,
@@ -1142,11 +1165,13 @@ function elementary_school(c: Ctx) {
     crowd(c, X0 + 1, tz0, X1 - 1, Z1 - 1, 4);
   }
   if (lv >= 2) {
-    const px = lv === 2 ? bx0 + bw + 3 : X1 - 10;
-    climbFrame(v, px, Z0 + 2 + (lv >= 3 ? bd + 3 : 0), ["red", "blue", "yellow", "lime"]);
-    slide(v, Math.min(X1 - 5, px + 3), Z0 + 2 + (lv >= 3 ? bd + 9 : 7), "blue", "yellow", "red");
-    v.box(px - 1, 0, Z0 + 1 + (lv >= 3 ? bd + 3 : 0), X1 - 1, 1, Z0 + 15 + (lv >= 3 ? bd + 3 : 0), "#f39a6b");
-    climbFrame(v, px, Z0 + 2 + (lv >= 3 ? bd + 3 : 0), ["red", "blue", "yellow", "lime"]);
+    // playground on soft surface: climbing frame, slide, swings
+    const px = lv === 2 ? bx0 + bw + 3 : lv === 5 ? X0 + 16 : X1 - 10,
+      pz = lv === 2 ? Z0 + 2 : lv === 5 ? Z0 + bd + 4 : Z0 + bd + 4;
+    v.box(px - 1, 0, pz - 1, Math.min(X1 - 1, px + 10), 1, pz + 14, "#f39a6b");
+    climbFrame(v, px, pz, ["red", "blue", "yellow", "lime"]);
+    slide(v, Math.min(X1 - 5, px + 3), pz + 6, "blue", "yellow", "red");
+    if (lv >= 3) swings(v, px, pz + 10, "red", ["yellow", "blue"], 2);
     crowd(c, X0 + 1, tz0, X1 - 1, Z1 - 1, 6 + lv * 2);
   }
   if (lv >= 3) {
@@ -1171,12 +1196,19 @@ function elementary_school(c: Ctx) {
     for (let x = X0 + Math.floor(W * 0.42); x < X0 + Math.floor(W * 0.42) + 18; x += 6) v.box(x, 1, bzz - 2, x + 1, 5, bzz - 1, "steelDark");
   }
   if (lv >= 5) {
-    // U-shaped academy: east wing, gym, garden courtyard
-    const ex = X1 - 10;
-    eleBlock(c, ex, bz0, X1 - 1, bz0 + Math.floor(D * 0.5), 2);
-    hall(c, bx0 + bw + 1 > ex - 10 ? ex - 12 : bx0 + bw + 1, bz0, ex - 1, bz0 + 9, 9, { ...e.a, roof: e.a.accent }, "barrel", "none");
-    flowerBed(c, cx - 8, bz0 + bd + 5, cx - 3, bz0 + bd + 8);
-    crowd(c, X0 + 1, tz0, X1 - 1, Z1 - 6, 6);
+    // U-shaped academy: classroom east wing + vaulted gym, garden courtyard between
+    const gz0 = bz0 + bd + 1,
+      gz1 = Math.min(Z1 - 8, gz0 + 16);
+    hall(c, X1 - 13, gz0, X1 - 1, gz1, 10, { ...e.a, roof: e.a.accent }, "barrelZ", "none");
+    v.box(X1 - 14, 3, gz0 + 2, X1 - 13, 7, gz1 - 2, e.a.accent);
+    for (let z = gz0 + 3; z < gz1 - 3; z += 3) v.put(X1 - 14, 5, z, "white", 0.5);
+    const cxg = X0 + 8,
+      gzz = Z0 + bd + Math.min(8, Math.max(5, Math.floor(D * 0.3))) + 2;
+    v.box(cxg - 5, 0, gzz, cxg + 5, 1, gzz + 11, "grass");
+    flowerBed(c, cxg - 4, gzz + 1, cxg - 1, gzz + 4);
+    flowerBed(c, cxg + 1, gzz + 1, cxg + 4, gzz + 4);
+    for (let i = 0; i < 3; i++) v.box(cxg - 4 + i * 3, 0, gzz + 7, cxg - 2 + i * 3, 1, gzz + 10, "soil"), v.put(cxg - 3 + i * 3, 1, gzz + 8, ["red", "orange", "leaf"][i]);
+    tree(v, cxg, 1, gzz + 5, e.tree, 1.4, 3);
   }
   trees(c, [
     [X1 - 2, Z0 + 2],
@@ -1208,7 +1240,7 @@ function middle_school(c: Ctx) {
   const bx0 = X0 + 1,
     bz0 = Z0 + 1,
     cx = bx0 + Math.floor(bw / 2),
-    h = 10;
+    h = lv >= 4 ? 14 : 10;
   path(v, cx - 1, bz0 + bd, cx + 2, Z1 + 1, "concrete");
   const roofKind: Roof = lv >= 2 ? (vr === 2 ? "flat" : "flat") : m.roof;
   hall(c, bx0, bz0, bx0 + bw, bz0 + bd, h, m.a, lv >= 2 ? roofKind : m.roof, m.win);
@@ -1251,12 +1283,12 @@ function middle_school(c: Ctx) {
     crowd(c, X0 + 1, bz0 + bd + 4, X1 - 1, Z1 - 1, 7);
   }
   if (lv >= 3) {
-    const cw = 13,
+    const cw = Math.min(14, Math.floor((W - 6) / 2)),
       cd = Math.min(17, D - bd - 4);
     const cx0 = X0 + 2,
       cz0 = Z1 - cd - 1;
     court(v, cx0, cz0, cx0 + cw, cz0 + cd, m.court);
-    if (W >= 32) court(v, cx0 + cw + 2, cz0, cx0 + 2 * cw + 2, cz0 + cd, m.court, "orange");
+    court(v, cx0 + cw + 2, cz0, cx0 + 2 * cw + 2, cz0 + cd, m.court, "orange");
     crowd(c, cx0, cz0, cx0 + 2 * cw + 2, cz0 + cd, 10);
   }
   if (lv >= 4) {
@@ -1336,78 +1368,81 @@ function seniorHall(c: Ctx, x0: number, z0: number, x1: number, z1: number) {
   v.box(cx - 2, 7, z1 + (c.variant === 0 ? 1 : 2) - (c.variant === 2 ? 0 : 0), cx + 3, 10, z1 + (c.variant === 0 ? 2 : 3), hs.team[0]);
   v.box(cx - 1, 8, z1 + (c.variant === 0 ? 2 : 3), cx + 2, 9, z1 + (c.variant === 0 ? 3 : 4), hs.team[1], 0.4);
 }
+function hsGym(c: Ctx, x0: number, z0: number, x1: number, z1: number) {
+  const v = c.v,
+    hs = HIGH[c.variant];
+  hall(c, x0, z0, x1, z1, 10, { ...hs.a, roof: hs.team[0], trim: hs.team[1] }, "barrel", "none");
+  v.box(x0, 3, z1 - 1, x1, 8, z1, hs.team[0]);
+  v.box(x0 + 1, 4, z1, x1 - 1, 7, z1 + 1, hs.team[1], 0.3);
+  v.box(x0 + 3, 5, z1, x1 - 3, 6, z1 + 1, hs.team[0]);
+  entry(v, Math.floor((x0 + x1) / 2), z1, "glass", undefined, 4);
+}
 function high_school(c: Ctx) {
   const { v, lv, variant: vr } = c,
-    { X0, X1, Z0, Z1, W, D } = bnd(c),
+    { X0, X1, Z0, Z1, W } = bnd(c),
     hs = HIGH[vr];
   lot(c, "grass2");
-  const mw = Math.min(lv >= 3 ? 22 : 26, W - 2),
-    md = Math.min(11, Math.floor(D * 0.38));
-  const mx0 = X0 + 1,
+  const md = 11,
     mz0 = Z0 + 1,
-    cx = mx0 + Math.floor(mw / 2);
+    mx0 = X0 + 1;
+  const mw = lv === 1 ? Math.min(26, W - 2) : lv === 2 ? Math.min(18, W - 13) : Math.min(24, W - 18);
+  const cx = mx0 + Math.floor(mw / 2),
+    fz = mz0 + md + 2;
   path(v, cx - 2, mz0 + md, cx + 2, Z1 + 1, "concrete");
   seniorHall(c, mx0, mz0, mx0 + mw, mz0 + md);
-  flag(v, cx + 5, 1, mz0 + md + 4, 12, [hs.team[0], hs.team[1]]);
+  flag(v, cx + 5, 1, fz + 1, 12, [hs.team[0], hs.team[1]]);
+  if (lv >= 2) hsGym(c, mx0 + mw + 2, mz0, lv >= 5 ? mx0 + mw + 18 : X1 - 1, mz0 + md);
   if (lv <= 2) {
-    // student parking lot in front
-    parking(c, mx0, mz0 + md + 6, X1 - 1, Z1 - 1);
+    parking(c, mx0, fz + 3, X1 - 1, Z1 - 1);
+    bus(v, X1 - 11, fz, "x");
+    crowd(c, X0 + 1, fz, X1 - 1, fz + 3, 6, false, [hs.team[0], hs.team[1], "blueDark"]);
   }
-  if (lv >= 2) {
-    // gymnasium with mascot colours
-    const gx0 = lv >= 3 ? mx0 : X1 - 11,
-      gz0 = lv >= 3 ? mz0 + md + 2 : mz0,
-      gw = lv >= 3 ? Math.min(mw, 16) : 10,
-      gd = lv >= 3 ? Math.min(12, D - md - 6) : md;
-    if (lv === 2) hall(c, gx0, gz0, gx0 + gw, gz0 + gd, 10, { ...hs.a, roof: hs.team[0] }, "barrelZ", "none");
-    else hall(c, gx0, gz0, gx0 + gw, gz0 + gd, 10, { ...hs.a, roof: hs.team[0] }, "barrel", "none");
-    const fz = gz0 + gd - 1;
-    v.box(gx0, 3, fz, gx0 + gw, 7, fz + 1, hs.team[0]);
-    v.box(gx0 + 1, 4, fz + 1, gx0 + gw - 1, 6, fz + 2, hs.team[1], 0.3);
-    v.box(gx0 + 3, 4, fz + 1, gx0 + gw - 3, 6, fz + 2, hs.team[0]);
-  }
-  if (lv >= 3) {
-    // athletics: track + football field
-    const tx0 = mx0 + Math.min(mw, 16) + 2 + (lv >= 4 ? 0 : 0),
-      tz1 = Z1 - 1,
-      td = Math.min(lv >= 4 ? 26 : 24, D - 2);
-    const tx1 = X1 - 1,
-      tz0 = tz1 - td;
-    const tX0 = lv >= 4 ? X0 + 1 : tx0;
-    const fieldZ0 = lv >= 4 ? Z1 - Math.min(26, D - md - 10) - 1 : tz0;
-    const f = track(c, lv >= 4 ? tX0 : tx0, fieldZ0, tx1, tz1, hs.track, 3);
-    field(c, f.fx0, f.fz0, f.fx1, f.fz1, "gridiron", hs.team[0]);
+  if (lv === 3) {
+    const f = track(v, X0 + 1, fz, X1 - 1, Z1 - 1, hs.track, 3);
+    field(v, f.fx0, f.fz0, f.fx1, f.fz1, "gridiron", hs.team[0]);
     crowd(c, f.fx0 + 2, f.fz0 + 1, f.fx1 - 2, f.fz1 - 1, 8, false, [hs.team[0], hs.team[1]]);
-    if (lv >= 4) {
-      // grandstand on the far side, press box, scoreboard, floodlights
-      const sx0 = Math.max(mx0 + mw + 2, X0 + Math.floor(W * 0.45)),
-        sz = fieldZ0 - 1;
-      stand(c, sx0, X1 - 2, sz, 5, -1, hs.team[0], lv >= 5 ? hs.team[1] : undefined, 0.45);
-      if (lv === 4) {
-        v.box(sx0 + 4, 7, sz - 5, sx0 + 12, 11, sz - 1, hs.a.wall2);
-        v.box(sx0 + 5, 8, sz - 1, sx0 + 11, 10, sz, "glass", 0.5);
-      }
-      scoreboard(v, tX0 + 1, Z1 - 2, 10, 7, hs.team[0]);
-      const fl = lv >= 5 ? 18 : 15;
-      for (const [x, z] of [
-        [tX0 + 1, fieldZ0],
-        [X1 - 2, fieldZ0],
-        [tX0 + 1, Z1 - 3],
-        [X1 - 2, Z1 - 3],
-      ])
-        flood(c, x, z, fl);
-    } else stand(c, tx0 + 4, tx1 - 4, tz0 - 1, 3, -1, hs.team[0]);
+    for (const x of [X0 + Math.floor(W * 0.3), X0 + Math.floor(W * 0.6)]) bench(v, x, 1, fz + 4);
+  }
+  if (lv >= 4) {
+    // grandstand + press box facing the field, scoreboard and floodlights
+    const tx1 = lv >= 5 ? X1 - 13 : X1 - 1,
+      tz0 = fz + 6;
+    const f = track(v, X0 + 1, tz0, tx1, Z1 - 1, hs.track, 3);
+    field(v, f.fx0, f.fz0, f.fx1, f.fz1, "gridiron", hs.team[0]);
+    crowd(c, f.fx0 + 2, f.fz0 + 1, f.fx1 - 2, f.fz1 - 1, 10, false, [hs.team[0], hs.team[1]]);
+    const sx0 = X0 + 5,
+      sx1 = tx1 - 4;
+    stand(c, sx0, sx1, tz0 - 1, 5, -1, hs.team[0], lv >= 5 ? hs.team[1] : undefined, 0.5);
+    const pbx = Math.floor((sx0 + sx1) / 2) - 4;
+    if (lv === 4) {
+      v.box(pbx, 7, fz, pbx + 9, 11, fz + 3, hs.a.wall2);
+      v.box(pbx + 1, 8, fz + 3, pbx + 8, 10, fz + 4, "glass", 0.6);
+      v.box(pbx - 1, 11, fz - 1, pbx + 10, 12, fz + 4, hs.team[0]);
+    }
+    scoreboard(v, X0 + 2, Z1 - 2, 10, 6, hs.team[0]);
+    const fl = lv >= 5 ? 20 : 16;
+    for (const [x, z] of [
+      [X0 + 1, tz0],
+      [tx1 - 1, tz0],
+      [X0 + 1, Z1 - 3],
+      [tx1 - 1, Z1 - 3],
+    ])
+      flood(c, x, z, fl);
   }
   if (lv >= 5) {
-    // second academic wing, bus lane and more lights
-    const wx0 = mx0 + mw + 1;
-    hall(c, wx0, mz0, X1 - 1, mz0 + 8, 10, hs.a, hs.roof, hs.win);
-    for (let i = 0; i < 3; i++) bus(v, wx0 + 2 + i * 10 < X1 - 10 ? wx0 + 2 + i * 10 : X1 - 10, mz0 + 10, "x");
-    flood(c, Math.floor((X0 + X1) / 2), Z1 - 3, 18);
+    // science wing, bus loop and championship banners
+    hall(c, mx0 + mw + 20, mz0, X1 - 1, mz0 + md - 2, 12, hs.a, hs.roof, hs.win);
+    const bx = X1 - 11;
+    v.box(bx - 1, 0, fz, X1 - 1, 1, Z1 - 1, "asphaltDark");
+    bus(v, bx, fz + 2, "z");
+    bus(v, bx + 5, fz + 2, "z");
+    bus(v, bx, fz + 14, "z");
+    parkedCars(c, bx - 1, X1 - 1, Z1 - 4);
+    for (let x = X0 + 6; x < X1 - 16; x += 8) flag(v, x, 12, fz - 1 + 1, 3, [hs.team[0], hs.team[1]]);
   }
   trees(c, [
-    [X0 + 1, Z1 - 2],
-    [mx0 + mw + 1, mz0 + 1],
+    [X0 + 1, fz - 1],
+    [X1 - 2, fz - 1],
   ], vr === 2 ? "palm" : vr === 0 ? "oak" : "round", 1.1);
   fence(v, -c.hx, -c.hz, c.hx, c.hz, 1, 3, "#9aa3ad", [cx - 3, cx + 3]);
 }
@@ -1496,15 +1531,15 @@ function trade_school(c: Ctx) {
   } else workshop(c, wx0, wz0, wx0 + ww, wz0 + wd, h, Math.max(2, Math.floor(ww / 6)));
   // yard props
   if (vr === 0) {
-    steelPile(v, X1 - 10, Z1 - 4, 3);
+    steelPile(v, X0 + 2, Z1 - 4, 3);
     tank(v, X1 - 4, wz0 + 3, 1, 6, 2.2, "steel", "steelLight", "red");
   }
-  if (vr === 2) steelPile(v, X1 - 10, Z1 - 4, 4, "blueDark");
+  if (vr === 2) steelPile(v, X0 + 2, Z1 - 4, 4, "blueDark");
   if (vr === 3) {
-    for (let i = 0; i < 3; i++) for (let k = 0; k < 3 + (i % 2); k++) cyl(v, X1 - 3 - i * 3, Z1 - 3, 1 + k, 2 + k, 1.2, "rubber");
+    for (let i = 0; i < 3; i++) for (let k = 0; k < 3 + (i % 2); k++) cyl(v, X0 + 3 + i * 3, Z1 - 3, 1 + k, 2 + k, 1.2, "rubber");
     for (let x = wx0; x < wx0 + Math.min(10, ww); x++) v.put(x, h, wz0 + wd, (x % 2) ? "black" : "white");
   }
-  if (vr === 1) lumber(v, X1 - 9, Z1 - 5);
+  if (vr === 1) lumber(v, X0 + 2, Z1 - 5);
   crowd(c, X0 + 1, wz0 + wd + 2, X1 - 1, Z1 - 1, 3 + lv, false, ["orange", "hazard", "blueDark"]);
   if (lv >= 2) {
     // machine shop extension + extraction stack + roof duct
@@ -1513,24 +1548,37 @@ function trade_school(c: Ctx) {
     c.smoke(sx, top, wz0 + 2, vr === 0 ? "dark" : "smoke");
     v.box(wx0 + 2, h + 3, wz0 + 2, sx - 1, h + 5, wz0 + 4, "silver");
     for (let x = wx0 + 3; x < sx - 2; x += 5) v.box(x, h, wz0 + 2, x + 2, h + 3, wz0 + 4, "steelDark");
-    if (vr === 3) carLift(v, X1 - 10, Z1 - 9, "crimson");
-    else steelPile(v, X0 + 2, Z1 - 4, 2, "iron");
+    if (vr === 3 && lv === 2) carLift(v, X1 - 9, Z1 - 4, "crimson");
+    else if (vr !== 3) steelPile(v, X0 + 2, Z1 - 8, 2, "iron");
   }
   if (lv >= 3) {
-    // apprentice bays: open-sided canopy with workbenches and a car on a lift
-    const az = wz0 + wd + 2,
-      ax1 = Math.min(X1 - 1, wx0 + ww);
-    for (let x = wx0; x < ax1; x += 6) v.box(x, 1, az + 5, x + 1, 7, az + 6, "steelDark");
-    v.box(wx0 - 1, 7, az, ax1 + 1, 8, az + 7, vr === 1 ? "wood" : t.a.roof === "charcoal" ? "steelLight" : t.a.roof);
-    for (let x = wx0 + 2; x < ax1 - 3; x += 6) {
+    // apprentice bays: open-sided canopy with workbenches and a car on a lift (front-right yard)
+    const ax0 = X0 + Math.floor(W * 0.42),
+      ax1 = X1 - 1,
+      az = Z1 - 9;
+    for (let x = ax0; x < ax1; x += 6) v.box(x, 1, az + 6, x + 1, 7, az + 7, "steelDark");
+    v.box(ax1 - 1, 1, az + 6, ax1, 7, az + 7, "steelDark");
+    v.box(ax0 - 1, 7, az, ax1, 8, az + 8, vr === 1 ? "wood" : t.a.roof === "charcoal" ? "steelLight" : t.a.roof);
+    v.box(ax0 - 1, 7, az, ax1, 8, az + 1, t.a.accent);
+    for (let x = ax0 + 1; x < ax1 - 12; x += 5) {
       v.box(x, 1, az + 1, x + 3, 3, az + 2, "woodDark");
       person(v, x + 1, 1, az + 3, "orange", "blueDark");
       c.smoke(x + 2, 3, az + 1, "spark");
     }
-    carLift(v, Math.min(X1 - 9, ax1 - 9), az + 2, vr === 3 ? "teal" : "yellow");
+    carLift(v, ax1 - 9, az + 3, vr === 3 ? "teal" : "yellow");
   }
   if (lv >= 4) {
-    towerCrane(c, X1 - 5, Z0 + 3, 22 + lv, 16, vr === 2 ? "orange" : "hazard");
+    // stock yard: shipping containers, pallets and a forklift
+    const yz = wz0 + wd + 3,
+      yx = X0 + Math.floor(W * 0.42);
+    container(v, yx, 1, yz, "x", vr === 3 ? "red" : "blue");
+    container(v, yx + 7, 1, yz, "x", "orange");
+    container(v, yx + 3, 4, yz, "x", vr === 1 ? "leafDark" : "teal");
+    for (let i = 0; i < 3; i++) v.box(yx + 15 + i * 3, 1, yz, yx + 17 + i * 3, 2 + (i % 2), yz + 2, i % 2 ? "crate" : "wood");
+    v.box(yx - 5, 1, yz, yx - 2, 3, yz + 2, "yellow");
+    v.box(yx - 2, 1, yz, yx - 1, 5, yz + 2, "steelDark");
+    v.put(yx - 4, 3, yz + 1, "black");
+    towerCrane(c, X1 - 6, Z0 + 3, 22 + lv, 11, vr === 2 ? "orange" : "hazard");
     // gantry over stock yard
     const gx = X1 - 14;
     v.box(gx, 1, Z1 - 12, gx + 1, 10, Z1 - 11, "hazard");
@@ -1541,10 +1589,10 @@ function trade_school(c: Ctx) {
   }
   if (lv >= 5) {
     // technical works: second hall + scaffold training tower + power-line practice poles
-    const hx0 = X0 + Math.floor(W * 0.56);
+    const hx0 = wx0 + ww + 2;
     if (vr === 1) hall(c, hx0, Z0 + 1, X1 - 8, Z0 + 12, 12, t.a, "gable", "none");
     else workshop(c, hx0, Z0 + 1, X1 - 8, Z0 + 12, 12, 3);
-    const tx = X0 + 2,
+    const tx = X0 + 13,
       tz = Z1 - 10;
     for (let y = 1; y < 22; y += 4) {
       v.box(tx, y + 3, tz, tx + 6, y + 4, tz + 6, "woodLight");
@@ -1558,13 +1606,15 @@ function trade_school(c: Ctx) {
     ])
       v.box(px, 1, pz, px + 1, 24, pz + 1, "hazard");
     person(v, tx + 2, 24, tz + 2, "orange");
-    for (let i = 0; i < 3; i++) {
-      const px = tx + 10 + i * 6;
-      v.box(px, 1, Z1 - 3, px + 1, 12, Z1 - 2, "wood");
-      v.box(px - 2, 11, Z1 - 3, px + 3, 12, Z1 - 2, "wood");
+    const pz = wz0 + wd + 3;
+    for (let i = 0; i < 4; i++) {
+      const px = X0 + 3 + i * 6;
+      v.box(px, 1, pz, px + 1, 12, pz + 1, "wood");
+      v.box(px - 2, 11, pz, px + 3, 12, pz + 1, "wood");
+      if (i % 2 === 0) person(v, px + 1, 8, pz, "orange");
     }
-    for (let x = tx + 10; x < tx + 22; x++) v.put(x, 10 - ((x % 6 === 2 || x % 6 === 3) ? 1 : 0), Z1 - 3, "charcoal");
-    parkedCars(c, X0 + Math.floor(W * 0.5), X1 - 1, Z1 - 4);
+    for (let x = X0 + 1; x < X0 + 23; x++) v.put(x, 11, pz + 1, "charcoal");
+    parkedCars(c, hx0, X1 - 9, Z0 + 15);
   }
   securityFence(v, -c.hx, -c.hz, c.hx, c.hz, 1, 3, [Math.floor(W * 0.2) - 3, Math.floor(W * 0.2) + 3]);
 }
@@ -1872,7 +1922,11 @@ function labBlock(c: Ctx, x0: number, z0: number, x1: number, z1: number, h: num
     }
   } else if (vr === 1) {
     hall(c, x0, z0, x1, z1, h, r.a, "gable", "punch");
-    v.box(x0 - 1, h + Math.ceil((z1 - z0 + 2) / 2) - 1, z0 - 1, x1 + 1, h + Math.ceil((z1 - z0 + 2) / 2), z1 + 1, "snow");
+    const rise = Math.ceil((z1 - z0 + 2) / 2);
+    for (let k = Math.floor(rise / 2); k < rise; k++) {
+      v.box(x0 - 1, h + k, z0 - 1 + k, x1 + 1, h + k + 1, z0 + k, "snow");
+      v.box(x0 - 1, h + k, z1 - k, x1 + 1, h + k + 1, z1 + 1 - k, "snow");
+    }
     v.box(x0, 1, z1 - 1, x1, 4, z1, "stone");
   } else if (vr === 2) {
     curtainWall(c, x0, 1, z0, x1, h, z1, "glassDark", "charcoal", 3, 4);
@@ -1899,6 +1953,7 @@ function research_university(c: Ctx) {
   const lx0 = X0 + 1,
     lz0 = Z0 + 1;
   labBlock(c, lx0, lz0, lx0 + lw, lz0 + ld, 13);
+  if (vr >= 2) v.dome(lx0 + lw - 4, vr === 3 ? 16 : 14, lz0 + Math.floor(ld / 2), 2.6, r.dome);
   entry(v, lx0 + Math.floor(lw / 2), lz0 + ld, "glass", r.a.trim, 4);
   // lawn & paths with students on bikes
   const qz = lz0 + ld + 2;
@@ -1920,9 +1975,10 @@ function research_university(c: Ctx) {
     v.box(cx0 + 4, 3, cz1 - 1, cx1 - 1, 4, cz1, r.a.accent, 0.8);
   }
   if (lv >= 3) {
-    const ox = X1 - 8,
-      oz = qz + 4;
-    observatory(c, ox, oz, 5, 8, vr === 2 ? "charcoal" : vr === 1 ? "stone" : r.a.wall, r.dome, 0.12);
+    const ox = X1 - 9,
+      oz = qz + 6;
+    observatory(c, ox, oz, 6, 9, vr === 2 ? "charcoal" : vr === 1 ? "stone" : r.a.wall, r.dome, 0.12);
+    path(v, ox - 1, oz + 6, ox + 1, Z1 - 1, vr === 3 ? "terracotta" : "concrete");
   }
   if (lv >= 4) {
     // instrument tower with skybridge and antenna crown
@@ -1940,6 +1996,19 @@ function research_university(c: Ctx) {
     mast(c, tx + 3, tz + 3, th + 10);
     v.box(tx + 7, 14, tz + 2, lx0 + lw + 6, 17, tz + 5, vr === 2 ? "glassDark" : "glass", 0.3);
     v.box(tx + 7, 13, tz + 2, lx0 + lw + 6, 14, tz + 5, r.a.trim);
+    // glass lecture rotunda with a living roof
+    const rx = lv >= 5 ? X0 + 14 : X0 + Math.floor(W * 0.45),
+      rz = Z1 - 10;
+    cyl(v, rx, rz, 1, 8, 5, vr === 2 ? "glassDark" : "glass", 0.3);
+    ring(v, rx, rz, 1, 8, 5, 4.2, vr === 2 ? "glassDark" : r.a.glass, 0.35);
+    for (let k = 0; k < 8; k++) {
+      const t = (k / 8) * Math.PI * 2;
+      v.box(Math.round(rx + Math.cos(t) * 4.6 - 0.5), 1, Math.round(rz + Math.sin(t) * 4.6 - 0.5), Math.round(rx + Math.cos(t) * 4.6 - 0.5) + 1, 8, Math.round(rz + Math.sin(t) * 4.6 - 0.5) + 1, r.a.trim);
+    }
+    cyl(v, rx, rz, 8, 9, 6, r.a.trim);
+    cyl(v, rx, rz, 9, 10, 5, vr === 3 ? "sandDark" : "moss");
+    crowd(c, rx - 7, rz - 7, rx + 7, rz + 7, 6, false, ["white", "teal", "orange"]);
+    for (let z = qz + 2; z < Z1 - 2; z += 6) tree(v, lx0 + Math.floor(lw / 2) + 3, 1, z, r.tree, 1, z);
   }
   if (lv >= 5) {
     // synchrotron ring + twin domes + lab range
@@ -1957,7 +2026,7 @@ function research_university(c: Ctx) {
       v.box(bx - 1, 1, bz - 1, bx + 1, 3, bz + 1, "steelLight");
     }
     observatory(c, X1 - 6, Z0 + 6, 4, 10, r.a.wall, r.dome, -0.1);
-    labBlock(c, Math.floor((X0 + X1) / 2) - 2, Z0 + 1, X1 - 12, Z0 + 10, 11);
+    labBlock(c, Math.max(lx0 + lw + 15, Math.floor((X0 + X1) / 2) + 2), Z0 + 1, X1 - 12, Z0 + 10, 11);
   }
   trees(c, [
     [X1 - 2, Z1 - 2],
@@ -1996,9 +2065,9 @@ function sports_field(c: Ctx) {
     fz0 = Z0 + back,
     fz1 = Z1 - front;
   if (lv >= 3) {
-    const f = track(c, fx0, fz0, fx1, fz1, s.track, vr === 3 ? 4 : 3);
-    field(c, f.fx0, f.fz0, f.fx1, f.fz1, s.s, vr === 1 ? "crimson" : "red");
-  } else field(c, fx0 + 1, fz0 + 1, fx1 - 1, fz1 - 1, s.s, vr === 1 ? "crimson" : "red");
+    const f = track(c.v, fx0, fz0, fx1, fz1, s.track, vr === 3 ? 4 : 3);
+    field(c.v, f.fx0, f.fz0, f.fx1, f.fz1, s.s, vr === 1 ? "crimson" : "red");
+  } else field(c.v, fx0 + 1, fz0 + 1, fx1 - 1, fz1 - 1, s.s, vr === 1 ? "crimson" : "red");
   if (lv === 1) {
     // practice gear: cones, ball bag, bench and shed
     for (let i = 0; i < 4; i++) v.put(fx0 + 6 + i * 3, 1, fz0 + 3, "orange");
@@ -2040,7 +2109,7 @@ function sports_field(c: Ctx) {
       }
       void x1;
     }
-    stand(c, fx0, fx1, fz1, front - 1, 1, s.seat, undefined, 0.6);
+    stand(c, fx0, fx1, fz1, 3, 1, s.seat, undefined, 0.6);
     const sx = Math.floor((X0 + X1) / 2) - 7;
     v.box(sx, 14, Z0 + 1, sx + 14, 22, Z0 + 2, "charcoal");
     v.box(sx + 1, 15, Z0 + 2, sx + 13, 21, Z0 + 3, "screenCyan", 0.9);
@@ -2170,7 +2239,7 @@ function research_institute(c: Ctx) {
     else dish(c, X1 - 8, Z1 - 12, 4, 4, "white", -0.2);
     parkedCars(c, X0 + 1, X0 + Math.floor(W * 0.5), Z1 - 3);
   }
-  securityFence(v, -c.hx, -c.hz, c.hx, c.hz, 1, 4, [X1 - 10, X1 - 2]);
+  fence(v, -c.hx, -c.hz, c.hx, c.hz, 1, 3, "silver", [X1 - 10, X1 - 2]);
   v.box(X1 - 12, 1, Z1 - 1, X1 - 10, 4, Z1, "white");
   v.box(X1 - 11, 3, Z1 - 1, X1 - 3, 4, Z1, "red");
 }

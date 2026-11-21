@@ -16,7 +16,7 @@ const clickText = async (page, sel, text) => {
   if (!ok) throw new Error(`no ${sel} matching ${text}`);
   await page.waitForTimeout(700);
 };
-const rail = (page, id) => page.click(`[data-panel-toggle="${id}"]`).then(() => page.waitForTimeout(700));
+const rail = (page, id) => page.evaluate((id) => document.querySelector(`[data-panel-toggle="${id}"]`)?.click(), id).then(() => page.waitForTimeout(700));
 const selectDef = async (page, defId) => page.evaluate((defId) => {
   const w = window.__pixelWorld; const el = w.gameState.elements.find((e) => e.defId === defId) ?? w.gameState.elements.find((e) => e.defId.includes(defId));
   if (!el) return "none"; w.focusElement(el.id); w.callbacks.onSelectElement(el.id); return el.id;
@@ -26,8 +26,8 @@ const tapCenter = async (page, dx = 0, dy = 0) => { const v = page.viewportSize(
 const states = {
   "idle-home": ["", async () => {}],
   "idle-switchyard": [SW, async () => {}],
-  "menu-hamburger": [SW, async (p) => { await p.click('[aria-label="Open Game Menu"]'); await p.waitForTimeout(700); }],
-  "menu-hamburger-full": [SW, async (p) => { await p.click('[aria-label="Open Game Menu"]'); await p.waitForTimeout(700); return { full: true }; }],
+  "menu-hamburger": [SW, async (p) => { await p.evaluate(() => document.querySelector('[aria-label="Open Game Menu"]').click()); await p.waitForTimeout(700); }],
+  "menu-hamburger-full": [SW, async (p) => { await p.evaluate(() => document.querySelector('[aria-label="Open Game Menu"]').click()); await p.waitForTimeout(700); return { full: true }; }],
   "build-open": ["", async (p) => { await rail(p, "build"); }],
   "build-expanded": ["", async (p) => { await rail(p, "build"); await p.click('[aria-label="Expand Multi-Row Grid"]'); await p.waitForTimeout(500); }],
   "build-categories": ["", async (p) => { await rail(p, "build"); await p.click('[aria-label^="Choose building category"]'); await p.waitForTimeout(500); }],
@@ -45,18 +45,18 @@ const states = {
   "view-camera": [SW, async (p) => { await rail(p, "view"); await p.locator("#island-panel-view button", { hasText: /360|Camera/ }).first().click(); await p.waitForTimeout(500); }],
   "view-defense": [SW, async (p) => { await rail(p, "view"); await p.locator("#island-panel-view button", { hasText: /Defen/ }).first().click(); await p.waitForTimeout(500); }],
   "status-open": [SW, async (p) => { await rail(p, "status"); }],
-  "advisor": [SW, async (p) => { await rail(p, "status"); await p.click('[title="City Advisor & 20 Stages"]'); await p.waitForTimeout(800); }],
+  "advisor": [SW, async (p) => { await rail(p, "status"); await p.evaluate(() => document.querySelector('[title="City Advisor & 20 Stages"]').click()); await p.waitForTimeout(800); }],
   "desk-works": [SW, async (p) => { await clickText(p, "button.island-launch", "Island tools"); }],
   "desk-transit": [SW, async (p) => { await clickText(p, "button.island-launch", "Island tools"); await clickText(p, ".island-desk nav button", "Transit"); }],
   "desk-city": [SW, async (p) => { await clickText(p, "button.island-launch", "Island tools"); await clickText(p, ".island-desk nav button", "City accounts"); }],
   "desk-god": [SW, async (p) => { await clickText(p, "button.island-launch", "Island tools"); await clickText(p, ".island-desk nav button", "God"); }],
   "citybar-happiness": [SW, async (p) => { await clickText(p, ".city-pulse button", "Happiness"); }],
   "cursor-menu": [SW, async (p) => { await p.click('[aria-label="Cursor Tool Control"]'); await p.waitForTimeout(600); }],
-  "saves": [SW, async (p) => { await p.click('[aria-label="Open Game Menu"]'); await p.waitForTimeout(500); await clickText(p, ".main-menu button", /Save|Load/); }],
-  "examples": [SW, async (p) => { await p.click('[aria-label="Open Game Menu"]'); await p.waitForTimeout(500); await clickText(p, ".main-menu button", "Example islands"); }],
+  "saves": [SW, async (p) => { await p.evaluate(() => document.querySelector('[aria-label="Open Game Menu"]').click()); await p.waitForTimeout(500); await clickText(p, ".main-menu button", /Save|Load/); }],
+  "examples": [SW, async (p) => { await p.evaluate(() => document.querySelector('[aria-label="Open Game Menu"]').click()); await p.waitForTimeout(500); await clickText(p, ".main-menu button", "Example islands"); }],
   "world-guide": [SW, async (p) => { await p.click(".world-guide-toggle", { force: true }); await p.waitForTimeout(600); }],
   "status-quick": [SW, async (p) => { await rail(p, "status"); await p.click('[aria-label="Show Quick Controls"]'); await p.waitForTimeout(500); }],
-  "advisor-stages": [SW, async (p) => { await rail(p, "status"); await p.click('[title="City Advisor & 20 Stages"]'); await p.waitForTimeout(500); await clickText(p, "button", /All 20 Stages/); }],
+  "advisor-stages": [SW, async (p) => { await rail(p, "status"); await p.evaluate(() => document.querySelector('[title="City Advisor & 20 Stages"]').click()); await p.waitForTimeout(500); await clickText(p, "button", /All 20 Stages/); }],
   "desk-city-scrolled": [SW, async (p) => { await clickText(p, ".city-pulse button", "Happiness"); await p.evaluate(() => { const d = document.querySelector(".island-desk"); if (d) d.scrollTop = 600; }); await p.waitForTimeout(400); }],
   "toast-upgrade-fail": [SW, async (p) => { await selectDef(p, "house"); await p.click('[aria-label="Level Up"]', { force: true }).catch(() => {}); await p.waitForTimeout(700); }],
   "stacked": [SW, async (p) => { await selectDef(p, "house"); await rail(p, "build"); }],

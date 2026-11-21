@@ -686,7 +686,10 @@ export const App: React.FC = () => {
     }
   };
 
+  // Clock, weather and wind are sandbox controls: in real and survival the sky runs on its own.
+  const envLocked = () => stateRef.current.mode !== "god";
   const handleSetTimeOfDay = (hour: number) => {
+    if (envLocked()) return;
     commitState((draft) => {
       draft.timeOfDay = hour;
       recomputeConnectivityAndMetrics(draft);
@@ -694,6 +697,7 @@ export const App: React.FC = () => {
   };
 
   const handleToggleTimeLocked = () => {
+    if (envLocked()) return;
     commitState((draft) => {
       draft.timeLocked = !draft.timeLocked;
     });
@@ -705,6 +709,7 @@ export const App: React.FC = () => {
   };
 
   const handleSetWeather = (weather: WeatherKind) => {
+    if (envLocked()) return;
     commitState((draft) => {
       draft.weather = weather;
       draft.weatherTimerSec = 55;
@@ -712,6 +717,7 @@ export const App: React.FC = () => {
   };
 
   const handleToggleWeatherLocked = () => {
+    if (envLocked()) return;
     commitState((draft) => {
       draft.weatherLocked = !draft.weatherLocked;
     });
@@ -724,6 +730,7 @@ export const App: React.FC = () => {
   };
 
   const handleSetWindSpeed = (val: number) => {
+    if (envLocked()) return;
     commitState((draft) => {
       draft.windSpeed = val;
     });

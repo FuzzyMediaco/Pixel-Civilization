@@ -18946,5 +18946,727 @@
     },
     "image": "/handbook/catalog/greenhouse_bay.webp",
     "thumbnail": "/handbook/catalog/thumbs/greenhouse_bay.webp"
+  },
+  {
+    "id": "stonehenge",
+    "name": "Stonehenge",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 1400,
+    "stage": 13,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 70,
+      "recreation": 220,
+      "income": 70
+    },
+    "description": "A ring of towering sarsen trilithons aligned to the midsummer sunrise. Druids gather for the solstice glow.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Timber posts give way to a sarsen ring, lintels and trilithons, then a torchlit solstice axis with druids.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Timber Woodhenge",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Sarsen Arc",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Lintel Circle",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Trilithon Sanctuary",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Midsummer Solstice Henge",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Salisbury sarsen"
+      },
+      {
+        "index": 1,
+        "name": "Bluestone"
+      },
+      {
+        "index": 2,
+        "name": "Moss & wildflower"
+      },
+      {
+        "index": 3,
+        "name": "Avebury earthwork"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/stonehenge.webp",
+    "thumbnail": "/handbook/catalog/thumbs/stonehenge.webp"
+  },
+  {
+    "id": "moai_statues",
+    "name": "Moai Statues",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 1300,
+    "stage": 13,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 60,
+      "recreation": 210,
+      "income": 75
+    },
+    "description": "Giant carved stone heads stand on a ceremonial ahu platform, backs to the sea, watching over the island.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "A moai is carved from the quarry, walked to the shore and joined by ever longer rows of giants on the ahu.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Quarry Carving",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Walking Moai",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Seaside Ahu",
+        "dimensions": [
+          3,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Ancestor Coast",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Tongariki Ahu",
+        "dimensions": [
+          4,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Tuff ahu"
+      },
+      {
+        "index": 1,
+        "name": "Red pukao"
+      },
+      {
+        "index": 2,
+        "name": "Coral eyes"
+      },
+      {
+        "index": 3,
+        "name": "Rano Raraku slope"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/moai_statues.webp",
+    "thumbnail": "/handbook/catalog/thumbs/moai_statues.webp"
+  },
+  {
+    "id": "parthenon",
+    "name": "Parthenon",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 2400,
+    "stage": 15,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 150,
+      "recreation": 300,
+      "government": 60,
+      "income": 120
+    },
+    "description": "A Doric marble temple crowning a rocky acropolis, with columns, friezes and a golden statue of Athena.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Column drums rise on a rocky hill into a roofed Doric temple, then an acropolis with caryatids and a gate.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Marble Foundations",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Doric Colonnade",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Temple of Athena",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Sacred Acropolis",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Golden Age Acropolis",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Pentelic marble"
+      },
+      {
+        "index": 1,
+        "name": "Painted polychrome"
+      },
+      {
+        "index": 2,
+        "name": "Gilded Athena"
+      },
+      {
+        "index": 3,
+        "name": "Honey stone"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/parthenon.webp",
+    "thumbnail": "/handbook/catalog/thumbs/parthenon.webp"
+  },
+  {
+    "id": "colosseum",
+    "name": "Colosseum",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 3000,
+    "stage": 16,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 40,
+      "recreation": 520,
+      "income": 220
+    },
+    "description": "An elliptical amphitheatre of tiered travertine arcades. Gladiators duel on the sand while crowds roar.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Arcade tiers climb around an elliptical arena; gladiators, an attic storey, then a floodlit plaza full of crowds.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Arena Foundations",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Rising Arcades",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Flavian Amphitheatre",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Imperial Colosseum",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Colosseum of the Eternal City",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Imperial travertine"
+      },
+      {
+        "index": 1,
+        "name": "Weathered ruin"
+      },
+      {
+        "index": 2,
+        "name": "Velarium sails"
+      },
+      {
+        "index": 3,
+        "name": "Naumachia flood"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/colosseum.webp",
+    "thumbnail": "/handbook/catalog/thumbs/colosseum.webp"
+  },
+  {
+    "id": "chichen_itza",
+    "name": "Chichén Itzá",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 3100,
+    "stage": 16,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 130,
+      "recreation": 450,
+      "income": 200
+    },
+    "description": "El Castillo's nine stepped terraces rise above the jungle; at the equinox a serpent of light slides down its stairs.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "An overgrown mound is cleared into nine terraces with four stairs, serpent heads, a ball court and equinox light.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Jungle Mound",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Terrace Restoration",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "El Castillo",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Feathered Serpent Plaza",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Equinox Ceremonial City",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Limestone"
+      },
+      {
+        "index": 1,
+        "name": "Painted stucco"
+      },
+      {
+        "index": 2,
+        "name": "Jungle reclaimed"
+      },
+      {
+        "index": 3,
+        "name": "Equinox serpent"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/chichen_itza.webp",
+    "thumbnail": "/handbook/catalog/thumbs/chichen_itza.webp"
+  },
+  {
+    "id": "great_wall",
+    "name": "Great Wall",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 3200,
+    "stage": 17,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "recreation": 380,
+      "military": 160,
+      "income": 180
+    },
+    "description": "A crenellated wall snakes over the hills between beacon watchtowers, guarding the frontier and drawing hikers.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "A low earthen rampart becomes a brick wall snaking over ever higher hills between beacon towers and a gate.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Rammed-Earth Rampart",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Brick Battlement",
+        "dimensions": [
+          3,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Beacon Wall",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Mountain Ramparts",
+        "dimensions": [
+          4,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Pass Fortress",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Ming brick"
+      },
+      {
+        "index": 1,
+        "name": "Rammed earth"
+      },
+      {
+        "index": 2,
+        "name": "Snowy pass"
+      },
+      {
+        "index": 3,
+        "name": "Red lantern autumn"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/great_wall.webp",
+    "thumbnail": "/handbook/catalog/thumbs/great_wall.webp"
+  },
+  {
+    "id": "angkor_wat",
+    "name": "Angkor Wat",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 3900,
+    "stage": 19,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 170,
+      "recreation": 600,
+      "income": 280
+    },
+    "description": "Five lotus-bud towers rise over galleried terraces, reached by a naga causeway across a lily-filled moat.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Elephants haul stone for a lotus tower; five towers, galleries, a moat and a naga causeway follow.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Laterite Base",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Central Prasat",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Quincunx Temple",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Moated Sanctuary",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Angkor Sunrise",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Grey sandstone"
+      },
+      {
+        "index": 1,
+        "name": "Gilded spires"
+      },
+      {
+        "index": 2,
+        "name": "Ta Prohm jungle"
+      },
+      {
+        "index": 3,
+        "name": "Lotus moat"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/angkor_wat.webp",
+    "thumbnail": "/handbook/catalog/thumbs/angkor_wat.webp"
+  },
+  {
+    "id": "machu_picchu",
+    "name": "Machu Picchu",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 4600,
+    "stage": 20,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "food": 40,
+      "education": 190,
+      "recreation": 720,
+      "income": 330
+    },
+    "description": "A granite citadel of terraces and thatched houses clinging to a cloud-forest ridge, grazed by llamas.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Terraces climb the ridge; stone houses, a sun temple and the Huayna Picchu peak appear, grazed by llamas.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Cloud-Forest Outpost",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Terraced Hamlet",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Royal Citadel",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Huayna Picchu Sanctuary",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Lost City of the Incas",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Granite ruins"
+      },
+      {
+        "index": 1,
+        "name": "Cloud forest"
+      },
+      {
+        "index": 2,
+        "name": "Thatch restored"
+      },
+      {
+        "index": 3,
+        "name": "Inti sunset"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/machu_picchu.webp",
+    "thumbnail": "/handbook/catalog/thumbs/machu_picchu.webp"
   }
 ]

@@ -476,18 +476,38 @@ function pumpedStorage(c: Ctx) {
     v.box(-sx, UH, uz0 + F(ud / 2) - sz, sx, UH + 1, uz0 + F(ud / 2) + sz, "stone");
     v.box(-sx + 1, UH, uz0 + F(ud / 2) - sz + 1, sx - 1, UH + 1, uz0 + F(ud / 2) + sz - 1, "water", 0.12);
     for (let i = 0; i < 4 + lv * 2; i++) {
-      const a = (i / (4 + lv * 2)) * TAU,
-        tx = R(Math.cos(a) * (hx - 4) * 0.8),
-        tz = R(uz0 + ud / 2 + Math.sin(a) * (ud / 2 - 1) * 0.8);
-      tree(v, tx, Math.max(1, F(UH * 0.35)), tz, "pine", 0.9 + (i % 3) * 0.2);
+      const st = F(UH * (0.25 + 0.25 * (i % 3))),
+        t = st / UH,
+        sxx = F((hx - 2) * (1 - t * t * 0.55)),
+        szz = F((ud / 2) * (1 - t * t * 0.55)),
+        side = i % 4;
+      const along = -1 + (2 * ((i * 37) % 11)) / 10;
+      const tx = side < 2 ? R(along * (sxx - 3)) : side === 2 ? -sxx + 1 : sxx - 2,
+        tz = side < 2 ? R(uz0 + ud / 2 + (side === 0 ? szz - 2 : -szz + 1)) : R(uz0 + ud / 2 + along * (szz - 3));
+      tree(v, tx, st + 1, tz, "pine", 0.9 + (i % 3) * 0.2);
     }
   } else {
-    v.hollowBox(ux0, 0, uz0, ux1, UH, uz1 - 3, "#6b7280");
-    v.box(ux0, 1, uz1 - 3, ux1, UH + 1, uz1 - 1, "slate");
-    for (let y = 4; y < UH; y += 5) v.box(ux0, y, uz0, ux0 + 1, y + 1, uz1 - 3, "slateLight");
-    for (let x = ux0 + 2; x < ux1 - 1; x += 5) v.box(x, 1, uz1 - 1, x + 2, UH + 1, uz1, "slateLight");
-    v.box(ux0, UH, uz0, ux1, UH + 1, uz1 - 3, "water", 0.12);
-    v.box(ux0, UH + 1, uz1 - 3, ux1, UH + 2, uz1 - 1, "brass");
+    // rocky granite crag held back by a buttressed slate dam face
+    for (let st = 0; st < UH; st++) {
+      const ins = F(st * 0.35);
+      v.box(ux0 + ins, st, uz0 + ins, ux1 - ins, st + 1, uz1 - 3, st % 4 === 3 ? "stone" : "granite");
+      if (st > 0) v.clear(ux0 + ins + 2, st, uz0 + ins + 2, ux1 - ins - 2, st + 1, uz1 - 5);
+    }
+    const ins = F(UH * 0.35);
+    v.box(ux0 + ins, UH, uz0 + ins, ux1 - ins, UH + 1, uz1 - 3, "water", 0.12);
+    v.box(ux0 + 1, 1, uz1 - 3, ux1 - 1, UH + 1, uz1 - 1, "slate");
+    for (let x = ux0 + 2; x < ux1 - 2; x += 5) {
+      v.box(x, 1, uz1 - 1, x + 2, UH + 1, uz1, "slateLight");
+      v.box(x, 1, uz1, x + 2, F(UH / 2), uz1 + 1, "slateLight");
+    }
+    v.box(ux0 + 1, UH + 1, uz1 - 3, ux1 - 1, UH + 2, uz1 - 1, "brass");
+    // brass valve tower in the reservoir
+    const vx = R(-hx * 0.4),
+      vz = uz0 + ins + 4;
+    v.cylinderY(vx, vz, UH, UH + 6, 1.6, "brass");
+    v.cylinderY(vx, vz, UH + 6, UH + 7, 2.2, "iron");
+    v.put(vx, UH + 4, vz + 1, "amber", 1);
+    c.blink(vx, UH + 7, vz, "amber");
     rimY = UH + 1;
   }
   // penstocks
@@ -542,7 +562,7 @@ function pumpedStorage(c: Ctx) {
     const wx = R(hx * 0.55);
     for (let y = 1; y < rimY; y++) v.box(wx, y, uz1 - 2 + (k === 3 ? 0 : -F(y * 0.2)), wx + 3, y + 1, uz1 - 1 + (k === 3 ? 1 : -F(y * 0.2)), y % 3 ? "water" : "foam", 0.35);
     c.smoke(wx + 1, 2, lz0 + 1, "steam");
-    flag(v, -hx + 2, rimY, uz0 + 1, 6, [p.glow, "white", p.accent]);
+    flag(v, hx - 3, 1, lz0 - 1, 12, [p.glow, "white", p.accent]);
   }
   crowd(c, -hx + 3, lz1 - 1, -hx + 8, lz1, lv >= 3 ? 2 : 1, 2);
 }
@@ -718,6 +738,13 @@ function portal(c: Ctx, cx: number, cy: number, z: number, r: number, spinRings:
   // feet / plinth
   v.box(cx - r - 3, 1, z - 3, cx + r + 3, 2, z + 4, k === 3 ? "granite" : k === 1 ? "white" : "concrete");
   for (let s = 0; s < 2; s++) v.box(cx - 3, 1, z + 4 + s, cx + 3, 2 - s, z + 5 + s, k === 0 ? "#e2c79a" : "concreteDark");
+  // raised pedestal under tall gates, with a stair up to the event horizon
+  const ped = R(cy - r - 2);
+  if (ped > 2) {
+    v.box(cx - 4, 1, z - 2, cx + 4, ped + 1, z + 3, k === 3 ? "slate" : k === 1 ? "white" : k === 2 ? "brick" : "terracotta");
+    v.box(cx - 5, ped, z - 3, cx + 5, ped + 1, z + 4, k === 3 ? "brass" : k === 1 ? "teal" : k === 2 ? "#efe2c4" : "gold");
+    for (let s = 0; s < ped; s++) v.box(cx - 2, 1, z + 3 + s, cx + 2, ped + 1 - s, z + 4 + s, k === 0 ? "#e2c79a" : "concreteDark");
+  }
   // spinning rings
   for (let i = 0; i < spinRings; i++) {
     const rot = new PixelVox(),
@@ -798,8 +825,8 @@ function teleportDepot(c: Ctx) {
     return;
   }
   // L4 & L5: a monumental gate with gyroscope rings
-  const big = lv === 4 ? 9 : 11;
-  const cy = big + 4;
+  const big = lv === 4 ? 8 : 10;
+  const cy = big + 8;
   portal(c, 0, cy, -2, big, lv === 4 ? 2 : 3);
   for (const [px, pz] of [[-hx + 3, -hz + 3], [hx - 4, -hz + 3], [-hx + 3, hz - 4], [hx - 4, hz - 4]]) {
     const ph = lv === 4 ? 14 : 20;
@@ -807,16 +834,8 @@ function teleportDepot(c: Ctx) {
     if (pz < 0) line(v, px, ph + 1, pz, px < 0 ? -big - 2 : big + 2, cy, -2, p.glow, 1.1);
     if (lv === 5) c.blink(px, ph + 3, pz, "red");
   }
-  // concourse wings
-  const wy = lv === 4 ? 7 : 9;
-  for (const s of [-1, 1]) {
-    const x0 = s < 0 ? -hx + 6 : big + 5,
-      x1 = s < 0 ? -big - 5 : hx - 6;
-    if (x1 - x0 < 3) continue;
-    v.box(x0, 1, -hz + 6, x1, wy, -4, k === 2 ? "brick" : k === 3 ? "slate" : p.wall);
-    v.box(x0 + 1, 2, -5, x1 - 1, wy - 1, -4, "glass", 0.4);
-    v.box(x0 - 1, wy, -hz + 5, x1 + 1, wy + 1, -3, p.trim);
-  }
+  // glowing plaza ring
+  ring(v, 0, -2, 0, 1, Math.min(hx, hz) - 2, Math.min(hx, hz) - 3, ["cyan", "screenCyan", "lime", "purple"][k], 0.9);
   if (lv === 5) {
     // sky beam from the crown
     v.box(-1, cy + big + 5, -3, 1, cy + big + 26, -1, ["cyan", "screenCyan", "lime", "purple"][k], 1.2);
@@ -1203,7 +1222,7 @@ function floodPark(c: Ctx) {
     // zig-zag
     let x = -hx + 2,
       z = -hz + 3;
-    const n = lv + 2;
+    const n = Math.min(lv + 1, 4);
     for (let i = 0; i < n; i++) {
       const nx = R(-hx + 2 + ((i + 1) * (2 * hx - 4)) / n),
         nz = i % 2 ? -hz + 3 : hz - 4;
@@ -1581,7 +1600,7 @@ function rainCathedral(c: Ctx) {
   }
   // nave: along z, facade at front
   const nw = lv5(c, [0, 10, 12, 14, 16]),
-    nh = lv5(c, [0, 7, 10, 13, 16]);
+    nh = lv5(c, [0, 7, 11, 14, 17]);
   const nz0 = -hz + 2,
     nz1 = hz - 7;
   const nx0 = -F(nw / 2),
@@ -1611,7 +1630,7 @@ function rainCathedral(c: Ctx) {
     // flying buttresses
     for (let z = nz0 + 2; z < nz1; z += 4)
       for (const s of [-1, 1]) {
-        const bx = s < 0 ? nx0 - 3 : nx1 + 2;
+        const bx = s < 0 ? nx0 - 3 - (lv >= 3 ? 4 : 0) : nx1 + 2 + (lv >= 3 ? 4 : 0);
         v.box(bx, 1, z, bx + 1, nh - 3, z + 1, "brickDark");
         line(v, bx, nh - 3, z, s < 0 ? nx0 : nx1 - 1, nh, z, "brickDark");
         v.put(bx, nh - 3, z, "#2f6b4f");
@@ -1620,6 +1639,20 @@ function rainCathedral(c: Ctx) {
     gable(v, nx0 - 1, nh, nz0 - 1, nx1 + 1, nz1 + 1, "z", "iron", "brass");
     // brass downpipes
     for (let z = nz0 + 1; z < nz1; z += 5) for (const x of [nx0 - 1, nx1]) v.box(x, 1, z, x + 1, nh, z + 1, "brass");
+  }
+  // side aisles with lean-to roofs from L3
+  if (lv >= 3) {
+    const ah = R(nh * 0.55);
+    for (const sd of [-1, 1]) {
+      const ax0 = sd < 0 ? nx0 - 4 : nx1,
+        ax1 = sd < 0 ? nx0 : nx1 + 4;
+      v.hollowBox(ax0, 1, nz0 + 2, ax1, ah, nz1 - 1, wall, trim);
+      for (let z = nz0 + 4; z < nz1 - 2; z += 4) v.box(sd < 0 ? ax0 : ax1 - 1, 2, z, sd < 0 ? ax0 + 1 : ax1, ah - 1, z + 1, k === 3 ? "amber" : "sky", 0.6);
+      for (let i = 0; i < 4; i++) {
+        const xc = sd < 0 ? ax0 + i : ax1 - 1 - i;
+        v.box(xc, ah, nz0 + 1, xc + 1, ah + 1 + F(i / 2), nz1, roof);
+      }
+    }
   }
   // facade + rose window (water-blue)
   const fy = nh + (k === 1 ? R(nw * 0.45) : R(nw / 2)) - 1;
@@ -1636,7 +1669,7 @@ function rainCathedral(c: Ctx) {
   const nf = lv5(c, [0, 2, 3, 4, 5]);
   for (let i = 0; i < nf; i++) {
     const z = R(nz0 + 2 + ((i + 0.5) * (nz1 - nz0 - 4)) / nf);
-    funnel(c, -1, z, nh + 2, 7 + (i % 2) * 2, 3.5);
+    funnel(c, -1, z, nh + 2, 8 + (i % 2) * 3 + lv, lv5(c, [0, 4, 4.5, 5, 5.5]));
   }
   // gargoyle spouts pouring into side channels
   for (const s of [-1, 1]) {
@@ -1650,7 +1683,7 @@ function rainCathedral(c: Ctx) {
     const ch = lv === 4 ? 14 : 20,
       cr = lv === 4 ? 3 : 3.5;
     for (const s of [-1, 1]) {
-      const cx = s * (F(nw / 2) + 5);
+      const cx = s * (F(nw / 2) + (lv >= 5 ? 9 : 5));
       if (k === 0) {
         v.cylinderY(cx, nz1 - 4, 1, ch, cr, "#efc29b");
         v.cone(cx, ch, ch + 6, nz1 - 4, cr + 0.6, 0.5, "terracotta");
@@ -1671,6 +1704,24 @@ function rainCathedral(c: Ctx) {
     }
   }
   if (lv >= 5) {
+    // twin facade bell towers crowned with funnel spires
+    const th = nh + 20;
+    for (const sd of [-1, 1]) {
+      const tx0 = sd < 0 ? nx0 - 4 : nx1 - 2,
+        tz0 = nz1 - 6;
+      if (k === 1) {
+        v.cylinderY(tx0 + 3, tz0 + 3, 1, th, 3.2, "white");
+        for (let y = 4; y < th; y += 4) ring(v, tx0 + 3, tz0 + 3, y, y + 1, 3.3, 2.5, "teal", 0.5);
+      } else {
+        v.hollowBox(tx0, 1, tz0, tx0 + 6, th, tz0 + 6, wall, trim);
+        for (let y = 6; y < th - 2; y += 5) v.box(tx0 + 2, y, tz0 + 5, tx0 + 4, y + 3, tz0 + 6, k === 3 ? "amber" : "sky", 0.7);
+      }
+      if (k === 0) v.cone(tx0 + 3, th, th + 7, tz0 + 3, 4, 0.5, "terracotta");
+      else if (k === 2) spire(v, tx0 + 3, tz0 + 3, th, 12, 3.8, "#2f6b4f", "gold");
+      else if (k === 3) spire(v, tx0 + 3, tz0 + 3, th, 10, 3.6, "iron", "brass");
+      funnel(c, tx0 + 2, tz0 + 2, k === 2 ? th + 12 : k === 3 ? th + 10 : th + (k === 0 ? 6 : 0), 5, 3.5);
+      c.blink(tx0 + 2, th + (k === 2 ? 18 : k === 3 ? 16 : 12), tz0 + 2, "white");
+    }
     // crossing lantern crowned by the great funnel + transepts
     const tz = R((nz0 + nz1) / 2) - 2;
     v.hollowBox(-hx + 3, 1, tz - 4, hx - 3, nh - 3, tz + 4, wall, trim);
@@ -1901,30 +1952,51 @@ function oceanRing(c: Ctx) {
     c.addRotor({ vox: rot, pivot: [wx + 0.5, 16, wz + 1.5], axis: "z", speed: 1.2, wind: true });
   }
   if (lv >= 5) {
-    // central dome tower with spire
-    const cr = 4.5;
+    // the central habitat spire rising from the lagoon hub
+    const cr = 5;
+    let top = 30;
     if (k === 1) {
-      v.cylinderY(0, 0, 2, 12, cr - 1, "white");
-      for (let y = 3; y < 12; y += 3) ring(v, 0, 0, y, y + 1, cr - 1, cr - 2, "glass", 0.4);
-      v.dome(0, 12, 0, cr, "glass", 0.3);
+      // glass needle with stacked disc decks
+      v.cylinderY(0, 0, 2, 30, 2.2, "white");
+      for (let y = 6; y < 30; y += 6) {
+        v.cylinderY(0, 0, y, y + 1, cr - 1 - y / 15, "white");
+        ring(v, 0, 0, y + 1, y + 3, cr - 1.5 - y / 15, cr - 2.3 - y / 15, "glass", 0.45);
+        v.cylinderY(0, 0, y + 3, y + 4, cr - 1.2 - y / 15, "teal");
+      }
+      v.dome(0, 30, 0, 3, "glass", 0.35);
+      top = 34;
     } else if (k === 3) {
-      v.cylinderY(0, 0, 2, 10, cr, "slate");
-      for (let y = 3; y < 10; y += 3) ring(v, 0, 0, y, y + 1, cr + 0.3, cr - 0.5, "brass");
-      v.dome(0, 10, 0, cr, "brass");
-      v.box(1, 10, 0, 2, 18, 1, "iron");
-      v.box(1, 18, 0, 4, 19, 1, "iron");
+      // riveted brass lighthouse-observatory
+      for (let y = 2; y < 24; y++) v.cylinderY(0, 0, y, y + 1, cr - y * 0.09, y % 4 === 0 ? "brass" : "slate");
+      for (let y = 6; y < 24; y += 4) v.put(0, y + 2, R(cr - y * 0.09) - 1, "amber", 1.1);
+      v.cylinderY(0, 0, 24, 27, 2.8, "glass", 0.6);
+      v.put(0, 25, 0, "amber", 1.6);
+      v.dome(0, 27, 0, 3, "brass");
+      top = 31;
     } else if (k === 2) {
+      // twin biodomes with a planted lantern tower
       v.dome(0, 2, 0, cr + 1, "glass", 0.25);
-      tree(v, 0, 2, 0, "round", 1.3);
+      tree(v, -1, 2, 0, "fruit", 1.2);
+      v.box(-1, 2, -1, 1, 22, 1, "brick");
+      for (let y = 6; y < 22; y += 4) v.box(-2, y, -2, 2, y + 1, 2, "#2f6b4f");
+      v.cone(0, 22, 28, 0, 2.5, 0.4, "#2f6b4f");
+      top = 29;
     } else {
-      v.box(-3, 2, -3, 3, 12, 3, "white");
-      windows(c, -3, 2, -3, 3, 12, 3, { col: "glass", emit: 0.5 });
-      v.box(-4, 12, -4, 4, 13, 4, "terracotta");
-      v.cylinderY(-0.5, -0.5, 13, 15, 2, "white");
-      v.dome(-0.5, 15, -0.5, 2, "#4c82d4");
+      // whitewashed campanile village tower
+      v.box(-4, 2, -4, 4, 10, 4, "white");
+      windows(c, -4, 2, -4, 4, 10, 4, { col: "glass", emit: 0.5 });
+      hip(v, -5, 10, -5, 5, 5, "terracotta", undefined, 2);
+      v.box(-2, 11, -2, 2, 25, 2, "white");
+      for (let y = 14; y < 25; y += 5) {
+        v.box(-2, y, 1, 2, y + 2, 2, "#4c82d4");
+        v.box(-2, y, -2, 2, y + 2, -1, "#4c82d4");
+      }
+      v.box(-3, 25, -3, 3, 26, 3, "terracotta");
+      v.cylinderY(0, 0, 26, 28, 1.6, "white");
+      v.dome(0, 28, 0, 1.8, "#4c82d4");
+      top = 31;
     }
-    v.box(0, 16, 0, 1, 26, 1, k === 3 ? "brass" : "steelLight");
-    c.blink(0, 26, 0, "red");
+    c.blink(0, top, 0, "red");
   }
   // berth buoys + boats at the ring tips
   for (const s of [-1, 1]) {
@@ -1933,6 +2005,18 @@ function oceanRing(c: Ctx) {
       z = R(Math.sin(a) * rz);
     v.box(x - 1, 0, z - 1, x + 1, 3, z + 1, "red");
     c.blink(x, 3, z, s < 0 ? "red" : "lime");
+  }
+  if (lv === 1) {
+    // pier finger reaching out into open water with a moored launch
+    v.box(-1, 0, -rz + 2, 2, 1, 4, "steelDark");
+    v.box(-1, 1, -rz + 2, 2, 2, 4, deck);
+    for (let z = -rz + 3; z < 4; z += 3) {
+      v.put(-1, 2, z, "woodDark");
+      v.put(1, 2, z, "woodDark");
+    }
+    v.box(3, 0, -1, 9, 1, 2, k === 3 ? "copper" : "white");
+    v.box(5, 1, -1, 7, 3, 2, p.accent);
+    lamp(v, 1, 2, 3, 3, "iron", "warmGlow");
   }
   if (lv >= 2) {
     // little boat moored in the lagoon

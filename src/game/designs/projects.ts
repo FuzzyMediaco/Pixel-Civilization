@@ -1981,14 +1981,19 @@ function ferryExchange(c: Ctx) {
   concourseRoof(c, -hx + 1, hx - 1, qz + 1, qz + 7, 8);
   crowd(c, -hx + 3, qz + 1, hx - 3, qz + 7, 10);
   if (lv === 4) {
-    sbldg(c, -hx + 3, qz + 10, hx - 3, hz - 2, 8, { axis: "x" });
-    departureBoard(c, -6, qz + 8, 12);
+    sbldg(c, -hx + 3, qz + 10, -2, hz - 2, 8, { axis: "x" });
+    departureBoard(c, 4, qz + 9, 12);
+    for (let x = 2; x < hx - 2; x += 5) K.tree(v, x, 1, hz - 3, "round", 0.8);
+    crowd(c, 0, qz + 9, hx - 3, hz - 4, 5);
     return;
   }
   // Lv5 grand harbour hall with a clock & beacon tower
   const hz0 = qz + 10;
-  const top = sbldg(c, -hx + 3, hz0, hx - 3, hz - 2, 10, { axis: "x" });
-  const tx = 0,
+  const top = sbldg(c, -hx + 3, hz0, 6, hz - 2, 10, { axis: "x" });
+  K.fountain(v, 18, 1, Math.round((hz0 + hz) / 2), 4);
+  for (let x = 10; x < hx - 2; x += 6) K.tree(v, x, 1, hz - 3, "palm", 0.9);
+  crowd(c, 8, qz + 9, hx - 3, hz - 4, 6);
+  const tx = -10,
     tz = Math.round((hz0 + hz - 2) / 2);
   v.box(tx - 3, top - 2, tz - 3, tx + 3, top + 12, tz + 3, s.wall);
   K.clockFace(v, tx, top + 8, tz + 3, 2);
@@ -1998,7 +2003,7 @@ function ferryExchange(c: Ctx) {
   if (k === 1) v.box(tx - 3, top + 16, tz - 3, tx + 3, top + 17, tz + 3, "teal");
   c.blink(tx, cap + 1, tz, "red");
   departureBoard(c, -hx + 6, qz + 8, 12);
-  departureBoard(c, hx - 18, qz + 8, 12);
+  departureBoard(c, 10, qz + 8, 12);
   for (const x of [-hx + 2, hx - 3]) flag(v, x, 1, hz - 1, 12, [s.livery, "white", s.accent]);
 }
 
@@ -2139,48 +2144,48 @@ function canalBoatLift(c: Ctx) {
     sbldg(c, 4, qz + 4, hx - 2, hz - 1, 7, { axis: "x" });
     return;
   }
-  // Lv5 rotating wheel lift
-  const pz = qz + 1,
-    py = 13,
-    R = 10;
+  // Lv5 rotating wheel lift — the wheel faces the street so both gondolas are on show
+  const pz = -hz + 9,
+    py = 15,
+    R = 14;
   const pyl = ["#d9c39a", "white", "brick", "#4f5d6b"][k];
-  for (const x of [-12, 10]) {
-    v.box(x, 1, pz - 3, x + 3, py + 3, pz + 3, pyl);
-    v.box(x - 1, py + 1, pz - 4, x + 4, py + 4, pz + 4, s.trim);
-  }
+  const armCol = k === 3 ? "brass" : k === 2 ? "#2f5d3a" : k === 1 ? "#e9eef0" : "#b8b0a0";
+  v.box(-2, 1, pz - 7, 2, py + 2, pz - 4, pyl);
+  v.box(-3, py + 1, pz - 8, 3, py + 3, pz - 3, s.trim);
+  v.box(-1, py - 1, pz - 4, 1, py + 1, pz + 4, "steelDark");
   const wheel = new PixelVox();
-  const ang = Math.PI / 3;
+  const ang = Math.PI - (38 * Math.PI) / 180;
   const ends: [number, number][] = [
     [Math.round(-Math.cos(ang) * R), Math.round(-Math.sin(ang) * R)],
     [Math.round(Math.cos(ang) * R), Math.round(Math.sin(ang) * R)],
   ];
-  for (const ax of [-8, 7]) {
+  for (const az of [-3, 2]) {
     for (let t = -R; t <= R; t++) {
-      const dz = Math.round(Math.cos(ang) * t),
+      const dx = Math.round(Math.cos(ang) * t),
         dy = Math.round(Math.sin(ang) * t);
-      // axe-head curve: arms bow outward
-      const bow = Math.round(Math.sin(((t + R) / (2 * R)) * Math.PI) * 2) * (t < 0 ? 1 : -1);
-      wheel.box(ax, dy - 1 + bow, dz - 1, ax + 1, dy + 1 + bow, dz + 1, k === 3 ? "brass" : k === 2 ? "#2f5d3a" : k === 1 ? "white" : "#b8b0a0");
+      const bow = Math.round(Math.sin(((t + R) / (2 * R)) * Math.PI) * 3) * (t < 0 ? 1 : -1);
+      wheel.box(dx - 1, dy - 2 + bow, az, dx + 2, dy + 2 + bow, az + 1, armCol);
     }
-    for (let a = 0; a < 12; a++) {
-      const an = (a / 12) * Math.PI * 2;
-      wheel.put(ax, Math.round(Math.sin(an) * 3), Math.round(Math.cos(an) * 3), "steelDark");
+    for (let a = 0; a < 16; a++) {
+      const an = (a / 16) * Math.PI * 2;
+      wheel.put(Math.round(Math.cos(an) * 3), Math.round(Math.sin(an) * 3), az, "steelDark");
     }
   }
-  wheel.box(-8, -1, -1, 8, 1, 1, "steelDark");
-  for (const [dz, dy] of ends) {
-    wheel.box(-7, dy - 2, dz - 2, 7, dy + 2, dz + 3, k === 1 ? "#dfe8e6" : s.metal);
-    wheel.box(-6, dy - 1, dz - 1, 6, dy + 2, dz + 2, "water", 0.15);
-    wheel.box(-2, dy + 1, dz - 1, 3, dy + 3, dz + 2, "cream");
-    wheel.box(-3, dy + 1, dz - 1, -2, dy + 2, dz + 2, s.livery);
+  for (const [dx, dy] of ends) {
+    wheel.box(dx - 5, dy - 3, -3, dx + 6, dy + 2, 3, k === 1 ? "#dfe8e6" : s.metal);
+    wheel.box(dx - 4, dy - 2, -2, dx + 5, dy + 2, 2, "water", 0.15);
+    wheel.box(dx - 5, dy + 2, -3, dx + 6, dy + 3, -2, "hazard");
+    wheel.box(dx - 1, dy + 1, -1, dx + 3, dy + 3, 1, "cream");
+    wheel.box(dx - 2, dy + 1, -1, dx - 1, dy + 2, 1, s.livery);
   }
-  c.addRotor({ vox: wheel, pivot: [0, py, pz], axis: "x", speed: 0.12 });
-  // the aqueduct leaves from the top-front gondola position
-  aqueduct(c, -7, 7, pz + ends[1][0] + 3, hz, py + ends[1][1] - 1);
-  sbldg(c, -hx + 2, qz + 4, -16, hz - 1, 7, { axis: "x" });
-  sbldg(c, 16, qz + 4, hx - 2, hz - 1, 7, { axis: "x" });
-  crowd(c, -14, hz - 4, 14, hz - 1, 6);
-  canalBoat(c, -20, 1, -hz + 4, "x");
+  c.addRotor({ vox: wheel, pivot: [0, py, pz], axis: "z", speed: 0.12 });
+  // the aqueduct leaves from the high gondola toward the street
+  aqueduct(c, ends[1][0] - 2, ends[1][0] + 4, pz + 4, hz, py + ends[1][1] - 1);
+  sbldg(c, 14, qz + 8, hx - 2, hz - 1, 6, { axis: "x" });
+  crowd(c, -4, hz - 6, 12, hz - 1, 6);
+  for (let x = -2; x < 12; x += 5) K.tree(v, x, 1, qz + 4, "round", 0.8);
+  canalBoat(c, 22, 1, -hz + 4, "x");
+  canalBoat(c, ends[1][0], py + ends[1][1] + 1, hz - 6, "z");
 }
 
 // MARITIME COLLEGE — a sailing school around a practice basin at the back. Lv1 boathouse, slipway &

@@ -356,21 +356,6 @@ export function roadCapacity(def: CivElementDef, level: number): number {
   return base * standardRoadLanes(def.id,level) / standardRoadLanes(def.id,1) * (1 + (level - 1) * .17);
 }
 
-/** Trips removed from the road network by transit (per Lv.1 station) */
-const TRANSIT_RELIEF: Record<string, number> = {
-  bus_stops: 14,
-  bus_depots: 40,
-  train_stops: 45,
-  train_depots: 90,
-  taxi_depots: 22,
-};
-
-/** Nominal relief rating of a stop/station (reference figure; live relief comes from mobility.reliefAtStops). */
-export function transitRelief(def: CivElementDef, level: number): number {
-  const base = TRANSIT_RELIEF[def.id] ?? 0;
-  return base * levelMultiplier("output", level) * 0.6;
-}
-
 /** Trips a building puts on the road at Lv.1 (before level scaling) */
 export function tripsFor(def: CivElementDef): number {
   if (def.isNetwork || def.passiveNature) return 0;
@@ -390,6 +375,13 @@ export function rushHourFactor(timeOfDay: number): number {
   const daytime = Math.max(0, Math.min(1, (t - 5) / 2.5, (22 - t) / 3.5));
   return 0.23 + 0.62 * daytime + 0.55 * peak(8, 0.9) + 0.55 * peak(17.75, 1.0);
 }
+
+/** Mean of rushHourFactor over a 24 h day, for daily-average congestion. */
+export const AVERAGE_RUSH_FACTOR = (() => {
+  let total = 0;
+  for (let i = 0; i < 2400; i++) total += rushHourFactor(i / 100);
+  return total / 2400;
+})();
 
 /** Daylight 0..1 */
 export function daylight(timeOfDay: number): number {
@@ -434,12 +426,28 @@ export function powerOutputFactor(
   }
 }
 
+/** Mean of daylight() over a 24 h day (≈0.36), sampled once. */
+const AVERAGE_DAYLIGHT = (() => {
+  let total = 0;
+  for (let i = 0; i < 2400; i++) total += daylight(i / 100);
+  return total / 2400;
+})();
+
+/**
+ * Output factor with the day/night cycle averaged out (weather and wind still count). Happiness and
+ * growth read this so a solar town does not shrink every night and regrow every morning.
+ */
+export function steadyPowerOutputFactor(kind: PowerKind, weather: string, windSpeed: number): number {
+  if (kind !== "solar") return powerOutputFactor(kind, 12, weather, windSpeed);
+  const cloud = weather === "storm" ? 0.3 : weather === "rain" ? 0.45 : weather === "cloudy" ? 0.65 : 1;
+  return 0.18 + 0.95 * AVERAGE_DAYLIGHT * cloud;
+}
+
 /** $ per tick to keep a building running (services & utilities without their own income) */
 export function upkeepFor(def: CivElementDef, level: number): number {
   if (def.isNetwork) return def.isRoadNetwork || def.isRailNetwork ? 0.04 * level : 0;
   if (def.passiveNature) return 0;
   if (def.popBase && def.category === "housing") return 0;
-  if ((def.income ?? 0) > 0) return 0;
   return def.cost * 0.008 * levelMultiplier("upkeep", level);
 }
 

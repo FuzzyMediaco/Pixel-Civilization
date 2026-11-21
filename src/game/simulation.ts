@@ -10,7 +10,7 @@ import { FARM_MODULE_IDS } from "./expansionCatalog";
 import { GRID_MIN, GRID_MAX } from "./mapBounds";
 export { GRID_MIN, GRID_MAX, GRID_HALF } from "./mapBounds";
 import { hasNavigableHarbor, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
-import { advanceEconomy, buildingCharges, cityWealth, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
+import { advanceEconomy, buildingCharges, cityWealth, unlockWealth, taxRateOf, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
 import { advanceOperations, type ProjectOps } from "./projectOperations";
 import { vesselIds,waterHull } from "./travelNetwork";
 import {
@@ -43,6 +43,9 @@ import {
   sampleFieldAvg,
   synergyMultiplier,
   elementLevelStats,
+  steadyPowerOutputFactor,
+  AVERAGE_RUSH_FACTOR,
+  rushHourFactor,
 } from "./cityDynamics";
 import { levelMultiplier, scaledRadius } from "./levelScaling";
 
@@ -91,6 +94,10 @@ export interface PlacedElement {
   nuisancePenalty: number;
   /** Active play seconds since last maintained (Survival Mode) */
   maintTimerSec: number;
+  /** Real/God mode: seconds a fire-damaged building has been recovering (clears at 60) */
+  repairTimerSec?: number;
+  /** Survival: the first maintenance deadline has been staggered for this building */
+  maintStaggered?: boolean;
   disrepair: boolean;
   onFire: boolean;
   /** Active neighbour synergies (ids from SYNERGY_RULES) */
@@ -286,6 +293,28 @@ export interface CityMetrics {
   solarFactor: number;
   windFactor: number;
   synergyCount: number;
+  /** Population the city's services can hold right now, and the need that sets that limit. */
+  populationLimiter: PopulationLimiter;
+  /** Residents housed directly by connected homes (land value, synergy and walking included) */
+  housingBase: number;
+  /** Highest stage reached (mirrors state.highestStageReached for grants and readouts) */
+  stageReached: number;
+  /** Power supply at day-average sun and wind; drives happiness and growth so night dips don't swing the city */
+  powerSupplySteady: number;
+  /** Congestion averaged over the day's rush-hour curve (drives happiness) */
+  congestionDaily: number;
+  /** Crime averaged over day and night (drives happiness) */
+  crimeDaily: number;
+  /** Water plants running on 50% groundwater because no river reaches them */
+  groundwaterPlants: number;
+  /** Buildings recovering from fire damage (real mode repairs them automatically) */
+  recoveringBuildings: number;
+}
+
+export type LimitingNeed = "housing" | "jobs" | "food" | "waste" | "water" | "power";
+export interface PopulationLimiter {
+  cap: number;
+  limitingNeed: LimitingNeed;
 }
 
 export interface HistorySample {
@@ -355,7 +384,68 @@ export interface GameState {
   achievements?: string[];
   /** Public works payments already credited to this city's treasury. */
   awardedGrants?: string[];
+  /** Player tax rate in percent (5–25, default 12). Above 15 costs happiness, below 15 adds some. */
+  taxRate?: number;
+  /** Survival: pay 1.25× the maintenance price automatically when a building falls due. */
+  autoMaintain?: boolean;
 }
+
+/** True when a site's footprint or its ring of neighbouring cells holds fresh surface water. */
+function touchesFreshWater(state: GameState, el: PlacedElement): boolean {
+  for (let x = el.gx - 1; x <= el.gx + el.spanX; x++)
+    for (let z = el.gz - 1; z <= el.gz + el.spanZ; z++) {
+      const c = getTerrainCell(state, x, z);
+      if (c.depth > 0.1 && c.water === "fresh") return true;
+    }
+  return false;
+}
+
+/** Per-capita service demand shrinks with city size (economies of scale): 1.0 at Stage 1 … 0.5 floor. */
+export function perCapitaDemandScale(stage: number): number {
+  return Math.max(0.5, 1 - 0.03 * (Math.max(1, stage) - 1));
+}
+
+/** Happiness change from the tax rate: +0.4 per point under 15%, −0.6 per point over it. */
+export function taxHappiness(rate: number): number {
+  return rate <= 15 ? (15 - rate) * 0.4 : -(rate - 15) * 0.6;
+}
+
+/**
+ * The population the city's services can hold, and which need sets it. Each cap converts a supply into
+ * residents with the same per-resident rate the demand side charges, so the limiter is exact: at the cap
+ * the limiting need sits at 100%.
+ */
+export function populationLimiterFor(state: GameState, m: CityMetrics, housingBase: number, perCapita: number): PopulationLimiter {
+  const economy = economyOf(state).report;
+  const foodPerResident = (state.mode === "survival" ? 0.32 : 0.28) * perCapita;
+  const caps: [LimitingNeed, number][] = [
+    ["housing", Math.max(housingBase, economy.capacity || housingBase)],
+    ["jobs", economy.reachable / 0.5],
+    ["food", m.foodSupply / foodPerResident],
+    ["waste", m.wasteCapacity / (WASTE_PER_UNIT / 5 * perCapita)],
+    ["water", state.population + (m.waterSupply - m.waterDemand) * RESIDENTS_PER_WATER / perCapita],
+    ["power", state.population + (m.powerSupplySteady - m.powerDemand) * RESIDENTS_PER_POWER / perCapita],
+  ];
+  let [limitingNeed, cap] = caps[0];
+  for (const [need, value] of caps) if (value < cap) [limitingNeed, cap] = [need, value];
+  if (cap < housingBase) { cap = housingBase; }
+  return { cap: Math.max(0, Math.round(cap)), limitingNeed };
+}
+
+const LIMITER_LABELS: Record<LimitingNeed, { name: string; fix: string }> = {
+  housing: { name: "Housing", fix: "Build or upgrade homes; every home also attracts settlers around it." },
+  jobs: { name: "Jobs", fix: "Add businesses, shops, farms or factories reachable from the homes." },
+  food: { name: "Food", fix: "Connect farms, grocers or restaurants to the neighborhoods." },
+  waste: { name: "Garbage", fix: "Add or upgrade landfills, compactors or trash plants." },
+  water: { name: "Water", fix: "Add or upgrade water plants, towers or wells." },
+  power: { name: "Power", fix: "Add steady generation; solar alone averages about half its daytime output." },
+};
+
+/** Garbage demand per citizen unit (5 residents): 0.16 per resident. */
+const WASTE_PER_UNIT = 0.8;
+/** Extra residents one surplus unit of water / power supports (and the matching per-resident draw). */
+const RESIDENTS_PER_WATER = 20;
+const RESIDENTS_PER_POWER = 25;
 
 export function isNightTime(timeOfDay: number): boolean {
   return timeOfDay >= 19.5 || timeOfDay < 5.5;
@@ -463,6 +553,14 @@ export function createEmptyMetrics(): CityMetrics {
     solarFactor: 1,
     windFactor: 1,
     synergyCount: 0,
+    populationLimiter: { cap: 0, limitingNeed: "housing" },
+    housingBase: 0,
+    stageReached: 1,
+    powerSupplySteady: 0,
+    congestionDaily: 0,
+    crimeDaily: 0,
+    groundwaterPlants: 0,
+    recoveringBuildings: 0,
   };
 }
 
@@ -504,7 +602,7 @@ export function buildingLockReason(def: CivElementDef, state: GameState): string
   if (state.mode === "god" && !effective(state, "stageRules", 0)) return;
   if (def.wealthThreshold) {
     const threshold = Math.ceil(def.wealthThreshold * effective(state, "wealthScale", 100) / 100);
-    if (Math.max(economyOf(state).peak, cityWealth(state)) < threshold) return "Reach $" + threshold.toLocaleString() + " city wealth";
+    if (Math.max(economyOf(state).peak, unlockWealth(state)) < threshold) return "Reach $" + threshold.toLocaleString() + " in treasury and business capital";
   } else if (state.highestStageReached === 1 ? !def.isStarter : def.stage > state.highestStageReached) {
     return "Unlocks at Stage " + def.stage;
   }
@@ -1202,6 +1300,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   let coverableBuildings = 0;
   let militaryPower = 0;
   let upkeepSum = 0;
+  let instantPower = 0, steadyPower = 0;
   let renewableOut = 0;
   let landValueSum = 0;
 
@@ -1212,6 +1311,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   m.trafficTrips = Math.round(demand.carTrips);
   m.trafficCapacity = Math.round(demand.capacity);
   m.congestion = Math.round(demand.congestion);
+  m.congestionDaily = Math.round(demand.congestion * AVERAGE_RUSH_FACTOR / Math.max(0.05, rushHourFactor(state.timeOfDay ?? 10.5)));
   m.transitTrips = Math.round(service.served);
   m.transitShare = service.served ? Math.round(100 * service.served / Math.max(service.served, demand.trips)) : 0;
   m.solarFactor = Math.round(powerOutputFactor("solar", state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * 100) / 100;
@@ -1222,6 +1322,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (!def) continue;
 
     if (el.disrepair) m.disrepairCount += 1;
+    if (el.disrepair && state.mode !== "survival") m.recoveringBuildings += 1;
     if (el.onFire) m.burningCount += 1;
 
     if (!def.isNetwork && !def.passiveNature && !el.connected && def.domain === "land") {
@@ -1247,6 +1348,9 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     // Shared edible beds feed their household. Ceremonial walks and connected habitat are small
     // local amenities, so a ten-tile boundary grants the same benefit as one working gate.
     if (def.recreation || def.id === "graveyards") m.recreationSupply += Math.round(edgeEffect.recreation * serviceHealth);
+    // Wild nature is a land-value and clean-air asset; as a city service it counts at 25%, and it
+    // only supplies drinking water where it touches a fresh river, lake or canal.
+    const wild = def.passiveNature && def.category === "nature_terrain";
     if (def.popBase) {
       // Count access to a river or canal once per home, regardless of the length of its bank.
       const waterfront = state.infrastructure && PARCEL_SIDES.some(side => {
@@ -1272,14 +1376,21 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       if (def.power > 0 && pk) {
         const live = powerOutputFactor(pk, state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * generationExposure(pk, state, el, parcelOccupancy);
         const railSupply=def.id==="coal_powerplants"?railFreightBonus(state,el.id,"coal"):def.id==="natural_gas_power_plants"?railFreightBonus(state,el.id,"fuel"):1;
-        const out = Math.round(lv.power * railSupply * serviceHealth * live * (pk==="hydro"?Math.min(1,hydroHead(state,el)/1.5):1));
+        const head = pk==="hydro"?Math.min(1,hydroHead(state,el)/1.5):1;
+        const out = Math.round(lv.power * railSupply * serviceHealth * live * head);
+        const steady = lv.power * railSupply * serviceHealth * head * steadyPowerOutputFactor(pk, state.weather, state.windSpeed ?? 1) * generationExposure(pk, state, el, parcelOccupancy);
+        instantPower += out; steadyPower += steady;
         m.powerSupply += out;
         if (pk === "solar" || pk === "wind" || pk === "hydro" || pk === "geo") renewableOut += out;
       }
       else m.powerDemand += Math.max(0, lv.powerDraw - edgeEffect.heat);
     }
     if (def.water) {
-      if (def.water > 0) m.waterSupply += Math.round(lv.water * serviceHealth * freshWaterFactor(state,el));
+      if (def.water > 0) {
+        const fresh = wild ? (touchesFreshWater(state, el) ? 1 : 0) : freshWaterFactor(state,el);
+        if (def.id === "water_treatment_plant" && fresh > 0 && fresh < 1) m.groundwaterPlants += 1;
+        m.waterSupply += Math.round(lv.water * serviceHealth * fresh);
+      }
       else m.waterDemand += lv.waterDraw;
     }
     if (def.waste) {
@@ -1292,7 +1403,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       m.educationSupply += Math.round((lv.education + edgeEffect.education) * serviceHealth * (districts.bonuses.educationMultiplier.get(el.id)??1));
     }
     if (def.recreation) {
-      m.recreationSupply += Math.round(lv.recreation * serviceHealth * (districts.bonuses.recreationMultiplier.get(el.id)??1) * (el.defId==="middle_school"?1.16:el.defId==="elementary_school"?1.1:1));
+      m.recreationSupply += Math.round(lv.recreation * (wild ? 0.25 : 1) * serviceHealth * (districts.bonuses.recreationMultiplier.get(el.id)??1) * (el.defId==="middle_school"?1.16:el.defId==="elementary_school"?1.1:1));
     }
     if (def.government) {
       m.govSupply += Math.round(lv.government * serviceHealth);
@@ -1342,14 +1453,17 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   }
 
   // Scale citizen service demands gently against active building units so Stage 1..20 feels fair and readable
-  const citizenUnits = Math.max(0, Math.ceil(state.population / 5*effective(state,"demand",100)/100));
+  // Per-capita service demand eases as the city grows (economies of scale, floor 50%).
+  const perCapita = perCapitaDemandScale(state.highestStageReached);
+  const citizenUnits = Math.max(0, Math.ceil(state.population / 5*effective(state,"demand",100)/100*perCapita));
   // The basic household draw is already charged per building. Additional residents
   // settling in that housing also need drinking water and electricity.
   const additionalResidents = Math.max(0, state.population - Math.ceil(baseHousingPop));
-  m.waterDemand += Math.ceil(additionalResidents / 35);
-  m.powerDemand += Math.ceil(additionalResidents / 45);
-  m.wasteDemand = Math.ceil(citizenUnits * 1.4);
-  m.jobsNeeded = Math.ceil(citizenUnits * 2.2);
+  m.waterDemand += Math.ceil(additionalResidents * perCapita / RESIDENTS_PER_WATER);
+  m.powerDemand += Math.ceil(additionalResidents * perCapita / RESIDENTS_PER_POWER);
+  m.wasteDemand = Math.ceil(citizenUnits * WASTE_PER_UNIT);
+  m.housingBase = Math.round(baseHousingPop);
+  m.stageReached = state.highestStageReached;
   m.foodDemand = Math.ceil(citizenUnits * (state.mode==="survival"?1.6:1.4));
   m.educationDemand = Math.ceil(citizenUnits * 1.3);
   m.recreationDemand = Math.ceil(citizenUnits * 1.2);
@@ -1367,6 +1481,9 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
   }
   evaluateEconomy(state,m,baseHousingPop,elementRoadComps,service.reachable,borderEffects,service.districts,congestedEls,freightRail);
+  // Day-average power: same plants and reserve, with the sun averaged over a whole day.
+  m.powerSupplySteady = state.mode === "god" ? m.powerSupply : Math.max(0, Math.round(m.powerSupply + steadyPower - instantPower));
+  m.populationLimiter = populationLimiterFor(state, m, baseHousingPop, perCapita);
 
   // Dispatch and incident risk use the workforce just calculated for this layout.
   const authorized = hasAuthority(state);
@@ -1458,7 +1575,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
   if (m.crimeUnlocked && coverableBuildings > 0) {
     const uncovRatio = uncoveredBuildings / coverableBuildings;
-    const capRatio = Math.min(1, policePoints / Math.max(12, citizenUnits * 1.6));
+    // Police capacity: 0.06 points per resident (≈12 Lv.5 departments for 500k).
+    const capRatio = Math.min(1, policePoints / Math.max(12, state.population * 0.06));
     const economy = economyOf(state).report;
     const unemployment = 1 - Math.min(1,m.jobsAvailable/Math.max(1,m.jobsNeeded));
     const amenities = Math.min(14,m.recreationSupply/Math.max(1,m.recreationDemand)*6+economy.farms*.6+service.score*.04);
@@ -1467,19 +1585,19 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (state.mode === "survival" && state.happiness < 50) {
       rawCrime = Math.max(rawCrime, Math.round((55 - state.happiness) * 1.7));
     }
-    if (night) {
-      rawCrime = Math.round(rawCrime * 1.45 + 10);
-    }
-    m.crimeRate = Math.max(0, Math.min(100, rawCrime-community.crime));
+    const nightCrime = Math.round(rawCrime * 1.25 + 4);
+    const clamp = (v: number) => Math.max(0, Math.min(100, v - community.crime));
+    // Night is 10 of 24 hours; happiness reads the day's average, incidents the current hour.
+    m.crimeDaily = Math.round(clamp(rawCrime) * 14 / 24 + clamp(nightCrime) * 10 / 24);
+    m.crimeRate = clamp(night ? nightCrime : rawCrime);
   } else {
     m.crimeRate = 0;
+    m.crimeDaily = 0;
   }
 
-  if(m.crimeUnlocked)m.crimeRate=effective(state,"crime",m.crimeRate);
-  m.requiredDefensePower = Math.max(
-    180,
-    Math.round(m.stageAttackSeverity * 140 + citizenUnits * 1.3),
-  );
+  if(m.crimeUnlocked){const held=effective(state,"crime",m.crimeRate);if(held!==m.crimeRate)m.crimeDaily=held;m.crimeRate=held;}
+  // Deterrence grows with the square root of population: ≈4.7k at 500k (4 Lv.5 bases), ≈13k at 3.8M.
+  m.requiredDefensePower = Math.round(200 + 220 * m.stageAttackSeverity + 6 * Math.sqrt(Math.max(0, state.population)));
   if (m.defenseUnlocked) {
     m.defenseRating = Math.max(
       0,
@@ -1551,6 +1669,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     ) => {
       if (demand <= 0 || supply >= demand) return;
       const deficitRatio = (demand - supply) / demand;
+      // Rounding at the population cap leaves a sliver of shortage; ignore anything within 1%.
+      if (deficitRatio <= 0.01) return;
       const pen = Math.max(3, Math.round(deficitRatio * maxPenalty));
       happiness -= pen;
       diags.push({
@@ -1563,7 +1683,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       });
     };
 
-    checkNeed("power", "Power", m.powerSupply, m.powerDemand, 22, m.solarFactor < 0.6 ? `Solar is only at ${Math.round(m.solarFactor * 100)}% (night/clouds) — mix in Wind, Coal, Gas or Nuclear for steady power.` : "Place Solar Panels, Windmills, or Power Plants connected by road.");
+    checkNeed("power", "Power", m.powerSupplySteady, m.powerDemand, 22, m.solarFactor < 0.6 ? `Solar is only at ${Math.round(m.solarFactor * 100)}% (night/clouds) — mix in Wind, Coal, Gas or Nuclear for steady power.` : "Place Solar Panels, Windmills, or Power Plants connected by road.");
     checkNeed("water", "Clean Water", m.waterSupply, m.waterDemand, 24, "Build a Water Plant, Water Tower, or Wells connected to roads.");
     checkNeed("waste", "Garbage Pickup", m.wasteCapacity, m.wasteDemand, 16, "Add a Landfill or Trash Plant (keep a few tiles away from homes!).");
     checkNeed("jobs", "Jobs", m.jobsAvailable, m.jobsNeeded, 18, "Build Businesses, Shops, Farms, or Factories so citizens can work.");
@@ -1588,21 +1708,21 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       });
     }
 
-    if (m.trafficTrips > 20 && m.congestion > 100) {
-      const pen = Math.min(16, Math.round((m.congestion - 100) * 0.12) + 3);
+    if (m.trafficTrips > 20 && m.congestionDaily > 100) {
+      const pen = Math.min(16, Math.round((m.congestionDaily - 100) * 0.12) + 3);
       happiness -= pen;
       diags.push({
         id: "traffic",
         severity: m.congestion >= 160 ? "critical" : "warning",
-        title: `Gridlock: Roads at ${m.congestion}% Capacity`,
+        title: `Gridlock: Roads at ${m.congestionDaily}% Capacity (daily average)`,
         detail: `${m.trafficTrips.toLocaleString()} trips this hour vs ${m.trafficCapacity.toLocaleString()} capacity. Jammed shops earn 25% less. Rush hours (8am & 6pm) are worst.`,
         fixHint: "Widen the busiest corridor or start a bus, train or ferry line serving nearby homes and jobs.",
         deltaHappiness: -pen,
       });
     }
 
-    if (m.crimeUnlocked && m.crimeRate > 12) {
-      const pen = Math.round(m.crimeRate * 0.28);
+    if (m.crimeUnlocked && m.crimeDaily > 12) {
+      const pen = Math.round(m.crimeDaily * 0.28);
       happiness -= pen;
       diags.push({
         id: "crime",
@@ -1619,7 +1739,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
 
     if (m.defenseUnlocked && m.defenseRating < 75) {
-      const pen = Math.round((75 - m.defenseRating) * 0.25);
+      // Without raids (real mode) weak deterrence is a worry, not a crisis.
+      const pen = Math.min(state.mode === "survival" ? 19 : 8, Math.round((75 - m.defenseRating) * 0.25));
       happiness -= pen;
       diags.push({
         id: "defense",
@@ -1632,15 +1753,14 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
 
     if (state.mode === "survival" && m.disrepairCount > 0) {
-      const disrepairRatio = m.disrepairCount / Math.max(1, elements.length);
-      const pen = Math.max(4, Math.min(35, Math.round(m.disrepairCount * 4 + disrepairRatio * 30)));
+      const pen = Math.min(20, 2 * m.disrepairCount);
       happiness -= pen;
       diags.push({
         id: "disrepair",
         severity: pen >= 14 ? "critical" : "warning",
         title: `${m.disrepairCount} Building${m.disrepairCount > 1 ? "s" : ""} Need Maintenance`,
-        detail: "In Survival Mode, service buildings need maintenance every 5 active minutes.",
-        fixHint: "Click buildings with an amber wrench or press 'Maintain All' in the top bar.",
+        detail: "In Survival Mode, service buildings need paid maintenance every few active minutes.",
+        fixHint: "Click buildings with an amber wrench, press 'Maintain All', or turn on auto-maintenance.",
         deltaHappiness: -pen,
       });
     }
@@ -1679,6 +1799,28 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       detail:"A staffed government authorizes fire, police and defense services.",
       fixHint:"Keep the offices connected to workers.", deltaHappiness:-administration});
   }
+  if (state.mode !== "god" && m.connectedHouses > 0) {
+    const rate = taxRateOf(state), mood = Math.round(taxHappiness(rate));
+    happiness += mood;
+    if (mood) diags.push({ id: "tax", severity: mood < 0 ? "warning" : "info", title: `Tax rate ${rate}%`,
+      detail: mood < 0 ? "Taxes above 15% make residents unhappy and more likely to leave." : "Low taxes keep residents content.",
+      fixHint: "Raise taxes for revenue or lower them for happiness (15% is neutral).", deltaHappiness: mood });
+  }
+  const limit = m.populationLimiter;
+  if (m.connectedHouses > 0 && state.population >= 0.97 * limit.cap) {
+    const label = LIMITER_LABELS[limit.limitingNeed];
+    diags.push({ id: "growth_limit", severity: "info", title: `Growth limited by ${label.name}`,
+      detail: `Population ${state.population.toLocaleString()} / ${limit.cap.toLocaleString()}. ${label.name} supports no more residents.`,
+      fixHint: label.fix });
+  }
+  if (m.groundwaterPlants > 0) diags.push({ id: "groundwater", severity: "info",
+    title: `${m.groundwaterPlants} Water Plant${m.groundwaterPlants > 1 ? "s" : ""} on Groundwater`,
+    detail: "No river reaches these treatment plants, so they pump groundwater at 50% output.",
+    fixHint: "Route a river or canal to the plant to restore full output." });
+  if (m.recoveringBuildings > 0) diags.push({ id: "fire_recovery", severity: "info",
+    title: `${m.recoveringBuildings} Burned Building${m.recoveringBuildings > 1 ? "s" : ""} at 25%`,
+    detail: "Fire-damaged buildings work at a quarter of their output while crews repair them (about a minute).",
+    fixHint: "Click Maintain on a damaged building to repair it now." });
   state.happiness = Math.round(effective(state,"happiness",Math.max(0,Math.min(100,happiness))));
   checkAchievements(state, m);
 
@@ -2604,6 +2746,11 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
         state.weather = nextWeather;
         dirty = true;
       }
+      // Outside the sandbox the wind follows the weather instead of a slider.
+      if (state.mode !== "god") {
+        const base = nextWeather === "storm" ? 1.8 : nextWeather === "rain" ? 1.3 : nextWeather === "cloudy" ? 1.05 : 0.85;
+        state.windSpeed = Math.round((base + (Math.random() - 0.5) * 0.4) * 100) / 100;
+      }
     }
   }
 
@@ -2651,14 +2798,33 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     }
   }
 
-  // 1. Survival Mode 5-minute active maintenance timers
+  // 1. Survival Mode active maintenance timers (first deadline staggered over 180–360 s)
   if (state.mode === "survival") {
     for (const el of state.elements) {
       const def = ELEMENT_BY_ID[el.defId];
       if (!def?.needsMaintenance || !el.connected) continue;
+      if (!el.maintStaggered) {
+        el.maintStaggered = true;
+        if (el.maintTimerSec === 0) el.maintTimerSec = MAINTENANCE_INTERVAL_SEC - (180 + (hashId(el.id) % 181));
+      }
       el.maintTimerSec += dtSec;
       if (el.maintTimerSec >= MAINTENANCE_INTERVAL_SEC && !el.disrepair) {
-        el.disrepair = true;
+        const autoPrice = maintenancePrice(el) * 1.25;
+        if (state.autoMaintain && state.money >= autoPrice) {
+          transfer(state, "treasury", "outside", autoPrice, "Automatic maintenance");
+          el.maintTimerSec = 0;
+        } else el.disrepair = true;
+        dirty = true;
+      }
+    }
+  } else {
+    // Real and god mode: crews repair fire damage on their own within a minute.
+    for (const el of state.elements) {
+      if (!el.disrepair || el.onFire) { if (el.repairTimerSec) el.repairTimerSec = 0; continue; }
+      el.repairTimerSec = (el.repairTimerSec ?? 0) + dtSec;
+      if (el.repairTimerSec >= 60) {
+        el.disrepair = false;
+        el.repairTimerSec = 0;
         dirty = true;
       }
     }
@@ -2681,18 +2847,11 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
   if (state.metrics.connectedHouses > 0) {
     const economy = economyOf(state).report;
 
-    let baseHousingPop = 0;
-    for (const el of state.elements) {
-      const def = ELEMENT_BY_ID[el.defId];
-      if (el.connected && !el.onFire && def?.popBase) {
-        baseHousingPop += def.popBase * levelMultiplier("output", el.level);
-      }
-    }
-
-    const essentialDeficit = Math.max(economy.shortage, economy.utilityStrain ?? 0);
     const m=state.metrics;
-    const supplied=Math.max(baseHousingPop,Math.min(economy.reachable/.50,m.foodSupply/(state.mode==="survival"?.32:.28),
-      m.wasteCapacity/.28, state.population+(m.waterSupply-m.waterDemand)*35, state.population+(m.powerSupply-m.powerDemand)*45));
+    // The same housing base and service cap the metrics report (see populationLimiterFor).
+    const baseHousingPop = m.housingBase;
+    const essentialDeficit = Math.max(economy.shortage, economy.utilityStrain ?? 0);
+    const supplied = m.populationLimiter.cap;
     const directedMood=state.mode==="god" && [...economyOf(state).holds,...economyOf(state).once].some(setting=>setting.key==="happiness");
     if(state.mode==="god" && !effective(state,"stageRules",0) && !(directedMood&&state.happiness<65)){
       // Open the first homes quickly. Large settlements grow toward the services this city actually built.
@@ -2713,7 +2872,8 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
       // Happiness below 65%: citizens leave slowly (or rapidly if < 50% in Survival / fires active!)
       const severity = Math.max(0, (65 - state.happiness) / 65);
       const fireAccel = state.mode === "survival" && (state.happiness < 50 || state.metrics.burningCount > 0) ? 3.4 : 1.0;
-      const lossRate = Math.max(1.5, state.population * 0.025 + 4) * severity * fireAccel;
+      const taxPressure = 1 + 0.01 * Math.max(0, taxRateOf(state) - 15);
+      const lossRate = Math.max(1.5, state.population * 0.025 + 4) * severity * fireAccel * taxPressure;
       const shortageLoss = state.population * Math.max(0, (essentialDeficit - 0.35) / 0.65) * (state.mode === "survival" ? 0.0024 : 0.0012);
       state.growthPool -= Math.max(lossRate, shortageLoss) * dtSec;
       dirty = true;
@@ -2925,10 +3085,27 @@ export function computeHeatmapCells(state: GameState, kind: HeatmapKind): Heatma
   return Array.from(samples.values());
 }
 
+/** Survival maintenance price: 2% of the build cost per level. */
+export function maintenancePrice(el: PlacedElement): number {
+  const def = ELEMENT_BY_ID[el.defId];
+  return Math.round((def?.cost ?? 0) * 0.02 * Math.max(1, el.level));
+}
+function hashId(id: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
 export function maintainElement(state: GameState, id: string): boolean {
   const el = state.elements.find((e) => e.id === id);
   if (!el || el.onFire) return false;
+  if (state.mode === "survival") {
+    const price = maintenancePrice(el);
+    if (state.money < price) return false;
+    transfer(state, "treasury", "outside", price, "Maintenance");
+  }
   el.maintTimerSec = 0;
+  el.repairTimerSec = 0;
   el.disrepair = false;
 
   el.animProgress = 0.65;
@@ -2942,6 +3119,11 @@ export function maintainAllElements(state: GameState): number {
   for (const el of state.elements) {
     const def = ELEMENT_BY_ID[el.defId];
     if (!el.onFire && (el.disrepair || (def?.needsMaintenance && el.maintTimerSec > 30))) {
+      if (state.mode === "survival") {
+        const price = maintenancePrice(el);
+        if (state.money < price) continue;
+        transfer(state, "treasury", "outside", price, "Maintenance");
+      }
       el.maintTimerSec = 0;
       el.disrepair = false;
       count += 1;

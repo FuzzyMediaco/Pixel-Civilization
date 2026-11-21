@@ -46,6 +46,7 @@ meets("trees shrubs bushes pine_trees redwood_trees swamps ponds lakes hills mou
 meets("plants","orchards");
 meets("beaches","water_tile");
 meets("large_landmarks washington_monument white_house smithsonian eiffel_tower the_london_eye the_great_pyramids","italian_gardens");
+meets("colosseum stonehenge parthenon great_wall chichen_itza moai_statues angkor_wat machu_picchu","italian_gardens");
 meets("growers_exchange bakery_coop","fields");
 meets("ferry_exchange canal_boat_lift maritime_college ocean_habitat_ring","docks");
 meets("water_reuse_works pumped_storage_station","aqueduct");

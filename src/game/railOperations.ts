@@ -17,6 +17,9 @@ export const LOCOMOTIVES = {
     speed: 1.3,
     price: 240,
     freight: true,
+    length: 15,
+    accel: 0.42,
+    era: "1 · Steam",
   },
   diesel: {
     name: "Road diesel",
@@ -24,6 +27,9 @@ export const LOCOMOTIVES = {
     speed: 1.72,
     price: 440,
     freight: true,
+    length: 14,
+    accel: 0.6,
+    era: "2 · Diesel",
   },
   commuter: {
     name: "Double-deck commuter",
@@ -31,6 +37,9 @@ export const LOCOMOTIVES = {
     speed: 1.96,
     price: 670,
     freight: false,
+    length: 14,
+    accel: 0.8,
+    era: "3 · Commuter",
   },
   electric: {
     name: "Electric locomotive",
@@ -38,6 +47,9 @@ export const LOCOMOTIVES = {
     speed: 2.26,
     price: 900,
     freight: true,
+    length: 14,
+    accel: 0.85,
+    era: "4 · Electric",
   },
   express: {
     name: "High-speed express",
@@ -45,6 +57,9 @@ export const LOCOMOTIVES = {
     speed: 2.88,
     price: 1420,
     freight: false,
+    length: 17,
+    accel: 0.95,
+    era: "5 · High-speed",
   },
 } as const;
 export type Engine = keyof typeof LOCOMOTIVES;
@@ -53,44 +68,44 @@ export const CARS = {
     name: "Passenger coach",
     service: "passenger",
     capacity: 24,
-    cost: 65,
+    cost: 65, length: 12
   },
   observation: {
     name: "Observation car",
     service: "passenger",
     capacity: 18,
-    cost: 78,
+    cost: 78, length: 12
   },
-  sleeper: { name: "Sleeper", service: "passenger", capacity: 16, cost: 84 },
-  hopper: { name: "Grain hopper", service: "freight", capacity: 22, cost: 80 },
-  gondola: { name: "Coal gondola", service: "freight", capacity: 26, cost: 88 },
+  sleeper: { name: "Sleeper", service: "passenger", capacity: 16, cost: 84, length: 13 },
+  hopper: { name: "Grain hopper", service: "freight", capacity: 22, cost: 80, length: 11 },
+  gondola: { name: "Coal gondola", service: "freight", capacity: 26, cost: 88, length: 11 },
   reefer: {
     name: "Refrigerated car",
     service: "freight",
     capacity: 18,
-    cost: 100,
+    cost: 100, length: 12
   },
   livestock: {
     name: "Livestock wagon",
     service: "freight",
     capacity: 16,
-    cost: 82,
+    cost: 82, length: 11
   },
   waste: {
     name: "Waste container",
     service: "freight",
     capacity: 24,
-    cost: 84,
+    cost: 84, length: 10
   },
-  flat: { name: "Timber flat", service: "freight", capacity: 24, cost: 74 },
-  tanker: { name: "Fuel tanker", service: "freight", capacity: 23, cost: 98 },
+  flat: { name: "Timber flat", service: "freight", capacity: 24, cost: 74, length: 12 },
+  tanker: { name: "Fuel tanker", service: "freight", capacity: 23, cost: 98, length: 11 },
   container: {
     name: "Intermodal well car",
     service: "freight",
     capacity: 30,
-    cost: 108,
+    cost: 108, length: 13
   },
-  box: { name: "Boxcar", service: "freight", capacity: 20, cost: 70 },
+  box: { name: "Boxcar", service: "freight", capacity: 20, cost: 70, length: 11 },
 } as const;
 export type RailCar = keyof typeof CARS;
 const foodMarkets =
@@ -173,10 +188,26 @@ export interface RailRun extends RailFormation {
   trainId: string;
   trail: Point[];
   rearCab?: boolean;
+  /** @deprecated whole-circuit block plan of the old signalling model; ignored. */
   blockPlan?: string[];
+  /** Tiles held by this train: its body plus the rest of the current leg ("x,z"). */
   reservation?: string[];
   waitingSince?: number;
+  /** Train currently holding the track this one needs. */
+  blockedBy?: string;
   contract?: FreightContract;
+  /** Model revision: 2 = lines run between stations and only visit the depot to park. */
+  v?: number;
+  /** Current speed in tiles/s and distance travelled along the current leg. */
+  speed?: number;
+  dist?: number;
+  /** Why the train is heading to its depot instead of the next station. */
+  yielding?: "clear" | "hours" | "recall";
+  /** Last resort when single track has no passing place: squeeze past and warn. */
+  ghost?: boolean;
+  /** Measured seconds for one full circuit (EMA) and when the current one began. */
+  circuit?: number;
+  circuitStart?: number;
 }
 export const YARD_WORKS = {
   platform: {

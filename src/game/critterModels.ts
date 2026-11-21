@@ -305,7 +305,7 @@ export function buildCritterPens(pens: readonly CritterSpec[], unit: number, gro
 }
 
 /** Rest poses for previews (gallery, ghost, field guide): animals spread over their pen, facing various ways. */
-export function buildCritterPreview(pens: readonly BuiltCritterPen[]): THREE.Group | undefined {
+export function buildCritterPreview(pens: readonly BuiltCritterPen[], material: THREE.Material = getPixelVoxelMaterial()): THREE.Group | undefined {
   if (!pens.length) return undefined;
   const group = new THREE.Group(),
     m = new THREE.Matrix4(),
@@ -315,7 +315,7 @@ export function buildCritterPreview(pens: readonly BuiltCritterPen[]): THREE.Gro
     up = new THREE.Vector3(0, 1, 0);
   pens.forEach((pen, pi) => {
     if (!pen.count) return;
-    const mesh = new THREE.InstancedMesh(critterModel(pen.kind, pen.coat).whole, getPixelVoxelMaterial(), pen.count);
+    const mesh = new THREE.InstancedMesh(critterModel(pen.kind, pen.coat).whole, material, pen.count);
     const [x0, z0, x1, z1] = pen.area,
       margin = 0.3 * pen.scale,
       fly = CRITTER_TUNING[pen.kind].fly;

@@ -231,7 +231,7 @@ export function buildPlacedGroupFromAsset(
   group.userData.smokePoints = asset.smokePoints ?? [];
   // Livestock stand in rest poses here; the game's herd animator hides this and drives instanced animals.
   group.userData.critters = asset.critters ?? [];
-  const herd = buildCritterPreview(asset.critters ?? []);
+  const herd = buildCritterPreview(asset.critters ?? [], mat);
   if (herd) {
     group.add(herd);
     group.userData.critterPreview = herd;

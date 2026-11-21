@@ -1044,6 +1044,20 @@
   },
   {
     "ids": [
+      "colosseum",
+      "stonehenge",
+      "parthenon",
+      "great_wall",
+      "chichen_itza",
+      "moai_statues",
+      "angkor_wat",
+      "machu_picchu"
+    ],
+    "join": "Open the wonder's visitor plaza toward formal gardens, a civic square or a walking route, and keep a reachable road or path at the main approach.",
+    "effect": "A ceremonial promenade across the shared edge draws more sightseers. Each upgrade restores more of the monument, from excavation site to a floodlit wonder."
+  },
+  {
+    "ids": [
       "preschool",
       "country_schoolhouse",
       "elementary_school",

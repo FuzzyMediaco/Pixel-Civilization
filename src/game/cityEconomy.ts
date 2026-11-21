@@ -75,6 +75,8 @@ export interface SiteAccount {
   yieldRate: number;
   retail: number;
   exportRate: number;
+  /** Household spending this commerce site can absorb per second (income × level, staffed) */
+  spending?: number;
   attendees: number;
   jobs: number;
   tripCounts?: Record<string, number>;
@@ -116,6 +118,10 @@ export interface Economy {
     potable: number;
     farms: number;
     shopping: number;
+    /** Household spending capacity of local commerce ($/s) */
+    commerce?: number;
+    /** Household spending at local commerce in the last period ($/s) */
+    spending?: number;
   };
 }
 export function economyOf(s: GameState): Economy {
@@ -166,6 +172,8 @@ export const cityWealth = (s: GameState) => {
   const e = economyOf(s);
   return s.money + e.households + e.businesses;
 };
+/** Wealth that counts toward project unlocks: the treasury plus business capital, not household savings. */
+export const unlockWealth = (s: GameState) => s.money + economyOf(s).businesses;
 export const siteOf = (s: GameState, e: PlacedElement): SiteAccount =>
   (economyOf(s).sites[e.id] ??= {
     work: 0,
@@ -218,7 +226,7 @@ export function transfer(s: GameState, from: Entry["from"], to: Entry["to"], val
   if (recent) recent.amount += amount;
   else e.ledger.push({ time, from, to, amount, label });
   if (e.ledger.length > 100) e.ledger.splice(0, e.ledger.length - 100);
-  e.peak = Math.max(e.peak, cityWealth(s));
+  e.peak = Math.max(e.peak, unlockWealth(s));
   return amount;
 }
 const token = (k: ControlKey, site?: string) => (site ? k + "@" + site : k);
@@ -255,7 +263,7 @@ export function setEconomicControl(s: GameState, k: ControlKey, value: number, h
     if (k === "activity") a.work = val;
     else a.food = val;
   }
-  e.peak = Math.max(e.peak, cityWealth(s));
+  e.peak = Math.max(e.peak, unlockWealth(s));
 }
 export function releaseControl(s: GameState, k?: ControlKey, site?: string) {
   const e = economyOf(s),
@@ -542,15 +550,18 @@ export function evaluateEconomy(
       !(d.id === "materials_foundry" && m.wasteDemand === 0) &&
       !flightProject(d.id) &&
       (industry(d.id) ||
-        (FARM_ANCHOR_IDS.has(d.id)&&!!d.income)||["university","research_university","research_institute","community_college","businesses", "shops", "plantations", "orchards", "growers_exchange", "bakeries"].includes(d.id))
+        (FARM_ANCHOR_IDS.has(d.id)&&!!d.income)||["university","research_university","research_institute","community_college","businesses", "shops", "plantations", "orchards", "growers_exchange", "bakery_coop"].includes(d.id))
     )
       a.exportRate =
         (d.income ?? 5) * scale * 0.24 * (industry(d.id) && !cooled ? 0.42 : 1) * (1 + bank * 0.15);
-    // Every other earning site (stores, banks, malls, landmarks, depots…) draws visitor and
-    // customer spending from outside the city: half the export rate, scaled with its level.
-    // Grocers and restaurants already earn through household food sales, so they are excluded.
-    else if (railOK && !d.popBase && !flightProject(d.id) && (d.income ?? 0) > 0 && (!isRetailFoodSite(d) || d.id === "malls"))
-      a.exportRate = d.income! * scale * 0.12 * (1 + bank * 0.15);
+    // Landmarks, docks, depots and other non-commerce earners draw tourism and cargo from outside.
+    // Commerce earns from household spending instead (see advanceEconomy).
+    else if (railOK && !d.popBase && !flightProject(d.id) && (d.income ?? 0) > 0 && d.category !== "commerce")
+      a.exportRate = d.income! * scale * 0.24 * (1 + bank * 0.15);
+    a.spending =
+      d.category === "commerce" && !d.popBase && (d.income ?? 0) > 0
+        ? d.income! * scale * 0.24 * (1 + bank * 0.15) * (congested.has(el.id) ? 0.75 : 1) * (0.8 + Math.min(2, el.landValue ?? 0.5) * 0.3)
+        : 0;
     if(a.exportRate>0 && s.railYard?.benefits[el.id]) a.exportRate *= Math.max(...(["goods","timber","fuel"] as const).map(c=>railFreightBonus(s,el.id,c)));
     a.exportRate *= (report.bonuses.incomeMultiplier.get(el.id)??1)*
       (1+(industrial?.18*trained(g,"trade_school"):0)+(commercial?.14*trained(g,"community_college"):0)+(advanced?.18*trained(g,"research_university"):0));
@@ -559,6 +570,7 @@ export function evaluateEconomy(
     if (edge) a.exportRate *= 1 + edge.commerce;
   }
   let accessibleHarvest = 0;
+  r.commerce = 0;
   const rawReachable = r.reachable;
   r.reachable = Math.round(effective(s, "jobs", rawReachable));
   const hiring = rawReachable ? r.reachable / rawReachable : 0;
@@ -576,6 +588,8 @@ export function evaluateEconomy(
           Math.max(1, (jobsByGroup.get(a.group) ?? 0) * hiring),
       );
     a.exportRate *= Math.min(1, a.workers / Math.max(1, a.jobs));
+    a.spending = residents > 0 ? (a.spending ?? 0) * Math.min(1, a.workers / Math.max(1, a.jobs)) : 0;
+    r.commerce = (r.commerce ?? 0) + a.spending;
     a.yieldRate *= (effective(s, "harvest", 100) / 100) * (activeBlessing(s) === "harvest" ? 1.2 : 1);
     a.yieldRate *= a.jobs ? 0.42 + (0.58 * a.workers) / Math.max(1, a.jobs) : 1;
     a.attendees = Math.min(
@@ -602,10 +616,17 @@ export function evaluateEconomy(
   m.powerDemand = Math.max(0, m.powerDemand - powerSaved);
   r.reserveOutput = Math.min(r.reservePower, Math.max(0, m.powerDemand - m.powerSupply));
   m.powerSupply = effective(s, "power", m.powerSupply + r.reserveOutput);
-  e.peak = Math.max(cityWealth(s), e.peak);
+  e.peak = Math.max(e.peak, unlockWealth(s));
 }
 /** Irrigation pond reservoir size (water units) at a level — use this for any UI readout. */
 export const pondCisternCapacity = (level: number) => 36 * levelMultiplier("storage", level);
+/** Retail price residents pay per meal; above the 0.8 import price so grocers break even. */
+const MEAL_PRICE = 0.95;
+/** Tax rate (%): the player's setting (5–25, default 12); god-mode economic controls can override it. */
+export function taxRateOf(s: GameState) {
+  const chosen = Math.max(5, Math.min(25, Number.isFinite(s.taxRate) ? s.taxRate! : 12));
+  return effective(s, "tax", chosen);
+}
 export function activityRule(el: PlacedElement) {
   const d = ELEMENT_BY_ID[el.defId];
   if (crops.has(d.id)) return { label: "Harvested local food", goal: 12 * el.level };
@@ -705,16 +726,24 @@ export function advanceEconomy(s: GameState, dt: number) {
   // Vacancies already reduce export capacity. Resident confidence and crime affect what outside buyers spend.
   const tradeIncome = r.exports * t * (activeBlessing(s) === "prosperity" ? 1.15 : 1) * (0.75 + 0.25 * s.happiness / 100) * (1 - 0.20 * s.metrics.crimeRate / 100);
   transfer(s, "outside", "businesses", tradeIncome, "Local exports");
-  // A connected shop can obtain working capital from the public treasury; it only imports an affordable shortfall.
+  const taxFraction = taxRateOf(s) / 100;
+  // Trade tax is collected on arrival, before wages drain the businesses' cash.
+  let taxes = transfer(s, "businesses", "treasury", tradeIncome * taxFraction, "Trade tax");
   const importPrice = (0.8 * effective(s, "imports", 100)) / 100;
   let imported = 0,
     consumed = 0;
   let remainingCapacity = s.metrics.foodSupply * t;
   const wages = transfer(s, "businesses", "households", workers * 0.34 * t, "Local wages");
-  const taxFraction = effective(s, "tax", 15) / 100;
-  let taxes =
-    transfer(s, "households", "treasury", wages * taxFraction, "Payroll tax") +
-    transfer(s, "businesses", "treasury", tradeIncome * taxFraction, "Trade tax");
+  const payroll = transfer(s, "households", "treasury", wages * taxFraction, "Payroll tax");
+  taxes += payroll;
+  // Households spend part of their wages and savings at local commerce (shops, malls, banks…),
+  // limited by what the staffed stores can serve. Businesses pay sales tax on it.
+  const spendable = Math.min(e.households, 0.012 * e.households * t + 0.25 * wages);
+  const spent = transfer(s, "households", "businesses", Math.min(spendable, (r.commerce ?? 0) * t), "Household spending");
+  r.spending = spent / t;
+  taxes += transfer(s, "businesses", "treasury", spent * 0.08, "Sales tax");
+  // The treasury can lend grocers a little working capital: at most a quarter of this period's payroll tax.
+  let credit = 0.25 * payroll;
   for (const g of groups.values()) {
     if (!g.people) continue;
     const need = (g.people / (s.mode==="survival"?103:115)) * t;
@@ -743,8 +772,8 @@ export function advanceEconomy(s: GameState, dt: number) {
     for (const importer of g.shops.filter((el) => el.defId === "grocery_store" || el.defId === "malls" || ELEMENT_BY_ID[el.defId].archetype==="restaurant_bar")) {
       const wanted = Math.min(Math.max(0, need * 4 + 3 - stock), e.sites[importer.id].retail * t * (importer.defId === "grocery_store" ? .36 : .14));
       if (wanted > 0) {
-        const credit = Math.max(0, wanted * importPrice - e.businesses);
-        transfer(s, "treasury", "businesses", credit, "Grocer working capital");
+        const loan = Math.min(credit, Math.max(0, wanted * importPrice - e.businesses));
+        credit -= transfer(s, "treasury", "businesses", loan, "Grocer working capital");
         const spent = transfer(s, "businesses", "outside", wanted * importPrice, "Imported groceries");
         const qty = importPrice ? spent / importPrice : wanted;
         e.sites[importer.id].food += qty;
@@ -756,9 +785,9 @@ export function advanceEconomy(s: GameState, dt: number) {
     const retail = sum(g.shops.map((el) => e.sites[el.id].retail)) * t * 0.15;
     const gates = sum(g.suppliers.map((el) => e.sites[el.id].yieldRate)) * t * 0.52;
     let portion = Math.min(stock, need, retail + gates, remainingCapacity);
-    const voucher = Math.max(0, portion * 0.65 - e.households);
+    const voucher = Math.max(0, portion * MEAL_PRICE - e.households);
     transfer(s, "treasury", "households", voucher, "Household food assistance");
-    portion = Math.min(portion, e.households / 0.65);
+    portion = Math.min(portion, e.households / MEAL_PRICE);
     let left = portion;
     for (const el of [...g.shops, ...g.suppliers.filter((el) => !g.shops.includes(el))]) {
       const a = e.sites[el.id],
@@ -773,7 +802,7 @@ export function advanceEconomy(s: GameState, dt: number) {
     }
     consumed += portion;
     remainingCapacity -= portion;
-    const sale = transfer(s, "households", "businesses", portion * 0.65, "Household groceries");
+    const sale = transfer(s, "households", "businesses", portion * MEAL_PRICE, "Household groceries");
     taxes += transfer(s, "businesses", "treasury", sale * 0.04, "Sales tax");
   }
   const m = s.metrics;
@@ -859,7 +888,7 @@ export function advanceEconomy(s: GameState, dt: number) {
     }
   } else e.recovery = 0;
   enforceAccountHolds(s);
-  e.peak = Math.max(e.peak, cityWealth(s));
+  e.peak = Math.max(e.peak, unlockWealth(s));
   return true;
 }
 export function wealthTiers() {

@@ -178,6 +178,10 @@ function colosseum(c: Ctx): void {
           }
         }
         if (lv === 1) v.box(x, 1, z, x + 1, 2, z + 1, shade);
+        if (ruin && outer && cap < wallH && lv >= 3) {
+          v.put(x, cap, z, (x * 3 + z) % 4 === 0 ? "moss" : shade);
+          if ((x * 7 + z * 5) % 6 === 0) v.box(x + Math.sign(x), 1, z + Math.sign(z - cz), x + Math.sign(x) + 2, 2, z + Math.sign(z - cz) + 1, stone);
+        }
       } else if (d > dArena) {
         if (lv === 1) { v.put(x, 0, z, "soil"); continue; }
         // Stepped cavea seating rising toward the outer wall
@@ -317,7 +321,7 @@ function stonehenge(c: Ctx): void {
   if (lv >= 4) for (const s of [-1, 1]) v.box(s * 4, 1, R + 2, s * 4 + 1, 2, hz, "grass3");
   const upright = (x: number, z: number, h: number, col: string, w = 2) => {
     const bx = Math.round(x) - 1, bz = Math.round(z) - 1;
-    v.box(bx, 1, bz, bx + w, h + 1, bz + w, col);
+    v.box(bx, 1, bz, bx + w, h + 1, bz + w, col, lv >= 5 ? 0.25 : 0);
     if (variant === 2 && h > 2) {
       v.put(bx, h, bz, "#6f8a3a");
       v.put(bx + w - 1, 1 + ((bx + bz) & 3), bz, "#6f8a3a");
@@ -499,7 +503,7 @@ function parthenon(c: Ctx): void {
   for (let x = x0; x < x1; x += 2) { cols.push([x, z0]); cols.push([x, z1 - 1]); }
   for (let z = z0 + 2; z < z1 - 1; z += 2) { cols.push([x0, z]); cols.push([x1 - 2, z]); }
   const column = (x: number, z: number, h: number) => {
-    v.box(x, base, z, x + 1, base + h, z + 1, marble);
+    v.box(x, base, z, x + 1, base + h, z + 1, marble, lv >= 5 ? 0.35 : 0);
     if (h >= colH) {
       v.put(x, base + h - 1, z, shade);
       v.box(x - (x === x0 ? 0 : 0), base + h - 1, z, x + 1, base + h, z + 1, shade);
@@ -664,7 +668,7 @@ function greatWall(c: Ctx): void {
       const outer = z === zLo || z === zHi - 1;
       const col = lv === 1 ? (variant === 1 ? brick : "#b99a6b") : (x + Math.floor((yt) / 2)) % 3 === 0 ? brick2 : brick;
       v.box(x, g, z, x + 1, yt, z + 1, col);
-      v.put(x, yt, z, outer ? brick2 : top);
+      v.put(x, yt, z, outer ? brick2 : top, lv >= 5 && !outer ? 0.4 : 0);
       if (outer && lv >= 2 && x % 2 === 0) v.put(x, yt + 1, z, brick);
     }
   }
@@ -829,7 +833,7 @@ function chichenItza(c: Ctx): void {
   for (const s of sides) {
     for (let y = 1; y < stairTop; y++) {
       const b = Math.round(r - ((y - 1) * (r - rTop)) / (topY - 1)) + 1;
-      sideBox(v, cx, cz, s, -2, 2, y, y + 1, 0, b, stair);
+      sideBox(v, cx, cz, s, -2, 2, y, y + 1, 0, b, stair, lv >= 5 ? 0.3 : 0);
       for (const a of [-3, 2]) sideBox(v, cx, cz, s, a, a + 1, y, y + 2, b - 2, b, variant === 3 && lv >= 3 ? "gold" : stone2, variant === 3 && lv >= 4 ? 0.5 : 0);
     }
   }
@@ -897,12 +901,13 @@ function chichenItza(c: Ctx): void {
 // ---------------------------------------------------------------------------------------------
 
 /** One moai, 5 wide, facing +z. x is the left edge, z the face-plane anchor. */
-function moai(v: PixelVox, x: number, y0: number, z: number, h: number, stone: string, dark: string, o: { pukao?: boolean; eyes?: boolean } = {}): void {
+function moai(v: PixelVox, x: number, y0: number, z: number, h: number, stone: string, dark: string, o: { pukao?: boolean; eyes?: boolean; glow?: number } = {}): void {
   const top = y0 + h;
+  const g = o.glow ?? 0;
   const tH = Math.max(3, Math.round(h * 0.36));
   // torso (3 deep) and taller head (2 deep), face features on the z+1 plane
-  v.box(x, y0, z - 1, x + 5, y0 + tH, z + 2, stone);
-  v.box(x, y0 + tH, z - 1, x + 5, top, z + 1, stone);
+  v.box(x, y0, z - 1, x + 5, y0 + tH, z + 2, stone, g);
+  v.box(x, y0 + tH, z - 1, x + 5, top, z + 1, stone, g);
   v.box(x, y0 + 1, z + 1, x + 1, y0 + tH, z + 2, dark);
   v.box(x + 4, y0 + 1, z + 1, x + 5, y0 + tH, z + 2, dark);
   v.box(x + 1, y0 + 1, z + 2, x + 4, y0 + 2, z + 3, dark);
@@ -990,7 +995,7 @@ function moaiStatues(c: Ctx): void {
       const x = startX + i * spacing;
       const unfinished = lv === 2 && i === n - 1;
       if (unfinished) continue;
-      moai(v, x, base, z0, (lv >= 4 ? 11 : 10) + ((i * 7) % 3), stone, dark, { pukao: pk(i), eyes });
+      moai(v, x, base, z0, [9, 10, 12, 13, 15][lv - 1] + ((i * 7) % 3), stone, dark, { pukao: pk(i), eyes, glow: lv >= 5 ? 0.3 : 0 });
     }
   }
   if (lv === 2) {
@@ -1035,14 +1040,14 @@ function moaiStatues(c: Ctx): void {
 //         2 Ta Prohm Jungle (strangler-fig roots and moss), 3 Lotus Moat (pink lotus, lily pads)
 // ---------------------------------------------------------------------------------------------
 
-function lotusTower(v: PixelVox, cx: number, cz: number, y0: number, h: number, r: number, col: string, band: string, tip: string, emit = 0): void {
+function lotusTower(v: PixelVox, cx: number, cz: number, y0: number, h: number, r: number, col: string, band: string, tip: string, emit = 0, body = 0): void {
   for (let y = 0; y < h; y++) {
     const t = y / h;
     const rr = r * (1 + 0.18 * Math.sin(Math.PI * t * 1.1)) * (1 - Math.pow(t, 1.7));
     const half = Math.max(0.5, rr);
     const notch = y % 3 === 2 ? 0.6 : 0;
     const hh = Math.max(1, Math.round(half - notch));
-    v.box(cx - hh, y0 + y, cz - hh, cx + hh, y0 + y + 1, cz + hh, y % 3 === 2 ? band : col);
+    v.box(cx - hh, y0 + y, cz - hh, cx + hh, y0 + y + 1, cz + hh, y % 3 === 2 ? band : col, body);
   }
   v.box(cx - 1, y0 + h, cz - 1, cx + 1, y0 + h + 2, cz + 1, tip, emit);
   v.put(cx, y0 + h + 2, cz, tip, emit);
@@ -1134,7 +1139,7 @@ function angkorWat(c: Ctx): void {
     return;
   }
   // Central tower + quincunx
-  lotusTower(v, 0, cz, topY, H, 5.6, stone, stone2, tipCol, variant === 1 && lv >= 5 ? 1.2 : 0);
+  lotusTower(v, 0, cz, topY, H, 5.6, stone, stone2, tipCol, variant === 1 && lv >= 5 ? 1.2 : 0, lv >= 5 ? 0.3 : 0);
   const corners: [number, number][] = [[-tw + 3, cz - td + 3], [tw - 3, cz - td + 3], [-tw + 3, cz + td - 3], [tw - 3, cz + td - 3]];
   if (lv === 2) {
     lotusTower(v, corners[3][0], corners[3][1], topY, 6, 2.6, stone, stone2, stone2);
@@ -1142,7 +1147,7 @@ function angkorWat(c: Ctx): void {
     elephant(v, -hx + 2, 0, hz - 6);
     for (let i = 0; i < 4; i++) worker(v, -4 + i * 3, topY, cz + td - 1, "orange");
   } else {
-    for (const [x, z] of corners) lotusTower(v, x, z, topY, Math.round(H * 0.66), 3.6, stone, stone2, tipCol, variant === 1 && lv >= 5 ? 1.2 : 0);
+    for (const [x, z] of corners) lotusTower(v, x, z, topY, Math.round(H * 0.66), 3.6, stone, stone2, tipCol, variant === 1 && lv >= 5 ? 1.2 : 0, lv >= 5 ? 0.3 : 0);
   }
   // Ta Prohm roots
   if (variant === 2) {
@@ -1165,7 +1170,7 @@ function angkorWat(c: Ctx): void {
   }
   if (lv >= 3) {
     crowd(c, -6, hz - inner - 3, 7, hz - 1, lv * 2, (x, z) => (Math.abs(z) >= hz - 6 && moat ? 2 : 1));
-    for (let i = 0; i < lv; i++) robed(v, -4 + i * 2, topY, cz + td + 1, "orange", false);
+    for (let i = 0; i < lv; i++) robed(v, -6 + i * 3, topY, cz + td - 2, "orange", false);
   }
   if (lv >= 5) {
     // seven-headed naga at the causeway head
@@ -1200,98 +1205,115 @@ function llama(v: PixelVox, x: number, y: number, z: number, col: string): void 
 
 function machuPicchu(c: Ctx): void {
   const { v, hx, hz, lv, variant } = c;
-  const granite = c.vpick(["#a19a8e", "#8f9488", "#a8a091", "#c09e7a"]);
-  const granite2 = c.vpick(["#7f796f", "#6f766a", "#868072", "#9c7c5c"]);
+  const granite = c.vpick(["#b3ab9e", "#9ea397", "#b8b0a0", "#cba987"]);
+  const granite2 = c.vpick(["#857f74", "#737a6e", "#8a8476", "#9c7c5c"]);
   const grassTop = c.vpick(["grass", "leaf", "grass2", "#9fb85a"]);
   const thatch = c.vpick(["#b08a4a", "#8f7a43", "#e0b85a", "#c79a4a"]);
   lot(c, "leafDark");
-  // Terraced ridge: rises toward the back, falls away at the sides
-  const N = [3, 5, 6, 7, 8][lv - 1];
+  // Ridge rising toward the back and falling away to both sides; quantised into 3-voxel
+  // terraces so the terrace walls follow the mountain's contours.
+  const maxH = [7, 10, 13, 16, 19][lv - 1];
+  const raw = (x: number, z: number) => {
+    const tb = (hz - z) / (2 * hz);
+    const side = Math.abs(x + 0.5) / hx;
+    return maxH * (0.3 + 0.7 * tb) * (1 - side * side * 0.85) + Math.sin(x * 0.4) * 0.8;
+  };
+  const hmap = new Map<number, number>();
   const H = (x: number, z: number): number => {
     if (x < -hx || x >= hx || z < -hz || z >= hz) return 0;
-    const row = Math.floor(((hz - 1 - z) / (2 * hz)) * N);
-    const side = Math.max(0, Math.abs(x + 0.5) - (hx - 5));
-    const plazaBonus = 0;
-    return Math.max(1, 1 + row * 2 - Math.round(side * 0.9) + plazaBonus);
+    const k = (x + 64) * 256 + z + 64;
+    let h = hmap.get(k);
+    if (h === undefined) { h = Math.max(1, 1 + 3 * Math.floor(raw(x, z) / 3)); hmap.set(k, h); }
+    return h;
   };
   for (let x = -hx; x < hx; x++) for (let z = -hz; z < hz; z++) {
     const h = H(x, z);
     const lo = Math.min(H(x + 1, z), H(x - 1, z), H(x, z + 1), H(x, z - 1));
-    v.box(x, Math.max(1, lo), z, x + 1, h, z + 1, (x + h) % 4 === 0 ? granite2 : granite);
-    v.put(x, h, z, grassTop);
+    for (let y = Math.max(1, lo); y < h; y++) v.put(x, y, z, (x + y * 2 + z) % 5 === 0 ? granite2 : granite);
+    v.put(x, h, z, h > lo ? grassTop : grassTop);
   }
   const yAt = (x: number, z: number) => H(x, z) + 1;
-  // Huayna Picchu peak behind
+  // Huayna Picchu: an asymmetric sugarloaf of granite cliffs and cloud forest behind the citadel
+  const px = hx - 9, pz = -hz + 8;
   if (lv >= 4) {
-    const px = hx - 9, pz = -hz + 8, ph = lv >= 5 ? 26 : 20;
+    const ph = lv >= 5 ? 28 : 22, by = H(px, pz);
     for (let y = 0; y < ph; y++) {
       const t = y / ph;
-      const rr = 8 * (1 - Math.pow(t, 0.8)) + 0.6;
-      v.cylinderY(px, pz, H(px, pz) + y, H(px, pz) + y + 1, rr, y % 5 === 0 ? granite2 : t > 0.75 ? granite : "leafDark");
+      const rr = 8.5 * Math.pow(1 - t, 0.7) + 0.6;
+      const ox = t * 2.5;
+      for (let x = Math.floor(px - rr - 2); x <= Math.ceil(px + rr + 2); x++) for (let z = Math.floor(pz - rr - 2); z <= Math.ceil(pz + rr + 2); z++) {
+        const d = Math.hypot(x + 0.5 - px + ox, z + 0.5 - pz);
+        if (d > rr || d < rr - 2.2) continue;
+        const cliff = ((x * 5 + z * 3 + y * 2) % 7 < 3) || (x - px > 1 && t > 0.25) || t > 0.82;
+        v.put(x, by + y, z, cliff ? (y % 4 === 0 ? granite2 : granite) : (x + z + y) % 3 ? "leafDark" : "leaf");
+      }
     }
-    if (variant === 1) for (const [x, y, z] of [[px - 4, 18, pz + 3], [-hx + 6, 16, -hz + 4]]) v.sphere(x, H(px, pz) + y, z, 4, 1.5, 3, "white");
+    v.cylinderY(px - 2.5, pz, by + ph, by + ph + 1, 1.2, "leafDark");
+    if (variant === 1) for (const [x, y, z] of [[px - 6, 14, pz + 4], [px + 1, 20, pz + 5]]) v.sphere(x, by + y, z, 4, 1.3, 2.5, "white");
   }
-  // Houses: stone walls with steep gable ends; roofed by level / style
+  // Houses: stone walls with steep gable ends, set on a levelled stone foundation
   const house = (x: number, z: number, w: number, d: number, roof: boolean) => {
-    const y = yAt(x, z);
+    let y = 0, lo = 99;
+    for (let i = x; i < x + w; i++) for (let k = z; k < z + d; k++) { y = Math.max(y, H(i, k)); lo = Math.min(lo, H(i, k)); }
+    v.box(x, lo, z, x + w, y + 1, z + d, granite2);
+    y += 1;
     v.hollowBox(x, y, z, x + w, y + 4, z + d, granite);
-    v.box(x + Math.floor(w / 2) - 1, y, z + d - 1, x + Math.floor(w / 2) + 1, y + 3, z + d, "charcoal");
-    v.put(x + Math.floor(w / 2) - 1, y + 2, z + d - 1, granite);
+    v.box(x + Math.floor(w / 2), y, z + d - 1, x + Math.floor(w / 2) + 1, y + 3, z + d, "charcoal");
+    v.put(x + 1, y + 2, z + d - 1, lv >= 5 ? "warmGlow" : "charcoal", lv >= 5 ? 1.2 : 0);
     const rise = Math.ceil(w / 2);
     for (let s = 0; s < rise; s++) {
       v.box(x + s, y + 4 + s, z, x + w - s, y + 5 + s, z + 1, granite);
       v.box(x + s, y + 4 + s, z + d - 1, x + w - s, y + 5 + s, z + d, granite);
-      if (roof) v.box(x + s - 1 + (s === 0 ? 0 : 0), y + 4 + s, z, x + w - s + 1, y + 5 + s, z + d, thatch);
+      if (roof) v.box(x + s - 1, y + 4 + s, z, x + w - s + 1, y + 5 + s, z + d, s === rise - 1 ? granite2 : thatch);
     }
-    if (roof) v.box(x + rise - 1, y + 4 + rise, z, x + w - rise + 1, y + 5 + rise, z + d, thatch);
   };
   const roofAll = variant === 2 || lv >= 5;
-  const spots: [number, number, number, number][] = [
-    [-hx + 3, -hz + 3, 6, 5], [-hx + 11, -hz + 3, 5, 5], [-6, -hz + 9, 6, 5], [2, -hz + 9, 5, 4],
-    [-hx + 3, -hz + 11, 5, 4], [hx - 12, -2, 6, 4], [-hx + 4, 2, 5, 4], [6, 4, 5, 4],
-  ];
-  const nh = [1, 2, 4, 6, 8][lv - 1];
-  for (let i = 0; i < Math.min(nh, spots.length); i++) {
-    const [x, z, w, d] = spots[i];
-    if (x + w > hx - 1 || z + d > hz - 1) continue;
-    if (lv >= 4 && Math.hypot(x + w / 2 - (hx - 9), z + d / 2 - (-hz + 8)) < 10) continue;
-    house(x, z, w, d, roofAll || i % 3 === 0);
+  const spots: [number, number, number, number][] = [];
+  for (let gz = -hz + 3; gz < 2; gz += 7) for (let gx = -hx + 6; gx < hx - 7; gx += 8) spots.push([gx + ((gz / 7) & 1) * 3, gz, 5 + ((gx + gz) & 1), 4]);
+  spots.sort((p, q) => Math.abs(p[0]) + Math.abs(p[1] + 4) - (Math.abs(q[0]) + Math.abs(q[1] + 4)));
+  const nh = [1, 3, 6, 9, 13][lv - 1];
+  let built = 0;
+  for (const [x, z, w, d] of spots) {
+    if (built >= nh) break;
+    if (x < -hx + 1 || x + w > hx - 1 || z < -hz + 1 || z + d > hz - 1) continue;
+    if (lv >= 4 && Math.hypot(x + w / 2 - px, z + d / 2 - pz) < 12) continue;
+    house(x, z, w, d, roofAll || built % 3 === 0);
+    built++;
   }
   // Central plaza
-  if (lv >= 3) {
-    for (let x = -4; x < 5; x++) for (let z = -2; z < 3; z++) v.put(x, H(x, z), z, "grass3");
-  }
+  if (lv >= 3) for (let x = -5; x < 6; x++) for (let z = 3; z < 8; z++) if (z < hz - 1) v.put(x, H(x, z), z, "grass3");
   // Temple of the Sun (curved tower) and Intihuatana stone
   if (lv >= 4) {
-    const tx = -hx + 8, tz = Math.min(hz - 8, 6), ty = yAt(tx, tz);
+    const tx = -hx + 9, tz = Math.min(hz - 9, 8), ty = yAt(tx, tz);
+    v.cylinderY(tx, tz, H(tx, tz) - 2, ty, 4.5, granite2);
     ring(v, tx, tz, ty, ty + 6, 4, 2.6, granite);
     v.box(tx - 1, ty + 1, tz + 3, tx + 1, ty + 3, tz + 4, "charcoal");
     if (variant === 3 || lv >= 5) v.cylinderY(tx, tz, ty, ty + 1, 2.5, "gold", 0.6);
-    const ix = 0, iz = -hz + 4, iy = yAt(ix, iz);
+    const ix = -2, iz = -hz + 3, iy = yAt(ix, iz);
     v.box(ix - 1, iy, iz - 1, ix + 2, iy + 1, iz + 2, granite2);
-    v.box(ix, iy + 1, iz, ix + 1, iy + 4, iz + 1, variant === 3 ? "gold" : granite);
+    v.box(ix, iy + 1, iz, ix + 1, iy + 4, iz + 1, variant === 3 ? "gold" : granite, variant === 3 ? 0.4 : 0);
   }
   // Inca trail switchbacks on the front slope
-  if (lv >= 3) for (let z = hz - 2; z > hz - 10; z -= 1) { const x = hx - 4 - ((hz - z) % 6 < 3 ? (hz - z) % 3 : 3 - ((hz - z) % 3)); v.put(x, H(x, z), z, "path"); }
-  // Llamas
-  const ll = [1, 2, 3, 4, 5][lv - 1];
+  if (lv >= 3) for (let z = hz - 1; z > hz - 14; z--) { const k = (hz - z) % 8; const x = hx - 10 + (k < 4 ? k : 8 - k) * 2; v.put(x, H(x, z), z, "path"); v.put(x + 1, H(x + 1, z), z, "path"); }
+  // Llamas grazing on the lower terraces
+  const ll = [1, 2, 3, 4, 6][lv - 1];
   for (let i = 0; i < ll; i++) {
-    const x = c.ri(-hx + 2, hx - 6), z = c.ri(-hz + 3, hz - 3);
-    llama(v, x, yAt(x, z), z, i % 2 ? "white" : "#a07040");
+    const x = c.ri(-hx + 3, hx - 7), z = c.ri(2, hz - 3);
+    llama(v, x, yAt(x, z) - 1, z, i % 3 === 0 ? "#a07040" : i % 3 === 1 ? "white" : "#3b2f2a");
   }
   // Construction / life
   if (lv <= 2) {
     for (let i = 0; i < 3; i++) { const x = -2 + i * 3, z = hz - 4; worker(v, x, yAt(x, z), z, "red"); v.put(x + 1, yAt(x, z) + 1, z, granite); }
     blockPile(c, hx - 6, hz - 4, granite, yAt(hx - 6, hz - 4));
-    if (lv === 2) scaffold(v, spots[1][0] - 1, spots[1][1] - 1, spots[1][0] + 6, spots[1][1] + 6, yAt(spots[1][0], spots[1][1]), yAt(spots[1][0], spots[1][1]) + 7, "#c2a35a");
+    if (lv === 2 && spots.length > 1) { const [x, z] = spots[1]; scaffold(v, x - 1, z - 1, x + 7, z + 6, yAt(x, z), yAt(x, z) + 8, "#c2a35a"); }
   }
-  if (variant === 1) for (let i = 0; i < 6; i++) { const x = c.ri(-hx + 1, hx - 2), z = c.ri(-hz + 1, hz - 2); tree(v, x, yAt(x, z), z, "round", 0.9, i); }
-  if (lv >= 4) crowd(c, -4, -2, 5, 3, lv * 2, yAt);
+  if (variant === 1) for (let i = 0; i < 4 + lv * 2; i++) { const x = c.ri(-hx + 1, hx - 2), z = c.ri(-hz + 1, hz - 2); if (Math.abs(x) > hx - 8) tree(v, x, yAt(x, z), z, "round", 0.9, i); }
+  if (lv >= 4) crowd(c, -5, 3, 6, Math.min(8, hz - 1), lv * 2, yAt);
   if (lv >= 5) {
-    crowd(c, -hx + 2, -hz + 2, hx - 2, hz - 2, 12, yAt);
-    for (let i = 0; i < 8; i++) { const x = -hx + 3 + i * 7, z = hz - 3 - (i % 2) * 6; if (x < hx - 2) lamp(v, x, yAt(x, z), z, 3, "woodDark", "warmGlow"); }
-    for (const [x, , z] of [[-hx + 6, 0, -hz + 6], [4, 0, -hz + 12], [-6, 0, 0]] as [number, number, number][]) floodlight(v, x, yAt(x, z), z);
-    v.sphere(-hx + 6, 26, hz - 6, 5, 1.5, 3, "white");
+    crowd(c, -hx + 4, -hz + 2, hx - 10, 2, 10, yAt);
+    for (let i = 0; i < 9; i++) { const x = -hx + 4 + i * 7, z = 2 + (i % 2) * 7; if (x < hx - 2) lamp(v, x, yAt(x, z), z, 3, "woodDark", "warmGlow"); }
+    for (const [x, z] of [[-hx + 6, -hz + 6], [4, -hz + 12], [-6, 0], [hx - 18, -6]] as [number, number][]) floodlight(v, x, yAt(x, z), z);
+    kiosk(v, hx - 5, hz - 3, "cream", "#c79a4a", yAt(hx - 5, hz - 3));
   }
 }
 

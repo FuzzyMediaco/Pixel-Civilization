@@ -3,6 +3,7 @@ import { test } from "node:test";
 import "../src/game/designs/index";
 import { ELEMENTS, ELEMENT_BY_ID, getMaxElementLevel, getStandardFootprintForLevel } from "../src/game/catalog";
 import { EXPANSION_ELEMENTS } from "../src/game/expansionCatalog";
+import { HISTORICAL_WONDERS } from "../src/game/historicalCatalog";
 import { TravelNetwork } from "../src/game/travelNetwork";
 import { getNeighborPreview } from "../src/game/connectionPreview";
 import { getParcelEdges, getParcelEffectSummary, cellBeyondEdge, PARCEL_SIDES } from "../src/game/parcelEdges";
@@ -22,7 +23,7 @@ function piece(defId:string,gx:number,gz:number,rotation=0,level=1): PlacedEleme
 }
 
 test("every guide entry can display actual reciprocal neighboring sites at every supported level",()=>{
-  assert.equal(new Set(guide.flatMap(g=>g.ids)).size,149 + EXPANSION_ELEMENTS.length);
+  assert.equal(new Set(guide.flatMap(g=>g.ids)).size,149 + EXPANSION_ELEMENTS.length + HISTORICAL_WONDERS.length);
   for(const d of ELEMENTS) for(let lv=1;lv<=getMaxElementLevel(d.id);lv++) {
     const pair=getNeighborPreview(d.id,lv);
     assert.ok(pair.length>=2,d.id+" level "+lv);
