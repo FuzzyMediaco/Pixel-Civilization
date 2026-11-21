@@ -1,0 +1,1118 @@
+[
+  {
+    "ids": [
+      "house"
+    ],
+    "join": "Remove the interior fence between adjoining homes that share a yard. Open a gate to the sidewalk and cut a driveway only where the garage faces a road.",
+    "effect": "Residents can walk to services or through a back gate to an edible garden. Vehicles use the aligned driveway, leaving rear and side streets independent."
+  },
+  {
+    "ids": [
+      "tiny_homes"
+    ],
+    "join": "Adjoining tiny homes open their side fences onto a shared gravel court, with a single footpath exit.",
+    "effect": "One connected court can serve several homes on land too narrow for individual drives."
+  },
+  {
+    "ids": [
+      "trailer_home"
+    ],
+    "join": "Align neighboring trailers on a service lane. Utility pedestals line the rear edge, and entry steps turn toward the lane.",
+    "effect": "The shared lane carries deliveries and maintenance. Extending it can serve the next row of homes."
+  },
+  {
+    "ids": [
+      "cottages"
+    ],
+    "join": "Cottage gardens meet at a low stone wall with a stile, and the front path curves to the nearest lane.",
+    "effect": "A walkable cottage cluster shares park access. An adjacent industrial loading yard lowers its quiet-garden appeal."
+  },
+  {
+    "ids": [
+      "medium_sized_homes"
+    ],
+    "join": "Consecutive front yards align street trees and sidewalks, and paired garages can share one curb cut.",
+    "effect": "A shared driveway uses less curb space and leaves a longer uninterrupted pedestrian route."
+  },
+  {
+    "ids": [
+      "townhomes"
+    ],
+    "join": "On compatible side edges, end gables become party walls and stoops form a continuous street frontage. Corner homes keep their exposed windows.",
+    "effect": "More households fit along a serviced block. Each row still needs a reachable front walk."
+  },
+  {
+    "ids": [
+      "large_homes"
+    ],
+    "join": "Align the carriage gate with a street and form a side garden door where the estate touches a park.",
+    "effect": "The park entrance provides a walking route. Deliveries use the street gate and stay out of the park."
+  },
+  {
+    "ids": [
+      "apartments"
+    ],
+    "join": "Apartment entrances open onto the sidewalk. Neighboring wings can share an interior play court and bike rack.",
+    "effect": "A connected court extends walking access to both blocks. A nearby bus stop can serve many residents at one stop."
+  },
+  {
+    "ids": [
+      "beach_houses"
+    ],
+    "join": "Put the deck on the shore side with steps over the dunes to a boardwalk. Keep the road entrance landward.",
+    "effect": "A shore-facing deck earns beach access, and preserving a dune strip reduces storm exposure."
+  },
+  {
+    "ids": [
+      "villas"
+    ],
+    "join": "Terrace walls step with a neighboring hill and a garden gate opens to an orchard or formal garden.",
+    "effect": "The uphill terrace gains a viewpoint. A path through the gate connects visitors without adding a car trip."
+  },
+  {
+    "ids": [
+      "apartment_buildings"
+    ],
+    "join": "Align lift lobbies and accessible ramps to the street, with a rear service court opening toward a depot or service lane.",
+    "effect": "Transit-side entrances reduce peak car demand. A back lane gives refuse trucks a separate pickup point."
+  },
+  {
+    "ids": [
+      "condos"
+    ],
+    "join": "Face balconies toward a park or water and connect the podium lobby to a public promenade.",
+    "effect": "A reachable waterfront walk increases residential appeal. A tall neighboring block can obstruct the view on that side."
+  },
+  {
+    "ids": [
+      "mansions"
+    ],
+    "join": "A walled estate keeps a formal street gate, adds a gardenerâ€™s gate toward planted land and opens views toward water.",
+    "effect": "Grounds connected to a garden path gain recreation. Service calls use the working gate when it has a road connection."
+  },
+  {
+    "ids": [
+      "skyscrapers"
+    ],
+    "join": "Keep the tower on its podium as it rises. Ground-floor arcades meet sidewalks and stations, and compatible high-level entrances may form a skybridge.",
+    "effect": "The station distributes a towerâ€™s commuter peak. A skybridge moves pedestrians only between matching floors. Shade from the tower can reduce neighboring solar output."
+  },
+  {
+    "ids": [
+      "businesses"
+    ],
+    "join": "Corner offices open a second glazed entrance onto the cross street. Service doors align along the rear lane.",
+    "effect": "Two street entrances spread arriving workers across the block. Deliveries reach firms from the rear lane."
+  },
+  {
+    "ids": [
+      "grocery_store"
+    ],
+    "join": "An awning and bicycle stands face the neighborhood walk. Produce crates and a receiving bay face the farm or freight approach.",
+    "effect": "A reachable farm supplies fresh food by the shorter route. Nearby homes can shop on foot."
+  },
+  {
+    "ids": [
+      "shops"
+    ],
+    "join": "Carry the shopping walk and awnings into an adjoining bank frontage. An ATM can recess into the shared frontage with room for its queue.",
+    "effect": "Visitors can browse and withdraw cash in one walking trip. Individual shop doors stay accessible along the common arcade."
+  },
+  {
+    "ids": [
+      "blacksmiths"
+    ],
+    "join": "An open workyard faces a farm track or industrial lane. A stone firebreak separates the forge from neighboring homes.",
+    "effect": "A nearby farm or workshop can collect repairs locally. A planted buffer reduces the nuisance reaching homes."
+  },
+  {
+    "ids": [
+      "restaurants"
+    ],
+    "join": "Patios can open toward a plaza, with kitchen doors and bins on the delivery side.",
+    "effect": "Plaza visitors increase covers. Food deliveries need an accessible service side even when guests arrive on foot."
+  },
+  {
+    "ids": [
+      "clothing_stores"
+    ],
+    "join": "Display windows wrap the busy corner of a shopping street and fitting rooms stay on the shared interior wall.",
+    "effect": "Pedestrian traffic from a transit stop or neighboring shops improves trade along the display frontage."
+  },
+  {
+    "ids": [
+      "thrift_stores"
+    ],
+    "join": "A sheltered donation door meets a side street and sale racks face the public sidewalk.",
+    "effect": "Households on the collection route divert reusable goods from the waste stream and supply the shop."
+  },
+  {
+    "ids": [
+      "shoe_stores"
+    ],
+    "join": "A recessed doorway and fitting bench open toward a shopping arcade or station exit, beside a boot-shaped sign.",
+    "effect": "A walkable retail frontage attracts passersby, while a blocked doorway cuts off that source of customers."
+  },
+  {
+    "ids": [
+      "cheesesteak_restaurants"
+    ],
+    "join": "A serving hatch opens onto a plaza or market walk. The queue follows the wall, leaving the through path clear.",
+    "effect": "Short lunch walks from nearby jobs boost midday customers. Delivery vehicles use the opposite service edge."
+  },
+  {
+    "ids": [
+      "bars"
+    ],
+    "join": "Turn the patio and neon frontage toward a night street or plaza. At dusk the sign, windows and patio lamps brighten. Keep a solid rear wall toward homes.",
+    "effect": "Late transit brings evening customers. Patio noise reaches adjoining homes unless a buffer separates them, and illumination needs power."
+  },
+  {
+    "ids": [
+      "gas_stations"
+    ],
+    "join": "Two curb cuts join the forecourt to a local road or service road. Pump islands follow the direction of circulation.",
+    "effect": "Passing traffic can enter and leave in sequence. A neighboring freeway serves the station through a ramp and service road."
+  },
+  {
+    "ids": [
+      "atms"
+    ],
+    "join": "The machine recesses into a retail frontage or bank wall and leaves a lit standing space on the sidewalk.",
+    "effect": "An accessible foot route serves nearby shops and commuters. A machine facing a sealed wall draws no users."
+  },
+  {
+    "ids": [
+      "buildings"
+    ],
+    "join": "The office lobby meets a public walk while a recessed loading door aligns with a side street. A corner parcel gains a second entrance.",
+    "effect": "Local transit serves the lobby, while goods reach the service entrance by road."
+  },
+  {
+    "ids": [
+      "banks"
+    ],
+    "join": "A bank plaza meets the shopping street and a gated cash-delivery bay connects to a quieter side road.",
+    "effect": "Shops can use the bank on foot. A road-accessible service bay supports cash collection without occupying the public entrance."
+  },
+  {
+    "ids": [
+      "malls"
+    ],
+    "join": "Pedestrian entrances extend the neighboring shopping streets into the concourse. Service roads end at screened loading docks.",
+    "effect": "Multiple usable entrances feed different neighborhoods. Bus stops at an entrance substitute transit for parking demand."
+  },
+  {
+    "ids": [
+      "data_centers"
+    ],
+    "join": "Cable trenches meet a utility yard, with an enclosed equipment court opening onto a service road.",
+    "effect": "Steady power keeps computing capacity online. A nearby heat user can take recovered heat through a short shared service connection."
+  },
+  {
+    "ids": [
+      "farms"
+    ],
+    "join": "Where farms and fields touch, open a gap in matching fences and continue a headland track. Face the barn gate toward a dirt road.",
+    "effect": "Joined fields share equipment access. A canal or clean-water connection supplies irrigation, and a road delivers the harvest."
+  },
+  {
+    "ids": [
+      "farm_houses"
+    ],
+    "join": "Open field gates and remove interior fence runs around the farmhouse. Five adjoining field parcels share continuous headlands, crop rows and one barn approach.",
+    "effect": "The combined holding reads as one farm. Workers, equipment and produce use its connected field paths and the public lane at its gate."
+  },
+  {
+    "ids": [
+      "fields"
+    ],
+    "join": "Furrows line up across compatible field edges while outer hedgerows remain. A bordering ditch feeds the row ends.",
+    "effect": "Contiguous planted rows share irrigation and harvest access. A road crossing breaks the rows and needs its own gate."
+  },
+  {
+    "ids": [
+      "orchards"
+    ],
+    "join": "Join compatible tree rows across parcel lines, leave a harvest lane at the ends and put hives or flower strips along a garden edge.",
+    "effect": "Flowering habitat supports pollination. A harvest lane connected to a grocery or market shortens produce trips."
+  },
+  {
+    "ids": [
+      "groves_of_olives"
+    ],
+    "join": "Step the silver-leaved rows along a hillside contour. A shared stone terrace and cart lane meet an adjoining grove.",
+    "effect": "Contour terraces retain soil on slopes. The harvest can reach a farm or market by the connected cart lane."
+  },
+  {
+    "ids": [
+      "plantations"
+    ],
+    "join": "Crop rows meet sheltered collection sheds along the access lane. Leave a planted strip beside rivers and wetlands.",
+    "effect": "A connected freight route carries bulk harvests. The planted strip filters runoff before it reaches neighboring water."
+  },
+  {
+    "ids": [
+      "solar_panels"
+    ],
+    "join": "Align adjoining panel rows while leaving a service aisle. Mark shade on the rows nearest a tall building or tree.",
+    "effect": "Sunny rows produce more power. Production falls only on the shaded portion as the sun moves."
+  },
+  {
+    "ids": [
+      "landfill"
+    ],
+    "join": "The tipping lane opens toward a waste route. Berms and planted buffer strips rise on edges facing homes or water.",
+    "effect": "A reachable tipping face accepts waste. A buffer reduces pollution reaching nearby lots and waterways."
+  },
+  {
+    "ids": [
+      "windmills"
+    ],
+    "join": "An adjoining grain field opens a cart gate toward the mill. The yard leaves the sails clear of neighboring roofs.",
+    "effect": "Wind powers milling, while a reachable field provides grain. A sheltered or crowded site runs more slowly."
+  },
+  {
+    "ids": [
+      "wind_turbines"
+    ],
+    "join": "Keep blade clearance along the shared boundary, with a maintenance track running to the base and an off-center cable trench.",
+    "effect": "Exposed coasts and ridges improve output. Tall upwind obstructions reduce it."
+  },
+  {
+    "ids": [
+      "trash_compacting_plants"
+    ],
+    "join": "Separate incoming refuse bays from outgoing container lanes. A rail siding can replace the rear truck loading apron.",
+    "effect": "Compaction reduces onward waste trips when a landfill or processor is reachable by freight."
+  },
+  {
+    "ids": [
+      "factories"
+    ],
+    "join": "Loading doors face roads or rail spurs. Utility lines enter the plant from the service yard and tree belts face housing.",
+    "effect": "A reachable supplier and freight exit improve output. Downwind housing receives more pollution without a buffer."
+  },
+  {
+    "ids": [
+      "coal_powerplants"
+    ],
+    "join": "A bunker meets the rail or truck unloading side, while a switchyard sends cables from a separate edge.",
+    "effect": "Stock deliveries keep generation online. The plume follows wind toward or away from neighboring districts."
+  },
+  {
+    "ids": [
+      "solar_farms"
+    ],
+    "join": "Panel rows and maintenance aisles continue into adjacent arrays and converge at a shared inverter yard.",
+    "effect": "Sunny connected arrays share an export connection. A tree line or tower shades only the rows behind it."
+  },
+  {
+    "ids": [
+      "natural_gas_power_plants"
+    ],
+    "join": "A metering yard faces the utility corridor, a substation faces the grid and a service gate opens onto a road.",
+    "effect": "Fuel access and grid access support reliable peak supply. A screened boundary reduces noise next to homes."
+  },
+  {
+    "ids": [
+      "trash_burning_plants"
+    ],
+    "join": "A covered waste receiving hall faces collection routes and a heat main can meet a neighboring industrial or civic site.",
+    "effect": "Waste supplies generation. A reachable heat customer gains useful heat, and downwind lots receive the plantâ€™s emissions."
+  },
+  {
+    "ids": [
+      "wind_farms"
+    ],
+    "join": "Stagger neighboring rows of turbines, continuing their service tracks into a shared substation.",
+    "effect": "Ridge exposure improves wind yield. Placing rows directly in each otherâ€™s wake lowers the downstream rowâ€™s output."
+  },
+  {
+    "ids": [
+      "hydro_electric_power_plants"
+    ],
+    "join": "Span a flowing river between viable banks, with an upstream impoundment and downstream spillway. Open ocean is ineligible for dam placement.",
+    "effect": "Generation requires a source, flow and useful head. A bypass can maintain downstream water continuity. A coastal view or decorative basin provides no head."
+  },
+  {
+    "ids": [
+      "geothermal_power_plants"
+    ],
+    "join": "Insulated loops connect wellheads to the turbine hall and a neighboring heat main. Keep a service track between loops.",
+    "effect": "Suitable ground increases yield. Nearby heat customers benefit from short pipes and steady heat."
+  },
+  {
+    "ids": [
+      "micro_reactor_nuclear"
+    ],
+    "join": "A compact plant meets the local substation through a fenced cable court and keeps its service gate on an accessible road.",
+    "effect": "A connected district gains steady power on a small site. Maintenance access preserves availability."
+  },
+  {
+    "ids": [
+      "nuclear_power_plants"
+    ],
+    "join": "Separate the cooling-water intake from the discharge side. A switchyard faces the grid and a service road enters the landward gate.",
+    "effect": "Reliable cooling and grid capacity support continuous generation. Warm discharge affects its downstream stretch."
+  },
+  {
+    "ids": [
+      "water_treatment_plant"
+    ],
+    "join": "The intake pier points upstream into a connected river or canal, and the outlet and service gate occupy different sides.",
+    "effect": "Treatment consumes feedwater and sends clean water into a connected supply route. A decorative pool alone supplies nothing."
+  },
+  {
+    "ids": [
+      "wells"
+    ],
+    "join": "Place the wellhead on permeable ground and join its pump line to a neighboring utility route or tower.",
+    "effect": "A viable aquifer feeds the network. Nearby pollution raises contamination risk and creates demand for treatment."
+  },
+  {
+    "ids": [
+      "water_towers"
+    ],
+    "join": "A riser meets the municipal main at the base and a maintenance gate meets the street. Nearby rooflines stay clear of the tank.",
+    "effect": "The tower stores delivered water and provides pressure through connected mains. An isolated tower has no water to distribute."
+  },
+  {
+    "ids": [
+      "water_places"
+    ],
+    "join": "A fountain plaza joins adjacent footpaths with flush paving and benches. Its basin stays separate from streams and service pipes.",
+    "effect": "A supplied fountain adds recreation. Decorative water cannot fill a reservoir, irrigate a farm or power a plant."
+  },
+  {
+    "ids": [
+      "canals"
+    ],
+    "join": "Join canal banks at water edges and retain a continuous towpath. Install a culvert or bridge where a road crosses.",
+    "effect": "A continuous channel carries water from an upstream source. A pump or farm turnout can draw its available flow."
+  },
+  {
+    "ids": [
+      "water_pumping_station"
+    ],
+    "join": "Rotate the intake screens toward the flowing canal or river and show the outgoing pressure pipe on the dry side.",
+    "effect": "The station moves water from a valid source into its connected main. A dead ornamental basin cannot supply the pumps."
+  },
+  {
+    "ids": [
+      "municipal_reservoir"
+    ],
+    "join": "Shape the basin against the terrain, connecting a visible inlet and controlled outlet to the supplying channel and mains.",
+    "effect": "Inflow fills storage, and connected withdrawals deplete it. Stored water smooths interruptions until the reservoir empties."
+  },
+  {
+    "ids": [
+      "aqueduct"
+    ],
+    "join": "Continue the elevated channel across compatible edges, land its piers beside roads and put a receiving basin at the downstream end.",
+    "effect": "A source at a suitable elevation can supply distant districts across a valley. An unconnected span carries no water."
+  },
+  {
+    "ids": [
+      "desalination_plant"
+    ],
+    "join": "Face the screened intake and separated outfall toward salt water, with power and clean-water pipes on the landward side.",
+    "effect": "Coastal salt water plus power produces fresh supply. The output enters the town only through the connected main."
+  },
+  {
+    "ids": [
+      "water_tile"
+    ],
+    "join": "Water placement reshapes the bank where it meets sand, soil or buildings. Connected tiles share an uninterrupted surface.",
+    "effect": "A pond can be decorative. A navigable or supplying route needs connected depth, an inlet or replenishment and an appropriate intake."
+  },
+  {
+    "ids": [
+      "roads"
+    ],
+    "join": "Merge matching road edges into continuous pavement. End curbs open only for a front-facing driveway or a signed crossing.",
+    "effect": "Vehicles route through connected lanes and legal entrances. A road along a buildingâ€™s unbroken back fence offers no vehicle access."
+  },
+  {
+    "ids": [
+      "dirt_roads"
+    ],
+    "join": "Continue wheel ruts through field gates. A short gravel apron marks the change to paved road.",
+    "effect": "Farm carts and service vehicles can reach plots. Wet dirt slows heavy traffic and rewards paving a busy route."
+  },
+  {
+    "ids": [
+      "paths"
+    ],
+    "join": "Join path ends at gates, doors and crossings, leaving grass around unused corners.",
+    "effect": "A connected path gives walkers a short route to local services. Vehicle routing stays on suitable roads."
+  },
+  {
+    "ids": [
+      "walking_paths"
+    ],
+    "join": "Blend adjoining paved walks around park entrances with an accessible ramp where they meet a curb.",
+    "effect": "A continuous low-grade route gives residents access to parks and transit on foot."
+  },
+  {
+    "ids": [
+      "trails"
+    ],
+    "join": "Bend a trail around roots and outcrops. Show switchbacks on slopes and short boardwalks across wet patches.",
+    "effect": "Walkers can cross difficult terrain, though steep segments and exposed crossings increase travel time."
+  },
+  {
+    "ids": [
+      "side_walks"
+    ],
+    "join": "Carry the sidewalk along a road edge, dropping its kerb at driveways and connecting to marked corner crossings.",
+    "effect": "Pedestrians can walk door to door across a block and cross streets at legal connections."
+  },
+  {
+    "ids": [
+      "two_lane_roads"
+    ],
+    "join": "Keep opposing lanes and center lines aligned. At a meeting road, add only the turning movements and crossings that fit.",
+    "effect": "Vehicles follow the proper direction and queue for conflicting turns. Driveways enter the near lane."
+  },
+  {
+    "ids": [
+      "pretty_roads"
+    ],
+    "join": "Continue a boulevardâ€™s planted verges and streetlights, opening the median only at junctions and formal crossings.",
+    "effect": "A connected boulevard supports walking and local commerce. Median placement determines where cars can turn."
+  },
+  {
+    "ids": [
+      "train_tracks"
+    ],
+    "join": "Join matching track ends with visible curves or switches. Roads crossing at grade get marked crossings, while separated grades stay independent.",
+    "effect": "Trains use continuous rail and real switches. A crossing affects road traffic only when the railway shares its elevation."
+  },
+  {
+    "ids": [
+      "train_stops"
+    ],
+    "join": "Snap a narrow platform beside a continuous track and connect the entrance to an adjacent sidewalk. Keep the rails clear through the stop.",
+    "effect": "Trains serve the platform on its track side. Riders transfer through a connected foot route to buses, homes or jobs."
+  },
+  {
+    "ids": [
+      "train_depots"
+    ],
+    "join": "Branch a siding from the main line into the depot throat, with maintenance sheds beyond the switch and a separate road gate.",
+    "effect": "A working rail connection enables dispatch and maintenance. The road gate handles supplies without blocking through trains."
+  },
+  {
+    "ids": [
+      "bridges"
+    ],
+    "join": "Match deck width and ramp height to the approaching road. Open the rails only at the landings and leave the waterway beneath.",
+    "effect": "Traffic travels from landing to landing. Vessels can pass below when their height and the span clearance agree."
+  },
+  {
+    "ids": [
+      "stone_bridges"
+    ],
+    "join": "Fit abutments into the banks and place each stone pier beneath an arch rather than in an approaching traffic lane.",
+    "effect": "The bridge connects opposite road banks. Boats are limited by the height and width of its individual arches."
+  },
+  {
+    "ids": [
+      "boardwalks"
+    ],
+    "join": "Follow the shore on piles, linking beach stairs, piers and park paths. Adjacent sections share planks and rail openings.",
+    "effect": "Walking routes continue across wet edges. A dock or public pier becomes reachable without a vehicle road on the beach."
+  },
+  {
+    "ids": [
+      "bus_stops"
+    ],
+    "join": "Place a compact shelter, sign and boarding pad against the curb on the direction of travel. Preserve the road lanes and sidewalk behind it.",
+    "effect": "A bus boards from the correct lane. Nearby walkable entrances expand the number of people who can use the stop."
+  },
+  {
+    "ids": [
+      "bus_depots"
+    ],
+    "join": "A gated drive leaves the road for parallel bus bays, then rejoins it at the exit. A separate foot gate reaches the staff entrance.",
+    "effect": "Buses can dispatch onto connected routes. A depot cut off from the road cannot operate its stops."
+  },
+  {
+    "ids": [
+      "taxi_depots"
+    ],
+    "join": "Put the rank against a station, shopping frontage or square and reserve a separate lane entrance for empty cabs.",
+    "effect": "Passengers can transfer on foot. Taxis need a driveable exit to reach destinations without blocking through traffic."
+  },
+  {
+    "ids": [
+      "highways"
+    ],
+    "join": "Merge correctly aligned carriageways and connect local streets through marked ramps or controlled junctions.",
+    "effect": "Long-distance trips use the faster route. Ramp placement determines which neighborhoods can enter and exit."
+  },
+  {
+    "ids": [
+      "freeways"
+    ],
+    "join": "Continue barriers and divided lanes through the tile. Open them only at directed ramps and keep crossing streets on another level.",
+    "effect": "Through traffic avoids local intersections. Buildings gain access via the connected street network and an interchange."
+  },
+  {
+    "ids": [
+      "over_passes"
+    ],
+    "join": "Raise the deck on approach ramps and keep the crossing route visible below. Do not paint a four-way intersection across two levels.",
+    "effect": "The upper and lower routes remain independent until a ramp joins them. Vehicle movement follows each deck height."
+  },
+  {
+    "ids": [
+      "underpasses"
+    ],
+    "join": "Cut portals into the embankment, extend lane markings through the cut and carry the upper road or railway across the roof.",
+    "effect": "The lower route crosses independently. Drainage access reduces flooding risk in a low cutting."
+  },
+  {
+    "ids": [
+      "suspension_bridges"
+    ],
+    "join": "Place towers and cable anchorages at viable banks. Suspend the main deck over a wide water gap and join level road approaches.",
+    "effect": "A long span links distant banks and preserves a shipping channel between towers. Approach space and clearance constrain placement."
+  },
+  {
+    "ids": [
+      "school"
+    ],
+    "join": "Face the school gate toward a sidewalk, with a marked crossing and curbside bus pullout. Sports grounds can open into an adjoining park.",
+    "effect": "Pupils reach school through a safe walking or transit route. A shared park entrance extends after-hours recreation."
+  },
+  {
+    "ids": [
+      "park"
+    ],
+    "join": "Paths carry through neighboring green parcels, and gates open where streets or houses actually meet the park.",
+    "effect": "Residents gain recreation by walking to an entrance. Connected planting gives wildlife a longer habitat corridor."
+  },
+  {
+    "ids": [
+      "little_parks"
+    ],
+    "join": "Join the pocket plaza flush to a sidewalk or building recess. Move benches away from the entrance line.",
+    "effect": "A small plot adds a rest stop to a dense walking route. Its neighbors gain access without crossing a private lot."
+  },
+  {
+    "ids": [
+      "gardens"
+    ],
+    "join": "A garden behind a house can open the shared fence at the back door. Edible beds face sun and a path or irrigation channel reaches the rows.",
+    "effect": "A household can harvest backyard produce when the beds have light and water. A public front gate can instead serve a community garden."
+  },
+  {
+    "ids": [
+      "city_offices"
+    ],
+    "join": "Align the main steps with a civic plaza or street walk. A shared square can continue to a courthouse or post office.",
+    "effect": "One walk or transit stop can serve several public offices. A connected service lane handles working deliveries."
+  },
+  {
+    "ids": [
+      "post_offices"
+    ],
+    "join": "The public counter opens toward the sidewalk and mail bays open to the road or freight side.",
+    "effect": "Walk-in customers and delivery fleets use separate entrances. A reachable route determines which streets receive deliveries."
+  },
+  {
+    "ids": [
+      "tax_collecting_office"
+    ],
+    "join": "Face the public counter toward civic buildings and the secure records or cash entrance toward the service street.",
+    "effect": "Residents and businesses can reach the office on foot. A connected administrative district improves collection coverage."
+  },
+  {
+    "ids": [
+      "fire_department"
+    ],
+    "join": "Bay doors create wide curb openings on their facing road. Give the yard a visible hydrant tied to the public main.",
+    "effect": "Engines respond via the road they exit. Available water and congestion affect response time and suppression capacity."
+  },
+  {
+    "ids": [
+      "community_centers"
+    ],
+    "join": "Join a park or school through a shared courtyard gate. The public entrance connects to a neighborhood walk or transit stop.",
+    "effect": "Shared facilities support more activities across the day, and residents can attend by a continuous walking route."
+  },
+  {
+    "ids": [
+      "italian_gardens"
+    ],
+    "join": "Align an avenue of cypress with a neighboring villa or civic entrance and carry path axes across matching garden borders.",
+    "effect": "A connected formal promenade draws visitors. Cascades and fountains consume supplied water and follow the slope."
+  },
+  {
+    "ids": [
+      "courthouses"
+    ],
+    "join": "The public staircase opens onto a civic square while a screened service gate connects to a side street.",
+    "effect": "Residents and staff arrive by foot or transit. Controlled transport can reach the service side without crossing public queues."
+  },
+  {
+    "ids": [
+      "government_buildings"
+    ],
+    "join": "Continue the ceremonial axis into parks, monuments or city offices, with a separate working entrance on the road edge.",
+    "effect": "A walkable civic district shares visitor access and governance services. Restricted wings retain their own service gate."
+  },
+  {
+    "ids": [
+      "large_parks"
+    ],
+    "join": "Continue paths, lake edges and tree belts across adjoining green lots, with signed public entrances on perimeter streets.",
+    "effect": "A linked park supports longer walks and continuous habitat. More entrances serve additional neighborhoods rather than enlarging an arbitrary radius."
+  },
+  {
+    "ids": [
+      "police_precinct"
+    ],
+    "join": "The public desk opens onto a neighborhood sidewalk. A marked vehicle gate opens onto the nearest local road.",
+    "effect": "Walk-in access and road-based patrol coverage follow different routes. Streets outside a reachable route receive slower service."
+  },
+  {
+    "ids": [
+      "jails"
+    ],
+    "join": "Put a visitor gate beside the public walk and a screened vehicle bay on a separate road edge. Maintain the perimeter between them.",
+    "effect": "Visitor access depends on a walkable entrance. A direct road link to a precinct or courthouse reduces transport time."
+  },
+  {
+    "ids": [
+      "police_departments"
+    ],
+    "join": "Connect the vehicle yard to a primary road and the reception side to the civic frontage. Keep pedestrian crossings clear at the exit.",
+    "effect": "Connected precincts can share citywide dispatch. Congestion at the yard exit limits the benefit."
+  },
+  {
+    "ids": [
+      "prisons"
+    ],
+    "join": "A continuous perimeter stops at a controlled service entrance. Separate the visitor approach with planted grounds.",
+    "effect": "Supplies and staff require road access. Transit to the public gate improves visitor access without opening the secure side."
+  },
+  {
+    "ids": [
+      "military_base"
+    ],
+    "join": "A marked gate connects internal service roads to the city network. Leave a landscaped buffer beside neighboring housing.",
+    "effect": "The gameâ€™s garrison can receive supplies through a reachable gate. Planted buffers ease the baseâ€™s disturbance to residents."
+  },
+  {
+    "ids": [
+      "naval_base"
+    ],
+    "join": "Turn berths toward a navigable basin and place the service gate and depots on dry land. Continue a quay into a neighboring harbor.",
+    "effect": "Fleet units can berth only if a continuous channel reaches open water. Road access supplies the base."
+  },
+  {
+    "ids": [
+      "swat_team_hq"
+    ],
+    "join": "The operations building shares a secured yard with an adjacent police station. A marked road exit remains free of public parking.",
+    "effect": "A shared yard supports the gameâ€™s emergency dispatch. Vehicles still need a connected road to reach an incident."
+  },
+  {
+    "ids": [
+      "airforce_base"
+    ],
+    "join": "The runway and taxiway meet end to end, with hangars set back and a separate service gate. Show the clear approach over adjacent terrain.",
+    "effect": "Aircraft require a clear approach and a connected runway in the game. Noise affects neighboring homes beneath that approach."
+  },
+  {
+    "ids": [
+      "submarine_base"
+    ],
+    "join": "Place a sheltered pen on the water edge with a deep approach channel. Point the service yard and gates inland.",
+    "effect": "Submarines can use pens connected to deep open water. A decorative pond or shallow canal cannot serve a base."
+  },
+  {
+    "ids": [
+      "churches"
+    ],
+    "join": "A church touching a graveyard opens the shared wall into a churchyard gate. A processional walk connects the church door, graves and public entrance.",
+    "effect": "Visitors can use one continuous route through both parcels. The combined churchyard shares maintenance access and quiet recreation."
+  },
+  {
+    "ids": [
+      "graveyards"
+    ],
+    "join": "Continue paths, stone walls and planting across adjoining burial grounds. Against a church, replace the dividing wall with its churchyard entrance.",
+    "effect": "The shared grounds serve mourning and remembrance walks. Private rear fences and busy service streets do not become public shortcuts."
+  },
+  {
+    "ids": [
+      "christian_churches"
+    ],
+    "join": "Connect the main doors to a neighborhood walk or gathering square. A side door can open toward a community center or graveyard.",
+    "effect": "Walkable access supports gatherings, and linked community rooms can host activities beyond the worship hall."
+  },
+  {
+    "ids": [
+      "monasteries"
+    ],
+    "join": "Join the working gate to a farm or herb garden and lead the public path to the guest entrance. Keep the inner cloister enclosed.",
+    "effect": "Food and materials can travel through the working gate. Quiet adjoining grounds support retreat visitors."
+  },
+  {
+    "ids": [
+      "mosques"
+    ],
+    "join": "Open the courtyard gate toward a public walk, with an ablution court connected to a supplied water line. The prayer hall keeps its orientation.",
+    "effect": "The accessible courtyard serves gatherings. A working water connection supports the ablution facilities."
+  },
+  {
+    "ids": [
+      "synagogues"
+    ],
+    "join": "Connect the sanctuary entrance to a street or square, with a separate garden gate toward an adjoining community center.",
+    "effect": "Visitors can walk to services and shared community events through the public side while ancillary rooms keep controlled access."
+  },
+  {
+    "ids": [
+      "temples"
+    ],
+    "join": "Continue a ceremonial path through the gate toward a garden, hillside stair or public plaza. Retain the sanctuaryâ€™s own entry axis.",
+    "effect": "Visitors follow the approach from the street. Hillside stairs and gardens add a pilgrimage walk where terrain allows."
+  },
+  {
+    "ids": [
+      "lds_temples"
+    ],
+    "join": "Align the garden axis and reflecting pool with the grounds entrance, connecting the public walk to that gate and service access to the rear.",
+    "effect": "Visitors can reach the gardens on foot. The ornamental pool uses a water connection and never supplies the town."
+  },
+  {
+    "ids": [
+      "docks"
+    ],
+    "join": "Align piers with usable water and join the landward apron to a street, warehouse or boardwalk. Open railings at real boarding points.",
+    "effect": "Cargo needs both a road connection and a navigable berth. A boardwalk-only dock can still serve foot passengers."
+  },
+  {
+    "ids": [
+      "boats"
+    ],
+    "join": "At a dock, orient the hull parallel to the berth and extend a boarding plank to the quay. Keep a clear water edge for departure.",
+    "effect": "A boat can carry people or goods between usable berths along a continuous navigable route."
+  },
+  {
+    "ids": [
+      "sail_boats"
+    ],
+    "join": "Moor at a marina finger or dock and leave the mast clear of a bridge deck. In open water, set the sails to the wind.",
+    "effect": "Wind affects sailing trips. Shallow draft opens some routes, while mast clearance can rule out low bridges."
+  },
+  {
+    "ids": [
+      "speed_boats"
+    ],
+    "join": "Join a launch ramp or short floating dock facing open water. Reduce the wake alongside marinas and narrow shorelines.",
+    "effect": "A connected launch provides access to quick water trips. Sheltered channels and crowded berths impose lower speeds."
+  },
+  {
+    "ids": [
+      "ship_building_areas"
+    ],
+    "join": "Run a slipway down the shore into a launch basin, with material stacks and cranes on the road or rail side.",
+    "effect": "Building requires delivered materials and an unobstructed launch path into navigable water."
+  },
+  {
+    "ids": [
+      "shipyards"
+    ],
+    "join": "Open the dry-dock gate to a harbor channel, align quay cranes to the water edge and connect stores to a freight route.",
+    "effect": "Construction and repairs depend on freight access. Larger hulls require a sufficiently deep basin and wide exit."
+  },
+  {
+    "ids": [
+      "naval_vessels"
+    ],
+    "join": "Match the hullâ€™s side to a compatible naval berth. Project the hull clearance into the approach channel.",
+    "effect": "The game fleet can use ports connected by passages wide and deep enough for that vessel class."
+  },
+  {
+    "ids": [
+      "submarines"
+    ],
+    "join": "A surfaced submarine aligns with a pen or deep berth. Show its submerged route in the water overlay when the channel becomes deep enough.",
+    "effect": "Only linked deep-water routes support submerged travel. Shallow shelves require surfacing or a different route."
+  },
+  {
+    "ids": [
+      "aircraft_carriers"
+    ],
+    "join": "Reserve a long deep-water berth and turning basin beside a compatible harbor. Keep the deck clear of overlapping cranes and bridge spans.",
+    "effect": "Only ports with sufficient length, depth and sea access can service the carrier. Smaller docks remain available to local boats."
+  },
+  {
+    "ids": [
+      "trees"
+    ],
+    "join": "Let canopies meet along a woodland edge, leaving trunk spacing and gaps for trails. Against streets, keep the canopy clear of crossings.",
+    "effect": "Joined woodland provides shade and habitat. Its shadow can cool paths or reduce output on solar panels."
+  },
+  {
+    "ids": [
+      "plants"
+    ],
+    "join": "Allow low planting to spill softly into garden borders and meadow edges, leaving paths and entrances visible.",
+    "effect": "Adjacent flowering beds help pollination in reachable orchards and gardens and support a connected habitat strip."
+  },
+  {
+    "ids": [
+      "shrubs"
+    ],
+    "join": "Merge touching shrubs into a low hedge and cut deliberate openings where paths or farm gates meet it.",
+    "effect": "Continuous hedges shelter habitat and slow runoff. Pedestrians pass through openings."
+  },
+  {
+    "ids": [
+      "bushes"
+    ],
+    "join": "Cluster bushes beneath trees or along park edges, with a gap at each public entrance. Fruiting varieties can meet a garden bed.",
+    "effect": "Connected cover increases small-wildlife habitat. Fruit and flowers support nearby cultivated plots."
+  },
+  {
+    "ids": [
+      "pine_trees"
+    ],
+    "join": "Blend pines into upland forests, thinning the stand along tracks and utility clearances.",
+    "effect": "An upland grove slows runoff and shelters trails from wind. A maintained gap limits fire spread toward buildings."
+  },
+  {
+    "ids": [
+      "ponds"
+    ],
+    "join": "Contour the bank into neighboring grass or wetland and join an actual inlet or spillway where water can flow.",
+    "effect": "A decorative pond supports habitat or recreation. Irrigation requires replenishment and a working outlet or intake."
+  },
+  {
+    "ids": [
+      "hills"
+    ],
+    "join": "Blend slopes into neighboring contour heights, cut road benches into the slope and leave steep faces visible.",
+    "effect": "Slopes change walking and vehicle effort. A ridge can improve wind generation and viewpoints."
+  },
+  {
+    "ids": [
+      "rivers"
+    ],
+    "join": "Connect flow from upstream edge to downstream edge, shaping banks around bends, tributaries and bridge piers.",
+    "effect": "Connected rivers carry flow, boats of suitable draft and downstream pollution. Waterworks must face a flowing bank."
+  },
+  {
+    "ids": [
+      "sand"
+    ],
+    "join": "Feather sand into adjacent soil, beach or desert terrain and bank it against existing walls. Keep the painted surface available for compatible lots.",
+    "effect": "Sandy ground changes drainage and planting conditions. A sand patch alone does not create a water connection."
+  },
+  {
+    "ids": [
+      "beaches"
+    ],
+    "join": "Reshape a real landâ€“water boundary into dry sand, wet sand and shallows. Continue the strand sideways and meet steps or boardwalks inland.",
+    "effect": "An accessible coastline earns beach recreation. Inland sand becomes a beach only when it meets water."
+  },
+  {
+    "ids": [
+      "beach_umbrellas"
+    ],
+    "join": "Group umbrellas along dry beach sand, clear of the surf band and boardwalk gates. Add a short foot trail toward the nearest entrance.",
+    "effect": "A walkable, dry beach supports visitors. Flooded plots or blocked access reduce usable seating."
+  },
+  {
+    "ids": [
+      "lakes"
+    ],
+    "join": "Merge touching shorelines into one basin, form coves around retained land and mark real incoming and outgoing streams.",
+    "effect": "A connected lake can store runoff and support boats of suitable draft. A closed ornamental lake has no unlimited export supply."
+  },
+  {
+    "ids": [
+      "wide_rivers"
+    ],
+    "join": "Match wide channel mouths to downstream water and taper into narrower tributaries. Bridge landings must reach opposite banks.",
+    "effect": "Deep continuous reaches support larger boats. A dam must occupy a valid river crossing, with water retained upstream and released downstream."
+  },
+  {
+    "ids": [
+      "redwood_trees"
+    ],
+    "join": "Interlock high canopies across groves, retaining ground-level gaps for trails and a setback around mature trunks.",
+    "effect": "Large contiguous stands add shade, habitat and visitor appeal. Nearby solar arrays may lose light beneath the canopy."
+  },
+  {
+    "ids": [
+      "mountains"
+    ],
+    "join": "Blend adjoining ridges and saddles, routing trails through passes and streams down the valleys.",
+    "effect": "Elevation directs runoff and creates exposed wind sites. Steep faces increase the cost of road or rail access."
+  },
+  {
+    "ids": [
+      "canyons"
+    ],
+    "join": "Cut a continuous ravine into the terrain and connect its floor to the downstream valley. A bridge rests on opposing rims.",
+    "effect": "Travel follows the canyon floor or a valid crossing. Water follows the low channel through the cut."
+  },
+  {
+    "ids": [
+      "deserts"
+    ],
+    "join": "Paint connected tan ground with feathered borders, small dunes and sparse plants. Buildings occupy compatible lots on top of the terrain.",
+    "effect": "Dry soil raises irrigation demand and favors drought-tolerant planting. Roads and foundations remain buildable on suitable grades."
+  },
+  {
+    "ids": [
+      "tubbleweeds"
+    ],
+    "join": "Show tumbleweeds rolling across connected dry open ground, pooling against fences and stopping in dense planting or water.",
+    "effect": "Wind controls their movement. Blocked fence lines create a small cleanup task in nearby settlements."
+  },
+  {
+    "ids": [
+      "swamps"
+    ],
+    "join": "Blend marsh plants and channels into low wet banks. Keep visitor routes on raised walks and join active inflows and outflows.",
+    "effect": "Wetlands retain floodwater and filter some incoming pollution. Draining them changes downstream flood risk."
+  },
+  {
+    "ids": [
+      "alligators"
+    ],
+    "join": "Connect sheltered basking banks and reed beds to a pond or swamp. Raised viewing paths stay above the animalâ€™s water route.",
+    "effect": "Suitable connected wet habitat supports wildlife. Managed viewing adds recreation without forcing animals across busy paths."
+  },
+  {
+    "ids": [
+      "large_landmarks"
+    ],
+    "join": "Align the ceremonial arch with a boulevard or square, leaving the opening and pedestrian approach clear. An eternal-flame court can meet the civic plaza.",
+    "effect": "A continuous visitor route links public events to the monument. A blocked arch interrupts the procession."
+  },
+  {
+    "ids": [
+      "washington_monument"
+    ],
+    "join": "Continue its central axis into a reflecting mall and ring of paths. The flag circles and shade trees connect along the public perimeter.",
+    "effect": "A walkable mall increases visitor access. Tall intrusions along the viewing axis reduce the landmarkâ€™s scenic reach."
+  },
+  {
+    "ids": [
+      "white_house"
+    ],
+    "join": "Align the public drive and gate with the civic boulevard. The rose garden and service wings connect at separate edges.",
+    "effect": "Public access uses the visitor gate, deliveries use the working entrance, and a connected civic square attracts sightseers."
+  },
+  {
+    "ids": [
+      "smithsonian"
+    ],
+    "join": "Open the castle forecourt toward a civic boulevard or park and connect the museum entrance to a transit or school walking route.",
+    "effect": "A school with a continuous route can make educational visits, and regional visitors benefit from transit access."
+  },
+  {
+    "ids": [
+      "eiffel_tower"
+    ],
+    "join": "Extend the lattice towerâ€™s four feet into garden parterres and align the main walk with a boulevard, bridge or promenade.",
+    "effect": "Clear approach views increase its draw. Night illumination needs power, and the visitor gate needs a walkable approach."
+  },
+  {
+    "ids": [
+      "the_london_eye"
+    ],
+    "join": "Connect the boarding pavilion to a waterfront promenade and send the cantilevered wheel over clear water. Keep the passenger queue off the through walk.",
+    "effect": "A reachable shore entrance and transit stop support visitors. The wheel needs power and unobstructed rotation clearance."
+  },
+  {
+    "ids": [
+      "the_great_pyramids"
+    ],
+    "join": "Carry a stone causeway across desert ground between the pyramids, sphinx and mortuary court. Let the sand meet the landscape outside the monuments.",
+    "effect": "Visitors enter along the causeway from a reachable road or walk. The protected monument footprint and the surrounding buildable desert remain distinct."
+  },
+  {
+    "ids": [
+      "preschool",
+      "country_schoolhouse",
+      "elementary_school",
+      "middle_school",
+      "trade_school",
+      "community_college"
+    ],
+    "join": "Face the entrance toward a local street. Households and employers can reach the school through their district.",
+    "effect": "School places increase with each upgrade. The inspector describes the campus specialty."
+  },
+  {
+    "ids": [
+      "high_school",
+      "sports_field"
+    ],
+    "join": "Join the high school and the sports field along a shared edge to extend the athletics walk.",
+    "effect": "An Athletic Campus adds 16% school places, 22% school recreation and 20% field recreation."
+  },
+  {
+    "ids": [
+      "research_institute",
+      "university",
+      "research_university"
+    ],
+    "join": "Share an edge between a university and an institute or a research university to join their academic walks.",
+    "effect": "An Innovation District adds education, jobs and export income. Multiple adjacent labs grant each type of bonus once."
+  },
+  {
+    "ids": [
+      "grain_farm",
+      "dairy_farm"
+    ],
+    "join": "Place a working dairy beside grain to join the feed lane and align the loading gates.",
+    "effect": "Feed Production increases dairy yield by 24% and grain yield by 12%."
+  },
+  {
+    "ids": [
+      "apiary",
+      "orchard_block"
+    ],
+    "join": "Share an edge between fruit trees and hives to open their pollinator lane.",
+    "effect": "Orchard Pollination increases fruit yield by 18% and the apiary's export income by 12%."
+  },
+  {
+    "ids": [
+      "vegetable_farm",
+      "poultry_farm",
+      "cattle_ranch",
+      "horse_ranch",
+      "rice_farm",
+      "vineyard",
+      "greenhouse_farm",
+      "vertical_farm"
+    ],
+    "join": "Give an anchor a road entrance, then share an edge with fields, a pasture or another agricultural attachment.",
+    "effect": "The anchored operation serves its connected modules. Its inspector reports each parcel once and shows how larger holdings unlock farm activity."
+  },
+  {
+    "ids": [
+      "vegetable_fields",
+      "grain_fields",
+      "grazing_pasture",
+      "livestock_pen",
+      "chicken_coop",
+      "feed_silo",
+      "irrigation_pond",
+      "greenhouse_bay"
+    ],
+    "join": "Touch an active anchor or continue a chain of agricultural parcels via shared open edges.",
+    "effect": "The module contributes its own harvest and one expansion credit to its nearest working anchor. A closed boundary interrupts the chain."
+  }
+]

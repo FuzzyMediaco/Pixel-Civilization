@@ -1,3 +1,4 @@
+import { GameDialog } from "./GameDialog";
 import React from "react";
 import {
   CloudLightning,
@@ -30,6 +31,9 @@ interface HamburgerMenuModalProps {
   onOpenHeatmaps: () => void;
   onOpenAdvisor: () => void;
   onOpenSaves: () => void;
+  onOpenIsland: (tab: "works"|"transit"|"city"|"god") => void;
+  onCopyIsland: () => void;
+  onOpenExamples: () => void;
   onToggleGodCrime?: () => void;
   onResetIsland: () => void;
 }
@@ -44,7 +48,7 @@ const MODE_CARDS: {
     id: "god",
     title: "God Mode",
     badge: "Sandbox",
-    desc: "All 148+ elements, 5 levels & 4 variants unlocked, infinite treasury, and custom invasion severity.",
+    desc: "Build freely, shape land and water, run services and experiment with the live economy.",
   },
   {
     id: "real",
@@ -56,7 +60,7 @@ const MODE_CARDS: {
     id: "survival",
     title: "Survival Mode",
     badge: "Hardcore",
-    desc: "5-min maintenance timers, unrest fires under 50% happiness, stage-scaled raids & stage-floor Game Over.",
+    desc: "Manage essential reserves, fire response and defense with a recovery period for sustained shortages.",
   },
 ];
 
@@ -71,7 +75,7 @@ export const HamburgerMenuModal: React.FC<HamburgerMenuModalProps> = ({
   onOpenWeatherStudio,
   onOpenHeatmaps,
   onOpenAdvisor,
-  onOpenSaves,
+  onOpenSaves, onOpenIsland, onCopyIsland, onOpenExamples,
   onToggleGodCrime,
   onResetIsland,
 }) => {
@@ -89,11 +93,8 @@ export const HamburgerMenuModal: React.FC<HamburgerMenuModalProps> = ({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[#f6f2e9] text-stone-900"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Civilization Main Menu"
+    <GameDialog label="Civilization Main Menu" onDismiss={onClose}
+      className="main-menu fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[#f6f2e9] text-stone-900"
     >
       {/* Top Bar */}
       <div className="flex items-center justify-between border-b border-stone-900/10 bg-[#fcfaf5] px-4 py-3 sm:px-6">
@@ -128,6 +129,11 @@ export const HamburgerMenuModal: React.FC<HamburgerMenuModalProps> = ({
 
       {/* Main Content */}
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 p-4 sm:p-6">
+        <nav className="menu-destinations" aria-label="Explore the island">
+          <button type="button" onClick={()=>{onClose();onOpenExamples();}}>Example islands</button>
+          <a href="./handbook.html">Player handbook</a>
+          <a href="./field-guide.html">3D field guide</a>
+        </nav>
         {/* Game Mode Selector */}
         <section>
           <div className="mb-2 flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-stone-500">
@@ -141,6 +147,7 @@ export const HamburgerMenuModal: React.FC<HamburgerMenuModalProps> = ({
                 <button
                   key={m.id}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => {
                     onChangeMode(m.id);
                     onClose();
@@ -250,6 +257,9 @@ export const HamburgerMenuModal: React.FC<HamburgerMenuModalProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-2">
+            {(["works","transit","city", ...(state.mode==="god"?["god"]:[])] as const).map(id=><button key={id} className="rounded-xl border border-stone-300 bg-white px-3 py-3 text-left text-xs font-extrabold" onClick={()=>{onClose();onOpenIsland(id as "works"|"transit"|"city"|"god");}}>{{works:"Land & public works",transit:"Transit & harbor",city:"City ledger & services",god:"God controls"}[id]}</button>)}
+            {state.mode!=="god"&&<button className="rounded-xl border border-emerald-700 bg-white p-3 text-left text-xs font-bold" onClick={()=>{onClose();onCopyIsland();}}>Experiment in a God-mode copy</button>}
+
             <button
               type="button"
               onClick={() => {
@@ -354,6 +364,6 @@ export const HamburgerMenuModal: React.FC<HamburgerMenuModalProps> = ({
           </button>
         </section>
       </div>
-    </div>
+    </GameDialog>
   );
 };

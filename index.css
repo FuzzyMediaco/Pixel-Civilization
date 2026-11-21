@@ -1,10 +1,11 @@
 @import "tailwindcss";
+@import "./src/styles/interface.css";
 
 @layer base {
   :root {
-    --font-display: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+    --font-display: var(--ui-font);
+    --font-sans: var(--ui-font);
+    --font-mono: var(--ui-font);
   }
 
   html,

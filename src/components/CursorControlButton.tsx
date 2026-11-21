@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Building2,
   Droplets,
-  GitMerge,
   Hammer,
   Layers,
   MousePointer,
@@ -18,13 +17,12 @@ import { ELEMENT_BY_ID } from "../game/catalog";
 import { type SelectionFilter } from "../game/simulation";
 import { type BuildBrush } from "../game/worldRenderer";
 
-export type CursorBehavior = "auto" | "select" | "place" | "merge";
+export type CursorBehavior = "auto" | "select" | "place";
 
 interface CursorControlButtonProps {
   brush: BuildBrush;
   cursorBehavior: CursorBehavior;
   selectionFilter: SelectionFilter;
-  pairSelectMode: boolean;
   onReturnToSelect: () => void;
   onChangeCursorBehavior: (mode: CursorBehavior) => void;
   onChangeSelectionFilter: (filter: SelectionFilter) => void;
@@ -36,10 +34,9 @@ const BEHAVIOR_OPTIONS: {
   hint: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { id: "auto", label: "Auto Bounce", hint: "Buildings bounce to Select; Roads stay continuous", icon: Sparkles },
-  { id: "select", label: "Always Select", hint: "Every placement returns straight to Select", icon: MousePointer },
-  { id: "place", label: "Multi-Place", hint: "Keep building brush active after placing", icon: Hammer },
-  { id: "merge", label: "Merge Mode", hint: "Tap two matching neighbors to merge", icon: GitMerge },
+  { id: "auto", label: "Smart placement", hint: "Place a building once, or continue drawing a network", icon: Sparkles },
+  { id: "select", label: "Place once", hint: "Every placement returns straight to Select", icon: MousePointer },
+  { id: "place", label: "Keep placing", hint: "Keep building brush active after placing", icon: Hammer },
 ];
 
 const FILTER_OPTIONS: {
@@ -49,7 +46,7 @@ const FILTER_OPTIONS: {
 }[] = [
   { id: "all", label: "All", icon: Layers },
   { id: "roads", label: "Roads", icon: Route },
-  { id: "buildings", label: "Bldgs", icon: Building2 },
+  { id: "buildings", label: "Buildings", icon: Building2 },
   { id: "water", label: "Water", icon: Droplets },
   { id: "power", label: "Power", icon: Zap },
   { id: "waste", label: "Waste", icon: Trash2 },
@@ -59,7 +56,6 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
   brush,
   cursorBehavior,
   selectionFilter,
-  pairSelectMode,
   onReturnToSelect,
   onChangeCursorBehavior,
   onChangeSelectionFilter,
@@ -74,22 +70,24 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
         setPopoverOpen(false);
       }
     };
+    const onKey=(event:KeyboardEvent)=>{
+      if(event.key!=="Escape" || document.querySelector("dialog[open]")) return;
+      event.preventDefault();event.stopPropagation();setPopoverOpen(false);
+      containerRef.current?.querySelector<HTMLButtonElement>('[aria-label="Cursor Settings"], [aria-label="Cursor Tool Control"]')?.focus();
+    };
+    window.addEventListener("keydown",onKey,true);
     window.addEventListener("pointerdown", onDown);
-    return () => window.removeEventListener("pointerdown", onDown);
+    return () => {window.removeEventListener("pointerdown",onDown);window.removeEventListener("keydown",onKey,true);};
   }, [popoverOpen]);
 
   const activeBrushDef = brush.kind === "place" && brush.defId ? ELEMENT_BY_ID[brush.defId] : undefined;
   const isPlacing = brush.kind === "place";
   const isMoving = brush.kind === "move";
-  const isMergingCursor = pairSelectMode || cursorBehavior === "merge";
-  const isBusyTool = isPlacing || isMoving || isMergingCursor;
+  const isBusyTool = isPlacing || isMoving;
   const filterActive = selectionFilter !== "all";
 
   const handlePrimaryClick = () => {
     if (isBusyTool) {
-      if (cursorBehavior === "merge") {
-        onChangeCursorBehavior("auto");
-      }
       onReturnToSelect();
       return;
     }
@@ -100,26 +98,22 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
     ? Move
     : isPlacing
       ? Hammer
-      : isMergingCursor
-        ? GitMerge
-        : MousePointer;
+      : MousePointer;
 
   const buttonLabel = isMoving
     ? "Moving"
     : isPlacing
       ? activeBrushDef?.name ?? "Build"
-      : isMergingCursor
-        ? "Merge"
-        : "Select";
+      : "Select";
 
   return (
-    <div ref={containerRef} className="pointer-events-auto fixed bottom-2.5 right-2 z-35 flex flex-col items-end">
+    <div ref={containerRef} className="cursor-tools pointer-events-auto fixed bottom-2.5 right-2 z-35 flex flex-col items-end">
       {popoverOpen && (
         <div className="mb-2 w-68 max-w-[calc(100vw-1rem)] rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 p-2.5 shadow-2xl">
           <div className="flex items-center justify-between border-b border-stone-200 pb-1.5">
             <div>
               <h4 className="font-display text-xs font-extrabold text-stone-900">
-                Cursor Mode & Layer Filter
+                Placement & selection
               </h4>
               <p className="text-[10px] text-stone-500">
                 Choose placement behavior or click filter
@@ -139,9 +133,6 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
             <button
               type="button"
               onClick={() => {
-                if (cursorBehavior === "merge") {
-                  onChangeCursorBehavior("auto");
-                }
                 onReturnToSelect();
                 setPopoverOpen(false);
               }}
@@ -164,7 +155,8 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
                   <button
                     key={opt.id}
                     type="button"
-                    onClick={() => onChangeCursorBehavior(opt.id)}
+                    aria-pressed={active}
+                  onClick={() => onChangeCursorBehavior(opt.id)}
                     title={opt.hint}
                     className={`flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1.5 text-left text-[11px] font-bold transition-colors ${
                       active
@@ -206,7 +198,8 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
                   <button
                     key={f.id}
                     type="button"
-                    onClick={() => onChangeSelectionFilter(f.id)}
+                    aria-pressed={active}
+                  onClick={() => onChangeSelectionFilter(f.id)}
                     className={`flex items-center justify-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-1.5 text-[10px] font-bold transition-colors ${
                       active
                         ? "border-emerald-700 bg-emerald-700 text-white"
@@ -229,7 +222,7 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
             type="button"
             onClick={() => setPopoverOpen((prev) => !prev)}
             title="Open Cursor Mode & Layer Filter"
-            aria-label="Cursor Settings"
+            aria-label="Cursor Settings" aria-expanded={popoverOpen}
             className={`flex h-11 w-9 items-center justify-center rounded-xl border shadow-xl transition-colors ${
               popoverOpen
                 ? "border-emerald-600 bg-emerald-700 text-white"
@@ -248,13 +241,11 @@ export const CursorControlButton: React.FC<CursorControlButtonProps> = ({
               ? "Tap to cancel & return to Select Tool"
               : "Tap to open Cursor Mode & Layer Click Filter"
           }
-          aria-label="Cursor Tool Control"
+          aria-label="Cursor Tool Control" aria-expanded={isBusyTool ? undefined : popoverOpen}
           className={`relative flex h-11 min-w-11 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border px-2.5 text-xs font-extrabold shadow-xl transition-colors ${
             isPlacing || isMoving
               ? "border-amber-500 bg-amber-500 text-stone-950 hover:bg-amber-400"
-              : isMergingCursor
-                ? "border-emerald-700 bg-emerald-700 text-white hover:bg-emerald-800"
-                : popoverOpen
+              : popoverOpen
                   ? "border-emerald-600 bg-stone-800 text-white ring-2 ring-emerald-500/50"
                   : "border-stone-900 bg-stone-900 text-white hover:bg-stone-800"
           }`}

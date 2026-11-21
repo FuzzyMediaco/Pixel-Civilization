@@ -7,7 +7,8 @@
     "dev": "tsx server.ts",
     "build": "vite build",
     "lint": "tsc --noEmit",
-    "start": "NODE_ENV=production node server.ts"
+    "test": "node --import tsx --test tests/*.test.ts",
+    "start": "tsx server.ts --production"
   },
   "dependencies": {
     "@google/genai": "^3.0.0",

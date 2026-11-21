@@ -217,6 +217,11 @@ const styleKeyToId = new Map<string, number>();
 const styleRgbs: ([number, number, number] | null)[] = [null];
 const styleEmits: number[] = [0];
 
+/** Linear color used by both the live mesh and the offline handbook illustrations. */
+export function getVoxelStyleColor(style: number): readonly [number,number,number] {
+  return styleRgbs[style] ?? [1,1,1];
+}
+
 function internVoxStyle(colStr: string, emitVal: number): number {
   const numEmit = Number(emitVal) || 0;
   const k = numEmit === 0 ? colStr : `${colStr}|${numEmit}`;

@@ -1,0 +1,190 @@
+import { CAMPUS_FARM_ART } from "./campusFarmArt";
+import { WEALTH_PROJECTS } from "./wealthProjects";
+export type Footprint = [number, number];
+export type LevelSpanTuple = [Footprint, Footprint, Footprint, Footprint, Footprint];
+
+const fixed = (x: number, z: number): LevelSpanTuple => [[x, z], [x, z], [x, z], [x, z], [x, z]];
+
+/** Intrinsic tile dimensions without loading voxel artwork. Indexed by ID and level minus one. */
+export const ELEMENT_LEVEL_SPANS: Record<string, LevelSpanTuple> = {
+  ...Object.fromEntries(Object.entries(CAMPUS_FARM_ART).map(([id, art]) => [id, art.footprints])),
+  ...Object.fromEntries(WEALTH_PROJECTS.map(p => [p.id, p.footprints])),
+
+  ferry_landings: [[1,1],[1,1],[1,2],[2,2],[2,3]],
+  taxi_ranks: fixed(1, 1),
+
+  // Village starters
+  house: [[1, 1], [1, 1], [2, 1], [2, 2], [3, 2]],
+  businesses: [[1, 1], [1, 1], [2, 1], [2, 2], [3, 2]],
+  roads: fixed(1, 1),
+  solar_panels: [[1, 1], [1, 1], [2, 1], [2, 2], [3, 2]],
+  grocery_store: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  school: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  water_treatment_plant: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  landfill: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  park: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  shops: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+
+  // Housing
+  tiny_homes: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  trailer_home: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  cottages: [[1, 1], [1, 1], [1, 1], [2, 1], [2, 2]],
+  medium_sized_homes: [[1, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  townhomes: [[1, 1], [2, 1], [2, 1], [3, 1], [3, 2]],
+  large_homes: [[2, 1], [2, 2], [2, 2], [3, 2], [3, 3]],
+  apartments: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 2]],
+  beach_houses: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  villas: [[2, 1], [2, 2], [2, 2], [3, 2], [3, 3]],
+  apartment_buildings: [[1, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  condos: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  mansions: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
+  skyscrapers: [[1, 1], [1, 1], [1, 1], [2, 2], [2, 2]],
+
+  // Agriculture
+  farms: [[1, 1], [2, 1], [2, 2], [3, 2], [4, 3]],
+  farm_houses: [[1, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  fields: [[1, 1], [2, 1], [2, 2], [3, 2], [4, 2]],
+  orchards: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  groves_of_olives: [[2, 1], [2, 2], [3, 2], [3, 3], [4, 3]],
+  plantations: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+
+  // Commerce
+  blacksmiths: [[1, 1], [1, 1], [2, 1], [2, 2], [3, 2]],
+  restaurants: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  clothing_stores: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  thrift_stores: [[1, 1], [1, 1], [2, 1], [2, 2], [3, 2]],
+  shoe_stores: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  cheesesteak_restaurants: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  bars: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  gas_stations: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 2]],
+  atms: fixed(1, 1),
+  buildings: [[1, 1], [1, 1], [1, 1], [2, 2], [2, 2]],
+  banks: [[1, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+  malls: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+  data_centers: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 4]],
+
+  // Power waste
+  windmills: [[1, 1], [1, 1], [1, 1], [2, 1], [2, 2]],
+  wind_turbines: fixed(1, 1),
+  trash_compacting_plants: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  factories: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  coal_powerplants: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  solar_farms: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 4]],
+  natural_gas_power_plants: [[2, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  trash_burning_plants: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  wind_farms: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 4]],
+  hydro_electric_power_plants: [[2, 1], [2, 2], [3, 2], [3, 3], [4, 3]],
+  geothermal_power_plants: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  micro_reactor_nuclear: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  nuclear_power_plants: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+
+  // Water util
+  wells: fixed(1, 1),
+  water_towers: [[1, 1], [1, 1], [1, 1], [2, 2], [2, 2]],
+  water_places: [[2, 1], [2, 1], [2, 2], [2, 2], [3, 2]],
+  canals: fixed(1, 1),
+  water_pumping_station: [[2, 1], [2, 1], [2, 2], [2, 2], [3, 2]],
+  municipal_reservoir: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
+  aqueduct: [[2, 1], [2, 1], [3, 1], [3, 1], [3, 1]],
+  desalination_plant: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
+  water_tile: fixed(1, 1),
+
+  // Roads transit
+  dirt_roads: fixed(1, 1),
+  paths: fixed(1, 1),
+  walking_paths: fixed(1, 1),
+  trails: fixed(1, 1),
+  side_walks: fixed(1, 1),
+  two_lane_roads: fixed(1, 1),
+  pretty_roads: fixed(1, 1),
+  train_tracks: fixed(1, 1),
+  train_stops: [[1, 1], [2, 1], [2, 1], [2, 2], [2, 2]],
+  train_depots: [[2, 1], [2, 2], [3, 2], [3, 2], [3, 3]],
+  bridges: fixed(1, 1),
+  stone_bridges: fixed(1, 1),
+  boardwalks: fixed(1, 1),
+  bus_stops: fixed(1, 1),
+  bus_depots: [[2, 1], [2, 1], [2, 2], [3, 2], [3, 2]],
+  taxi_depots: [[2, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
+  highways: fixed(1, 1),
+  freeways: fixed(1, 1),
+  over_passes: fixed(1, 1),
+  underpasses: fixed(1, 1),
+  suspension_bridges: fixed(1, 1),
+
+  // Civic parks
+  little_parks: [[1, 1], [1, 1], [1, 1], [2, 1], [2, 1]],
+  gardens: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  city_offices: [[1, 1], [1, 2], [2, 2], [2, 2], [2, 3]],
+  post_offices: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 2]],
+  tax_collecting_office: [[1, 1], [1, 1], [1, 2], [2, 2], [2, 2]],
+  fire_department: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 2]],
+  community_centers: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  italian_gardens: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 3]],
+  courthouses: [[1, 1], [2, 1], [2, 2], [2, 3], [3, 3]],
+  government_buildings: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 3]],
+  large_parks: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+
+  // Police military
+  police_precinct: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  jails: [[1, 1], [1, 1], [1, 2], [2, 2], [2, 2]],
+  police_departments: [[2, 2], [2, 2], [2, 3], [3, 3], [3, 3]],
+  prisons: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+  military_base: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+  naval_base: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+  swat_team_hq: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
+  airforce_base: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+  submarine_base: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+
+  // Faith
+  churches: [[1, 1], [1, 2], [2, 2], [2, 3], [3, 4]],
+  graveyards: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  christian_churches: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  monasteries: [[1, 1], [2, 1], [2, 2], [3, 3], [4, 4]],
+  mosques: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  synagogues: [[1, 1], [2, 1], [2, 2], [2, 2], [3, 3]],
+  temples: [[1, 1], [1, 2], [2, 2], [2, 3], [3, 3]],
+  lds_temples: [[2, 2], [2, 2], [2, 3], [3, 3], [3, 4]],
+
+  // Maritime
+  docks: [[1, 1], [1, 2], [2, 2], [2, 3], [3, 3]],
+  boats: [[1, 1], [1, 2], [1, 2], [1, 3], [2, 4]],
+  sail_boats: [[1, 1], [1, 2], [1, 2], [1, 3], [2, 3]],
+  speed_boats: [[1, 1], [1, 1], [1, 2], [1, 2], [2, 3]],
+  ship_building_areas: [[2, 2], [2, 2], [3, 2], [3, 3], [3, 3]],
+  shipyards: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+  naval_vessels: [[1, 1], [1, 2], [1, 3], [1, 4], [2, 4]],
+  submarines: [[1, 1], [1, 2], [1, 3], [1, 4], [2, 4]],
+  aircraft_carriers: [[1, 2], [1, 3], [2, 3], [2, 4], [3, 4]],
+
+  // Nature terrain
+  trees: [[1, 1], [1, 1], [1, 1], [2, 2], [2, 2]],
+  plants: [[1, 1], [1, 1], [1, 1], [2, 1], [2, 2]],
+  shrubs: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  bushes: [[1, 1], [1, 1], [2, 1], [2, 1], [2, 2]],
+  pine_trees: [[1, 1], [1, 1], [1, 1], [2, 2], [2, 2]],
+  ponds: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  hills: [[1, 1], [2, 1], [2, 2], [2, 2], [3, 2]],
+  rivers: fixed(1, 1),
+  sand: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  beaches: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 2]],
+  beach_umbrellas: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  lakes: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],
+  wide_rivers: fixed(1, 1),
+  redwood_trees: [[1, 1], [1, 1], [2, 2], [2, 2], [2, 2]],
+  mountains: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 4]],
+  canyons: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 3]],
+  deserts: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 3]],
+  tubbleweeds: [[1, 1], [1, 1], [2, 1], [2, 2], [2, 2]],
+  swamps: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 3]],
+  alligators: [[1, 1], [2, 1], [2, 2], [2, 2], [3, 2]],
+
+  // Landmarks
+  large_landmarks: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  washington_monument: [[1, 2], [2, 2], [2, 3], [3, 3], [3, 4]],
+  white_house: [[2, 1], [2, 2], [3, 2], [3, 3], [4, 3]],
+  smithsonian: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  eiffel_tower: [[1, 1], [2, 2], [2, 2], [3, 3], [3, 3]],
+  the_london_eye: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
+  the_great_pyramids: [[1, 1], [2, 2], [3, 2], [3, 3], [4, 3]],
+};

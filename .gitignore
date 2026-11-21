@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+.dev.vars
+*.zip
+.DS_Store
+.aistudio-preflight-*/
+data/
+package-lock.json
+/portable/

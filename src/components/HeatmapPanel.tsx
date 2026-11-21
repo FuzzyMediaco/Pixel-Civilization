@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import {
   Briefcase,
+  Car,
   ChevronDown,
+  Factory,
+  Gem,
   ChevronUp,
   Droplets,
   Flame,
@@ -30,6 +33,29 @@ const HEATMAP_OPTIONS: {
   icon: React.ComponentType<{ className?: string }>;
   getSummary: (s: GameState) => string;
 }[] = [
+  {id:"transit",label:"Passenger routes",icon:Car,getSummary:s=>(s.mobility?.lines.length??0)+" services"},
+  {id:"neighbors",label:"Shared edges",icon:Trees,getSummary:()=>"Linked parcel entrances"},
+  {id:"flow",label:"Aqueduct flow",icon:Droplets,getSummary:s=>Object.keys(s.infrastructure?.conduits??{}).length+" segments"},
+  {id:"clearance",label:"Ferry clearance",icon:Droplets,getSummary:()=>"Ferry draft, beam & height"},
+  {id:"lanes",label:"Road lanes",icon:Car,getSummary:()=>"2 to 8 lanes"},
+  {
+    id: "landvalue",
+    label: "Land Value",
+    icon: Gem,
+    getSummary: (s) => `avg ${(s.metrics.landValueAvg ?? 0.5).toFixed(2)}`,
+  },
+  {
+    id: "pollution",
+    label: "Pollution",
+    icon: Factory,
+    getSummary: (s) => `avg ${(s.metrics.pollutionAvg ?? 0).toFixed(1)}`,
+  },
+  {
+    id: "traffic",
+    label: "Traffic",
+    icon: Car,
+    getSummary: (s) => `${s.metrics.congestion ?? 0}%`,
+  },
   {
     id: "water",
     label: "Water",
@@ -106,10 +132,11 @@ export const HeatmapPanel: React.FC<HeatmapPanelProps> = ({
 }) => {
   const [expanded, setExpanded] = useState(false);
   if (!open) return null;
+  const legend=activeHeatmap==="traffic"?["Light","Busy","Congested"]:activeHeatmap==="clearance"?["Ample room","Close fit","Blocked"]:activeHeatmap==="lanes"?["6–8 lanes","4 lanes","2 lanes"]:activeHeatmap==="flow"?["Flowing","Low flow","Dry"]:activeHeatmap==="transit"?["Vehicle route","Limited","Obstruction"]:["Good","Edge","Missing"];
 
   return (
-    <aside
-      className={`pointer-events-auto fixed right-13 top-14 z-30 max-w-[calc(100vw-4.5rem)] overflow-y-auto rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 p-2.5 shadow-2xl transition-all ${
+    <aside id="island-panel-layers" aria-label="Map layers"
+      className={`map-drawer pointer-events-auto fixed right-13 top-14 z-30 max-w-[calc(100vw-4.5rem)] overflow-y-auto rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 p-2.5 shadow-2xl transition-all ${
         expanded ? "max-h-[calc(100vh-8rem)] w-80 sm:w-96" : "max-h-[46vh] w-64"
       }`}
     >
@@ -149,6 +176,7 @@ export const HeatmapPanel: React.FC<HeatmapPanelProps> = ({
             <button
               key={opt.id}
               type="button"
+              aria-pressed={active}
               onClick={() => onSelectHeatmap(active ? "none" : opt.id)}
               className={`flex flex-col items-start rounded-md border px-2 py-1.5 text-left transition-colors ${
                 active
@@ -177,15 +205,15 @@ export const HeatmapPanel: React.FC<HeatmapPanelProps> = ({
         <div className="flex items-center justify-between text-[10px] font-semibold text-stone-600">
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-xs bg-emerald-500" />
-            Good
+            {legend[0]}
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-xs bg-amber-500" />
-            Edge
+            {legend[1]}
           </span>
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 rounded-xs bg-rose-500" />
-            Missing
+            {legend[2]}
           </span>
         </div>
         {activeHeatmap !== "none" && (

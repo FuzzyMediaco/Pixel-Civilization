@@ -118,8 +118,8 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
   const wind = state.windSpeed ?? 1.0;
 
   return (
-    <aside
-      className={`pointer-events-auto fixed right-13 top-14 z-30 max-w-[calc(100vw-4.5rem)] overflow-y-auto rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 p-2.5 shadow-2xl transition-all ${
+    <aside id="island-panel-view" aria-label="View and weather"
+      className={`map-drawer pointer-events-auto fixed right-13 top-14 z-30 max-w-[calc(100vw-4.5rem)] overflow-y-auto rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 p-2.5 shadow-2xl transition-all ${
         expanded ? "max-h-[calc(100vh-8rem)] w-80 sm:w-96" : "max-h-[46vh] w-68"
       }`}
     >
@@ -128,6 +128,7 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
         <div className="grid flex-1 grid-cols-3 gap-1 rounded-md bg-stone-200/75 p-0.5">
           <button
             type="button"
+            aria-pressed={activeTab === "weather"}
             onClick={() => onChangeTab("weather")}
             className={`flex items-center justify-center gap-1 rounded py-1 text-[10px] font-extrabold transition-colors ${
               activeTab === "weather" ? "bg-stone-900 text-white shadow-xs" : "text-stone-700 hover:bg-white/70"
@@ -138,6 +139,7 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
           </button>
           <button
             type="button"
+            aria-pressed={activeTab === "camera"}
             onClick={() => onChangeTab("camera")}
             className={`flex items-center justify-center gap-1 rounded py-1 text-[10px] font-extrabold transition-colors ${
               activeTab === "camera" ? "bg-stone-900 text-white shadow-xs" : "text-stone-700 hover:bg-white/70"
@@ -148,6 +150,7 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
           </button>
           <button
             type="button"
+            aria-pressed={activeTab === "defense"}
             onClick={() => onChangeTab("defense")}
             className={`flex items-center justify-center gap-1 rounded py-1 text-[10px] font-extrabold transition-colors ${
               activeTab === "defense" ? "bg-stone-900 text-white shadow-xs" : "text-stone-700 hover:bg-white/70"
@@ -171,7 +174,7 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
             type="button"
             onClick={onClose}
             className="rounded-md border border-stone-300 bg-white p-1 text-stone-600 hover:bg-stone-100"
-            title="Close Studio Drawer"
+            aria-label="Close view" title="Close Studio Drawer"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -189,6 +192,7 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
               </span>
               <button
                 type="button"
+                aria-pressed={state.weatherLocked}
                 onClick={onToggleWeatherLocked}
                 className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-bold ${
                   state.weatherLocked
@@ -233,6 +237,7 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
               </span>
               <button
                 type="button"
+                aria-pressed={state.timeLocked}
                 onClick={onToggleTimeLocked}
                 className={`flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-bold ${
                   state.timeLocked
@@ -351,7 +356,8 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => onChangeCameraMode(c.id)}
+                  aria-pressed={active}
+                onClick={() => onChangeCameraMode(c.id)}
                   className={`flex items-center justify-center gap-1 rounded-md border py-1.5 text-[11px] font-bold transition-colors ${
                     active
                       ? "border-stone-900 bg-stone-900 text-white"
@@ -376,7 +382,8 @@ export const ViewEnvPanel: React.FC<ViewEnvPanelProps> = ({
             </button>
             <button
               type="button"
-              onClick={onToggleAutoSpin}
+              aria-pressed={autoSpin}
+                onClick={onToggleAutoSpin}
               className={`flex items-center justify-center gap-1 rounded-md border py-1.5 text-[11px] font-bold transition-colors ${
                 autoSpin
                   ? "border-sky-700 bg-sky-700 text-white"

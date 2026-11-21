@@ -1,3 +1,5 @@
+import {placedUpgradeCost} from "../game/simulation";
+import { buildingCharges } from "../game/cityEconomy";
 import React, { useMemo, useState } from "react";
 import {
   ArrowDownCircle,
@@ -5,7 +7,6 @@ import {
   ChevronDown,
   ChevronUp,
   Flame,
-  GitMerge,
   Grid2x2,
   Lock,
   MousePointer,
@@ -23,12 +24,17 @@ import {
   ELEMENTS,
   ELEMENT_BY_ID,
   type ElementCategory,
-  getUpgradeCost,
+  getMaxElementLevel,
+  getElementGrowthNote,
+  getElementLevelName,
+  getStandardFootprintForLevel,
+
 } from "../game/catalog";
+import { SYNERGY_RULES } from "../game/cityDynamics";
 import {
   MAINTENANCE_INTERVAL_SEC,
   type GameState,
-  canMergePair,
+  buildingLockReason,
   isElementUnlocked,
 } from "../game/simulation";
 import { type BuildBrush } from "../game/worldRenderer";
@@ -36,22 +42,22 @@ import { ElementFavicon } from "./ElementFavicon";
 
 interface BottomDockProps {
   open: boolean;
-  isMerging: boolean;
   state: GameState;
   brush: BuildBrush;
   selectedIds: string[];
-  pairSelectMode: boolean;
   hoverInfo: { gx: number; gz: number; valid: boolean; reason?: string } | null;
   onSelectBrushDef: (defId: string | null) => void;
   onUpdateBrushSettings: (patch: Partial<BuildBrush>) => void;
   onStartMoveSelected: (id: string) => void;
-  onTogglePairSelectMode: () => void;
-  onMergeSelectedPair: () => void;
   onUpgradeSelected: (id: string) => void;
   onMaintainSelected: (id: string) => void;
   onGodMutateSelected: (id: string, patch: { level?: number; variant?: number; rotation?: number }) => void;
   onDeleteSelected: () => void;
+  onUndoBuilding: () => void;
   onClearSelection: () => void;
+  onInspectSystems: () => void;
+  onRailOperations: () => void;
+  onOpenWorks: () => void;
   onClose: () => void;
 }
 
@@ -82,22 +88,18 @@ function formatElementStatSummary(def: CivElementDef): string {
 
 export const BottomDock: React.FC<BottomDockProps> = ({
   open,
-  isMerging,
   state,
   brush,
   selectedIds,
-  pairSelectMode,
   hoverInfo,
   onSelectBrushDef,
   onUpdateBrushSettings,
   onStartMoveSelected,
-  onTogglePairSelectMode,
-  onMergeSelectedPair,
   onUpgradeSelected,
   onMaintainSelected,
   onGodMutateSelected,
-  onDeleteSelected,
-  onClearSelection,
+  onDeleteSelected, onUndoBuilding,
+  onClearSelection, onInspectSystems, onRailOperations, onOpenWorks,
   onClose,
 }) => {
   const [activeCat, setActiveCat] = useState<ElementCategory | "all">("starter");
@@ -113,7 +115,10 @@ export const BottomDock: React.FC<BottomDockProps> = ({
         return (
           el.name.toLowerCase().includes(q) ||
           el.description.toLowerCase().includes(q) ||
-          el.category.toLowerCase().includes(q)
+          el.category.toLowerCase().includes(q) ||
+          (q.includes("feed") && (el.food ?? 0)>0) ||
+          ((q.includes("span") || q.includes("cross river")) && el.archetype.startsWith("bridge")) ||
+          ((q.includes("passenger") || q.includes("commut")) && ["roads_transit","maritime"].includes(el.category))
         );
       }
       if (activeCat === "all") return true;
@@ -131,26 +136,20 @@ export const BottomDock: React.FC<BottomDockProps> = ({
   const primaryEl = selectedIds[0]
     ? state.elements.find((e) => e.id === selectedIds[0])
     : undefined;
-  const secondaryEl = selectedIds[1]
-    ? state.elements.find((e) => e.id === selectedIds[1])
-    : undefined;
-
   const primaryDef = primaryEl ? ELEMENT_BY_ID[primaryEl.defId] : undefined;
-  const mergeCheck =
-    primaryEl && secondaryEl ? canMergePair(state, primaryEl.id, secondaryEl.id) : null;
-
   const activeBrushDef = brush.kind === "place" && brush.defId ? ELEMENT_BY_ID[brush.defId] : undefined;
   const activeCatLabel =
     ALL_CATEGORIES.find((c) => c.id === activeCat)?.label ?? "Starter 10";
 
-  if (isMerging) return null;
 
   const showInspector = Boolean(primaryEl && primaryDef);
   const showInvalidHint = Boolean(brush.kind !== "none" && hoverInfo && !hoverInfo.valid && hoverInfo.reason);
   if (!open && !showInspector && !showInvalidHint) return null;
 
   return (
-    <section className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-end gap-1 p-1.5 pr-13 sm:p-2 sm:pr-15">
+    <section onKeyDown={e=>{if(e.key==="Escape" && (searchOpen || catMenuOpen)){
+      e.stopPropagation();setSearchOpen(false);setSearchQuery("");setCatMenuOpen(false);
+    }}} id="island-panel-build" aria-label="Build palette" className="build-dock pointer-events-none fixed inset-x-0 bottom-0 z-20 flex flex-col items-end gap-1 p-1.5 pr-13 sm:p-2 sm:pr-15">
       {/* Hover placement status hint */}
       {showInvalidHint && hoverInfo?.reason && (
         <div className="rounded-md border border-rose-500/40 bg-rose-950/92 px-2 py-0.5 text-[10.5px] font-bold text-rose-100 shadow-md">
@@ -160,7 +159,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
 
       {/* Right-Handed Compact Selected Element Inspector */}
       {primaryEl && primaryDef && (
-        <div className="pointer-events-auto relative flex w-auto max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 rounded-lg border border-stone-900/20 bg-[#fcfaf5]/96 px-2 py-1 shadow-lg">
+        <div className="selection-inspector pointer-events-auto relative flex w-auto max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 rounded-lg border border-stone-900/20 bg-[#fcfaf5]/96 px-2 py-1 shadow-lg">
+          {["train_depots","train_stops","freight_rail_terminal"].includes(primaryDef.id)&&<button className="rounded bg-emerald-900 px-2 py-1 text-xs font-bold text-white" onClick={onRailOperations}>Rail Operations</button>}
+          <button type="button" onClick={onInspectSystems} className="rounded bg-emerald-900 px-2 py-1 text-xs font-bold text-white">Connections</button>
           {/* Element Identity (Favicon + Tiny Color Square + Name & Micro Metadata) */}
           <div className="flex min-w-0 items-center gap-1.5">
             <ElementFavicon def={primaryDef} className="h-5 w-5 shrink-0" />
@@ -169,9 +170,19 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                 <svg className="h-1.5 w-1.5 shrink-0" viewBox="0 0 6 6" aria-hidden="true">
                   <rect width="6" height="6" rx="1" fill={primaryDef.accentHex} />
                 </svg>
-                <span className="truncate">
-                  {primaryDef.name} · Lv.{primaryEl.level}
-                </span>
+                <a className="truncate hover:underline" title="Open in the island field guide" target="_blank" rel="noreferrer"
+                  href={`./field-guide.html?id=${primaryDef.id}&level=${primaryEl.level}&variant=${primaryEl.variant + 1}`}>
+                  {primaryDef.name} · Lv.{primaryEl.level} ↗
+                </a>
+              </div>
+              <div className="truncate text-[10px] font-bold italic text-amber-800" title={getElementGrowthNote(primaryDef) ?? ""}>
+                “{getElementLevelName(primaryDef, primaryEl.level)}”
+                {primaryEl.level < getMaxElementLevel(primaryEl.defId) && (
+                  <span className="font-semibold not-italic text-stone-400">
+                    {" "}→ {getElementLevelName(primaryDef, primaryEl.level + 1)}
+                    {!primaryDef.isNetwork && ` (${getStandardFootprintForLevel(primaryDef, primaryEl.level + 1).join("×")})`}
+                  </span>
+                )}
               </div>
               <div className="font-mono-num flex flex-wrap items-center gap-1 text-[9.5px] font-semibold text-stone-500">
                 <span>
@@ -182,6 +193,36 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                     <span aria-hidden="true">·</span>
                     <span className={primaryEl.connected ? "text-emerald-700" : "text-rose-700"}>
                       {primaryEl.connected ? "Linked" : "No Road"}
+                    </span>
+                  </>
+                )}
+                {!primaryDef.isNetwork && !primaryDef.passiveNature && primaryEl.landValue !== undefined && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span
+                      className={(primaryEl.landValue ?? 0.5) >= 1 ? "text-emerald-700" : (primaryEl.landValue ?? 0.5) < 0.45 ? "text-rose-700" : "text-stone-500"}
+                      title="Land value (parks, water & landmarks raise it; pollution lowers it)"
+                    >
+                      💎{(primaryEl.landValue ?? 0.5).toFixed(2)}
+                    </span>
+                  </>
+                )}
+                {(primaryEl.pollution ?? 0) > 1 && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="text-rose-700" title="Pollution at this spot">☁{(primaryEl.pollution ?? 0).toFixed(1)}</span>
+                  </>
+                )}
+                {(primaryEl.synergies?.length ?? 0) > 0 && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span
+                      className="text-violet-700"
+                      title={`Synergies (+${Math.min(4, primaryEl.synergies?.length ?? 0) * 12}% output): ${(primaryEl.synergies ?? [])
+                        .map((id) => SYNERGY_RULES.find((r) => r.id === id)?.label ?? id)
+                        .join(", ")}`}
+                    >
+                      {(primaryEl.synergies ?? []).map((id) => SYNERGY_RULES.find((r) => r.id === id)?.emoji ?? "✨").join("")}
                     </span>
                   </>
                 )}
@@ -221,7 +262,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               <Trash2 className="h-3.5 w-3.5" />
             </button>
 
-            {state.mode === "god" && !secondaryEl && (
+            {state.mode === "god" && (
               <>
                 {!primaryDef.isNetwork && (
                   <button
@@ -266,48 +307,15 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                 type="button"
                 onClick={() => onMaintainSelected(primaryEl.id)}
                 className="flex h-6.5 w-6.5 items-center justify-center rounded bg-amber-500 text-stone-950 hover:bg-amber-400"
-                title={primaryEl.onFire ? "Extinguish Fire" : "Maintain Building"}
-                aria-label={primaryEl.onFire ? "Extinguish Fire" : "Maintain Building"}
+                title={primaryEl.onFire ? "Dispatch fire crew" : "Maintain Building"}
+                aria-label={primaryEl.onFire ? "Dispatch fire crew" : "Maintain Building"}
               >
                 {primaryEl.onFire ? <Flame className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
               </button>
             )}
 
-            {primaryEl.level < 5 && !secondaryEl && (
-              <button
-                type="button"
-                onClick={onTogglePairSelectMode}
-                className={`flex h-6.5 w-6.5 items-center justify-center rounded border transition-colors ${
-                  pairSelectMode
-                    ? "border-emerald-600 bg-emerald-600 text-white"
-                    : "border-stone-300 bg-white text-stone-800 hover:bg-stone-100"
-                }`}
-                title="Select adjacent twin to Merge"
-                aria-label="Merge with twin"
-              >
-                <GitMerge className="h-3.5 w-3.5" />
-              </button>
-            )}
-
-            {secondaryEl && (
-              <button
-                type="button"
-                disabled={!mergeCheck?.ok}
-                onClick={onMergeSelectedPair}
-                className={`flex h-6.5 items-center gap-1 whitespace-nowrap rounded px-2 text-[10.5px] font-extrabold ${
-                  mergeCheck?.ok
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                    : "cursor-not-allowed bg-stone-200 text-stone-400"
-                }`}
-                title={`Confirm Merge to Level ${primaryEl.level + 1}`}
-              >
-                <GitMerge className="h-3.5 w-3.5" />
-                <span>Lv.{primaryEl.level + 1}</span>
-              </button>
-            )}
-
             {/* Direct Level-Down & Level-Up Twin Buttons (Rightmost for Right-Handed Thumb Reach) */}
-            {state.mode === "god" && !secondaryEl && (
+            {state.mode === "god" && (
               <button
                 type="button"
                 disabled={primaryEl.level <= 1}
@@ -326,18 +334,18 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               </button>
             )}
 
-            {!secondaryEl && (
+            {(
               <button
                 type="button"
-                disabled={primaryEl.level >= 5}
+                disabled={primaryEl.level >= getMaxElementLevel(primaryEl.defId)}
                 onClick={() => onUpgradeSelected(primaryEl.id)}
                 className="flex h-6.5 w-6.5 items-center justify-center rounded bg-stone-900 text-amber-300 transition-opacity hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-35"
                 title={
-                  primaryEl.level >= 5
-                    ? "Max Level (Lv.5)"
+                  primaryEl.level >= getMaxElementLevel(primaryEl.defId)
+                    ? "Fully upgraded"
                     : state.mode === "god"
                       ? `Level Up to Lv.${primaryEl.level + 1}`
-                      : `Upgrade to Lv.${primaryEl.level + 1} ($${getUpgradeCost(primaryDef, primaryEl.level)})`
+                      : `Upgrade to Lv.${primaryEl.level + 1} “${getElementLevelName(primaryDef, primaryEl.level + 1)}” ($${placedUpgradeCost(state,primaryEl)})`
                 }
                 aria-label="Level Up"
               >
@@ -350,14 +358,18 @@ export const BottomDock: React.FC<BottomDockProps> = ({
 
       {/* Compact Right-Aligned Builder Tab (Strictly 1-Row Skinny Strip by Default) */}
       {open && (
-        <div className="pointer-events-auto w-full max-w-3xl rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 shadow-xl">
+        <div className="build-palette pointer-events-auto w-full max-w-3xl rounded-xl border border-stone-900/20 bg-[#fcfaf5]/96 shadow-xl">
           {/* Header Row: Utility Icons on Left, Primary Controls (Category & Select) Flush Right for Right Thumb */}
           <div className="flex flex-wrap items-center justify-between gap-1 border-b border-stone-200 px-1.5 py-1">
+            <button type="button" className="rounded bg-emerald-900 px-2 py-1 text-xs font-bold text-white" onClick={onOpenWorks}>Terrain &amp; transport</button>
+            <button type="button" onClick={onUndoBuilding} disabled={!state.constructionHistory?.length}
+              className="rounded border border-stone-300 px-2 py-1 text-xs font-semibold text-stone-800 disabled:opacity-40"
+              title={state.constructionHistory?.at(-1)?.label}>Undo building edit</button>
             {searchOpen ? (
               <div className="flex min-w-0 flex-1 items-center gap-1">
                 <Search className="h-3.5 w-3.5 shrink-0 text-stone-500" />
                 <input
-                  type="text"
+                  type="search" aria-label="Find a building"
                   autoFocus
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -419,7 +431,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                   {brush.kind === "place" && activeBrushDef && !activeBrushDef.isNetwork && (
                     <button
                       type="button"
-                      onClick={() => onUpdateBrushSettings({ rotation: (brush.rotation + 1) % 4 })}
+                      onClick={() => onUpdateBrushSettings({ rotation: (brush.rotation + 1) % 4, faceManually:true })}
                       className="flex h-6 w-6 items-center justify-center rounded border border-stone-300 bg-white text-stone-700 hover:bg-stone-100"
                       title="Rotate 90° (R)"
                       aria-label="Rotate 90 degrees"
@@ -447,9 +459,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                       </span>
                       <button
                         type="button"
-                        disabled={brush.level >= 5}
+                        disabled={brush.level >= getMaxElementLevel(brush.defId ?? "")}
                         onClick={() =>
-                          onUpdateBrushSettings({ level: Math.min(5, brush.level + 1) })
+                          onUpdateBrushSettings({ level: Math.min(getMaxElementLevel(brush.defId ?? ""), brush.level + 1) })
                         }
                         className="flex h-5 w-5 items-center justify-center rounded bg-stone-900 text-amber-300 hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-35"
                         title="Increase Placement Level"
@@ -468,7 +480,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                         ? "border-emerald-700 bg-emerald-700 text-white"
                         : "border-stone-300 bg-white text-stone-800 hover:bg-stone-100"
                     }`}
-                    title="Browse all 14 element categories"
+                    aria-expanded={catMenuOpen} aria-label={"Choose building category: "+activeCatLabel} title="Browse element categories"
                   >
                     <Grid2x2 className="h-3 w-3 shrink-0" />
                     <span className="max-w-[84px] truncate sm:max-w-[140px]">{activeCatLabel}</span>
@@ -526,7 +538,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
           <div
             className={
               expanded
-                ? "grid max-h-[36vh] grid-cols-3 gap-1 overflow-y-auto overflow-x-hidden px-1.5 py-1.5 sm:grid-cols-4 md:grid-cols-5"
+                ? "build-grid grid max-h-[36vh] grid-cols-2 gap-1 overflow-y-auto overflow-x-hidden px-1.5 py-1.5 sm:grid-cols-4 md:grid-cols-5"
                 : "flex flex-nowrap items-center gap-1.5 overflow-x-auto overflow-y-hidden px-1.5 py-1 touch-pan-x"
             }
           >
@@ -536,9 +548,10 @@ export const BottomDock: React.FC<BottomDockProps> = ({
               </div>
             ) : (
               filteredElements.map((def) => {
-                const unlocked = isElementUnlocked(def, state);
+                const lock = buildingLockReason(def, state);
+                const unlocked = !lock;
                 const selected = brush.kind === "place" && brush.defId === def.id;
-                const canAfford = state.mode === "god" || state.money >= def.cost;
+                const canAfford = !buildingCharges(state) || state.money >= def.cost;
 
                 return (
                   <button
@@ -546,8 +559,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                     type="button"
                     disabled={!unlocked}
                     onClick={() => onSelectBrushDef(selected ? null : def.id)}
-                    title={`${def.name} — ${def.description}`}
-                    className={`flex h-[34px] min-w-0 items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-left transition-colors ${
+                    title={lock ?? `${def.name} — ${def.description}`}
+                    aria-pressed={selected}
+                    className={`build-element flex h-[34px] min-w-0 items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-left transition-colors ${
                       expanded ? "w-full" : "w-[114px] shrink-0"
                     } ${
                       !unlocked
@@ -557,7 +571,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                           : "border-stone-200 bg-white text-stone-900 hover:border-stone-400 hover:bg-stone-50"
                     }`}
                   >
-                    {/* Tiny Level-1 Voxel Favicon */}
+                    {/* Illustrated design */}
                     <ElementFavicon def={def} className="h-[22px] w-[22px] shrink-0" />
 
                     {/* Skinny Compact Info Stack: Tiny Color Square + Name + Stat */}
@@ -566,7 +580,7 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                         <svg className="h-1.5 w-1.5 shrink-0" viewBox="0 0 6 6" aria-hidden="true">
                           <rect width="6" height="6" rx="1" fill={def.accentHex} />
                         </svg>
-                        <span className="truncate text-[9.5px] font-extrabold leading-tight">
+                        <span className="build-name truncate text-[9.5px] font-extrabold leading-tight">
                           {def.name}
                         </span>
                       </div>
@@ -579,9 +593,9 @@ export const BottomDock: React.FC<BottomDockProps> = ({
                         {!unlocked ? (
                           <span className="font-mono-num inline-flex shrink-0 items-center gap-0.5 text-stone-400">
                             <Lock className="h-2 w-2" />
-                            S{def.stage}
+                            {lock?.startsWith("Staff") ? "City office" : def.wealthThreshold ? lock?.replace("Reach ", "") : "S"+def.stage}
                           </span>
-                        ) : state.mode !== "god" ? (
+                        ) : buildingCharges(state) ? (
                           <span
                             className={`font-mono-num shrink-0 font-bold ${
                               selected
