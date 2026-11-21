@@ -804,42 +804,60 @@ function preschool(c: Ctx) {
   if (lv === 1) {
     slide(v, X1 - 5, Z0 + prD - 3, deck, chute, a.accent);
     sandbox(v, X0 + 1, Z1 - 6, X0 + 7, Z1 - 1, vr === 3 ? "blue" : "wood");
-    crowd(c, X0 + 1, Z0 + prD + 2, X1 - 1, Z1 - 1, 3);
   }
-  if (lv >= 2) {
-    const sx = lv >= 3 ? X0 + Math.floor(W * 0.38) : X0 + prW + 4;
-    slide(v, Math.min(X1 - 6, px0 + prW + 1), pz0 + 1, deck, chute, a.accent);
-    swings(v, sx, Z1 - 6, ["red", "woodDark", "orange", "blue"][vr], sw, 2);
-    sandbox(v, X0 + 2, Z1 - 7, X0 + 9, Z1 - 1, vr === 3 ? "blue" : "wood");
-    if (lv === 2) seesaw(v, X1 - 9, Z1 - 3, ["lime", "wood", "orange", "sky"][vr]);
-    crowd(c, X0 + 1, Z0 + prD + 2, X1 - 1, Z1 - 1, 5 + lv);
+  const frame = ["red", "woodDark", "orange", "blue"][vr],
+    sandRim = vr === 3 ? "blue" : "wood",
+    midZ = Z0 + prD + 3;
+  if (lv >= 2) slide(v, Math.min(X1 - 6, px0 + prW + 1), pz0 + 1, deck, chute, a.accent);
+  if (lv === 2) {
+    swings(v, X0 + prW + 4, Z1 - 6, frame, sw, 2);
+    sandbox(v, X0 + 2, Z1 - 7, X0 + 9, Z1 - 1, sandRim);
+    seesaw(v, X1 - 9, Z1 - 3, ["lime", "wood", "orange", "sky"][vr]);
+  }
+  if (lv === 3) {
+    swings(v, X0 + Math.floor(W * 0.38), Z1 - 6, frame, sw, 2);
+    sandbox(v, X0 + 2, Z1 - 7, X0 + 9, Z1 - 1, sandRim);
+    climbDome(v, X1 - 6, Z1 - 6, 3, ["red", "yellow", "blue", "lime", "orange"]);
   }
   if (lv >= 3) storyWing(c, X1 - 12, Z0 + 2, X1 - 3, Z0 + 2 + Math.min(10, Math.floor(D * 0.38)));
-  if (lv >= 4) {
-    playCastle(c, X0 + 2, Z0 + prD + 3);
+  if (lv === 4) {
+    // adventure playground: castle with rope bridge, tunnel, dome, merry-go-round
+    playCastle(c, X0 + 2, Z1 - 7);
+    sandbox(v, X0 + 2, midZ, X0 + 9, midZ + 5, sandRim);
+    swings(v, X0 + 12, midZ, frame, sw, 3);
+    tunnel(v, X0 + Math.floor(W * 0.45), X0 + Math.floor(W * 0.45) + 7, Z1 - 4, ["red", "yellow", "blue", "lime"]);
+    climbDome(v, X1 - 16, midZ + 3, 3, ["red", "yellow", "blue", "lime", "orange"]);
     merryGoRound(c, X1 - 7, Z1 - 7, 3);
-    tunnel(v, X0 + Math.floor(W * 0.55), X0 + Math.floor(W * 0.55) + 7, Z0 + Math.floor(D * 0.56), ["red", "yellow", "blue", "lime"]);
-    climbDome(v, X1 - 16, Z0 + Math.floor(D * 0.55), 3, ["red", "yellow", "blue", "lime", "orange"]);
   }
   if (lv >= 5) {
-    rainbow(v, gx, Z0 + Math.floor(D * 0.66), 7);
-    // splash pad
-    v.box(gx - 5, 0, Z1 - 9, gx + 5, 1, Z1 - 3, "cyan", 0.2);
-    for (const [ox, oz] of [
-      [-3, -7],
-      [0, -5],
-      [3, -7],
-    ])
-      v.box(gx + ox, 1, Z1 + oz, gx + ox + 1, 3, Z1 + oz + 1, "white", 0.4);
+    // children's village: playhouses ring a rainbow plaza with a splash pad
     const walls = ["yellow", "sky", "pink", "lime", "orange"],
       roofs = ["red", "blue", "purple", "leafDark", "teal"];
-    for (let i = 0; i < 3; i++) playhouse(v, X1 - 8 - i * 0, Z0 + 15 + i * 0, walls[(i + vr) % 5], roofs[(i + vr) % 5]);
-    playhouse(v, X1 - 8, Z0 + Math.floor(D * 0.42), walls[(1 + vr) % 5], roofs[(2 + vr) % 5]);
-    playhouse(v, X0 + 2, Z1 - 8, walls[(3 + vr) % 5], roofs[(4 + vr) % 5]);
+    const hz0 = Z0 + 15,
+      step = Math.max(7, Math.floor((D - 30) / 2));
+    for (let i = 0; i < 2; i++) {
+      playhouse(v, X0 + 2, hz0 + i * step, walls[(i + vr) % 5], roofs[(i + vr) % 5]);
+      playhouse(v, X1 - 7, hz0 + i * step, walls[(i + 2 + vr) % 5], roofs[(i + 3 + vr) % 5]);
+    }
+    rainbow(v, gx, hz0 + 2, 7);
+    v.box(gx - 6, 0, hz0 + 5, gx + 7, 1, hz0 + 13, "cyan", 0.2);
+    for (const [ox, oz] of [
+      [-3, 7],
+      [0, 9],
+      [3, 7],
+      [6, 10],
+    ])
+      v.box(gx + ox, 1, hz0 + oz, gx + ox + 1, 3, hz0 + oz + 1, "white", 0.5);
+    playCastle(c, X0 + 2, Z1 - 7);
+    swings(v, X0 + 15, Z1 - 5, frame, sw, 2);
+    sandbox(v, X0 + 9, hz0, X0 + 15, hz0 + 5, sandRim);
+    climbDome(v, X1 - 13, hz0 + 3, 3, ["red", "yellow", "blue", "lime", "orange"]);
+    merryGoRound(c, X1 - 7, Z1 - 7, 3);
     // parents with buggies at the gate
     person(v, gx + 3, 1, Z1 - 1, "teal");
     v.box(gx + 4, 1, Z1 - 1, gx + 6, 3, Z1, "pink");
   }
+  crowd(c, X0 + 1, Z0 + prD + 2, X1 - 1, Z1 - 1, lv === 1 ? 3 : 4 + lv * 2);
   // variant garnish
   if (vr === 0 && lv >= 2) {
     toyBlock(v, X1 - 4, 1, Z1 - 4, 3, "lime", "white");

@@ -1075,12 +1075,14 @@ function angkorWat(c: Ctx): void {
     v.box(-3, 0, hz - 1 - mw - 1, 3, 2, hz, "limestone");
     for (const s of [-3, 2]) v.box(s, 2, hz - 1 - mw - 1, s + 1, 3, hz, lv >= 5 ? stone2 : stone);
     if (variant === 3 || lv >= 5) {
-      for (let i = 0; i < 30; i++) {
+      const pads = variant === 3 ? 70 : 28;
+      for (let i = 0; i < pads * 3; i++) {
         const x = c.ri(-hx + 1, hx - 2), z = c.ri(-hz + 1, hz - 2);
-        const inMoat = (Math.abs(x) >= hx - 1 - mw || Math.abs(z + 0.5) >= hz - 1 - mw) && Math.abs(x) < hx - 1 && Math.abs(z) < hz - 1 && Math.abs(x) > 4;
-        if (!inMoat) continue;
-        v.put(x, 1, z, "leaf");
-        if (variant === 3 || i % 3 === 0) v.put(x, 2, z, "pink", 0.25);
+        const inX = x < -hx + 1 + mw || x >= hx - 1 - mw, inZ = z < -hz + 1 + mw || z >= hz - 1 - mw;
+        if (!(inX || inZ) || (Math.abs(x) <= 4 && z > 0)) continue;
+        v.put(x, 0, z, "leaf");
+        if (i % 2 === 0) v.put(x, 1, z, variant === 3 ? "pink" : "white", 0.3);
+        if (i > pads * 2) break;
       }
     }
   }
