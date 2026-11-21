@@ -17,6 +17,8 @@ import {standardRoadLanes} from "./roadStandards";
  */
 import { type CivElementDef, ELEMENT_BY_ID } from "./catalog";
 import type { PlacedElement } from "./simulation";
+import { levelMultiplier, scaledRadius } from "./levelScaling";
+import { FARM_ANCHOR_IDS, FARM_MODULE_IDS } from "./expansionCatalog";
 
 import { GRID_MIN, GRID_SIZE } from "./mapBounds";
 export const FIELD_MIN=GRID_MIN;
@@ -139,14 +141,6 @@ const ROAD_CAPACITY: Record<string, number> = {
   boardwalks: 3,
 };
 
-/** Trips removed from the road network by transit (per Lv.1 station) */
-const TRANSIT_RELIEF: Record<string, number> = {
-  bus_stops: 14,
-  bus_depots: 40,
-  train_stops: 45,
-  train_depots: 90,
-  taxi_depots: 22,
-};
 
 // ---------------------------------------------------------------------------------------------
 // Synergies
@@ -264,15 +258,15 @@ export function analyzeLayout(
     const def = ELEMENT_BY_ID[e.defId];
     if (!def) continue;
     const [cx, cz] = centerOf(e);
-    const lvBoost = 1 + (e.level - 1) * 0.3;
-    const p = POLLUTION[def.id] ?? (def.nuisanceRadius ? def.nuisanceRadius * 0.6 : 0);
+    const p = basePollution(def);
     if (p !== 0) {
-      const strength = p * lvBoost;
+      // Emitters pollute more and absorbers (trees, parks) clean more as they level up.
+      const strength = p * levelMultiplier("pollution", e.level);
       const radius = p > 0 ? 2.5 + Math.sqrt(strength) * 1.6 : 2 + Math.sqrt(-strength) * 1.2;
       splat(pollution, cx, cz, strength * (e.onFire ? 1.5 : 1), radius);
     }
     const des = DESIRABILITY[def.id];
-    if (des) splat(landValue, cx, cz, des[0] * (1 + (e.level - 1) * 0.2), des[1] + (e.level - 1) * 0.5);
+    if (des) splat(landValue, cx, cz, des[0] * levelMultiplier("desirability", e.level), des[1] + (levelMultiplier("desirability", e.level) - 1) * 3);
   }
 
   // Ordinary construction changes the pollution field, while the much larger coastline rarely changes.
@@ -362,9 +356,19 @@ export function roadCapacity(def: CivElementDef, level: number): number {
   return base * standardRoadLanes(def.id,level) / standardRoadLanes(def.id,1) * (1 + (level - 1) * .17);
 }
 
+/** Trips removed from the road network by transit (per Lv.1 station) */
+const TRANSIT_RELIEF: Record<string, number> = {
+  bus_stops: 14,
+  bus_depots: 40,
+  train_stops: 45,
+  train_depots: 90,
+  taxi_depots: 22,
+};
+
+/** Nominal relief rating of a stop/station (reference figure; live relief comes from mobility.reliefAtStops). */
 export function transitRelief(def: CivElementDef, level: number): number {
   const base = TRANSIT_RELIEF[def.id] ?? 0;
-  return base * Math.pow(2, level - 1) * 0.6;
+  return base * levelMultiplier("output", level) * 0.6;
 }
 
 /** Trips a building puts on the road at Lv.1 (before level scaling) */
@@ -436,7 +440,99 @@ export function upkeepFor(def: CivElementDef, level: number): number {
   if (def.passiveNature) return 0;
   if (def.popBase && def.category === "housing") return 0;
   if ((def.income ?? 0) > 0) return 0;
-  return def.cost * 0.008 * Math.pow(level, 0.8);
+  return def.cost * 0.008 * levelMultiplier("upkeep", level);
+}
+
+/** Lv.1 pollution an element emits (positive) or absorbs (negative). */
+export function basePollution(def: CivElementDef): number {
+  return POLLUTION[def.id] ?? (def.nuisanceRadius ? def.nuisanceRadius * 0.6 : 0);
+}
+
+/**
+ * Nominal per-element contribution at a level, before situational factors (road access, staffing,
+ * weather, synergies, disrepair, district bonuses). The simulation and economy multiply these same
+ * figures by those factors, so this is both the production formula and what inspectors report.
+ * Positive numbers are supplied, `powerDraw`/`waterDraw` are consumed.
+ */
+export interface ElementLevelStats {
+  level: number;
+  population: number;
+  jobs: number;
+  power: number;
+  powerDraw: number;
+  water: number;
+  waterDraw: number;
+  waste: number;
+  /** Harvest (farms, fields, modules) or retail food throughput (grocers, restaurants) basis */
+  food: number;
+  education: number;
+  recreation: number;
+  government: number;
+  police: number;
+  military: number;
+  /** Export earnings basis ($ per tick) */
+  income: number;
+  policeRadius: number;
+  fireRadius: number;
+  nuisanceRadius: number;
+  /** Pollution emitted (> 0) or absorbed (< 0) */
+  pollution: number;
+  upkeep: number;
+  trips: number;
+}
+
+/** Sites whose food output is a harvest (yield follows the "crop" curve). */
+export const CROP_SITE_IDS: ReadonlySet<string> = new Set([
+  ...FARM_ANCHOR_IDS,
+  ...FARM_MODULE_IDS,
+  "farms",
+  "fields",
+  "orchards",
+  "groves_of_olives",
+  "plantations",
+  "gardens",
+  "terraced_glasshouses",
+  "solar_canopy_orchard",
+  "ocean_habitat_ring",
+]);
+/** Sites whose food output is retail throughput (follows the "retail" curve). */
+export const isRetailFoodSite = (def: CivElementDef) =>
+  def.id === "grocery_store" || def.id === "growers_exchange" || def.id === "bakery_coop" || def.id === "malls" || def.archetype === "restaurant_bar";
+
+export function elementLevelStats(def: CivElementDef, level: number): ElementLevelStats {
+  const out = levelMultiplier("output", level);
+  const draw = levelMultiplier("draw", level);
+  const pos = (v?: number) => Math.max(0, v ?? 0);
+  const neg = (v?: number) => Math.max(0, -(v ?? 0));
+  const isRetail = isRetailFoodSite(def);
+  const food = CROP_SITE_IDS.has(def.id) || def.id === "farm_houses"
+    ? pos(def.food ?? 8) * levelMultiplier("crop", level)
+    : isRetail
+      ? pos(def.food ?? 24) * levelMultiplier("retail", level)
+      : pos(def.food) * out;
+  return {
+    level: Math.min(5, Math.max(1, Math.floor(level) || 1)),
+    population: pos(def.popBase) * out,
+    jobs: pos(def.jobs) * out,
+    power: pos(def.power) * out,
+    powerDraw: neg(def.power) * draw,
+    water: pos(def.water) * out,
+    waterDraw: neg(def.water) * draw,
+    waste: pos(def.waste) * out,
+    food,
+    education: pos(def.education) * out,
+    recreation: pos(def.recreation) * out,
+    government: pos(def.government) * out,
+    police: pos(def.police) * out,
+    military: pos(def.military) * out,
+    income: pos(def.income) * out,
+    policeRadius: scaledRadius(pos(def.policeRadius), level),
+    fireRadius: scaledRadius(pos(def.fireRadius), level),
+    nuisanceRadius: scaledRadius(pos(def.nuisanceRadius), level),
+    pollution: basePollution(def) * levelMultiplier("pollution", level),
+    upkeep: upkeepFor(def, level),
+    trips: tripsFor(def) * levelMultiplier("trips", level),
+  };
 }
 
 // ---------------------------------------------------------------------------------------------

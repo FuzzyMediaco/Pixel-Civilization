@@ -7,6 +7,8 @@ import type { getParcelEffectSummary } from "./parcelEdges";
 import { ELEMENT_BY_ID, STAGES } from "./catalog";
 import type { CityMetrics, GameState, PlacedElement } from "./simulation";
 import { hydraulics } from "./terrain";
+import { CROP_SITE_IDS, isRetailFoodSite } from "./cityDynamics";
+import { levelMultiplier } from "./levelScaling";
 import { PROJECT_BY_ID } from "./wealthProjects";
 
 export type Account = "treasury" | "households" | "businesses";
@@ -318,18 +320,7 @@ export function hasAuthority(s: GameState) {
     Number(s.elements.some((e) => govIds.has(e.defId) && operational(e) && professionalStaff(s, e) >= 1)),
   );
 }
-const crops = new Set([
-  ...FARM_ANCHOR_IDS,...FARM_MODULE_IDS,
-  "farms",
-  "fields",
-  "orchards",
-  "groves_of_olives",
-  "plantations",
-  "gardens",
-  "terraced_glasshouses",
-  "solar_canopy_orchard",
-  "ocean_habitat_ring",
-]);
+const crops = CROP_SITE_IDS;
 const skilledIds = new Set([
   "regional_airport",
   "spaceport",
@@ -400,13 +391,13 @@ export function evaluateEconomy(
   const group = (el:PlacedElement)=>ownGroup(farmDistrict.farms.get(el.id)?.owner.get(el.id)??el);
   const homes = live.filter((el) => ELEMENT_BY_ID[el.defId]?.popBase),
     regions = new Map<string, number>();
-  const weighted = sum(homes.map((x) => (ELEMENT_BY_ID[x.defId].popBase ?? 0) * 2 ** (x.level - 1)));
+  const weighted = sum(homes.map((x) => (ELEMENT_BY_ID[x.defId].popBase ?? 0) * levelMultiplier("output", x.level)));
   for (const h of homes) {
     const key = group(h);
     regions.set(
       key,
       (regions.get(key) ?? 0) +
-        (s.population * (ELEMENT_BY_ID[h.defId].popBase ?? 0) * 2 ** (h.level - 1)) / Math.max(1, weighted),
+        (s.population * (ELEMENT_BY_ID[h.defId].popBase ?? 0) * levelMultiplier("output", h.level)) / Math.max(1, weighted),
     );
   }
   const water = hydraulics(s).services,
@@ -424,11 +415,12 @@ export function evaluateEconomy(
     const rain=s.weather==="rain"||s.weather==="storm";
     const dry=growers.filter(el=>!rain&&!water.get(el.id)?.irrigation&&!joins?.get(el.id)?.bankWater);
     const outlets=ponds.map(pond=>{
-      const site=siteOf(s,pond),capacity=.8*pond.level;
-      site.irrigationIn=Math.min(capacity,water.get(pond.id)?.irrigation??0)+(rain?.95*pond.level:0);
+      const site=siteOf(s,pond),capacity=.8*levelMultiplier("output",pond.level);
+      site.irrigationIn=Math.min(capacity,water.get(pond.id)?.irrigation??0)+(rain?.95*levelMultiplier("output",pond.level):0);
       return {site,rate:Math.min(capacity,Math.max(0,site.cistern??0)/4)};
     });
-    const supply=outlets.reduce((n,p)=>n+p.rate,0),wanted=dry.length*.18;
+    // A bigger field drinks more: each dry grower wants water in proportion to its level.
+    const supply=outlets.reduce((n,p)=>n+p.rate,0),wanted=dry.reduce((n,el)=>n+.18*levelMultiplier("output",el.level),0);
     const coverage=wanted?Math.min(1,supply/wanted):0;
     for(const el of dry)pondCoverage.set(el.id,coverage);
     for(const p of outlets)p.site.irrigationOut=supply?Math.min(supply,wanted)*p.rate/supply:0;
@@ -454,7 +446,7 @@ export function evaluateEconomy(
   for(const site of live){
     if(!["trade_school","community_college","university","research_university"].includes(site.defId))continue;
     const district=group(site), local=schools.get(district)??new Map<string,number>();
-    local.set(site.defId,(local.get(site.defId)??0)+(ELEMENT_BY_ID[site.defId].education??0)*2**(site.level-1));
+    local.set(site.defId,(local.get(site.defId)??0)+(ELEMENT_BY_ID[site.defId].education??0)*levelMultiplier("output",site.level));
     schools.set(district,local);
   }
   const trained=(g:string,id:string)=>Math.min(1,(schools.get(g)?.get(id)??0)/Math.max(1,(regions.get(g)??0)*.35));
@@ -466,7 +458,7 @@ export function evaluateEconomy(
     if (!d || d.isNetwork || (d.passiveNature && !crops.has(d.id))) continue;
     const a = siteOf(s, el),
       g = group(el),
-      scale = 2 ** (el.level - 1);
+      scale = levelMultiplier("output", el.level);
     a.group = g;
     a.bulkStorage=bulkStorage.has(el.id);
     if(d.id==="irrigation_pond" && !report.farms.get(el.id)?.live){a.irrigationIn=0;a.irrigationOut=0;}
@@ -504,22 +496,26 @@ export function evaluateEconomy(
     if (crops.has(d.id)) {
       a.yieldRate =
         (d.food ?? 8) *
-        2.35 ** (el.level - 1) *
+        levelMultiplier("crop", el.level) *
         0.10 *
         (cooled ? 1.42 : rain ? 1.05 : .62+.8*(pondCoverage.get(el.id)??0)) *
         complexBoost(report.farms.get(el.id)?.count.get(el.id)??0) *
         (exchanges.some((x) => closeSites(x, el, 4)) ? 1.15 : 1);
       if (d.id === "terraced_glasshouses" && m.powerSupply < m.powerDemand) a.yieldRate *= 0.3;
     }
-    if (d.id === "farm_houses") a.yieldRate = .55 * 2.35**(el.level-1)*complexBoost(report.farms.get(el.id)?.count.get(el.id)??0);
+    if (d.id === "farm_houses") a.yieldRate = .55 * levelMultiplier("crop", el.level)*complexBoost(report.farms.get(el.id)?.count.get(el.id)??0);
+    // Other food producers (fishing docks and boats, mills, monastery gardens…) land a catch or
+    // harvest that grows with their level like every other output.
+    else if (!crops.has(d.id) && !isRetailFoodSite(d) && (d.food ?? 0) > 0)
+      a.yieldRate = d.food! * scale * 0.10;
     a.yieldRate *= report.bonuses.foodMultiplier.get(el.id)??1;
     if(a.yieldRate>0 && s.railYard?.benefits[el.id])a.yieldRate *= Math.max(railFreightBonus(s,el.id,"dairy"),railFreightBonus(s,el.id,"grain"),railFreightBonus(s,el.id,"livestock"));
     if (edge) {
       a.yieldRate *= 1 + edge.agriculture;
       if (d.category === "housing" || d.id === "orchards")
-        a.yieldRate += edge.food * 0.16 * (cooled || rain ? 1.35 : 1);
+        a.yieldRate += edge.food * levelMultiplier("amenity", el.level) * 0.16 * (cooled || rain ? 1.35 : 1);
     }
-    if (d.id === "floodplain_park" && rain) m.wasteCapacity += el.level * 2;
+    if (d.id === "floodplain_park" && rain) m.wasteCapacity += 2 * scale;
     if (d.id === "rainwater_cathedral") {
       // Early project saves used the food field to store rain in this building.
       if (a.cistern === undefined) {
@@ -529,17 +525,12 @@ export function evaluateEconomy(
       potable += Math.min(36 * scale, a.cistern);
     }
     if (d.id === "district_heat_works" && factories.some((x) => closeSites(x, el, 3)))
-      powerSaved += homes.filter((x) => closeSites(x, el, 4)).length * el.level * 2;
+      powerSaved += homes.filter((x) => closeSites(x, el, 4)).length * 2 * scale;
     const bank = banks.some((x) => group(x) === g && closeSites(x, el, 5))
       ? effective(s, "banking", 100) / 100
       : 0;
-    if (
-      d.id === "grocery_store" ||
-      d.id === "growers_exchange" ||
-      d.id === "bakery_coop" ||
-      d.archetype === "restaurant_bar"
-    )
-      a.retail = (d.food ?? 24) * 1.45 * 2.25**(el.level-1) * (1 + bank * 0.15);
+    if (isRetailFoodSite(d))
+      a.retail = (d.food ?? 24) * 1.45 * levelMultiplier("retail", el.level) * (1 + bank * 0.15);
     if(a.retail>0 && s.railYard?.benefits[el.id]) a.retail *= Math.max(...(["goods","dairy","grain","livestock"] as const).map(c=>railFreightBonus(s,el.id,c)));
     if (edge) a.retail *= 1 + edge.commerce;
     if (residents > 0 && (d.id !== "grocery_store" || a.food > 0 || s.money + e.businesses > 0))
@@ -555,6 +546,11 @@ export function evaluateEconomy(
     )
       a.exportRate =
         (d.income ?? 5) * scale * 0.24 * (industry(d.id) && !cooled ? 0.42 : 1) * (1 + bank * 0.15);
+    // Every other earning site (stores, banks, malls, landmarks, depots…) draws visitor and
+    // customer spending from outside the city: half the export rate, scaled with its level.
+    // Grocers and restaurants already earn through household food sales, so they are excluded.
+    else if (railOK && !d.popBase && !flightProject(d.id) && (d.income ?? 0) > 0 && (!isRetailFoodSite(d) || d.id === "malls"))
+      a.exportRate = d.income! * scale * 0.12 * (1 + bank * 0.15);
     if(a.exportRate>0 && s.railYard?.benefits[el.id]) a.exportRate *= Math.max(...(["goods","timber","fuel"] as const).map(c=>railFreightBonus(s,el.id,c)));
     a.exportRate *= (report.bonuses.incomeMultiplier.get(el.id)??1)*
       (1+(industrial?.18*trained(g,"trade_school"):0)+(commercial?.14*trained(g,"community_college"):0)+(advanced?.18*trained(g,"research_university"):0));
@@ -584,7 +580,7 @@ export function evaluateEconomy(
     a.yieldRate *= a.jobs ? 0.42 + (0.58 * a.workers) / Math.max(1, a.jobs) : 1;
     a.attendees = Math.min(
       residents,
-      (ELEMENT_BY_ID[el.defId].education ?? ELEMENT_BY_ID[el.defId].recreation ?? 0) * el.level,
+      (ELEMENT_BY_ID[el.defId].education ?? ELEMENT_BY_ID[el.defId].recreation ?? 0) * levelMultiplier("output", el.level),
     );
     r.harvest += a.yieldRate;
     if (residents > 0) accessibleHarvest += a.yieldRate;
@@ -608,6 +604,8 @@ export function evaluateEconomy(
   m.powerSupply = effective(s, "power", m.powerSupply + r.reserveOutput);
   e.peak = Math.max(cityWealth(s), e.peak);
 }
+/** Irrigation pond reservoir size (water units) at a level — use this for any UI readout. */
+export const pondCisternCapacity = (level: number) => 36 * levelMultiplier("storage", level);
 export function activityRule(el: PlacedElement) {
   const d = ELEMENT_BY_ID[el.defId];
   if (crops.has(d.id)) return { label: "Harvested local food", goal: 12 * el.level };
@@ -662,7 +660,7 @@ export function advanceEconomy(s: GameState, dt: number) {
   const live = s.elements.filter(operational);
   const homes = live.filter((x) => ELEMENT_BY_ID[x.defId]?.popBase);
   const groups = new Map<string, { people: number; suppliers: PlacedElement[]; shops: PlacedElement[] }>();
-  const homeWeight = sum(homes.map((x) => ELEMENT_BY_ID[x.defId].popBase! * 2 ** (x.level - 1)));
+  const homeWeight = sum(homes.map((x) => ELEMENT_BY_ID[x.defId].popBase! * levelMultiplier("output", x.level)));
   const getGroup = (id: string) => {
     let g = groups.get(id);
     if (!g) {
@@ -679,15 +677,15 @@ export function advanceEconomy(s: GameState, dt: number) {
     const d = ELEMENT_BY_ID[el.defId],
       g = getGroup(a.group);
     workers += a.workers;
-    if (d.popBase) g.people += (s.population * d.popBase * 2 ** (el.level - 1)) / Math.max(1, homeWeight);
+    if (d.popBase) g.people += (s.population * d.popBase * levelMultiplier("output", el.level)) / Math.max(1, homeWeight);
     if(d.id==="irrigation_pond"){
-      a.cistern=Math.max(0,Math.min(36*el.level,(a.cistern??0)+((a.irrigationIn??0)-(a.irrigationOut??0))*t));
+      a.cistern=Math.max(0,Math.min(pondCisternCapacity(el.level),(a.cistern??0)+((a.irrigationIn??0)-(a.irrigationOut??0))*t));
     }
     if (d.id === "rainwater_cathedral") {
       a.cistern = Math.max(
         0,
         Math.min(
-          el.level * 180,
+          180 * levelMultiplier("storage", el.level),
           (a.cistern ?? 0) + (s.weather === "storm" || s.weather === "rain" ? 3 : -0.08) * t,
         ),
       );
@@ -742,7 +740,7 @@ export function advanceEconomy(s: GameState, dt: number) {
         if (farm.food <= 0) break;
       }
     }
-    for (const importer of g.shops.filter((el) => el.defId === "grocery_store" || ELEMENT_BY_ID[el.defId].archetype==="restaurant_bar")) {
+    for (const importer of g.shops.filter((el) => el.defId === "grocery_store" || el.defId === "malls" || ELEMENT_BY_ID[el.defId].archetype==="restaurant_bar")) {
       const wanted = Math.min(Math.max(0, need * 4 + 3 - stock), e.sites[importer.id].retail * t * (importer.defId === "grocery_store" ? .36 : .14));
       if (wanted > 0) {
         const credit = Math.max(0, wanted * importPrice - e.businesses);
@@ -833,14 +831,18 @@ export function advanceEconomy(s: GameState, dt: number) {
   }
   const storage = live
     .filter((el) => el.defId === "pumped_storage_station")
-    .reduce((a, b) => a + b.level * 65, 0);
+    .reduce((a, b) => a + 65 * levelMultiplier("output", b.level), 0);
+  // Pumping speed grows with the station's level, as does its reservoir.
+  const pumpRate = live
+    .filter((el) => el.defId === "pumped_storage_station")
+    .reduce((a, b) => a + 4 * levelMultiplier("output", b.level), 0);
   if (storage) {
     const surplus = s.metrics.powerSupply - (r.reserveOutput ?? 0) - s.metrics.powerDemand;
     r.reservePower = Math.max(
       0,
       Math.min(
         storage,
-        r.reservePower + (surplus > 0 ? Math.min(4, surplus * 0.25) : -(r.reserveOutput ?? 0)) * t,
+        r.reservePower + (surplus > 0 ? Math.min(pumpRate, surplus * 0.25) : -(r.reserveOutput ?? 0)) * t,
       ),
     );
   } else r.reservePower = 0;

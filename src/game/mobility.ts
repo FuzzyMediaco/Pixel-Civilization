@@ -1,6 +1,7 @@
 import { LOCOMOTIVES, defaultFormation, railCapacity, formationPrice, yardCapacity, trainFor, validateFormation, railPurchase, freightCall, advanceRailFreightStock, type RailFormation, type RailRun } from "./railOperations";
 import { claimRailBlock, clearRailBlock, noteRailTravel, prepareRailLeg, remainingRailBlock } from "./railMovement";
 import { ELEMENT_BY_ID } from "./catalog";
+import { levelMultiplier } from "./levelScaling";
 import type { GameState, PlacedElement } from "./simulation";
 import {
   applyInfrastructureStroke,
@@ -267,9 +268,10 @@ function localDemand(net: TravelNetwork, stop: PlacedElement): number {
     const d = ELEMENT_BY_ID[e.defId];
     result +=
       ((d.popBase ?? 0) * 0.6 + (d.jobs ?? 0) * 0.14 + (d.education ?? 0) * 0.03 + (d.food ?? 0) * 0.035) *
-      Math.sqrt(e.level);
+      levelMultiplier("trips", e.level);
   }
-  return result;
+  // A bigger stop or station (longer platforms, more shelters) draws riders from further along its catchment.
+  return result * levelMultiplier("radius", stop.level);
 }
 function transferAt(s: GameState, m: MobilityState, l: Run, here: PlacedElement, net: TravelNetwork) {
   if (l.mode === "freight" || l.rail?.service==="freight") return undefined;
@@ -803,7 +805,7 @@ export function transitReadout(s: GameState): TransitReport {
       }
     for (const e of s.elements) {
       const d = ELEMENT_BY_ID[e.defId];
-      const weight = ((d?.popBase ?? 0) + (d?.jobs ?? 0)) * e.level;
+      const weight = ((d?.popBase ?? 0) + (d?.jobs ?? 0)) * levelMultiplier("output", e.level);
       potential += weight;
       if (reachable.has(e.id)) covered += weight;
     }

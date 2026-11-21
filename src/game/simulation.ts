@@ -42,8 +42,9 @@ import {
   powerOutputFactor,
   sampleFieldAvg,
   synergyMultiplier,
-  upkeepFor,
+  elementLevelStats,
 } from "./cityDynamics";
+import { levelMultiplier, scaledRadius } from "./levelScaling";
 
 /** Occupied road tiles in this city's last traffic report, including a freshly reloaded save. */
 const trafficByReport = new WeakMap<CityMetrics, Map<string, number>>();
@@ -1191,7 +1192,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   m.waterSupply += Math.round(waterSystem.channelDelivery);
   for (const water of waterUnderlays) {
     const feature = ELEMENT_BY_ID[water.defId];
-    const scale = 2 ** (water.level - 1);
+    const scale = levelMultiplier("output", water.level);
     m.waterSupply += (feature?.water ?? 0) * scale * freshWaterFactor(state,water);
     m.recreationSupply += (feature?.recreation ?? 0) * scale;
   }
@@ -1229,15 +1230,19 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
     if (!el.connected || el.onFire) continue;
 
-    // Level scaling: doubling per level (1, 2, 4, 8, 16) + neighbour synergies
+    // Level scaling (see levelScaling.ts): every output below starts from the nominal per-level
+    // figure in elementLevelStats (doubling per level: 1, 2, 4, 8, 16), then neighbour synergies.
     const synCount = el.synergies?.length ?? 0;
     m.synergyCount += synCount;
     const synMult = synergyMultiplier(synCount);
-    const edgeEffect = borderEffects.get(el.id)!;
-    const lvMult = Math.pow(2, Math.min(el.level, 5) - 1);
+    const lv = elementLevelStats(def, el.level);
+    // Flat parcel-edge bonuses (cloister, service yard, heat exchange…) grow with the site's level.
+    const edgeRaw = borderEffects.get(el.id)!, amenity = levelMultiplier("amenity", el.level);
+    const edgeEffect = { ...edgeRaw, recreation: edgeRaw.recreation * amenity, waste: edgeRaw.waste * amenity,
+      education: edgeRaw.education * amenity, heat: edgeRaw.heat * amenity };
     // Disrepair in Survival Mode cuts positive service output by 75%
     const serviceHealth = (el.disrepair ? 0.25 : 1.0) * synMult;
-    upkeepSum += upkeepFor(def, el.level);
+    upkeepSum += lv.upkeep;
 
     // Shared edible beds feed their household. Ceremonial walks and connected habitat are small
     // local amenities, so a ten-tile boundary grants the same benefit as one working gate.
@@ -1252,10 +1257,10 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
         }
         return false;
       });
-      if(waterfront)m.recreationSupply+=Math.min(8,el.level*2);
+      if(waterfront)m.recreationSupply+=2*levelMultiplier("output",el.level);
       const lvPop = landValuePopMultiplier(el.landValue ?? 0.5);
       landValueSum += el.landValue ?? 0.5;
-      baseHousingPop += def.popBase * lvMult * lvPop * synMult * (1 + edgeEffect.walking);
+      baseHousingPop += lv.population * lvPop * synMult * (1 + edgeEffect.walking);
       m.connectedHouses += 1;
       if (el.nuisancePenalty > 0) {
         m.nuisanceAffectedHomes += 1;
@@ -1267,30 +1272,30 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       if (def.power > 0 && pk) {
         const live = powerOutputFactor(pk, state.timeOfDay ?? 10.5, state.weather, state.windSpeed ?? 1) * generationExposure(pk, state, el, parcelOccupancy);
         const railSupply=def.id==="coal_powerplants"?railFreightBonus(state,el.id,"coal"):def.id==="natural_gas_power_plants"?railFreightBonus(state,el.id,"fuel"):1;
-        const out = Math.round(def.power * railSupply * lvMult * serviceHealth * live * (pk==="hydro"?Math.min(1,hydroHead(state,el)/1.5):1));
+        const out = Math.round(lv.power * railSupply * serviceHealth * live * (pk==="hydro"?Math.min(1,hydroHead(state,el)/1.5):1));
         m.powerSupply += out;
         if (pk === "solar" || pk === "wind" || pk === "hydro" || pk === "geo") renewableOut += out;
       }
-      else m.powerDemand += Math.max(0, Math.abs(def.power) * Math.max(1, Math.round(lvMult * 0.75)) - edgeEffect.heat);
+      else m.powerDemand += Math.max(0, lv.powerDraw - edgeEffect.heat);
     }
     if (def.water) {
-      if (def.water > 0) m.waterSupply += Math.round(def.water * lvMult * serviceHealth * freshWaterFactor(state,el));
-      else m.waterDemand += Math.abs(def.water) * Math.max(1, Math.round(lvMult * 0.75));
+      if (def.water > 0) m.waterSupply += Math.round(lv.water * serviceHealth * freshWaterFactor(state,el));
+      else m.waterDemand += lv.waterDraw;
     }
     if (def.waste) {
-      m.wasteCapacity += Math.round((def.waste * lvMult + edgeEffect.waste) * serviceHealth * railFreightBonus(state,el.id,"waste"));
+      m.wasteCapacity += Math.round((lv.waste + edgeEffect.waste) * serviceHealth * railFreightBonus(state,el.id,"waste"));
     }
     if (def.jobs) {
-      m.jobsAvailable += Math.round(def.jobs * lvMult * serviceHealth);
+      m.jobsAvailable += Math.round(lv.jobs * serviceHealth);
     }
     if (def.education) {
-      m.educationSupply += Math.round((def.education * lvMult + edgeEffect.education) * serviceHealth * (districts.bonuses.educationMultiplier.get(el.id)??1));
+      m.educationSupply += Math.round((lv.education + edgeEffect.education) * serviceHealth * (districts.bonuses.educationMultiplier.get(el.id)??1));
     }
     if (def.recreation) {
-      m.recreationSupply += Math.round(def.recreation * lvMult * serviceHealth * (districts.bonuses.recreationMultiplier.get(el.id)??1) * (el.defId==="middle_school"?1.16:el.defId==="elementary_school"?1.1:1));
+      m.recreationSupply += Math.round(lv.recreation * serviceHealth * (districts.bonuses.recreationMultiplier.get(el.id)??1) * (el.defId==="middle_school"?1.16:el.defId==="elementary_school"?1.1:1));
     }
     if (def.government) {
-      m.govSupply += Math.round(def.government * lvMult * serviceHealth);
+      m.govSupply += Math.round(lv.government * serviceHealth);
     }
 
   }
@@ -1382,8 +1387,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
     for (const p of policeSources) {
       const pDef = ELEMENT_BY_ID[p.defId]!;
-      const effMult = p.disrepair ? 0.45 : 1 + (p.level - 1) * 0.18;
-      const rad = (pDef.policeRadius ?? 10) * effMult;
+      const rad = p.disrepair ? (pDef.policeRadius ?? 10) * 0.45 : scaledRadius(pDef.policeRadius ?? 10, p.level);
       const dist = Math.hypot(cx - (p.gx + p.spanX * 0.5), cz - (p.gz + p.spanZ * 0.5));
       if (dist <= rad) {
         el.hasPoliceCover = true;
@@ -1393,8 +1397,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
 
     for (const f of fireSources) {
       const fDef = ELEMENT_BY_ID[f.defId]!;
-      const effMult = f.disrepair ? 0.5 : 1 + (f.level - 1) * 0.18;
-      const rad = (fDef.fireRadius ?? 12) * effMult;
+      const rad = f.disrepair ? (fDef.fireRadius ?? 12) * 0.5 : scaledRadius(fDef.fireRadius ?? 12, f.level);
       const dist = Math.hypot(cx - (f.gx + f.spanX * 0.5), cz - (f.gz + f.spanZ * 0.5));
       if (dist <= rad) {
         el.hasFireCover = true;
@@ -1403,12 +1406,12 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
 
     const def=ELEMENT_BY_ID[el.defId]; if(!def||!el.connected||el.onFire)continue;
-    const lvMult=2**(el.level-1),serviceHealth=(el.disrepair?.25:1)*synergyMultiplier(el.synergies?.length??0);
+    const lv=elementLevelStats(def,el.level),serviceHealth=(el.disrepair?.25:1)*synergyMultiplier(el.synergies?.length??0);
     if (authorized && professionalStaff(state,el)>=1 && def.police) {
-      policePoints += Math.round(def.police * lvMult * serviceHealth);
+      policePoints += Math.round(lv.police * serviceHealth);
     }
     if (authorized && professionalStaff(state,el)>=1 && def.military) {
-      militaryPower += Math.round(def.military * lvMult * serviceHealth);
+      militaryPower += Math.round(lv.military * serviceHealth);
     }
     if (!def.isNetwork && !def.passiveNature && (def.popBase || def.jobs)) {
       coverableBuildings += 1;
@@ -1666,7 +1669,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   if (m.connectedHouses && ledger.report.harvest > 0) {
     happiness += Math.min(3, Math.round(3 * Math.min(1, ledger.report.harvest / Math.max(1, ledger.report.required))));
   }
-  const preschoolSeats=elements.reduce((n,el)=>n+(el.defId==="preschool"&&el.connected&&!el.onFire&&!el.disrepair?30*2**(el.level-1):0),0);
+  const preschoolSeats=elements.reduce((n,el)=>n+(el.defId==="preschool"&&el.connected&&!el.onFire&&!el.disrepair?30*levelMultiplier("output",el.level):0),0);
   happiness += community.happiness + (activeBlessing(state) === "joy" ? 6 : 0);
   happiness = Math.min(100, happiness+4*Math.min(1,preschoolSeats/Math.max(1,state.population*.16)));
   if (authorized && state.population > 0) {
@@ -1750,7 +1753,7 @@ interface DefenderContribution {
 function getElementDefenderContribution(el: PlacedElement,state:GameState): DefenderContribution | null {
   const def = ELEMENT_BY_ID[el.defId];
   if (!def || el.onFire || !el.connected) return null;
-  const lvScale = 1 + (el.level - 1) * 0.55;
+  const lvScale = levelMultiplier("reach", el.level);
   const health = el.disrepair ? 0.45 : 1.0;
   const staff=professionalStaff(state,el);
   if((def.jobs??0)>0&&staff<1)return null;
@@ -2421,7 +2424,7 @@ function stepActiveAttack(state: GameState, dtSec: number): boolean {
                 buildingPool.splice(buildingPool.indexOf(targetEl), 1);
                 atk.buildingsDestroyed += 1;
                 if (tDef?.popBase) {
-                  const lost = Math.min(exposed(), tDef.popBase * Math.pow(2, targetEl.level - 1));
+                  const lost = Math.min(exposed(), tDef.popBase * levelMultiplier("output", targetEl.level));
                   atk.casualties += lost;
                   state.growthPool = Math.max(-state.population, state.growthPool - lost);
                 } else if (state.population > 0) {
@@ -2682,7 +2685,7 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     for (const el of state.elements) {
       const def = ELEMENT_BY_ID[el.defId];
       if (el.connected && !el.onFire && def?.popBase) {
-        baseHousingPop += def.popBase * Math.pow(2, el.level - 1);
+        baseHousingPop += def.popBase * levelMultiplier("output", el.level);
       }
     }
 
@@ -2829,49 +2832,49 @@ export function computeHeatmapCells(state: GameState, kind: HeatmapKind): Heatma
     if (!def) continue;
 
     if (kind === "water") {
-      if ((def.water ?? 0) > 0) providers.push({ el, rad: 12 + el.level * 2, strength: 1 });
+      if ((def.water ?? 0) > 0) providers.push({ el, rad: scaledRadius(14, el.level), strength: 1 });
       else if ((def.water ?? 0) < 0 || def.popBase) consumers.push(el);
     } else if (kind === "power") {
-      if ((def.power ?? 0) > 0) providers.push({ el, rad: 12 + el.level * 2, strength: 1 });
+      if ((def.power ?? 0) > 0) providers.push({ el, rad: scaledRadius(14, el.level), strength: 1 });
       else if ((def.power ?? 0) < 0 || def.popBase) consumers.push(el);
     } else if (kind === "jobs") {
-      if ((def.jobs ?? 0) > 0) providers.push({ el, rad: 11 + el.level * 1.8, strength: 1 });
+      if ((def.jobs ?? 0) > 0) providers.push({ el, rad: scaledRadius(12.8, el.level), strength: 1 });
       else if (def.popBase) consumers.push(el);
     } else if (kind === "waste") {
       if ((def.waste ?? 0) > 0) {
-        providers.push({ el, rad: 13 + el.level * 2, strength: 0.9 });
+        providers.push({ el, rad: scaledRadius(15, el.level), strength: 0.9 });
         if (def.nuisanceRadius) {
-          paintRadius(el.gx + el.spanX * 0.5, el.gz + el.spanZ * 0.5, def.nuisanceRadius, -0.95);
+          paintRadius(el.gx + el.spanX * 0.5, el.gz + el.spanZ * 0.5, scaledRadius(def.nuisanceRadius, el.level), -0.95);
         }
       } else if (def.popBase || def.jobs) {
         consumers.push(el);
       }
     } else if (kind === "food") {
-      if ((def.food ?? 0) > 0) providers.push({ el, rad: 11 + el.level * 1.8, strength: 1 });
+      if ((def.food ?? 0) > 0) providers.push({ el, rad: scaledRadius(12.8, el.level), strength: 1 });
       else if (def.popBase) consumers.push(el);
     } else if (kind === "education") {
-      if ((def.education ?? 0) > 0) providers.push({ el, rad: 12 + el.level * 2, strength: 1 });
+      if ((def.education ?? 0) > 0) providers.push({ el, rad: scaledRadius(14, el.level), strength: 1 });
       else if (def.popBase) consumers.push(el);
     } else if (kind === "parks") {
-      if ((def.recreation ?? 0) > 0) providers.push({ el, rad: 9 + el.level * 1.5, strength: 1 });
+      if ((def.recreation ?? 0) > 0) providers.push({ el, rad: scaledRadius(10.5, el.level), strength: 1 });
       else if (def.popBase) consumers.push(el);
     } else if (kind === "police") {
       if ((def.policeRadius ?? 0) > 0) {
-        const rad = (def.policeRadius ?? 10) * (1 + (el.level - 1) * 0.18);
+        const rad = scaledRadius(def.policeRadius ?? 10, el.level);
         providers.push({ el, rad, strength: 1 });
       } else if (def.popBase || def.jobs) {
         consumers.push(el);
       }
     } else if (kind === "fire") {
       if ((def.fireRadius ?? 0) > 0) {
-        const rad = (def.fireRadius ?? 12) * (1 + (el.level - 1) * 0.18);
+        const rad = scaledRadius(def.fireRadius ?? 12, el.level);
         providers.push({ el, rad, strength: 1 });
       } else if (!def.isNetwork && !def.passiveNature) {
         consumers.push(el);
       }
     } else if (kind === "defense") {
       if (def.military || def.id === "swat_team_hq") {
-        providers.push({ el, rad: 16 + el.level * 2.5, strength: 1 });
+        providers.push({ el, rad: scaledRadius(18.5, el.level), strength: 1 });
       } else if (!def.isNetwork && !def.passiveNature) {
         consumers.push(el);
       }

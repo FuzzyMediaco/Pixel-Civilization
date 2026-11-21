@@ -7,6 +7,7 @@ import {
   type Point,
   type TravelNetwork,
 } from "./travelNetwork";
+import { levelMultiplier } from "./levelScaling";
 
 export type RailService = "passenger" | "freight";
 export const LOCOMOTIVES = {
@@ -578,9 +579,9 @@ export function advanceRailFreightStock(
     if (!staffed) continue;
     const available = ((s.railYard.stock ??= {})[source.id] ??= {});
     available[c.type] = Math.min(
-      48 * source.level,
+      48 * levelMultiplier("storage", source.level),
       (available[c.type] ?? 0) +
-        dt * source.level * staffed * (def.passiveNature ? 0.22 : 0.65),
+        dt * levelMultiplier("storage", source.level) * staffed * (def.passiveNature ? 0.22 : 0.65),
     );
   }
 }

@@ -477,7 +477,7 @@ export class PixelWorldRenderer {
 
     // 2. Scene, Sky & Environment
     this.scene = new THREE.Scene();
-    this.farmActivity = new FarmActivityVisuals(this.scene);
+    this.farmActivity = new FarmActivityVisuals(this.scene, () => this.camera);
     this.mobilityVisuals = new MobilityVisuals(this.scene, getVehicleGeometry);
     this.scene.background = new THREE.Color(0xc2e9ff);
     this.scene.fog = new THREE.FogExp2(0xd7f0ff, 0.0021);
@@ -1014,6 +1014,7 @@ export class PixelWorldRenderer {
 
     this.refreshNetworkCache();
     this.rebuildEmittersAndBeacons();
+    this.farmActivity.syncHerds(state.elements, this.placedEntries);
     this.rebuildSelectionAndRadiusOverlays();
     this.updateHoverOverlay();
     this.rebuildHeatmapOverlay();
@@ -2010,6 +2011,7 @@ export class PixelWorldRenderer {
 
     // Smoke plumes, steam & blinking beacons
     this.stepSmokeAndBeacons(dt, elapsed);
+    this.farmActivity.animateHerds(dt);
 
     // Fire voxels, destruction rubble & celebration particles
     this.emitFireVoxels(dt);

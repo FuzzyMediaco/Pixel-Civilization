@@ -30,7 +30,7 @@ import {
   getStandardFootprintForLevel,
 
 } from "../game/catalog";
-import { SYNERGY_RULES } from "../game/cityDynamics";
+import { SYNERGY_RULES, elementLevelStats } from "../game/cityDynamics";
 import {
   MAINTENANCE_INTERVAL_SEC,
   type GameState,
@@ -66,20 +66,23 @@ const ALL_CATEGORIES: { id: ElementCategory | "all"; label: string }[] = [
   ...CATEGORY_META,
 ];
 
-function formatElementStatSummary(def: CivElementDef): string {
-  if (def.popBase) return `+${def.popBase} Pop`;
-  if (def.jobs) return `+${def.jobs} Jobs`;
-  if (def.power && def.power > 0) return `+${def.power} Pwr`;
-  if (def.water && def.water > 0) return `+${def.water} Wtr`;
-  if (def.waste) return `+${def.waste} Waste`;
-  if (def.food) return `+${def.food} Food`;
-  if (def.education) return `+${def.education} Edu`;
-  if (def.recreation) return `+${def.recreation} Park`;
-  if (def.government) return `+${def.government} Gov`;
-  if (def.policeRadius) return `Pol R${def.policeRadius}`;
-  if (def.fireRadius) return `Fire R${def.fireRadius}`;
-  if (def.military) return `+${def.military} Mil`;
-  if (def.income) return `+$${def.income}`;
+/** Headline stat for a card; pass a level to show that level's scaled output (see levelScaling.ts). */
+function formatElementStatSummary(def: CivElementDef, level = 1): string {
+  const v = elementLevelStats(def, level);
+  const n = (x: number) => Math.round(x).toLocaleString();
+  if (v.population) return `+${n(v.population)} Pop`;
+  if (v.jobs) return `+${n(v.jobs)} Jobs`;
+  if (v.power) return `+${n(v.power)} Pwr`;
+  if (v.water) return `+${n(v.water)} Wtr`;
+  if (v.waste) return `+${n(v.waste)} Waste`;
+  if (v.food) return `+${n(v.food)} Food`;
+  if (v.education) return `+${n(v.education)} Edu`;
+  if (v.recreation) return `+${n(v.recreation)} Park`;
+  if (v.government) return `+${n(v.government)} Gov`;
+  if (v.policeRadius) return `Pol R${n(v.policeRadius)}`;
+  if (v.fireRadius) return `Fire R${n(v.fireRadius)}`;
+  if (v.military) return `+${n(v.military)} Mil`;
+  if (v.income) return `+$${n(v.income)}`;
   if (def.isRoadNetwork) return "Traffic";
   if (def.isRailNetwork) return "Trains";
   if (def.isWaterFeature) return "Waterway";

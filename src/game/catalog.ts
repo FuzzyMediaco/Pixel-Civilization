@@ -1,6 +1,7 @@
 import {VEHICLE_ROADS,roadStageName} from "./roadStandards";
 import { EXPANSION_ELEMENTS } from "./expansionCatalog";
 import { WEALTH_PROJECTS } from "./wealthProjects";
+import { HISTORICAL_WONDERS } from "./historicalCatalog";
 import { getDesign, getLevelName } from "./designs/registry";
 import { ELEMENT_LEVEL_SPANS } from "./levelSpans";
 
@@ -2549,6 +2550,7 @@ export const ELEMENTS: CivElementDef[] = [
   },
   ...WEALTH_PROJECTS,
   ...EXPANSION_ELEMENTS,
+  ...HISTORICAL_WONDERS,
 ];
 
 export const ELEMENT_BY_ID: Record<string, CivElementDef> = Object.fromEntries(

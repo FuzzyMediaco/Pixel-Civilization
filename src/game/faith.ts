@@ -1,5 +1,6 @@
 import { ELEMENT_BY_ID } from "./catalog";
 import type { GameState, PlacedElement } from "./simulation";
+import { levelMultiplier } from "./levelScaling";
 
 export const BLESSINGS = {
   harvest: {
@@ -61,7 +62,7 @@ export function faithServices(s: GameState) {
     beds += bedsAt(el);
     if (working(el))
       strength +=
-        (el.defId === "graveyards" ? 19 : 32) * (1 + 0.45 * (el.level - 1));
+        (el.defId === "graveyards" ? 19 : 32) * levelMultiplier("reach", el.level);
   }
   const reach =
     strength / (strength + 35 + 1.45 * Math.sqrt(Math.max(0, s.population)));
@@ -168,7 +169,7 @@ export function rehouseResidents(s: GameState) {
   const spaces = Math.floor(
     s.elements.reduce((n, el) => {
       const base = ELEMENT_BY_ID[el.defId]?.popBase ?? 0;
-      return n + (working(el) ? base * 2 ** (el.level - 1) : 0);
+      return n + (working(el) ? base * levelMultiplier("output", el.level) : 0);
     }, 0),
   );
   const moved = Math.min(f.sheltered, spaces);

@@ -6,6 +6,7 @@ import { ambientTrafficFactor, getRoadTripNetwork } from "./roadTraffic";
 import type { GameState } from "./simulation";
 import { streetLaneFactor } from "./terrain";
 import { getTravelNetwork } from "./travelNetwork";
+import { levelMultiplier } from "./levelScaling";
 
 // Four quarter-hour traffic samples make up the hourly capacity shown to players.
 const SAMPLES_PER_HOUR = 4;
@@ -20,7 +21,7 @@ export function streetDemand(state: GameState) {
   let trips = 0;
   for (const id of network.siteIds) {
     const site = byId.get(id)!;
-    const generation = Math.max(1, tripsFor(ELEMENT_BY_ID[site.defId])) * 1.7 ** (site.level - 1) * factor;
+    const generation = Math.max(1, tripsFor(ELEMENT_BY_ID[site.defId])) * levelMultiplier("trips", site.level) * factor;
     hourly.set(id, generation);
     trips += generation;
   }
