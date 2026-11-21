@@ -1,6 +1,7 @@
 import {VEHICLE_ROADS,roadStageName} from "./roadStandards";
 import { EXPANSION_ELEMENTS } from "./expansionCatalog";
 import { WEALTH_PROJECTS } from "./wealthProjects";
+import { HISTORICAL_WONDERS } from "./historicalCatalog";
 import { getDesign, getLevelName } from "./designs/registry";
 import { ELEMENT_LEVEL_SPANS } from "./levelSpans";
 
@@ -126,14 +127,14 @@ export const STAGES: CivStage[] = [
   { stage: 10, name: "Sovereign Nation", minPop: 500_000, note: "National Defense & Military active" },
   { stage: 11, name: "Commerce Metropolis", minPop: 650_000, note: "Malls, condos & bus networks" },
   { stage: 12, name: "Clean Energy Era", minPop: 820_000, note: "Wind farms, hydro & geothermal" },
-  { stage: 13, name: "Cultural Heartland", minPop: 1_020_000, note: "Temples, synagogues, mosques & parks" },
-  { stage: 14, name: "Maritime Power", minPop: 1_260_000, note: "Shipyards, naval bases & vessels" },
-  { stage: 15, name: "High-Tech Corridor", minPop: 1_550_000, note: "Data centers, freeways & overpasses" },
-  { stage: 16, name: "Skyline Era", minPop: 1_900_000, note: "Skyscrapers, mansions & suspension bridges" },
-  { stage: 17, name: "Atomic Age", minPop: 2_300_000, note: "Micro reactors, airforce & SWAT HQ" },
-  { stage: 18, name: "Monumental Capital", minPop: 2_750_000, note: "White House, Smithsonian & National Mall" },
-  { stage: 19, name: "Global Superpower", minPop: 3_250_000, note: "Nuclear power, desalination & Eiffel Tower" },
-  { stage: 20, name: "Eternal Civilization", minPop: 3_800_000, note: "Great Pyramids, London Eye, Submarines & Carriers" },
+  { stage: 13, name: "Cultural Heartland", minPop: 900_000, note: "Temples, synagogues, mosques & parks" },
+  { stage: 14, name: "Maritime Power", minPop: 980_000, note: "Shipyards, naval bases & vessels" },
+  { stage: 15, name: "High-Tech Corridor", minPop: 1_060_000, note: "Data centers, freeways & overpasses" },
+  { stage: 16, name: "Skyline Era", minPop: 1_150_000, note: "Skyscrapers, mansions & suspension bridges" },
+  { stage: 17, name: "Atomic Age", minPop: 1_240_000, note: "Micro reactors, airforce & SWAT HQ" },
+  { stage: 18, name: "Monumental Capital", minPop: 1_340_000, note: "White House, Smithsonian & National Mall" },
+  { stage: 19, name: "Global Superpower", minPop: 1_440_000, note: "Nuclear power, desalination & Eiffel Tower" },
+  { stage: 20, name: "Eternal Civilization", minPop: 1_550_000, note: "Great Pyramids, London Eye, Submarines & Carriers" },
 ];
 
 export interface CivElementDef {
@@ -2549,6 +2550,7 @@ export const ELEMENTS: CivElementDef[] = [
   },
   ...WEALTH_PROJECTS,
   ...EXPANSION_ELEMENTS,
+  ...HISTORICAL_WONDERS,
 ];
 
 export const ELEMENT_BY_ID: Record<string, CivElementDef> = Object.fromEntries(

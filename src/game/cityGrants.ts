@@ -52,6 +52,16 @@ export const CITY_GRANTS: CityGrant[] = [
       { label: "Renewable generation", metric: "renewablePct", minimum: 85, unit: "%" },
     ],
   },
+  // Stage ladder: each milestone pays a development grant, so growth also funds the next step.
+  ...([
+    [2, 1_000], [3, 2_500], [4, 5_000], [5, 10_000], [6, 15_000], [7, 20_000], [8, 30_000],
+    [9, 40_000], [10, 60_000], [12, 90_000], [15, 150_000], [20, 250_000],
+  ] as const).map(([stage, reward]): CityGrant => ({
+    id: "stage_" + stage,
+    name: "Stage " + stage + " Development Grant",
+    reward,
+    targets: [{ label: "Stage reached", metric: "stageReached", minimum: stage }],
+  })),
 ];
 
 function required(target: GrantTarget, metrics: CityMetrics): number {

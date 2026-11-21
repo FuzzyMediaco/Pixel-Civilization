@@ -7,6 +7,8 @@ import type { getParcelEffectSummary } from "./parcelEdges";
 import { ELEMENT_BY_ID, STAGES } from "./catalog";
 import type { CityMetrics, GameState, PlacedElement } from "./simulation";
 import { hydraulics } from "./terrain";
+import { CROP_SITE_IDS, isRetailFoodSite } from "./cityDynamics";
+import { levelMultiplier } from "./levelScaling";
 import { PROJECT_BY_ID } from "./wealthProjects";
 
 export type Account = "treasury" | "households" | "businesses";
@@ -73,6 +75,8 @@ export interface SiteAccount {
   yieldRate: number;
   retail: number;
   exportRate: number;
+  /** Household spending this commerce site can absorb per second (income × level, staffed) */
+  spending?: number;
   attendees: number;
   jobs: number;
   tripCounts?: Record<string, number>;
@@ -114,6 +118,12 @@ export interface Economy {
     potable: number;
     farms: number;
     shopping: number;
+    /** Household spending capacity of local commerce ($/s) */
+    commerce?: number;
+    /** Household spending at local commerce in the last period ($/s) */
+    spending?: number;
+    /** Residents the districts' shops and farm gates can serve (growth cap input) */
+    foodResidents?: number;
   };
 }
 export function economyOf(s: GameState): Economy {
@@ -164,6 +174,8 @@ export const cityWealth = (s: GameState) => {
   const e = economyOf(s);
   return s.money + e.households + e.businesses;
 };
+/** Wealth that counts toward project unlocks: the treasury plus business capital, not household savings. */
+export const unlockWealth = (s: GameState) => s.money + economyOf(s).businesses;
 export const siteOf = (s: GameState, e: PlacedElement): SiteAccount =>
   (economyOf(s).sites[e.id] ??= {
     work: 0,
@@ -216,7 +228,7 @@ export function transfer(s: GameState, from: Entry["from"], to: Entry["to"], val
   if (recent) recent.amount += amount;
   else e.ledger.push({ time, from, to, amount, label });
   if (e.ledger.length > 100) e.ledger.splice(0, e.ledger.length - 100);
-  e.peak = Math.max(e.peak, cityWealth(s));
+  e.peak = Math.max(e.peak, unlockWealth(s));
   return amount;
 }
 const token = (k: ControlKey, site?: string) => (site ? k + "@" + site : k);
@@ -253,7 +265,7 @@ export function setEconomicControl(s: GameState, k: ControlKey, value: number, h
     if (k === "activity") a.work = val;
     else a.food = val;
   }
-  e.peak = Math.max(e.peak, cityWealth(s));
+  e.peak = Math.max(e.peak, unlockWealth(s));
 }
 export function releaseControl(s: GameState, k?: ControlKey, site?: string) {
   const e = economyOf(s),
@@ -318,18 +330,7 @@ export function hasAuthority(s: GameState) {
     Number(s.elements.some((e) => govIds.has(e.defId) && operational(e) && professionalStaff(s, e) >= 1)),
   );
 }
-const crops = new Set([
-  ...FARM_ANCHOR_IDS,...FARM_MODULE_IDS,
-  "farms",
-  "fields",
-  "orchards",
-  "groves_of_olives",
-  "plantations",
-  "gardens",
-  "terraced_glasshouses",
-  "solar_canopy_orchard",
-  "ocean_habitat_ring",
-]);
+const crops = CROP_SITE_IDS;
 const skilledIds = new Set([
   "regional_airport",
   "spaceport",
@@ -400,13 +401,13 @@ export function evaluateEconomy(
   const group = (el:PlacedElement)=>ownGroup(farmDistrict.farms.get(el.id)?.owner.get(el.id)??el);
   const homes = live.filter((el) => ELEMENT_BY_ID[el.defId]?.popBase),
     regions = new Map<string, number>();
-  const weighted = sum(homes.map((x) => (ELEMENT_BY_ID[x.defId].popBase ?? 0) * 2 ** (x.level - 1)));
+  const weighted = sum(homes.map((x) => (ELEMENT_BY_ID[x.defId].popBase ?? 0) * levelMultiplier("output", x.level)));
   for (const h of homes) {
     const key = group(h);
     regions.set(
       key,
       (regions.get(key) ?? 0) +
-        (s.population * (ELEMENT_BY_ID[h.defId].popBase ?? 0) * 2 ** (h.level - 1)) / Math.max(1, weighted),
+        (s.population * (ELEMENT_BY_ID[h.defId].popBase ?? 0) * levelMultiplier("output", h.level)) / Math.max(1, weighted),
     );
   }
   const water = hydraulics(s).services,
@@ -424,11 +425,12 @@ export function evaluateEconomy(
     const rain=s.weather==="rain"||s.weather==="storm";
     const dry=growers.filter(el=>!rain&&!water.get(el.id)?.irrigation&&!joins?.get(el.id)?.bankWater);
     const outlets=ponds.map(pond=>{
-      const site=siteOf(s,pond),capacity=.8*pond.level;
-      site.irrigationIn=Math.min(capacity,water.get(pond.id)?.irrigation??0)+(rain?.95*pond.level:0);
+      const site=siteOf(s,pond),capacity=.8*levelMultiplier("output",pond.level);
+      site.irrigationIn=Math.min(capacity,water.get(pond.id)?.irrigation??0)+(rain?.95*levelMultiplier("output",pond.level):0);
       return {site,rate:Math.min(capacity,Math.max(0,site.cistern??0)/4)};
     });
-    const supply=outlets.reduce((n,p)=>n+p.rate,0),wanted=dry.length*.18;
+    // A bigger field drinks more: each dry grower wants water in proportion to its level.
+    const supply=outlets.reduce((n,p)=>n+p.rate,0),wanted=dry.reduce((n,el)=>n+.18*levelMultiplier("output",el.level),0);
     const coverage=wanted?Math.min(1,supply/wanted):0;
     for(const el of dry)pondCoverage.set(el.id,coverage);
     for(const p of outlets)p.site.irrigationOut=supply?Math.min(supply,wanted)*p.rate/supply:0;
@@ -437,7 +439,7 @@ export function evaluateEconomy(
     factories = live.filter((x) => industry(x.defId));
   let potable = 0,
     powerSaved = 0;
-  r.workers = Math.round(effective(s, "workforce", s.population * 0.54));
+  r.workers = Math.round(effective(s, "workforce", s.population * 0.5));
   r.capacity = Math.round(base * (s.mode==="god"?31:21));
   r.occupied = s.population;
   r.skilled = Math.round(
@@ -454,7 +456,7 @@ export function evaluateEconomy(
   for(const site of live){
     if(!["trade_school","community_college","university","research_university"].includes(site.defId))continue;
     const district=group(site), local=schools.get(district)??new Map<string,number>();
-    local.set(site.defId,(local.get(site.defId)??0)+(ELEMENT_BY_ID[site.defId].education??0)*2**(site.level-1));
+    local.set(site.defId,(local.get(site.defId)??0)+(ELEMENT_BY_ID[site.defId].education??0)*levelMultiplier("output",site.level));
     schools.set(district,local);
   }
   const trained=(g:string,id:string)=>Math.min(1,(schools.get(g)?.get(id)??0)/Math.max(1,(regions.get(g)??0)*.35));
@@ -466,7 +468,7 @@ export function evaluateEconomy(
     if (!d || d.isNetwork || (d.passiveNature && !crops.has(d.id))) continue;
     const a = siteOf(s, el),
       g = group(el),
-      scale = 2 ** (el.level - 1);
+      scale = levelMultiplier("output", el.level);
     a.group = g;
     a.bulkStorage=bulkStorage.has(el.id);
     if(d.id==="irrigation_pond" && !report.farms.get(el.id)?.live){a.irrigationIn=0;a.irrigationOut=0;}
@@ -504,22 +506,26 @@ export function evaluateEconomy(
     if (crops.has(d.id)) {
       a.yieldRate =
         (d.food ?? 8) *
-        2.35 ** (el.level - 1) *
+        levelMultiplier("crop", el.level) *
         0.10 *
         (cooled ? 1.42 : rain ? 1.05 : .62+.8*(pondCoverage.get(el.id)??0)) *
         complexBoost(report.farms.get(el.id)?.count.get(el.id)??0) *
         (exchanges.some((x) => closeSites(x, el, 4)) ? 1.15 : 1);
       if (d.id === "terraced_glasshouses" && m.powerSupply < m.powerDemand) a.yieldRate *= 0.3;
     }
-    if (d.id === "farm_houses") a.yieldRate = .55 * 2.35**(el.level-1)*complexBoost(report.farms.get(el.id)?.count.get(el.id)??0);
+    if (d.id === "farm_houses") a.yieldRate = .55 * levelMultiplier("crop", el.level)*complexBoost(report.farms.get(el.id)?.count.get(el.id)??0);
+    // Other food producers (fishing docks and boats, mills, monastery gardens…) land a catch or
+    // harvest that grows with their level like every other output.
+    else if (!crops.has(d.id) && !isRetailFoodSite(d) && (d.food ?? 0) > 0)
+      a.yieldRate = d.food! * scale * 0.10;
     a.yieldRate *= report.bonuses.foodMultiplier.get(el.id)??1;
     if(a.yieldRate>0 && s.railYard?.benefits[el.id])a.yieldRate *= Math.max(railFreightBonus(s,el.id,"dairy"),railFreightBonus(s,el.id,"grain"),railFreightBonus(s,el.id,"livestock"));
     if (edge) {
       a.yieldRate *= 1 + edge.agriculture;
       if (d.category === "housing" || d.id === "orchards")
-        a.yieldRate += edge.food * 0.16 * (cooled || rain ? 1.35 : 1);
+        a.yieldRate += edge.food * levelMultiplier("amenity", el.level) * 0.16 * (cooled || rain ? 1.35 : 1);
     }
-    if (d.id === "floodplain_park" && rain) m.wasteCapacity += el.level * 2;
+    if (d.id === "floodplain_park" && rain) m.wasteCapacity += 2 * scale;
     if (d.id === "rainwater_cathedral") {
       // Early project saves used the food field to store rain in this building.
       if (a.cistern === undefined) {
@@ -529,17 +535,12 @@ export function evaluateEconomy(
       potable += Math.min(36 * scale, a.cistern);
     }
     if (d.id === "district_heat_works" && factories.some((x) => closeSites(x, el, 3)))
-      powerSaved += homes.filter((x) => closeSites(x, el, 4)).length * el.level * 2;
+      powerSaved += homes.filter((x) => closeSites(x, el, 4)).length * 2 * scale;
     const bank = banks.some((x) => group(x) === g && closeSites(x, el, 5))
       ? effective(s, "banking", 100) / 100
       : 0;
-    if (
-      d.id === "grocery_store" ||
-      d.id === "growers_exchange" ||
-      d.id === "bakery_coop" ||
-      d.archetype === "restaurant_bar"
-    )
-      a.retail = (d.food ?? 24) * 1.45 * 2.25**(el.level-1) * (1 + bank * 0.15);
+    if (isRetailFoodSite(d))
+      a.retail = (d.food ?? 24) * 1.45 * levelMultiplier("retail", el.level) * (1 + bank * 0.15);
     if(a.retail>0 && s.railYard?.benefits[el.id]) a.retail *= Math.max(...(["goods","dairy","grain","livestock"] as const).map(c=>railFreightBonus(s,el.id,c)));
     if (edge) a.retail *= 1 + edge.commerce;
     if (residents > 0 && (d.id !== "grocery_store" || a.food > 0 || s.money + e.businesses > 0))
@@ -551,10 +552,18 @@ export function evaluateEconomy(
       !(d.id === "materials_foundry" && m.wasteDemand === 0) &&
       !flightProject(d.id) &&
       (industry(d.id) ||
-        (FARM_ANCHOR_IDS.has(d.id)&&!!d.income)||["university","research_university","research_institute","community_college","businesses", "shops", "plantations", "orchards", "growers_exchange", "bakeries"].includes(d.id))
+        (FARM_ANCHOR_IDS.has(d.id)&&!!d.income)||["university","research_university","research_institute","community_college","businesses", "shops", "plantations", "orchards", "growers_exchange", "bakery_coop"].includes(d.id))
     )
       a.exportRate =
         (d.income ?? 5) * scale * 0.24 * (industry(d.id) && !cooled ? 0.42 : 1) * (1 + bank * 0.15);
+    // Landmarks, docks, depots and other non-commerce earners draw tourism and cargo from outside.
+    // Commerce earns from household spending instead (see advanceEconomy).
+    else if (railOK && !d.popBase && !flightProject(d.id) && (d.income ?? 0) > 0 && d.category !== "commerce")
+      a.exportRate = d.income! * scale * 0.24 * (1 + bank * 0.15);
+    a.spending =
+      d.category === "commerce" && !d.popBase && (d.income ?? 0) > 0
+        ? d.income! * scale * 0.24 * (1 + bank * 0.15) * (congested.has(el.id) ? 0.75 : 1) * (0.8 + Math.min(2, el.landValue ?? 0.5) * 0.3)
+        : 0;
     if(a.exportRate>0 && s.railYard?.benefits[el.id]) a.exportRate *= Math.max(...(["goods","timber","fuel"] as const).map(c=>railFreightBonus(s,el.id,c)));
     a.exportRate *= (report.bonuses.incomeMultiplier.get(el.id)??1)*
       (1+(industrial?.18*trained(g,"trade_school"):0)+(commercial?.14*trained(g,"community_college"):0)+(advanced?.18*trained(g,"research_university"):0));
@@ -563,6 +572,7 @@ export function evaluateEconomy(
     if (edge) a.exportRate *= 1 + edge.commerce;
   }
   let accessibleHarvest = 0;
+  r.commerce = 0;
   const rawReachable = r.reachable;
   r.reachable = Math.round(effective(s, "jobs", rawReachable));
   const hiring = rawReachable ? r.reachable / rawReachable : 0;
@@ -580,11 +590,13 @@ export function evaluateEconomy(
           Math.max(1, (jobsByGroup.get(a.group) ?? 0) * hiring),
       );
     a.exportRate *= Math.min(1, a.workers / Math.max(1, a.jobs));
+    a.spending = residents > 0 ? (a.spending ?? 0) * Math.min(1, a.workers / Math.max(1, a.jobs)) : 0;
+    r.commerce = (r.commerce ?? 0) + a.spending;
     a.yieldRate *= (effective(s, "harvest", 100) / 100) * (activeBlessing(s) === "harvest" ? 1.2 : 1);
     a.yieldRate *= a.jobs ? 0.42 + (0.58 * a.workers) / Math.max(1, a.jobs) : 1;
     a.attendees = Math.min(
       residents,
-      (ELEMENT_BY_ID[el.defId].education ?? ELEMENT_BY_ID[el.defId].recreation ?? 0) * el.level,
+      (ELEMENT_BY_ID[el.defId].education ?? ELEMENT_BY_ID[el.defId].recreation ?? 0) * levelMultiplier("output", el.level),
     );
     r.harvest += a.yieldRate;
     if (residents > 0) accessibleHarvest += a.yieldRate;
@@ -606,7 +618,16 @@ export function evaluateEconomy(
   m.powerDemand = Math.max(0, m.powerDemand - powerSaved);
   r.reserveOutput = Math.min(r.reservePower, Math.max(0, m.powerDemand - m.powerSupply));
   m.powerSupply = effective(s, "power", m.powerSupply + r.reserveOutput);
-  e.peak = Math.max(cityWealth(s), e.peak);
+  e.peak = Math.max(e.peak, unlockWealth(s));
+}
+/** Irrigation pond reservoir size (water units) at a level — use this for any UI readout. */
+export const pondCisternCapacity = (level: number) => 36 * levelMultiplier("storage", level);
+/** Retail price residents pay per meal; above the 0.8 import price so grocers break even. */
+const MEAL_PRICE = 0.95;
+/** Tax rate (%): the player's setting (5–25, default 12); god-mode economic controls can override it. */
+export function taxRateOf(s: GameState) {
+  const chosen = Math.max(5, Math.min(25, Number.isFinite(s.taxRate) ? s.taxRate! : 12));
+  return effective(s, "tax", chosen);
 }
 export function activityRule(el: PlacedElement) {
   const d = ELEMENT_BY_ID[el.defId];
@@ -662,7 +683,7 @@ export function advanceEconomy(s: GameState, dt: number) {
   const live = s.elements.filter(operational);
   const homes = live.filter((x) => ELEMENT_BY_ID[x.defId]?.popBase);
   const groups = new Map<string, { people: number; suppliers: PlacedElement[]; shops: PlacedElement[] }>();
-  const homeWeight = sum(homes.map((x) => ELEMENT_BY_ID[x.defId].popBase! * 2 ** (x.level - 1)));
+  const homeWeight = sum(homes.map((x) => ELEMENT_BY_ID[x.defId].popBase! * levelMultiplier("output", x.level)));
   const getGroup = (id: string) => {
     let g = groups.get(id);
     if (!g) {
@@ -679,15 +700,15 @@ export function advanceEconomy(s: GameState, dt: number) {
     const d = ELEMENT_BY_ID[el.defId],
       g = getGroup(a.group);
     workers += a.workers;
-    if (d.popBase) g.people += (s.population * d.popBase * 2 ** (el.level - 1)) / Math.max(1, homeWeight);
+    if (d.popBase) g.people += (s.population * d.popBase * levelMultiplier("output", el.level)) / Math.max(1, homeWeight);
     if(d.id==="irrigation_pond"){
-      a.cistern=Math.max(0,Math.min(36*el.level,(a.cistern??0)+((a.irrigationIn??0)-(a.irrigationOut??0))*t));
+      a.cistern=Math.max(0,Math.min(pondCisternCapacity(el.level),(a.cistern??0)+((a.irrigationIn??0)-(a.irrigationOut??0))*t));
     }
     if (d.id === "rainwater_cathedral") {
       a.cistern = Math.max(
         0,
         Math.min(
-          el.level * 180,
+          180 * levelMultiplier("storage", el.level),
           (a.cistern ?? 0) + (s.weather === "storm" || s.weather === "rain" ? 3 : -0.08) * t,
         ),
       );
@@ -707,16 +728,24 @@ export function advanceEconomy(s: GameState, dt: number) {
   // Vacancies already reduce export capacity. Resident confidence and crime affect what outside buyers spend.
   const tradeIncome = r.exports * t * (activeBlessing(s) === "prosperity" ? 1.15 : 1) * (0.75 + 0.25 * s.happiness / 100) * (1 - 0.20 * s.metrics.crimeRate / 100);
   transfer(s, "outside", "businesses", tradeIncome, "Local exports");
-  // A connected shop can obtain working capital from the public treasury; it only imports an affordable shortfall.
+  const taxFraction = taxRateOf(s) / 100;
+  // Trade tax is collected on arrival, before wages drain the businesses' cash.
+  let taxes = transfer(s, "businesses", "treasury", tradeIncome * taxFraction, "Trade tax");
   const importPrice = (0.8 * effective(s, "imports", 100)) / 100;
   let imported = 0,
     consumed = 0;
   let remainingCapacity = s.metrics.foodSupply * t;
-  const wages = transfer(s, "businesses", "households", workers * 0.34 * t, "Local wages");
-  const taxFraction = effective(s, "tax", 15) / 100;
-  let taxes =
-    transfer(s, "households", "treasury", wages * taxFraction, "Payroll tax") +
-    transfer(s, "businesses", "treasury", tradeIncome * taxFraction, "Trade tax");
+  // Spending and grocer imports come before this period's payroll, so stores restock from their
+  // takings before wages are paid out of what is left; both read last period's wage bill.
+  const lastWages = (r.wages ?? 0) * t;
+  // Households spend part of their wages and savings at local commerce (shops, malls, banks…),
+  // limited by what the staffed stores can serve. Businesses pay sales tax on it.
+  const spendable = Math.min(e.households, 0.012 * e.households * t + 0.25 * lastWages);
+  const spent = transfer(s, "households", "businesses", Math.min(spendable, (r.commerce ?? 0) * t), "Household spending");
+  r.spending = spent / t;
+  taxes += transfer(s, "businesses", "treasury", spent * 0.08, "Sales tax");
+  // The treasury can lend grocers a little working capital: at most a quarter of this period's payroll tax.
+  let credit = 0.25 * lastWages * taxFraction;
   for (const g of groups.values()) {
     if (!g.people) continue;
     const need = (g.people / (s.mode==="survival"?103:115)) * t;
@@ -742,11 +771,11 @@ export function advanceEconomy(s: GameState, dt: number) {
         if (farm.food <= 0) break;
       }
     }
-    for (const importer of g.shops.filter((el) => el.defId === "grocery_store" || ELEMENT_BY_ID[el.defId].archetype==="restaurant_bar")) {
+    for (const importer of g.shops.filter((el) => el.defId === "grocery_store" || el.defId === "malls" || ELEMENT_BY_ID[el.defId].archetype==="restaurant_bar")) {
       const wanted = Math.min(Math.max(0, need * 4 + 3 - stock), e.sites[importer.id].retail * t * (importer.defId === "grocery_store" ? .36 : .14));
       if (wanted > 0) {
-        const credit = Math.max(0, wanted * importPrice - e.businesses);
-        transfer(s, "treasury", "businesses", credit, "Grocer working capital");
+        const loan = Math.min(credit, Math.max(0, wanted * importPrice - e.businesses));
+        credit -= transfer(s, "treasury", "businesses", loan, "Grocer working capital");
         const spent = transfer(s, "businesses", "outside", wanted * importPrice, "Imported groceries");
         const qty = importPrice ? spent / importPrice : wanted;
         e.sites[importer.id].food += qty;
@@ -758,9 +787,9 @@ export function advanceEconomy(s: GameState, dt: number) {
     const retail = sum(g.shops.map((el) => e.sites[el.id].retail)) * t * 0.15;
     const gates = sum(g.suppliers.map((el) => e.sites[el.id].yieldRate)) * t * 0.52;
     let portion = Math.min(stock, need, retail + gates, remainingCapacity);
-    const voucher = Math.max(0, portion * 0.65 - e.households);
+    const voucher = Math.max(0, portion * MEAL_PRICE - e.households);
     transfer(s, "treasury", "households", voucher, "Household food assistance");
-    portion = Math.min(portion, e.households / 0.65);
+    portion = Math.min(portion, e.households / MEAL_PRICE);
     let left = portion;
     for (const el of [...g.shops, ...g.suppliers.filter((el) => !g.shops.includes(el))]) {
       const a = e.sites[el.id],
@@ -775,8 +804,25 @@ export function advanceEconomy(s: GameState, dt: number) {
     }
     consumed += portion;
     remainingCapacity -= portion;
-    const sale = transfer(s, "households", "businesses", portion * 0.65, "Household groceries");
+    const sale = transfer(s, "households", "businesses", portion * MEAL_PRICE, "Household groceries");
     taxes += transfer(s, "businesses", "treasury", sale * 0.04, "Sales tax");
+  }
+  // Firms keep a tenth of their cash as working capital for the next period's restocking.
+  const wages = transfer(s, "businesses", "households", Math.min(workers * 0.34 * t, 0.9 * e.businesses), "Local wages");
+  taxes += transfer(s, "households", "treasury", wages * taxFraction, "Payroll tax");
+  // How many residents the districts' shops and farm gates can serve, with new residents settling in
+  // proportion to today's homes: a district's spare counter capacity cannot feed another district.
+  {
+    const perResident = 1 / (s.mode === "survival" ? 103 : 115);
+    const lanes = [...groups.values()].filter((g) => g.people > 0).map((g) => ({
+      share: g.people / Math.max(1, s.population),
+      meals: sum(g.shops.map((el) => e.sites[el.id].retail)) * 0.15 + sum(g.suppliers.map((el) => e.sites[el.id].yieldRate)) * 0.52,
+    }));
+    const fed = (p: number) => lanes.reduce((n, l) => n + Math.min(l.share * p * perResident, l.meals), 0);
+    let lo = 0, hi = Math.max(1000, s.population * 40);
+    if (fed(hi) >= 0.98 * hi * perResident) lo = hi;
+    else for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (fed(mid) >= 0.98 * mid * perResident) lo = mid; else hi = mid; }
+    r.foodResidents = lanes.length ? lo : undefined;
   }
   const m = s.metrics;
   const utilityDeficit = Math.max(0, m.waterDemand ? 1 - m.waterSupply / m.waterDemand : 0,
@@ -833,14 +879,18 @@ export function advanceEconomy(s: GameState, dt: number) {
   }
   const storage = live
     .filter((el) => el.defId === "pumped_storage_station")
-    .reduce((a, b) => a + b.level * 65, 0);
+    .reduce((a, b) => a + 65 * levelMultiplier("output", b.level), 0);
+  // Pumping speed grows with the station's level, as does its reservoir.
+  const pumpRate = live
+    .filter((el) => el.defId === "pumped_storage_station")
+    .reduce((a, b) => a + 4 * levelMultiplier("output", b.level), 0);
   if (storage) {
     const surplus = s.metrics.powerSupply - (r.reserveOutput ?? 0) - s.metrics.powerDemand;
     r.reservePower = Math.max(
       0,
       Math.min(
         storage,
-        r.reservePower + (surplus > 0 ? Math.min(4, surplus * 0.25) : -(r.reserveOutput ?? 0)) * t,
+        r.reservePower + (surplus > 0 ? Math.min(pumpRate, surplus * 0.25) : -(r.reserveOutput ?? 0)) * t,
       ),
     );
   } else r.reservePower = 0;
@@ -857,7 +907,7 @@ export function advanceEconomy(s: GameState, dt: number) {
     }
   } else e.recovery = 0;
   enforceAccountHolds(s);
-  e.peak = Math.max(e.peak, cityWealth(s));
+  e.peak = Math.max(e.peak, unlockWealth(s));
   return true;
 }
 export function wealthTiers() {

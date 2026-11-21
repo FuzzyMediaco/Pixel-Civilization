@@ -1,14 +1,17 @@
-import { replanRailStops } from "../game/mobility";
+import { trainFor } from "../game/railOperations";
 import { GRID_MIN, GRID_MAX } from "../game/mapBounds";
 import React, { useEffect, useState } from "react";
 import { ELEMENT_BY_ID } from "../game/catalog";
 import type { GameState, PlacedElement } from "../game/simulation";
 import {
   addLine,
+  addTrainToLine,
   autoStops,
   dispatchVessel,
   eligibleDepots,
   eligibleStops,
+  lineKey,
+  lineTrains,
   modeNames,
   transitReadout,
   type Point,
@@ -27,6 +30,7 @@ export interface TransportProps {
   onGrid: (x: number, z: number, line: string) => void;
   onFollow: (id?: string) => void;
   onPickDestination: (id: string) => void;
+  onRailOps: (depot: string) => void;
 }
 const placeName = (e: PlacedElement) => ELEMENT_BY_ID[e.defId].name + " · " + e.gx + ", " + e.gz;
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
@@ -39,6 +43,7 @@ export function MobilityPanel({
   onFocus,
   onGrid,
   onPickDestination,
+  onRailOps,
   focusLine,
 }: TransportProps) {
   const [mode, setMode] = useState<TravelMode>("bus"),
@@ -78,11 +83,6 @@ export function MobilityPanel({
   const create = () => {
     mutate((s) => {
       try {
-        const existing=s.mobility?.lines.find(l=>l.id===editing);
-        if(existing?.mode==="rail"){
-          if(mode!=="rail"||existing.depot!==chosen)throw Error("Reassign this train in Rail Operations.");
-          replanRailStops(s,existing,stops);setEditing("");setShowBuilder(false);setMessage("Updated the railway timetable.");return;
-        }
         const id = addLine(s, mode, chosen, stops);
         if (editing) {
           const prior = s.mobility!.lines.find((l) => l.id === editing),
@@ -215,7 +215,7 @@ export function MobilityPanel({
       {(state.mobility?.lines ?? []).map((l) => (
         <details key={l.id} id={"service-" + l.id} open={focusLine === l.id || undefined}>
           <summary>
-            {modeNames[l.mode]} {l.id.replace("line-", "#")} · {l.enabled ? l.status : "Paused"}
+            {l.mode === "rail" ? (l.rail?.name ?? "Rail line") + " · Train" : modeNames[l.mode]} {l.id.replace("line-", "#")} · {l.enabled ? l.status : "Paused"}
           </summary>
           <p>
             {l.delivered} delivered · {l.riders.reduce((sum, r) => sum + r.count, 0)} aboard
@@ -233,7 +233,7 @@ export function MobilityPanel({
             })}
           </ol>
           <label>
-            Depot layover (seconds)
+            {l.mode === "rail" ? "Line layover (seconds)" : "Depot layover (seconds)"}
             <input
               type="number"
               min={1}
@@ -241,7 +241,11 @@ export function MobilityPanel({
               value={l.interval}
               onChange={(e) =>
                 mutate((s) => {
-                  s.mobility!.lines.find((a) => a.id === l.id)!.interval = clamp(Number(e.target.value), 1, 120);
+                  const interval = clamp(Number(e.target.value), 1, 120);
+                  for (const vehicle of lineTrains(s, lineKey(l))) {
+                    vehicle.interval = interval;
+                    if (vehicle.mode === "rail") trainFor(vehicle).frequency = interval;
+                  }
                 })
               }
             />
@@ -252,7 +256,11 @@ export function MobilityPanel({
               value={l.schedule}
               onChange={(e) =>
                 mutate((s) => {
-                  s.mobility!.lines.find((a) => a.id === l.id)!.schedule = e.target.value as typeof l.schedule;
+                  const schedule = e.target.value as typeof l.schedule;
+                  for (const vehicle of lineTrains(s, lineKey(l))) {
+                    vehicle.schedule = schedule;
+                    if (vehicle.mode === "rail") trainFor(vehicle).schedule = schedule;
+                  }
                 })
               }
             >
@@ -289,8 +297,8 @@ export function MobilityPanel({
             <button
               onClick={() =>
                 mutate((s) => {
-                  const line = s.mobility!.lines.find((a) => a.id === l.id)!;
-                  line.enabled = !line.enabled;
+                  const enabled = !l.enabled;
+                  for (const vehicle of lineTrains(s, lineKey(l))) vehicle.enabled = enabled;
                 })
               }
             >
@@ -300,6 +308,11 @@ export function MobilityPanel({
               onClick={() =>
                 mutate((s) => {
                   try {
+                    if (l.mode === "rail") {
+                      addTrainToLine(s, lineKey(l));
+                      setMessage("Another train joins " + (l.rail?.name ?? "the line") + ".");
+                      return;
+                    }
                     const id = addLine(s, l.mode, l.depot, l.stops);
                     const extra = s.mobility!.lines.find((line) => line.id === id)!;
                     extra.interval = l.interval;
@@ -317,6 +330,10 @@ export function MobilityPanel({
             </button>
             <button
               onClick={() => {
+                if (l.mode === "rail") {
+                  onRailOps(l.depot);
+                  return;
+                }
                 setMode(l.mode);
                 setDepot(l.depot);
                 setStops([...l.stops]);
@@ -324,7 +341,7 @@ export function MobilityPanel({
                 setShowBuilder(true);
               }}
             >
-              Edit route
+              {l.mode === "rail" ? "Rail Operations" : "Edit route"}
             </button>
             {l.blocker && (
               <button onClick={() => onGrid(l.blocker![0], l.blocker![1], l.id)}>Show obstruction</button>
@@ -332,7 +349,7 @@ export function MobilityPanel({
             <button
               onClick={() =>
                 mutate((s) => {
-                  s.mobility!.lines = s.mobility!.lines.filter((a) => a.id !== l.id);
+                  s.mobility!.lines = s.mobility!.lines.filter((a) => lineKey(a) !== lineKey(l));
                 })
               }
             >

@@ -55,6 +55,8 @@ const tools: {group:string; entries:[Kind,string,string][]}[]=[
     ["interchange","Build interchange","Tap once to mark the center of the junction. Check the layout and affected sites in the preview."]]},
   {group:"Maintenance",entries:[["erase","Remove works","Remove the selected construction layer from the marked tiles."]]},
 ];
+/** Plain name for a land & water tool (placement bar). */
+export const worksToolLabel=(kind:Kind)=>tools.flatMap(g=>g.entries).find(e=>e[0]===kind)?.[1]??kind;
 const brushKinds:Kind[]=["paint","raise","lower","smooth","mountain","canyon","peninsula","canal","river","pond","bay","spring"];
 function defaultTool(kind:Kind): InfrastructureTool {
   switch(kind) {

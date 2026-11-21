@@ -117,7 +117,8 @@ const src = path.resolve(root, "src/handbook");
 const catalog = JSON.parse(readFileSync(path.join(src, "catalog.json"))),
   chapters = JSON.parse(readFileSync(path.join(src, "chapters.json")));
 const playable = chapters.find((c) => c.id === "worlds")?.lessons ?? [];
-assert.equal(playable.length, 3, "Three playable handbook worlds are required");
+assert.ok(playable.length && playable.every((world) => world.world), "Each island tour needs a playable world");
+assert.equal(new Set(playable.map((world) => world.world)).size, playable.length, "Duplicate world launcher");
 const escapeHtml = (s) =>
   s.replace(
     /[&<>"']/g,

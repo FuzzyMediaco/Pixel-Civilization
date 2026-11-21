@@ -55,7 +55,7 @@ export function relatedLessons(id: string, category: string) {
   const expansion = chapters.flatMap(chapter=>chapter.lessons.filter(lesson=>
     "designs" in lesson && Array.isArray(lesson.designs) && lesson.designs.includes(id)
   ).map(lesson=>lesson.id));
-  const ids = new Set([...expansion, specific, ...pairs, categoryLesson[category]].filter(Boolean));
+  const ids = new Set([specific, ...expansion, ...pairs, categoryLesson[category]].filter(Boolean));
   return [...ids].flatMap((key) => {
     const lesson = key && lessonLinks.get(key);
     return lesson ? [lesson] : [];

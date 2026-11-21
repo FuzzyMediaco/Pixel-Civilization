@@ -1,6 +1,23 @@
 @import "tailwindcss";
 @import "./src/styles/interface.css";
 
+/* Tailwind utilities map onto the UI tokens (text-ui-sm, bg-ui-paper, text-ui-bad …). Type scale: 11/13/15/19. */
+@theme {
+  --color-ui-ink: #19392f;
+  --color-ui-muted: #52665b;
+  --color-ui-green: #235944;
+  --color-ui-paper: #faf9f1;
+  --color-ui-card: #fffef9;
+  --color-ui-line: #cfd8c9;
+  --color-ui-bad: #b3362d;
+  --color-ui-warn: #a65b17;
+  --color-ui-good: #2f7d4f;
+  --text-ui-xs: 11px;
+  --text-ui-sm: 13px;
+  --text-ui-md: 15px;
+  --text-ui-lg: 19px;
+}
+
 @layer base {
   :root {
     --font-display: var(--ui-font);

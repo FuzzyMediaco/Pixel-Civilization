@@ -7,6 +7,9 @@ import { findGuideElements, getGuidePartner, getGuideVariant, getNeighborPreview
 import { DESIGNS } from "../src/game/designs/registry";
 import styleNames from "../src/game/designStyles.json";
 import catalog from "../src/handbook/catalog.json";
+import chapters from "../src/handbook/chapters.json";
+import { relatedLessons } from "../src/handbook/relatedLessons";
+import { EXAMPLE_WORLDS } from "../src/game/exampleWorlds";
 import neighbors from "../public/handbook/neighbors/index.json";
 import { makeCtx } from "../src/game/designs/kit";
 import { applyParcelAppearance } from "../src/game/parcelGeometry";
@@ -153,5 +156,29 @@ test("ferry and taxi stages and styles change their geometry independently of pa
         );
         signatures.add(signature);
       }
+  }
+});
+
+
+test("each field-guide operating link has a handbook destination, including the public island tours", () => {
+  const tours = chapters.find(c => c.id === "worlds")!.lessons;
+  assert.deepEqual(tours.map(l => "world" in l ? l.world : undefined), EXAMPLE_WORLDS.map(w => w.id));
+  for (const def of ELEMENTS) {
+    const links = relatedLessons(def.id, def.category);
+    assert.ok(links.length > 0, def.id + " needs operating instructions");
+    for (const link of links) {
+      const target = chapters.find(c => c.id === link.section)?.lessons.find(l => l.id === link.id);
+      assert.equal(target?.title, link.title, def.id + " links to a missing lesson");
+    }
+  }
+  for (const chapter of chapters) {
+    const ids = chapter.lessons.map(l => l.id);
+    assert.equal(new Set(ids).size, ids.length, chapter.title + " contains duplicate lesson anchors");
+    for (const lesson of chapter.lessons) {
+      if ("designs" in lesson && Array.isArray(lesson.designs)) {
+        for (const id of lesson.designs) assert.ok(ELEMENT_BY_ID[id], lesson.title + " references " + id);
+      }
+      for (const pic of lesson.examples) assert.ok(fs.existsSync(new URL("../public" + pic.image, import.meta.url)), pic.image);
+    }
   }
 });

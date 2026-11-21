@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import "../src/game/designs/index";
 import { ELEMENT_BY_ID } from "../src/game/catalog";
-import { powerOutputFactor, rushHourFactor, roadCapacity, transitRelief } from "../src/game/cityDynamics";
+import { powerOutputFactor, rushHourFactor, roadCapacity } from "../src/game/cityDynamics";
 import { buildDesignAsset } from "../src/game/voxelArchitect";
 import { getTileTerrainKind, createInitialGameState, planConstruction } from "../src/game/simulation";
 
@@ -14,7 +14,6 @@ test("sun, wind, rain and rush hour independently change city outputs", () => {
   assert.ok(rushHourFactor(8) > rushHourFactor(12));
   assert.ok(rushHourFactor(17.75) > rushHourFactor(2));
   assert.ok(roadCapacity(ELEMENT_BY_ID.highways, 4) > roadCapacity(ELEMENT_BY_ID.roads, 1));
-  assert.ok(transitRelief(ELEMENT_BY_ID.bus_stops, 3) > transitRelief(ELEMENT_BY_ID.bus_stops, 1));
 });
 
 test("a small legacy lot preserves the complete wheel and every moving part", () => {

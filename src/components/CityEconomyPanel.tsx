@@ -47,7 +47,7 @@ const n = (v: number) => Math.round(v).toLocaleString(),
 export type EconomyTab = "population" | "happiness" | "wealth" | "site" | "safety" | "controls";
 export interface EconomyPanelProps {
   state: GameState;
-  mutate: (fn: (s: GameState) => void) => void;
+  mutate: (fn: (s: GameState) => void, buildingEdit?: string) => void;
   selected?: PlacedElement | null;
   onFocus?: (id: string) => void;
   initialPanel?: EconomyTab;
@@ -141,12 +141,12 @@ export function CityEconomyPanel({
   const price = site && def && buildingCharges(s) ? placedUpgradeCost(s,site) : 0;
   const preview = site && growth ? { ...site } : undefined;
   const fits = preview && tab === "site" ? resizeElementForLevel(s, preview, preview.level + 1) : true;
-  const runSite = (fn: (st: GameState, el: PlacedElement) => string) => {
+  const runSite = (fn: (st: GameState, el: PlacedElement) => string, buildingEdit?: string) => {
     if (!site) return;
     mutate((st) => {
       const el = st.elements.find((x) => x.id === site.id);
       if (el) setMessage(fn(st, el));
-    });
+    }, buildingEdit);
   };
   return (
     <div className="island-content">
@@ -226,7 +226,9 @@ export function CityEconomyPanel({
           </p>
           <Figures
             rows={[
-              ["Occupied / capacity", n(s.population) + " / " + n(r.capacity)],
+              ...(s.metrics.populationLimiter?.cap
+                ? [["Room for", n(s.metrics.populationLimiter.cap) + " · limited by " + ({housing:"homes",jobs:"jobs",food:"food",waste:"waste",water:"water",power:"power"} as Record<string,string>)[s.metrics.populationLimiter.limitingNeed]] as [string, string]]
+                : []),
               ["Working residents", n(r.workers)],
               ["Filled local jobs", n(Object.values(e.sites).reduce((sum, site) => sum + site.workers, 0))],
               ["Reachable jobs / all jobs", n(r.reachable) + " / " + n(r.jobs)],
@@ -367,7 +369,7 @@ export function CityEconomyPanel({
                 ["Lane allocation",(s.infrastructure?.streets[site.gx+","+site.gz]?.lanes??standardRoadLanes(site.defId,site.level))+" lanes"],
               ]}/>
               <p>{site.roadAxis?frontageWidth(site.defId):"One-tile street"} · {(getTrafficLoadMap(s).get(site.gx+","+site.gz)??0)>1?"Upgrade this bottleneck, add a parallel route or link busy origins with transit.":"Traffic uses connected origin and destination gates. Compare the load here with adjoining streets."}</p>
-              {widening&&<><button disabled={Boolean(widening.reason)} onClick={()=>runSite((st,el)=>{const outcome=widenLegacyRoad(st,el);return outcome.ok?"Carriageway widened.":outcome.reason??"Unavailable.";})}>Widen existing carriageway · {money(widening.cost)}</button>{widening.reason&&<p>{widening.reason}</p>}</>}
+              {widening&&<><button disabled={Boolean(widening.reason)} onClick={()=>runSite((st,el)=>{const outcome=widenLegacyRoad(st,el);return outcome.ok?"Carriageway widened.":outcome.reason??"Unavailable.";}, "Widen carriageway")}>Widen existing carriageway · {money(widening.cost)}</button>{widening.reason&&<p>{widening.reason}</p>}</>}
             </>:<Figures
               rows={[
                 ["Staff", n(a.workers) + " / " + n(a.jobs)],

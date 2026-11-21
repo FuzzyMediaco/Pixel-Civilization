@@ -13,10 +13,26 @@
   --ui-leaf: #dce9d8;
   --ui-paper: #faf9f1;
   --ui-card: #fffef9;
-  --ui-line: #bdcbbd;
+  --ui-line: #cfd8c9;
   --ui-focus: #a45312;
-  --ui-radius: 10px;
-  --ui-shadow: 0 4px 18px #142f292b;
+  --ui-bad: #b3362d;
+  --ui-bad-bg: #f7dfdb;
+  --ui-warn: #a65b17;
+  --ui-warn-bg: #f8ead7;
+  --ui-good: #2f7d4f;
+  --ui-radius: 14px;
+  --ui-radius-sm: 10px;
+  --ui-shadow: 0 6px 22px #142f2930;
+  /* Type scale: 11 / 13 / 15 / 19 only. */
+  --ui-t-xs: 11px;
+  --ui-t-sm: 13px;
+  --ui-t-md: 15px;
+  --ui-t-lg: 19px;
+  /* Tap targets. */
+  --ui-tap: 44px;
+  --ui-tap-lg: 48px;
+  --ui-nav-h: 64px;
+  --ui-gap: 8px;
 }
 :where(button,a,input,select,textarea,summary):focus-visible {
   outline: 3px solid var(--ui-focus);

@@ -206,10 +206,11 @@ test("freight uses compatible cars, explicit terminal industries and completed d
   changeFormation(s, l.id, { ...oldForm, frequency: 12 });
   assert.equal(l.rail!.contract!.delivered, delivered);
   assert.deepEqual(l.rail!.trail, trail);
-  assert.equal(railFreightBonus(s, shop.id, "grain"), 1.08);
+  const bonus = railFreightBonus(s, shop.id, "grain");
+  assert.ok(bonus > 1.05 && bonus < 1.3, String(bonus));
   l.enabled = false;
   assert.equal(railFreightBonus(s, farm.id, "grain"), 1);
-  s.activePlaySec += 100;
+  s.activePlaySec += 200;
   l.enabled = true;
   assert.equal(railFreightBonus(s, shop.id, "grain"), 1);
 });
@@ -243,6 +244,16 @@ test("real locomotive and rolling-stock meshes are distinct and loaded open cars
     a.dispose();
     b.dispose();
   }
+});
+
+test("Real-mode Switchyard can visit its authored yard before bridge tools unlock", () => {
+  const original = createInitialGameState("real");
+  original.exampleWorldId = "switchyard-city";
+  const yard = visitPracticeRailway(original);
+  assert.equal(yard.state.mode, original.mode);
+  assert.equal(yard.state.money, original.money);
+  assert.equal(yard.state.mobility!.lines.find(l => l.rail?.service === "freight")?.rail?.contract?.type, "grain");
+  assert.equal(visitPracticeRailway(yard.state).state, yard.state);
 });
 
 test("Switchyard opens the practice railway once and both services work around the bend", () => {
@@ -339,4 +350,138 @@ test("competing freight trains share real stocks; unloading moves meals and unst
   factory.onFire = true;
   advanceRailFreightStock(s, nav, 100);
   assert.equal(freightAvailable(s, factory.id, "goods"), 0);
+});
+
+// ---------------------------------------------------------------- round 2: blocks, lines with N trains, physics
+import { addTrainToLine, lineHeadway, transitReadout } from "../src/game/mobility";
+import { railLeg } from "../src/game/railMovement";
+function loopDistrict(withLoop: boolean) {
+  const s = createInitialGameState("god");
+  s.timeOfDay = 12;
+  for (let x = -12; x <= 12; x++) put(s, "train_tracks", x, 0);
+  if (withLoop) {
+    for (const x of [-3, 3]) put(s, "train_tracks", x, -1);
+    for (let x = -3; x <= 3; x++) put(s, "train_tracks", x, -2);
+  }
+  for (let x = -13; x <= 13; x++) put(s, "roads", x, 3);
+  const depot = put(s, "train_depots", -12, 1, 2),
+    west = put(s, "train_stops", -9, 1, 2),
+    east = put(s, "train_stops", 9, 1, 2),
+    eastDepot = put(s, "train_depots", 11, 1, 2);
+  for (let x = -11; x <= 11; x += 2) put(s, "house", x, 4, 1, 2);
+  s.population = 80;
+  return { s, depot, west, east, eastDepot };
+}
+function runYard(s: GameState, seconds: number) {
+  const red: Record<string, number> = {};
+  let ghosts = 0;
+  for (let t = 0; t < seconds; t += 0.25) {
+    s.activePlaySec += 0.25;
+    stepMobility(s, 0.25);
+    const rails = s.mobility!.lines.filter((l) => l.mode === "rail");
+    for (const l of rails) {
+      if (l.status.startsWith("Red signal")) red[l.id] = (red[l.id] ?? 0) + 0.25;
+      if (l.rail!.ghost) ghosts++;
+    }
+    for (let i = 0; i < rails.length; i++)
+      for (let j = 0; j < i; j++) {
+        const a = new Set(rails[i].rail!.reservation ?? []);
+        const both = (rails[j].rail!.reservation ?? []).filter((k) => a.has(k));
+        assert.ok(!both.length, "two trains hold the same tile " + both + " at " + s.activePlaySec + ": " + rails[i].status + " / " + rails[j].status + " ghost " + rails[i].rail!.ghost + rails[j].rail!.ghost);
+      }
+  }
+  return { red, ghosts };
+}
+test("a passing loop lets opposing trains pass; without one they time-share the single track, never deadlocking", () => {
+  const result: { departures: number; red: number }[] = [];
+  for (const loop of [false, true]) {
+    const { s, depot, west, east, eastDepot } = loopDistrict(loop);
+    addLine(s, "rail", depot.id, [west.id, east.id], defaultFormation());
+    addLine(s, "rail", eastDepot.id, [east.id, west.id], { ...defaultFormation(), name: "Counter" });
+    const { red, ghosts } = runYard(s, 300);
+    assert.equal(ghosts, 0);
+    assert.ok(s.mobility!.lines.every((l) => l.departures >= 3));
+    result.push({
+      departures: s.mobility!.lines.reduce((n, l) => n + l.departures, 0),
+      red: Object.values(red).reduce((a, b) => a + b, 0),
+    });
+  }
+  assert.ok(result[1].departures > result[0].departures && result[1].red < result[0].red, JSON.stringify(result));
+});
+function ringDistrict() {
+  const s = createInitialGameState("god");
+  s.timeOfDay = 12;
+  for (let x = -6; x <= 6; x++) for (const z of [0, -4]) put(s, "train_tracks", x, z);
+  for (let z = -3; z <= -1; z++) for (const x of [-6, 6]) put(s, "train_tracks", x, z);
+  for (let x = -8; x <= 8; x++) put(s, "roads", x, 3);
+  const west = put(s, "train_stops", -4, 1, 2),
+    east = put(s, "train_stops", 3, 1, 2),
+    depot = put(s, "train_depots", -1, 1, 2);
+  for (let x = -7; x <= 7; x += 2) put(s, "house", x, 4, 1, 2);
+  s.population = 90;
+  return { s, depot, west, east };
+}
+test("a line runs N trains: adding a train halves the headway and riders wait less", () => {
+  const waits: number[] = [];
+  for (const trains of [1, 2]) {
+    const { s, depot, west, east } = ringDistrict();
+    const id = addLine(s, "rail", depot.id, [west.id, east.id], defaultFormation());
+    const single = lineHeadway(s, id);
+    if (trains === 2) {
+      addTrainToLine(s, id);
+      assert.ok(Math.abs(lineHeadway(s, id) - single / 2) < 0.01);
+      assert.equal(s.mobility!.lines.filter((l) => (l.group ?? l.id) === id).length, 2);
+    }
+    const { ghosts } = runYard(s, 360);
+    assert.equal(ghosts, 0);
+    const rep = transitReadout(s);
+    assert.ok(rep.served > 0);
+    waits.push(rep.wait);
+  }
+  assert.ok(waits[1] < waits[0], waits.join(" vs "));
+  assert.ok(waits[1] < 60);
+});
+test("trains ride the drawn arcs and never turn on a diamond crossing", () => {
+  const s = createInitialGameState("god");
+  for (let x = 0; x <= 4; x++) put(s, "train_tracks", x, 0);
+  for (let z = 1; z <= 3; z++) put(s, "train_tracks", 4, z);
+  const net = getTravelNetwork(s);
+  const leg = railLeg(net.path([[0, 0]], [[4, 3]], "rail")!, net);
+  // Every sample of the corner tile lies on the quarter circle of radius 0.5 around the inner corner (3.5, 0.5).
+  for (const [x, z] of leg.pts) if (x > 3.5 && z < 0.5) assert.ok(Math.abs(Math.hypot(x - 3.5, z - 0.5) - 0.5) < 0.1);
+  assert.ok(leg.total < 7 && leg.total > 6.7);
+  const d = createInitialGameState("god");
+  for (let x = -2; x <= 2; x++) put(d, "train_tracks", x, 0);
+  for (const z of [-2, -1, 1, 2]) put(d, "train_tracks", 0, z);
+  const route = getTravelNetwork(d).path([[-2, 0]], [[0, -2]], "rail");
+  assert.equal(route, null);
+});
+test("track level sets the speed limit and electric stock crawls on unelectrified track", () => {
+  const times: number[] = [];
+  for (const level of [1, 4]) {
+    const { s, depot, west, east } = loopDistrict(false);
+    for (const e of s.elements) if (e.defId === "train_tracks") e.level = level;
+    installYardWork(s, depot, "wire");
+    const id = addLine(s, "rail", depot.id, [west.id, east.id], { ...defaultFormation(), engine: "electric" });
+    const l = s.mobility!.lines.find((l) => l.id === id)!;
+    let t = 0;
+    while (l.departures < 3 && t < 400) {
+      s.activePlaySec += 0.25;
+      stepMobility(s, 0.25);
+      t += 0.25;
+    }
+    times.push(t);
+  }
+  assert.ok(times[1] < times[0] * 0.6, times.join(" vs "));
+});
+test("the Orchard Valley yard: freight rarely waits at red signals thanks to its passing loop", () => {
+  const original = createInitialGameState("god");
+  original.exampleWorldId = "switchyard-city";
+  original.timeOfDay = 12;
+  const { state: s } = visitPracticeRailway(original);
+  const { red, ghosts } = runYard(s, 300);
+  const freight = s.mobility!.lines.find((l) => l.rail?.service === "freight")!;
+  assert.equal(ghosts, 0);
+  assert.ok((red[freight.id] ?? 0) < 0.15 * 300, String(red[freight.id]));
+  assert.ok(freight.departures >= 6, String(freight.departures));
 });

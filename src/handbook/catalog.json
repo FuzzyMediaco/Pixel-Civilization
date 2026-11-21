@@ -14,7 +14,7 @@
     },
     "description": "A waterside landing with a walkable entrance. Connect two landings to run passenger boats.",
     "usage": "Use two reachable landings, navigable water between their berths, and walkable access for passengers.",
-    "growth": "A landing marker gains shelter and a railed boarding walk. Two docking fingers open beside the pier before a ticket hall and harbor beacon welcome the busiest sailings.",
+    "growth": "Stone steps into the water gain a gangway and canopied pontoon, a railed waterbus landing with a glowing timetable, a twin-berth T-pontoon, and finally a shore ticket hall, lamp-lit pier and harbour beacon.",
     "maxLevel": 5,
     "levels": [
       {
@@ -102,7 +102,7 @@
     },
     "description": "A compact curbside pickup point for routes from a taxi depot.",
     "usage": "Face the rank toward a local street and connect a taxi depot and a destination by road.",
-    "growth": "A signed curb gains a canopy, a waiting area, a fare reader, and staffed dispatch. The final night rank adds a rooftop landmark while keeping the boarding strip open.",
+    "growth": "A signed curb gains a styled shelter, a waiting cab, a dispatch kiosk with a radio mast, and finally a giant glowing rooftop landmark — the boarding strip by the street always stays open.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14123,7 +14123,7 @@
     },
     "description": "Auction local harvests under a fan of awnings. Connect farms and a grocer to improve local deliveries.",
     "usage": "Put working plots or loading yards on the same boundary. Keep road or rail access for deliveries.",
-    "growth": "Auction local harvests under a fan of awnings. Connect farms and a grocer to improve local deliveries.",
+    "growth": "A fruit cart sprouts a three-stall court, a round auction ring, an arcaded market hall and finally a clock-towered exchange — the giant fruit mascot climbs higher every level.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14215,7 +14215,7 @@
     },
     "description": "Bakers turn local grain into stored meals and serve nearby households.",
     "usage": "Put working plots or loading yards on the same boundary. Keep road or rail access for deliveries.",
-    "growth": "Bakers turn local grain into stored meals and serve nearby households.",
+    "growth": "One smoking dome oven becomes a bakehouse, a row of chimneyed shopfronts, an arched bread arcade, then a co-op court around a spinning flour windmill under a giant bread sign.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14306,7 +14306,7 @@
     },
     "description": "Passengers transfer between sheltered berths and the street.",
     "usage": "Place the shoreline facility beside navigable water and provide access from land.",
-    "growth": "Passengers transfer between sheltered berths and the street.",
+    "growth": "A timber pier and launch grow into twin berths, a covered transfer pier, a canopy concourse along the whole quay and finally a clock-towered harbour hall with four ferries.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14397,7 +14397,7 @@
     },
     "description": "Filtering drums recycle water for local farming and industrial cooling.",
     "usage": "Place the water intake beside replenished water. A fitting is visible even when a decorative basin supplies no water.",
-    "growth": "Filtering drums recycle water for local farming and industrial cooling.",
+    "growth": "A reed filter pond adds a clarifier with a rotating skimmer bridge, then cascading reed terraces, a steaming cooling channel and finally rotating drum filters and a glowing clean-water tower.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14490,7 +14490,7 @@
     },
     "description": "Haul trucks circle terraced cuts. The mine exports ore and consumes industrial water.",
     "usage": "Put working plots or loading yards on the same boundary. Keep road or rail access for deliveries.",
-    "growth": "Haul trucks circle terraced cuts. The mine exports ore and consumes industrial water.",
+    "growth": "A shallow test cut deepens into a stepped crater: more benches, a haul ramp, dump trucks, a conveyor to the ore pile, a rail load-out and finally a pit lake with a spinning bucket-wheel excavator.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14582,7 +14582,7 @@
     },
     "description": "Irrigated, powered glasshouses grow food year-round.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Irrigated, powered glasshouses grow food year-round.",
+    "growth": "One glass cloche becomes twin ferneries, a petal-shaped dome hothouse, then glasshouses climbing three and four terraces crowned by a great glowing dome.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14673,7 +14673,7 @@
     },
     "description": "A working rail connection transfers freight and earns export income.",
     "usage": "Put working plots or loading yards on the same boundary. Keep road or rail access for deliveries.",
-    "growth": "A working rail connection transfers freight and earns export income.",
+    "growth": "A single siding with boxcars adds a gantry crane, then a four-track switchyard with a signal box and locomotive, a stacked container yard and finally towering rail-mounted gantries over a long train.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14763,7 +14763,7 @@
     },
     "description": "Nearby industry supplies waste heat to homes, reducing their electrical demand.",
     "usage": "Put heat-producing equipment next to a compatible consumer to add a pipe across the shared edge.",
-    "growth": "Nearby industry supplies waste heat to homes, reducing their electrical demand.",
+    "growth": "An exchanger hut with an insulated pipe loop grows a pipe court, a round hall of spinning heat-pump fans, a towering thermal accumulator with a glowing thermometer and finally twin tanks and a rainbow pipe bundle.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14855,7 +14855,7 @@
     },
     "description": "A runway enables arrivals, visits and return flights to the mainland.",
     "usage": "Give residents or shops a direct entrance to the stop and complete a route to another destination.",
-    "growth": "A runway enables arrivals, visits and return flights to the mainland.",
+    "growth": "A grass airstrip with a prop plane paves into a runway with a village terminal, then gains jet bridges, a radar tower and runway lights, a long concourse and finally a curved crescent terminal with four jets.",
     "maxLevel": 5,
     "levels": [
       {
@@ -14946,7 +14946,7 @@
     },
     "description": "A counterweighted cradle connects canal levels for passenger and freight boats.",
     "usage": "Place the shoreline facility beside navigable water and provide access from land.",
-    "growth": "A counterweighted cradle connects canal levels for passenger and freight boats.",
+    "growth": "A balance-beam lock becomes a hoisted caisson between towers, twin counterweighted caissons, a glass viewing gallery and finally a rotating wheel that swaps boats between basin and aqueduct.",
     "maxLevel": 5,
     "levels": [
       {
@@ -15038,7 +15038,7 @@
     },
     "description": "Students train in a practice basin. Education supports skilled employment and trained crews.",
     "usage": "Place the shoreline facility beside navigable water and provide access from land.",
-    "growth": "Students train in a practice basin. Education supports skilled employment and trained crews.",
+    "growth": "A boathouse and dinghies add a launch basin, workshops with a hull on the cradle, a clock-towered academy with signal flags and finally a lighthouse, a tall ship and a navigation dome.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17147,7 +17147,7 @@
     },
     "description": "Pumpkins, tomatoes, carrots and fresh produce on irrigated beds.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Market garden → Tool shed → Wash house → Produce packing → Market cooperative",
+    "growth": "Raised beds by a shed grow into a homestead with crop strips, a packing shed, windpump and a market co-op of awning stalls.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17238,7 +17238,7 @@
     },
     "description": "Golden grain fields, silos, combine and stacked hay bales.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Grain croft → Threshing barn → Grain elevator → Harvester yard → Prairie granary",
+    "growth": "A croft in the wheat gains a barn, regional storage towers, combines and grain bins, then a concrete elevator and pivot irrigation.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17329,7 +17329,7 @@
     },
     "description": "Milk production with red barns, grazing cows, silos and a delivery truck.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Milking shed → Grazing yard → Milking parlor → Chilled tanks → Creamery",
+    "growth": "A milking shed with two cows becomes a parlor with paddocks of grazing herd, milk tanks, silos, a tanker and a creamery.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17420,7 +17420,7 @@
     },
     "description": "Chicken coops, feed bins, shaded pens and egg distribution.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Henhouse → Free-range yard → Laying house → Brooder sheds → Egg cooperative",
+    "growth": "One henhouse becomes rows of laying houses with free-range yards of wandering hens, a feed silo, egg truck and duck pond.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17511,7 +17511,7 @@
     },
     "description": "Wide cattle paddocks, ranch house, feed stations and grazing herds.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Stock yard → Watering corral → Ranch house → Sorting pens → Cattle station",
+    "growth": "A stock yard opens into a fenced range of roaming beef cattle, sorting pens, windpump, loading chute and a branded gateway.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17603,7 +17603,7 @@
     },
     "description": "Stables, paddocks and riding arenas that create jobs and recreation.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Loose box → Grooming shed → Riding arena → Paddock stables → Equestrian center",
+    "growth": "A loose box becomes a long stable with clock cupola, paddocks of grazing horses and a jumping arena.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17694,7 +17694,7 @@
     },
     "description": "Beehives, flowering meadows, honey processing and pollination.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Hive garden → Honey store → Pollinator rows → Extraction hut → Bee research garden",
+    "growth": "Hives in a flower meadow multiply, with bees buzzing everywhere, an extraction hut and a glass research dome.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17786,7 +17786,7 @@
     },
     "description": "Trellised grapes, stone paths and a Mediterranean winery.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Vine garden → Trellis rows → Press house → Barrel cellar → Estate vineyard",
+    "growth": "Trellis rows spread from a press house to an estate villa with barrels, sheep mowing the rows and a tasting terrace.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17877,7 +17877,7 @@
     },
     "description": "Reflective rice paddies, raised earth paths and irrigation wheels.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Starter paddy → Levee steps → Waterwheel → Threshing shed → Terraced paddies",
+    "growth": "One paddy becomes a grid of flooded fields patrolled by ducks, a waterwheel and finally terraces stepping up the slope.",
     "maxLevel": 5,
     "levels": [
       {
@@ -17969,7 +17969,7 @@
     },
     "description": "Glass tunnels, glowing grow lamps and reliable all-weather yields.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Glass shed → Twin glasshouses → Climate house → Service boilers → Botanical range",
+    "growth": "A glass shed multiplies into a range of glasshouses with boilers, steam and solar arrays.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18061,7 +18061,7 @@
     },
     "description": "Multi-level indoor greenhouses on a compact urban lot.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Grow room → Two-tier racks → Stacked garden → Nutrient tower → Sky harvest",
+    "growth": "A grow room stacks floor upon glowing floor into a sky harvest tower with a rooftop turbine.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18151,7 +18151,7 @@
     },
     "description": "Connect adjacent crop beds to a farm anchor; fields also relay connection to one another.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Seed bed → Early rows → Irrigated beds → Harvest rows → Produce allotments",
+    "growth": "Seed beds sprout into full rows with drip lines and a spinning sprinkler, then crates, pickers and allotment sheds.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18241,7 +18241,7 @@
     },
     "description": "Golden wheat rows link to farms and other agricultural modules.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Sown strip → Young grain → Golden stand → Sheaves → Harvest parcel",
+    "growth": "Sown strips turn green, then golden, then stand in sheaves before round bales mark the harvest.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18331,7 +18331,7 @@
     },
     "description": "Additional fruit trees automatically join a neighboring agricultural operation.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Saplings → Flowering orchard → Fruit trees → Picking lanes → Crated orchard",
+    "growth": "Staked whips flower, then hang with fruit; hens forage underneath, ladders and crates arrive for picking.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18422,7 +18422,7 @@
     },
     "description": "Fenced grassland with livestock; can connect through other pasture pieces.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Grass paddock → Water trough → Grazing shelter → Strip grazing → Rotational pasture",
+    "growth": "A paddock of grazing animals gains a trough, a shelter, strip-grazing wire and a windpump.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18512,7 +18512,7 @@
     },
     "description": "Cows and feed troughs in a fenced paddock, connected through farm modules.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Stock pen → Feed rail → Handling gate → Holding pens → Sale yard",
+    "growth": "One pen of pigs splits into pig wallows, goat mounds and sheep folds with a sale-yard auction stand.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18602,7 +18602,7 @@
     },
     "description": "Roaming chickens, feed bins and a tiny coop near an anchor farm.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Nest box → Hen run → Roost house → Brooder court → Layer colony",
+    "growth": "A nest box grows into a colony of coops with nest boxes, feeders and lots of busy hens.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18691,7 +18691,7 @@
     },
     "description": "Storage and feed support building connecting to neighboring fields and barns.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Feed bin → Raised hopper → Twin silos → Elevator leg → Bulk loading",
+    "growth": "A hopper bin becomes a row of tall silos with an auger, feed truck and an elevator leg.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18782,7 +18782,7 @@
     },
     "description": "A little irrigation reservoir with bridges and green banks.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Catch pond → Gated outlet → Pump house → Settling beds → Irrigation reservoir",
+    "growth": "A catch pond with ducks gains a sluice, a pump house, settling beds and a jetty.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18873,7 +18873,7 @@
     },
     "description": "Expandable glazed growing tunnel that joins a farm complex.",
     "usage": "Place fields against the farm boundary. Several bordering plots can share field lanes with one farmhouse.",
-    "growth": "Cold frame → Propagation bench → Glass bay → Heated bays → Nursery range",
+    "growth": "Cold frames become propagation benches, then glass bays with heated boilers.",
     "maxLevel": 5,
     "levels": [
       {
@@ -18946,5 +18946,727 @@
     },
     "image": "/handbook/catalog/greenhouse_bay.webp",
     "thumbnail": "/handbook/catalog/thumbs/greenhouse_bay.webp"
+  },
+  {
+    "id": "stonehenge",
+    "name": "Stonehenge",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 1400,
+    "stage": 13,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 70,
+      "recreation": 220,
+      "income": 70
+    },
+    "description": "A ring of towering sarsen trilithons aligned to the midsummer sunrise. Druids gather for the solstice glow.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Timber posts give way to a sarsen ring, lintels and trilithons, then a torchlit solstice axis with druids.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Timber Woodhenge",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Sarsen Arc",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Lintel Circle",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Trilithon Sanctuary",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Midsummer Solstice Henge",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Salisbury sarsen"
+      },
+      {
+        "index": 1,
+        "name": "Bluestone"
+      },
+      {
+        "index": 2,
+        "name": "Moss & wildflower"
+      },
+      {
+        "index": 3,
+        "name": "Avebury earthwork"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/stonehenge.webp",
+    "thumbnail": "/handbook/catalog/thumbs/stonehenge.webp"
+  },
+  {
+    "id": "moai_statues",
+    "name": "Moai Statues",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 1300,
+    "stage": 13,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 60,
+      "recreation": 210,
+      "income": 75
+    },
+    "description": "Giant carved stone heads stand on a ceremonial ahu platform, backs to the sea, watching over the island.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "A moai is carved from the quarry, walked to the shore and joined by ever longer rows of giants on the ahu.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Quarry Carving",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Walking Moai",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Seaside Ahu",
+        "dimensions": [
+          3,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Ancestor Coast",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Tongariki Ahu",
+        "dimensions": [
+          4,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Tuff ahu"
+      },
+      {
+        "index": 1,
+        "name": "Red pukao"
+      },
+      {
+        "index": 2,
+        "name": "Coral eyes"
+      },
+      {
+        "index": 3,
+        "name": "Rano Raraku slope"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/moai_statues.webp",
+    "thumbnail": "/handbook/catalog/thumbs/moai_statues.webp"
+  },
+  {
+    "id": "parthenon",
+    "name": "Parthenon",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 2400,
+    "stage": 15,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 150,
+      "recreation": 300,
+      "government": 60,
+      "income": 120
+    },
+    "description": "A Doric marble temple crowning a rocky acropolis, with columns, friezes and a golden statue of Athena.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Column drums rise on a rocky hill into a roofed Doric temple, then an acropolis with caryatids and a gate.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Marble Foundations",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Doric Colonnade",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Temple of Athena",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Sacred Acropolis",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Golden Age Acropolis",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Pentelic marble"
+      },
+      {
+        "index": 1,
+        "name": "Painted polychrome"
+      },
+      {
+        "index": 2,
+        "name": "Gilded Athena"
+      },
+      {
+        "index": 3,
+        "name": "Honey stone"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/parthenon.webp",
+    "thumbnail": "/handbook/catalog/thumbs/parthenon.webp"
+  },
+  {
+    "id": "colosseum",
+    "name": "Colosseum",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 3000,
+    "stage": 16,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 40,
+      "recreation": 520,
+      "income": 220
+    },
+    "description": "An elliptical amphitheatre of tiered travertine arcades. Gladiators duel on the sand while crowds roar.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Arcade tiers climb around an elliptical arena; gladiators, an attic storey, then a floodlit plaza full of crowds.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Arena Foundations",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Rising Arcades",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Flavian Amphitheatre",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Imperial Colosseum",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Colosseum of the Eternal City",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Imperial travertine"
+      },
+      {
+        "index": 1,
+        "name": "Weathered ruin"
+      },
+      {
+        "index": 2,
+        "name": "Velarium sails"
+      },
+      {
+        "index": 3,
+        "name": "Naumachia flood"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/colosseum.webp",
+    "thumbnail": "/handbook/catalog/thumbs/colosseum.webp"
+  },
+  {
+    "id": "chichen_itza",
+    "name": "Chichén Itzá",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 3100,
+    "stage": 16,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 130,
+      "recreation": 450,
+      "income": 200
+    },
+    "description": "El Castillo's nine stepped terraces rise above the jungle; at the equinox a serpent of light slides down its stairs.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "An overgrown mound is cleared into nine terraces with four stairs, serpent heads, a ball court and equinox light.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Jungle Mound",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Terrace Restoration",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "El Castillo",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Feathered Serpent Plaza",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Equinox Ceremonial City",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Limestone"
+      },
+      {
+        "index": 1,
+        "name": "Painted stucco"
+      },
+      {
+        "index": 2,
+        "name": "Jungle reclaimed"
+      },
+      {
+        "index": 3,
+        "name": "Equinox serpent"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/chichen_itza.webp",
+    "thumbnail": "/handbook/catalog/thumbs/chichen_itza.webp"
+  },
+  {
+    "id": "great_wall",
+    "name": "Great Wall",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 3200,
+    "stage": 17,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "recreation": 380,
+      "military": 160,
+      "income": 180
+    },
+    "description": "A crenellated wall snakes over the hills between beacon watchtowers, guarding the frontier and drawing hikers.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "A low earthen rampart becomes a brick wall snaking over ever higher hills between beacon towers and a gate.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Rammed-Earth Rampart",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Brick Battlement",
+        "dimensions": [
+          3,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Beacon Wall",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Mountain Ramparts",
+        "dimensions": [
+          4,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Pass Fortress",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Ming brick"
+      },
+      {
+        "index": 1,
+        "name": "Rammed earth"
+      },
+      {
+        "index": 2,
+        "name": "Snowy pass"
+      },
+      {
+        "index": 3,
+        "name": "Red lantern autumn"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/great_wall.webp",
+    "thumbnail": "/handbook/catalog/thumbs/great_wall.webp"
+  },
+  {
+    "id": "angkor_wat",
+    "name": "Angkor Wat",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 3900,
+    "stage": 19,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 170,
+      "recreation": 600,
+      "income": 280
+    },
+    "description": "Five lotus-bud towers rise over galleried terraces, reached by a naga causeway across a lily-filled moat.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Elephants haul stone for a lotus tower; five towers, galleries, a moat and a naga causeway follow.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Laterite Base",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Central Prasat",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Quincunx Temple",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Moated Sanctuary",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Angkor Sunrise",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Grey sandstone"
+      },
+      {
+        "index": 1,
+        "name": "Gilded spires"
+      },
+      {
+        "index": 2,
+        "name": "Ta Prohm jungle"
+      },
+      {
+        "index": 3,
+        "name": "Lotus moat"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/angkor_wat.webp",
+    "thumbnail": "/handbook/catalog/thumbs/angkor_wat.webp"
+  },
+  {
+    "id": "machu_picchu",
+    "name": "Machu Picchu",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 4600,
+    "stage": 20,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "food": 40,
+      "education": 190,
+      "recreation": 720,
+      "income": 330
+    },
+    "description": "A granite citadel of terraces and thatched houses clinging to a cloud-forest ridge, grazed by llamas.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Terraces climb the ridge; stone houses, a sun temple and the Huayna Picchu peak appear, grazed by llamas.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Cloud-Forest Outpost",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Terraced Hamlet",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Royal Citadel",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Huayna Picchu Sanctuary",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Lost City of the Incas",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Granite ruins"
+      },
+      {
+        "index": 1,
+        "name": "Cloud forest"
+      },
+      {
+        "index": 2,
+        "name": "Thatch restored"
+      },
+      {
+        "index": 3,
+        "name": "Inti sunset"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/machu_picchu.webp",
+    "thumbnail": "/handbook/catalog/thumbs/machu_picchu.webp"
   }
 ]

@@ -17,7 +17,7 @@ export interface BuildingEdit {
 }
 const layers:GroundKey[]=["cells","spans","conduits","streets"];
 const authored = ["defId","gx","gz","spanX","spanZ","rotation","level","variant","edgeOverrides","exteriorLighting",
-  "overWater","waterUnderlay","sculptsTerrain","crossingAxis","pedestrianDeck","awaitingStreet"] as const;
+  "overWater","waterUnderlay","sculptsTerrain","roadAxis","crossingAxis","pedestrianDeck","awaitingStreet"] as const;
 
 function layout(el:PlacedElement | undefined):string {
   return JSON.stringify(el ? authored.map(k=>k==="waterUnderlay" ? layout(el.waterUnderlay) : el[k]) : null);
@@ -48,7 +48,7 @@ function routeSignature(state:GameState, sites:SiteEdit[]) {
 function paid(state:GameState) {
   const bucket=Math.floor(state.activePlaySec/10)*10;
   return (state.economy?.ledger??[]).reduce((total,t)=>total+(t.time===bucket && t.from==="treasury" && t.to==="outside" &&
-    (t.label==="Construction" || t.label==="Building upgrade") ? t.amount:0),0);
+    (t.label==="Construction" || t.label==="Building upgrade" || t.label==="Crossing upgrade" || t.label==="Carriageway widening") ? t.amount:0),0);
 }
 
 /** Compare the two states already owned by the App transaction. Only the touched

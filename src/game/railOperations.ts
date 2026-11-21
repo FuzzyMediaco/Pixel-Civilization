@@ -7,6 +7,7 @@ import {
   type Point,
   type TravelNetwork,
 } from "./travelNetwork";
+import { levelMultiplier } from "./levelScaling";
 
 export type RailService = "passenger" | "freight";
 export const LOCOMOTIVES = {
@@ -16,6 +17,9 @@ export const LOCOMOTIVES = {
     speed: 1.3,
     price: 240,
     freight: true,
+    length: 15,
+    accel: 0.42,
+    era: "1 · Steam",
   },
   diesel: {
     name: "Road diesel",
@@ -23,6 +27,9 @@ export const LOCOMOTIVES = {
     speed: 1.72,
     price: 440,
     freight: true,
+    length: 14,
+    accel: 0.6,
+    era: "2 · Diesel",
   },
   commuter: {
     name: "Double-deck commuter",
@@ -30,6 +37,9 @@ export const LOCOMOTIVES = {
     speed: 1.96,
     price: 670,
     freight: false,
+    length: 14,
+    accel: 0.8,
+    era: "3 · Commuter",
   },
   electric: {
     name: "Electric locomotive",
@@ -37,6 +47,9 @@ export const LOCOMOTIVES = {
     speed: 2.26,
     price: 900,
     freight: true,
+    length: 14,
+    accel: 0.85,
+    era: "4 · Electric",
   },
   express: {
     name: "High-speed express",
@@ -44,6 +57,9 @@ export const LOCOMOTIVES = {
     speed: 2.88,
     price: 1420,
     freight: false,
+    length: 17,
+    accel: 0.95,
+    era: "5 · High-speed",
   },
 } as const;
 export type Engine = keyof typeof LOCOMOTIVES;
@@ -52,44 +68,44 @@ export const CARS = {
     name: "Passenger coach",
     service: "passenger",
     capacity: 24,
-    cost: 65,
+    cost: 65, length: 12
   },
   observation: {
     name: "Observation car",
     service: "passenger",
     capacity: 18,
-    cost: 78,
+    cost: 78, length: 12
   },
-  sleeper: { name: "Sleeper", service: "passenger", capacity: 16, cost: 84 },
-  hopper: { name: "Grain hopper", service: "freight", capacity: 22, cost: 80 },
-  gondola: { name: "Coal gondola", service: "freight", capacity: 26, cost: 88 },
+  sleeper: { name: "Sleeper", service: "passenger", capacity: 16, cost: 84, length: 13 },
+  hopper: { name: "Grain hopper", service: "freight", capacity: 22, cost: 80, length: 11 },
+  gondola: { name: "Coal gondola", service: "freight", capacity: 26, cost: 88, length: 11 },
   reefer: {
     name: "Refrigerated car",
     service: "freight",
     capacity: 18,
-    cost: 100,
+    cost: 100, length: 12
   },
   livestock: {
     name: "Livestock wagon",
     service: "freight",
     capacity: 16,
-    cost: 82,
+    cost: 82, length: 11
   },
   waste: {
     name: "Waste container",
     service: "freight",
     capacity: 24,
-    cost: 84,
+    cost: 84, length: 10
   },
-  flat: { name: "Timber flat", service: "freight", capacity: 24, cost: 74 },
-  tanker: { name: "Fuel tanker", service: "freight", capacity: 23, cost: 98 },
+  flat: { name: "Timber flat", service: "freight", capacity: 24, cost: 74, length: 12 },
+  tanker: { name: "Fuel tanker", service: "freight", capacity: 23, cost: 98, length: 11 },
   container: {
     name: "Intermodal well car",
     service: "freight",
     capacity: 30,
-    cost: 108,
+    cost: 108, length: 13
   },
-  box: { name: "Boxcar", service: "freight", capacity: 20, cost: 70 },
+  box: { name: "Boxcar", service: "freight", capacity: 20, cost: 70, length: 11 },
 } as const;
 export type RailCar = keyof typeof CARS;
 const foodMarkets =
@@ -172,10 +188,28 @@ export interface RailRun extends RailFormation {
   trainId: string;
   trail: Point[];
   rearCab?: boolean;
+  /** @deprecated whole-circuit block plan of the old signalling model; ignored. */
   blockPlan?: string[];
+  /** Tiles held by this train: its body plus the rest of the current leg ("x,z"). */
   reservation?: string[];
   waitingSince?: number;
+  /** Train currently holding the track this one needs. */
+  blockedBy?: string;
   contract?: FreightContract;
+  /** Model revision: 2 = lines run between stations and only visit the depot to park. */
+  v?: number;
+  /** Current speed in tiles/s and distance travelled along the current leg. */
+  speed?: number;
+  dist?: number;
+  /** Moving block: the train may only run to this distance along its leg. */
+  claimEnd?: number;
+  /** Why the train is heading to its depot instead of the next station. */
+  yielding?: "clear" | "hours" | "recall";
+  /** Last resort when single track has no passing place: squeeze past and warn. */
+  ghost?: boolean;
+  /** Measured seconds for one full circuit (EMA) and when the current one began. */
+  circuit?: number;
+  circuitStart?: number;
 }
 export const YARD_WORKS = {
   platform: {
@@ -220,10 +254,13 @@ export interface RailState {
   stock?: Record<string, Partial<Record<Cargo, number>>>;
   received?: Record<string, Partial<Record<Cargo, number>>>;
   practice?: { depot: string; gx: number; gz: number };
+  /** Player-chosen station names. */
+  names?: Record<string, string>;
   works?: Record<string, Partial<Record<YardWork, true>>>;
   turnouts: Record<string, SwitchSetting>;
   revision: number;
-  benefits: Record<string, { line: string; until: number; type: Cargo }[]>;
+  /** Recent deliveries per served site (source and sink of a contract); the bonus scales with their volume. */
+  benefits: Record<string, { line: string; until: number; type: Cargo; amount?: number }[]>;
 }
 export function railYard(s: GameState): RailState {
   return (s.railYard ??= { turnouts: {}, revision: 0, benefits: {} });
@@ -578,9 +615,9 @@ export function advanceRailFreightStock(
     if (!staffed) continue;
     const available = ((s.railYard.stock ??= {})[source.id] ??= {});
     available[c.type] = Math.min(
-      48 * source.level,
+      48 * levelMultiplier("storage", source.level),
       (available[c.type] ?? 0) +
-        dt * source.level * staffed * (def.passiveNature ? 0.22 : 0.65),
+        dt * levelMultiplier("storage", source.level) * staffed * (def.passiveNature ? 0.22 : 0.65),
     );
   }
 }
@@ -667,17 +704,16 @@ export function freightCall(
     quantity * 0.09,
     "Rail freight delivery",
   );
+  // Only the two industries this contract actually serves benefit, in proportion to the tonnage moved.
   for (const id of [c.source, c.sink]) {
-    const benefits = (yard.benefits[id] ??= []).filter(
-      (x) =>
-        x.until > s.activePlaySec && !(x.line === l.id && x.type === c.type),
-    );
+    const benefits = (yard.benefits[id] ??= []).filter((x) => x.until > s.activePlaySec);
     yard.benefits[id] = [
       ...benefits,
       {
         type: c.type,
         line: l.id,
-        until: s.activePlaySec + (s.railYard?.works?.[b.id]?.sorting ? 75 : 60),
+        amount: quantity,
+        until: s.activePlaySec + (s.railYard?.works?.[b.id]?.sorting ? 150 : 120),
       },
     ];
   }
@@ -725,22 +761,99 @@ function readyContract(s: GameState, l: Run) {
   cache.set(key, !!ready);
   return !!ready;
 }
-export function railFreightBonus(s: GameState, site: string, type: Cargo) {
+/**
+ * Output multiplier for a site served by rail freight: 1 + 0.3 x q/(q + 60), where q is the units of this
+ * cargo delivered to or collected from the site over the last two minutes by lines that are still running.
+ * About x1.05 for a trickle, x1.15 at 60 units, approaching x1.3 for heavy flows.
+ */
+export function railFreightVolume(s: GameState, site: string, type: Cargo) {
   const list = s.railYard?.benefits[site];
-  if (!list) return 1;
-  return list.some(
-    (b) =>
+  if (!list) return 0;
+  let q = 0;
+  for (const b of list)
+    if (
       b.type === type &&
       b.until > s.activePlaySec &&
       s.mobility?.lines.some(
-        (l) =>
-          l.id === b.line &&
-          l.enabled &&
-          !l.blocked &&
-          l.rail?.contract?.type === type &&
-          readyContract(s, l),
-      ),
-  )
-    ? 1.08
-    : 1;
+        (l) => l.id === b.line && l.enabled && !l.blocked && l.rail?.contract?.type === type && readyContract(s, l),
+      )
+    )
+      q += b.amount ?? 22;
+  return q;
+}
+export function railFreightBonus(s: GameState, site: string, type: Cargo) {
+  const q = railFreightVolume(s, site, type);
+  return q > 0 ? 1 + (0.3 * q) / (q + 60) : 1;
+}
+/** Sites currently fed by a running freight line (for proximity bonuses that should need real service). */
+export function railServedSites(s: GameState): Set<string> {
+  const out = new Set<string>();
+  for (const [id, list] of Object.entries(s.railYard?.benefits ?? {}))
+    if (list.some((b) => b.until > s.activePlaySec)) out.add(id);
+  return out;
+}
+/** Line colours (Mini Metro-ish, readable on grass and at night). Stable per line. */
+export const LINE_COLOURS = ["#d9482b", "#2f7fc1", "#e0a22a", "#3c9a5f", "#8a4fb3", "#d16a9c", "#1fa3a3", "#7a5a3a"];
+export function lineColor(l: { id: string; group?: string }) {
+  const key = l.group ?? l.id;
+  const n = Number(key.replace(/\D/g, "")) || [...key].reduce((a, c) => a + c.charCodeAt(0), 0);
+  return LINE_COLOURS[n % LINE_COLOURS.length];
+}
+/* ------------------------------------------------------------------ station names */
+const NAME_SKIP = /track|road|path|street|tree|grass|lawn|pond|lake|river|canal|bridge|fence|wall|garden|park|plaza|field|water_tower|wells|pine|flower|bush/i;
+function singular(name: string) {
+  if (/(ss|x|ch|sh)es$/.test(name)) return name.slice(0, -2);
+  if (/ies$/.test(name)) return name.slice(0, -3) + "y";
+  if (/[^s]s$/.test(name)) return name.slice(0, -1);
+  return name;
+}
+/**
+ * Players never see coordinates: stations are named after the most prominent neighbour
+ * ("Grocery Store Halt", "Farm Yard", "Bank Central"), or the name the player gave.
+ */
+export function stationName(s: GameState, e: PlacedElement): string {
+  const custom = s.railYard?.names?.[e.id];
+  if (custom) return custom;
+  const base = autoStationName(s, e);
+  const twins = s.elements.filter((o) => o.id !== e.id && isRailStation(o.defId) && !s.railYard?.names?.[o.id] && autoStationName(s, o) === base);
+  if (!twins.length) return base;
+  const all = [e, ...twins];
+  const cx = all.reduce((n, o) => n + o.gx, 0) / all.length,
+    cz = all.reduce((n, o) => n + o.gz, 0) / all.length;
+  const dx = e.gx - cx,
+    dz = e.gz - cz;
+  const side = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? "East" : "West") : dz > 0 ? "South" : "North";
+  return base + " " + side;
+}
+const autoNames = new WeakMap<PlacedElement, { key: string; name: string }>();
+function autoStationName(s: GameState, e: PlacedElement): string {
+  const key = e.gx + "," + e.gz + "," + e.level + "," + s.elements.length;
+  const hit = autoNames.get(e);
+  if (hit?.key === key) return hit.name;
+  let best: PlacedElement | undefined,
+    score = -Infinity;
+  for (const o of s.elements) {
+    if (o === e || isRailStation(o.defId)) continue;
+    const d = ELEMENT_BY_ID[o.defId];
+    if (!d || d.isNetwork || NAME_SKIP.test(o.defId)) continue;
+    const dist = Math.max(0, o.gx - (e.gx + e.spanX), e.gx - (o.gx + o.spanX)) + Math.max(0, o.gz - (e.gz + e.spanZ), e.gz - (o.gz + o.spanZ));
+    if (dist > 5) continue;
+    const prominence = (d.jobs ?? 0) * 0.05 + (d.popBase ?? 0) * 0.02 + o.spanX * o.spanZ + (d.category === "landmarks" || d.category === "wealth_projects" ? 8 : d.category === "nature_terrain" ? -6 : 0);
+    const sc = prominence - dist * 1.5;
+    if (sc > score) {
+      score = sc;
+      best = o;
+    }
+  }
+  const suffix =
+    e.defId === "train_depots" ? "Depot" : e.defId === "freight_rail_terminal" ? "Yard" : e.level >= 4 ? "Central" : e.level >= 3 ? "Station" : "Halt";
+  const name = (best ? singular(ELEMENT_BY_ID[best.defId].name) : "Meadow") + " " + suffix;
+  autoNames.set(e, { key, name });
+  return name;
+}
+export function renameStation(s: GameState, id: string, name: string) {
+  const yard = railYard(s);
+  const clean = name.trim().slice(0, 32);
+  if (!clean) delete yard.names?.[id];
+  else (yard.names ??= {})[id] = clean;
 }

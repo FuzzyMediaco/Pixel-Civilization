@@ -1860,7 +1860,9 @@ export function freshWaterFactor(state: GameState, e: PlacedElement): number {
   if (!state.infrastructure || !d) return 1;
   const service = readWaterService(state, e);
   if (d.id === "water_places") return 0;
-  if (["aqueduct", "water_treatment_plant"].includes(d.id)) return service.freshwater > 0 ? 1 : 0;
+  if (d.id === "aqueduct") return service.freshwater > 0 ? 1 : 0;
+  // Without a river the treatment plant still pumps groundwater, at half output.
+  if (d.id === "water_treatment_plant") return service.freshwater > 0 ? 1 : 0.5;
   if (d.id === "water_towers" || d.id === "municipal_reservoir")
     return service.freshwater > 0 || service.stored > 0 ? 1 : 0;
   if (d.id === "desalination_plant" || d.id === "water_pumping_station") {

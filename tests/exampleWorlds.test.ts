@@ -102,6 +102,10 @@ test("Copper Gorge supplies five fields across the canyon and offers reversible 
 test("Switchyard starts at night with working public transport, shopfronts, paid project journeys and a containable shop fire", () => {
   const s = createExampleWorld("switchyard-city");
   supplied(s);
+  const locals = s.mobility!.lines.filter(line => line.mode === "rail");
+  assert.equal(locals.length, 2);
+  assert.ok(locals[0].group && locals[0].group === locals[1].group);
+  assert.ok(s.elements.filter(e => e.defId === "train_stops").length > locals[0].stops.length);
   assert.ok(s.timeOfDay >= 21);
   assert.equal(find(s, "cheesesteak_restaurants").level, 5);
   assert.ok(edges(s, "atms").some((e) => e.kind === "arcade" && e.neighbor === "banks"));

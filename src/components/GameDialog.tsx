@@ -14,7 +14,7 @@ export function GameDialog({label,className,onDismiss,children}:Props) {
     return ()=>{
       dialog.close();
       if(trigger?.isConnected) trigger.focus({preventScroll:true});
-      else document.querySelector<HTMLButtonElement>('[aria-label="Open Game Menu"]')?.focus({preventScroll:true});
+      else document.querySelector<HTMLButtonElement>('[data-panel-toggle="more"]')?.focus({preventScroll:true});
     };
   },[]);
   return <dialog ref={ref} aria-label={label} aria-modal="true" className={"game-dialog "+className}

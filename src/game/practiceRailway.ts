@@ -80,20 +80,37 @@ function build(s: GameState, ox: number, oz: number) {
     ],
   );
   if (!bridge.valid) throw Error(bridge.reason);
-  for (let x = -12; x <= 9; x++)
-    if (!s.elements.some((e) => e.gx === ox + x && e.gz === oz))
-      put("train_tracks", x, 0);
-  for (let z = -1; z >= -6; z--) put("train_tracks", 9, z);
-  for (let x = 8; x >= 4; x--) put("train_tracks", x, -6);
-  for (let z = -1; z >= -3; z--) put("train_tracks", -1, z);
+  // A passing loop beside the main line (with its own bridge) lets freight and passenger trains pass.
+  const loopBridge = applyInfrastructureStroke(
+    s,
+    { kind: "bridge", mode: "rail", shape: "truss", railType: "steel", height: 2 },
+    [
+      { gx: ox + 3, gz: oz - 2 },
+      { gx: ox + 5, gz: oz - 2 },
+    ],
+  );
+  if (!loopBridge.valid) throw Error(loopBridge.reason);
+  const lay = (x: number, z: number, level = 1) => {
+    const at = s.elements.find((e) => e.gx === ox + x && e.gz === oz + z);
+    if (!at) put("train_tracks", x, z, level);
+    else if (ELEMENT_BY_ID[at.defId]?.isRailNetwork) at.level = Math.max(at.level, level);
+  };
+  for (let x = -12; x <= 9; x++) lay(x, 0);
+  for (let z = -1; z >= -6; z--) lay(9, z);
+  for (let x = 8; x >= 4; x--) lay(x, -6);
+  for (const x of [-5, 7]) lay(x, -1);
+  for (let x = -5; x <= 7; x++) lay(x, -2);
   const depot = put("train_depots", -11, 1, 2, 0, 1),
-    a = put("train_stops", -3, 1, 2, 0, 0),
+    // The passenger platform faces the passing loop, so the main line stays free for freight.
+    a = put("train_stops", -3, -3, 2, 2, 0),
     b = put("train_stops", 10, -4, 2, 1, 1);
   const from = put("freight_rail_terminal", -6, 1, 1, 0, 0),
-    to = put("freight_rail_terminal", 5, 1, 1, 0, 2),
+    to = put("freight_rail_terminal", 1, 1, 1, 0, 2),
     farm = put("farms", -7, 1),
-    shop = put("grocery_store", 7, 1);
+    shop = put("grocery_store", 3, 1);
   for (let x = -9; x <= 9; x++) put("roads", x, 2);
+  for (let x = -9; x <= 2; x++) put("roads", x, -4);
+  for (const [i, x] of [-9, -7, -5, -3, -1, 1].entries()) put(i % 3 === 1 ? "shops" : "house", x, -5, 1, 0, i % 4);
   for (let x = -12; x <= -9; x++) put("roads", x, 3);
   for (let z = 3; z >= -4; z--) if (z !== 2 && z !== 0) put("roads", 12, z);
   for (let x = 10; x <= 12; x++) put("roads", x, 2);
@@ -190,7 +207,13 @@ export function visitPracticeRailway(city: GameState): {
       continue;
     const next = structuredClone(city);
     try {
-      return { state: next, depot: build(next, ox, oz) };
+      // Visiting reveals the authored example district, just like opening the island's original neighbourhood.
+      // Its existing bridges and stock should neither require a player's unlocks nor charge their treasury.
+      next.mode = "god";
+      const depot = build(next, ox, oz);
+      next.mode = city.mode;
+      recomputeConnectivityAndMetrics(next);
+      return { state: next, depot };
     } catch {
       continue;
     }

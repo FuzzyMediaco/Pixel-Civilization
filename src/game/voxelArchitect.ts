@@ -7,6 +7,7 @@ import { type CivElementDef, ELEMENT_BY_ID, getMaxElementLevel } from "./catalog
 import { applyParcelAppearance, type ParcelAppearance } from "./parcelGeometry";
 import { getDesign } from "./designs/registry";
 import { type SmokeKind, makeCtx } from "./designs/kit";
+import { type BuiltCritterPen, buildCritterPens, buildCritterPreview } from "./critterModels";
 import {
   PixelVox,
   PALETTE,
@@ -33,6 +34,8 @@ export interface BuiltVoxelAsset {
   smokePoints?: [number, number, number, SmokeKind][];
   /** Blinking beacon lights in world-local units (meters) */
   blinkers?: [number, number, number, string][];
+  /** Animated livestock pens in world-local units (meters) */
+  critters?: BuiltCritterPen[];
   bobOnWater?: boolean;
   topY: number;
   voxelCount?: number;
@@ -113,6 +116,7 @@ export function buildDesignAsset(
     bobOnWater: c.floating || def.domain === "water",
     rotors,
     smokePoints: (corridor?[]:c.smokePoints).map(([x, y, z, k]) => [x * unit, y * unit + groundShift, z * unit, k]),
+    critters: corridor ? [] : buildCritterPens(c.critterPens, unit, groundShift, fit),
     blinkers: (corridor || appearance.lighting === "dark" ? [] : c.blinkers).map(([x, y, z, col]) => [(x + 0.5) * unit, (y + 0.5) * unit + groundShift, (z + 0.5) * unit, col]),
   };
 }
@@ -225,6 +229,13 @@ export function buildPlacedGroupFromAsset(
     group.userData.rotorList = list;
   }
   group.userData.smokePoints = asset.smokePoints ?? [];
+  // Livestock stand in rest poses here; the game's herd animator hides this and drives instanced animals.
+  group.userData.critters = asset.critters ?? [];
+  const herd = buildCritterPreview(asset.critters ?? [], mat);
+  if (herd) {
+    group.add(herd);
+    group.userData.critterPreview = herd;
+  }
   group.userData.blinkers = asset.blinkers ?? [];
 
   group.userData.bobOnWater = Boolean(asset.bobOnWater);

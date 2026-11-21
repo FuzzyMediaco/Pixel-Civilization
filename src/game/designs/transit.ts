@@ -423,9 +423,12 @@ function buildTrainDepot(c: Ctx): void {
     barrelRoof(v, shedX0, sh, shedZ0, shedX1, shedZ1, "x", "silver", "steel");
     v.box(shedX0, sh - 2, shedZ1 - 1, shedX1, sh - 1, shedZ1, "red");
   }
-  // locos poking out of the shed
-  train(v, shedX1 - 14, shedX1 + 4, tracks[0], kind, body, stripe, c);
-  if (tracks.length > 1 && lv >= 2) train(v, shedX1 - 8, shedX1 + 2 + (lv >= 3 ? 6 : 0), tracks[1], kind, body, stripe, c);
+  // The shed roads stay empty: the city's real trains park here (railMovement.parkedBodies).
+  // Buffer stops at the closed end and an inspection pit lamp on each road.
+  for (const z of tracks) {
+    v.box(shedX0 + 1, 1, z - 2, shedX0 + 2, 3, z + 3, "red");
+    v.put(shedX0 + 1, 3, z, "warmGlow", 0.8);
+  }
 
   // water tower / fuel tank / signal by level
   if (lv >= 2) {
@@ -482,12 +485,8 @@ function buildTrainDepot(c: Ctx): void {
     }
   }
   if (lv >= 4) {
-    // freight wagons / carriages in sidings + signal box
+    // signal box (sidings stay clear for real rolling stock)
     const z = tracks[tracks.length - 1];
-    for (let x = -hx + 2, i = 0; x < -hx + 30 && x < hx - 18; x += 8, i++) {
-      v.box(x, 2, z - 2, x + 7, 6, z + 2, ["red", "blue", "orange", "teal"][(i + s) % 4]);
-      v.box(x, 2, z - 2, x + 7, 3, z + 2, "charcoal");
-    }
     const sbx = -hx + 2;
     const sbz = hz - 6;
     if (z + 4 < sbz) {

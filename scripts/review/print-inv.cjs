@@ -1,0 +1,1 @@
+const r=require(require("path").resolve(process.argv[2]));for(const k in r){console.log("##",k,r[k].inv.count,"tiny",r[k].inv.tiny);for(const i of r[k].inv.items)console.log(" ",i.w+"x"+i.h,"@"+i.x+","+i.y,i.font,i.label)}

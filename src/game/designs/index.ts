@@ -17,3 +17,5 @@ import "./projects";
 import "./landings";
 import "./campuses";
 import "./farmsteads";
+import "./historical";
+import "./projectsFuture";

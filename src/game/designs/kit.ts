@@ -29,6 +29,21 @@ export interface RotorSpec {
   wind?: boolean;
 }
 
+/** Animated livestock kinds (see src/game/critterModels.ts). */
+export type CritterKind = "cow" | "sheep" | "pig" | "chicken" | "horse" | "goat" | "duck" | "bee";
+/**
+ * A pen of animated animals. `area` = [x0, z0, x1, z1] in voxel coords (half-open, like box ranges); the animals
+ * wander inside it. `y` = the voxel layer they stand on (usually 1 = on top of the ground lot). `coat` picks a
+ * colour scheme (breed) for the kind, defaulting to the design variant.
+ */
+export interface CritterSpec {
+  kind: CritterKind;
+  count: number;
+  area: [number, number, number, number];
+  y?: number;
+  coat?: number;
+}
+
 export interface Ctx {
   parcelEdges?: readonly import("../parcelEdges").ParcelEdge[];
   v: PixelVox;
@@ -68,6 +83,9 @@ export interface Ctx {
   blink: (x: number, y: number, z: number, color?: string) => void;
   /** Mark the element as floating (gentle bobbing on water) */
   bob: () => void;
+  /** Register a pen of animated animals that wander around in-game (static poses in previews) */
+  critters: (spec: CritterSpec) => void;
+  critterPens: CritterSpec[];
   rotors: RotorSpec[];
   smokePoints: [number, number, number, SmokeKind][];
   blinkers: [number, number, number, string][];
@@ -124,6 +142,7 @@ export function makeCtx(
     rotors: [],
     smokePoints: [],
     blinkers: [],
+    critterPens: [],
     floating: false,
     addRotor: (r) => {
       ctx.rotors.push(r);
@@ -136,6 +155,11 @@ export function makeCtx(
     },
     bob: () => {
       ctx.floating = true;
+    },
+    critters: (spec) => {
+      const [x0, z0, x1, z1] = spec.area;
+      if (spec.count <= 0 || x1 - x0 < 1 || z1 - z0 < 1) return;
+      ctx.critterPens.push({ ...spec, y: spec.y ?? 1, coat: spec.coat ?? variant });
     },
   };
   return ctx;

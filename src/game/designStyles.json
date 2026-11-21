@@ -202,5 +202,13 @@
   "chicken_coop": ["Red shingle", "Sage roof", "Straw coop", "Blue tin"],
   "feed_silo": ["Galvanized", "Red oxide", "Cream enamel", "Green steel"],
   "irrigation_pond": ["Clay bank", "Stone bank", "Reed bed", "Timber flume"],
-  "greenhouse_bay": ["Clear glass", "Sage frames", "Blue glass", "Copper ribs"]
+  "greenhouse_bay": ["Clear glass", "Sage frames", "Blue glass", "Copper ribs"],
+  "colosseum": ["Imperial travertine", "Weathered ruin", "Velarium sails", "Naumachia flood"],
+  "stonehenge": ["Salisbury sarsen", "Bluestone", "Moss & wildflower", "Avebury earthwork"],
+  "parthenon": ["Pentelic marble", "Painted polychrome", "Gilded Athena", "Honey stone"],
+  "great_wall": ["Ming brick", "Rammed earth", "Snowy pass", "Red lantern autumn"],
+  "chichen_itza": ["Limestone", "Painted stucco", "Jungle reclaimed", "Equinox serpent"],
+  "moai_statues": ["Tuff ahu", "Red pukao", "Coral eyes", "Rano Raraku slope"],
+  "angkor_wat": ["Grey sandstone", "Gilded spires", "Ta Prohm jungle", "Lotus moat"],
+  "machu_picchu": ["Granite ruins", "Cloud forest", "Thatch restored", "Inti sunset"]
 }

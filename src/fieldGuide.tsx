@@ -8,6 +8,7 @@ import designStyles from "./game/designStyles.json";
 import { getGuideUsage } from "./game/guideUsage";
 import {roadWidth,frontageWidth} from "./game/roadStandards";
 import {guideCarriageway} from "./game/designs/carriageways";
+import { relatedLessons } from "./handbook/relatedLessons";
 import { getHandbookFrame } from "./game/handbookLayout";
 import { DESIGNS } from "./game/designs/registry";
 import { buildDesignAsset, buildPlacedGroupFromAsset } from "./game/voxelArchitect";
@@ -165,9 +166,11 @@ const numbered = (param: string, low: number, high: number, fallback: number) =>
   const n = Number(initial.get(param) ?? fallback);
   return Number.isInteger(n) && n >= low && n <= high ? n : fallback;
 };
+const guideLevels = (id: string) => Math.max(5, getMaxElementLevel(id));
+
 function Guide() {
   const [id, setId] = useState(ELEMENT_BY_ID[initial.get("id") ?? ""]?.id ?? "house");
-  const [level, setLevel] = useState(Math.min(getMaxElementLevel(id), numbered("level", 1, getMaxElementLevel(id), 3)));
+  const [level, setLevel] = useState(numbered("level", 1, guideLevels(id), 3));
   const [variant, setVariant] = useState(numbered("variant", 1, 4, 1) - 1);
   const [joined, setJoined] = useState(false);
   const [night, setNight] = useState(false);
@@ -176,11 +179,13 @@ function Guide() {
   const [category, setCategory] = useState("");
   const def = ELEMENT_BY_ID[id], d = DESIGNS[id];
   const styleNames = designStyles[id as keyof typeof designStyles] ?? ["A","B","C","D"];
+  const playable = Math.min(level, getMaxElementLevel(id));
+  const stageName = (stage: number) => stage > getMaxElementLevel(id) ? d.levels[stage - 1] : getElementLevelName(def, stage);
   const partner = ELEMENT_BY_ID[getGuidePartner(id)];
   const joins = useMemo(() => {
-    const plot = getNeighborPreview(id, level)[0];
+    const plot = getNeighborPreview(id, playable)[0];
     return [...new Set(plot?.edges.filter(e=>e.neighbor===partner?.id).map(e=>e.kind))];
-  }, [id, level, partner]);
+  }, [id, playable, partner]);
   const group = CATEGORY_META.find(c => c.id === def.category)!.label;
   const matches = findGuideElements(query, category);
   useEffect(() => {
@@ -198,7 +203,7 @@ function Guide() {
           <option value="">All categories</option>{CATEGORY_META.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
         <div className="matches">{matches.length} elements</div>
-        <nav>{matches.map(e => <button aria-current={id === e.id ? "true" : undefined} key={e.id} onClick={() => { setId(e.id); setLevel(l => Math.min(l,getMaxElementLevel(e.id))); }}>
+        <nav>{matches.map(e => <button aria-current={id === e.id ? "true" : undefined} key={e.id} onClick={() => { setId(e.id); setLevel(l => Math.min(l,guideLevels(e.id))); }}>
           <i style={{ backgroundColor: e.accentHex }} />{e.name}
         </button>)}{!matches.length && <p>No matching elements.</p>}</nav>
       </aside>
@@ -206,12 +211,13 @@ function Guide() {
         <section className={"stage" + (night ? " night" : "")}>
           <div className="caption"><span>{group}</span><h2>{def.name}</h2></div>
           {!staticImage && <button className="light" aria-pressed={night} onClick={() => setNight(!night)}>{night ? "☾  Night" : "☀  Day"}</button>}
-          <Model def={def} level={level} variant={variant} night={night} joined={joined} onStatic={setStaticImage} />
+          <Model def={def} level={playable} variant={variant} night={night} joined={joined} onStatic={setStaticImage} />
           <div className="stage-foot"><div className="style-info"><b>{styleNames[variant]}</b><span>{staticImage ? "Daylight illustration" : "Drag to rotate"}</span></div><div className="variants" aria-label="Visual variant">{["A","B","C","D"].map((letter, i) => <button key={letter} title={styleNames[i]} aria-label={"Variant " + letter} aria-pressed={variant === i} onClick={() => setVariant(i)}>{letter}</button>)}</div></div>
         </section>
-        <section className="progression"><div className="entry-title"><h3>{getElementLevelName(def,level)}</h3><span>{roadWidth(id)>1?frontageWidth(id):getStandardFootprintForLevel(def,level).join(" × ")+" tiles"}</span></div>
+        <section className="progression"><div className="entry-title"><h3>{stageName(level)}</h3><span>{roadWidth(id)>1?frontageWidth(id):getStandardFootprintForLevel(def,level).join(" × ")+" tiles"}</span></div>
           <p>{d.growth}</p>
-          <div className="steps" aria-label="Growth stages">{Array.from({length:getMaxElementLevel(id)},(_,i)=>getElementLevelName(def,i+1)).map((name, i) => <button key={i} aria-pressed={level === i+1} onClick={() => setLevel(i+1)}>
+          {level > playable && <p>This saved level has the same footprint and boarding equipment as level {playable}. New stops finish at level {playable}.</p>}
+          <div className="steps" aria-label="Growth stages">{Array.from({length:guideLevels(id)},(_,i)=>stageName(i+1)).map((name, i) => <button key={i} aria-pressed={level === i+1} onClick={() => setLevel(i+1)}>
             <small>Level {i+1}</small><strong>{name}</strong></button>)}</div>
         </section>
         <section className="connection-entry"><div className="join-heading"><h3>Neighbor connections</h3>
@@ -219,6 +225,14 @@ function Guide() {
             {joined ? "Show element alone" : "Show beside " + partner.name}</button>}</div>
           {joins.length>0 && <p className="join-readout">{(joined ? "Shown with " : "Compatible with ") + partner.name + " · " + joins.map(kind=>EDGE_LABELS[kind]).join(", ")}</p>}
           <p>{getGuideUsage(id,joins[0],def.description)}</p>
+          <nav aria-label="Operating instructions" className="operating-links">
+            <h3>Operating instructions</h3>
+            {relatedLessons(id, def.category).map(lesson => (
+              <a key={lesson.id} href={"./handbook.html#" + new URLSearchParams({section: lesson.section, lesson: lesson.id})}>
+                {lesson.title}
+              </a>
+            ))}
+          </nav>
         </section>
       </article>
     </main>
