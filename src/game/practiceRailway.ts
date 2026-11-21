@@ -80,12 +80,26 @@ function build(s: GameState, ox: number, oz: number) {
     ],
   );
   if (!bridge.valid) throw Error(bridge.reason);
-  for (let x = -12; x <= 9; x++)
-    if (!s.elements.some((e) => e.gx === ox + x && e.gz === oz))
-      put("train_tracks", x, 0);
-  for (let z = -1; z >= -6; z--) put("train_tracks", 9, z);
-  for (let x = 8; x >= 4; x--) put("train_tracks", x, -6);
-  for (let z = -1; z >= -3; z--) put("train_tracks", -1, z);
+  // A passing loop beside the main line (with its own bridge) lets freight and passenger trains pass.
+  const loopBridge = applyInfrastructureStroke(
+    s,
+    { kind: "bridge", mode: "rail", shape: "truss", railType: "steel", height: 2 },
+    [
+      { gx: ox + 3, gz: oz - 2 },
+      { gx: ox + 5, gz: oz - 2 },
+    ],
+  );
+  if (!loopBridge.valid) throw Error(loopBridge.reason);
+  const lay = (x: number, z: number, level = 2) => {
+    const at = s.elements.find((e) => e.gx === ox + x && e.gz === oz + z);
+    if (!at) put("train_tracks", x, z, level);
+    else if (ELEMENT_BY_ID[at.defId]?.isRailNetwork) at.level = Math.max(at.level, level);
+  };
+  for (let x = -12; x <= 9; x++) lay(x, 0);
+  for (let z = -1; z >= -6; z--) lay(9, z);
+  for (let x = 8; x >= 4; x--) lay(x, -6);
+  for (const x of [-5, 7]) lay(x, -1);
+  for (let x = -5; x <= 7; x++) lay(x, -2);
   const depot = put("train_depots", -11, 1, 2, 0, 1),
     a = put("train_stops", -3, 1, 2, 0, 0),
     b = put("train_stops", 10, -4, 2, 1, 1);
