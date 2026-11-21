@@ -31,19 +31,42 @@ Branch `ccr-5480f4a8-nj27ci`, built on `main` at 68542f5. Status at hand-off: `t
 - **Wealth projects:** all 22 redesigned, plus ferry landings and taxi ranks (`designs/projects.ts`, `designs/projectsFuture.ts`, `designs/landings.ts`).
 - **8 historical wonders:** Colosseum, Stonehenge, Parthenon, Great Wall, Chichen Itza, Moai, Angkor Wat and Machu Picchu (`historicalCatalog.ts`, `designs/historical.ts`, `docs/handoff/historical-round2.md`).
 
-## Partially done when credits ran out (resume these)
-- **Balance fixes** from the systems top-15 (`simulation.ts`, `cityEconomy.ts`): part is applied, including the boat-harbor fix in progress. Re-run `npx tsx scripts/review/probe-*.ts` and `stage-feasibility.ts` to see the current state. Then continue top-15 items 1–15 as listed in `systems-review.md`.
-- **Trains phase 0–1** (`railOperations.ts`, `railMovement.ts`, `practiceRailway.ts`, etc.):
-  - work so far: short block reservations, `claimRailBlock`, depot-exit occupancy, and express trains yielding to other trains;
-  - not checked: whether it has a handoff doc or before/after numbers;
-  - next: re-run `scripts/review/trains-sim.ts` and continue the plan in `trains-review.md`.
-- **UI revamp:** the agent stopped right as it started coding, so assume nothing is implemented. Begin with Phase 0 in `ui-review.md`.
+## Finished after resuming
+- **Balance round 2** (`docs/handoff/balance-round2.md`, `tests/balanceRound2.test.ts`):
+  - **Money loop:** trade and sales tax are collected, grocers pay for their own imports, and income sites earn from household spending and tourism.
+  - **Population limit:** `metrics.populationLimiter` is exposed.
+  - **Other systems:** day-averaged happiness; rebalanced waste, water and power caps, defense, crime and traffic; stages 13–20 compressed; staggered survival maintenance; fire auto-repair; a 12% tax rate; and stage grants.
+  - **Probe results:** starter, mid and late cities all grow further with a positive treasury.
+- **Trains round 2** (`docs/handoff/trains-round2.md`):
+  - **Track sharing:** short block reservations, so loops and double track add capacity, and lines with N trains.
+  - **Simulation:** demand-based passengers with real wait times; freight rewards scale with the amount delivered.
+  - **Movement:** track level sets the speed limit, and trains accelerate, brake and slow for curves.
+  - **Visuals:** rolling stock is rebuilt at world scale in 5 eras and follows the drawn curves. Trains park in their depots.
+  - **UI:** a 4-tab phone Rail Operations sheet with a "tap stations in order" line editor.
+  - **Yard freight, red-signal time:** 44% → 2%.
+  - **Mean passenger wait:** 410 s → 38 s.
+- **UI revamp** (`docs/handoff/ui-round2.md`):
+  - **Layout:** four status chips, an alert pill, and Build/Layers/City/Transit/More tabs.
+  - **Building screens:** BuildSheet with costs, a PlacementBar while placing, and an InspectorSheet with labelled actions and a confirm before demolishing.
+  - **Feedback:** Undo toasts, and a City → Issues list with Fix buttons (`cityIssues.ts`).
+  - **Checks:** every control is ≥44px, and the old nav components were deleted.
+- **Lead fixes:**
+  - the transit-share unit bug;
+  - the Rail Freight synergy now needs a running freight line;
+  - the handbook atlas is regenerated for all 61 redesigned elements.
 
-## Open
-- **Test 246, canal district solvency over two island days:** this is likely a result of the in-progress balance changes. Fix the economy or update the expectation deliberately.
-- **Test 294, handbook metadata:** `src/handbook/catalog.json` is stale after the redesigns. Regenerate it with the handbook render script; see `scripts/render-handbook.mjs` and `docs/handoff/historical-round2.md` for how the wonder rows were produced.
-- **Small visual nits:**
-  - rotors such as cranes, Ferris wheels and searchlights can sweep past their lot;
+## Status
+`tsc` is clean and **364/364 tests pass**. The game loads with no console errors.
+
+## Next ideas (not started)
+- **Happiness heat map layer,** plus a "show where it would grow" preview for blocked upgrades.
+- **Trains:**
+  - stations with their own rails;
+  - freight chains (farm → mill, mine → factory → port);
+  - instanced train rendering and night lights.
+  - In `networks.ts`, Lv2/Lv4 track draws a mast on every tile.
+- **The 25 proposed elements** in `new-elements-proposal.md`, with the Health, Tourism and Goods systems.
+- **Visual nits:**
+  - rotors such as cranes and Ferris wheels can sweep past their lot;
   - hens walk through their coop;
-  - a few farm L1/L2 pairs look too similar.
-- **Old local stash** `stale agent edits pre-main-sync`: superseded by main and safe to drop.
+  - a few farm L1/L2 pairs look alike.
