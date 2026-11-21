@@ -868,15 +868,16 @@ function preschool(c: Ctx) {
     if (lv >= 2) {
       // treehouse
       const tx = X0 + Math.floor(W * 0.62),
-        tz = Z1 - 10;
+        tz = lv === 4 ? Z1 - 11 : Z1 - 10;
       tree(v, tx, 1, tz, "oak", 1.8, 1);
       v.hollowBox(tx - 2, 6, tz - 2, tx + 3, 10, tz + 3, "wood");
       gable(v, tx - 3, 10, tz - 3, tx + 4, tz + 4, "x", "moss");
       for (let y = 1; y < 6; y++) v.put(tx + 3, y, tz + 2, y % 2 ? "woodDark" : "wood");
     }
-    for (let i = 0; i < lv; i++) v.box(X0 + 2 + i * 2, 1, Z1 - 2, X0 + 3 + i * 2, 2 + (i % 2), Z1 - 1, "wood");
+    for (let i = 0; i < lv; i++) v.box(X0 + (lv >= 4 ? 9 : 2) + i * 2, 1, Z1 - 2, X0 + (lv >= 4 ? 10 : 3) + i * 2, 2 + (i % 2), Z1 - 1, "wood");
   }
-  if (vr === 2) for (let i = 0; i < 2 + lv; i++) sunflower(v, X0 + 2 + i * 3, Z1 - 2, 5 + (i % 3));
+  if (vr === 2)
+    for (let i = 0; i < 2 + lv; i++) sunflower(v, X0 + 2 + i * 3, lv >= 4 ? midZ - 1 : Z1 - 2, 5 + (i % 3));
   if (vr === 3) {
     for (const [x, z] of [
       [X1 - 2, Z1 - 2],
@@ -887,7 +888,7 @@ function preschool(c: Ctx) {
     v.box(X0 + 2, 7, Z0 + prD + 2, X1 - 2, 8, Z0 + prD + 3, "white");
     if (lv >= 2) {
       // boat climbing frame
-      const bx = X1 - 12,
+      const bx = lv >= 4 ? X1 - 18 : X1 - 12,
         bz = Z1 - 4;
       v.box(bx, 1, bz - 1, bx + 7, 3, bz + 2, "red");
       v.box(bx + 1, 3, bz - 1, bx + 6, 3, bz + 2, null);

@@ -1350,8 +1350,11 @@ function foundry(c: Ctx) {
     v.box(bx - 1, 1, bz - 1, bx + 2, 3, bz + 2, bins[i]);
   }
   // collection truck dumping into the loop
-  v.box(sx + R(sr) + 3, 1, sz - 2, sx + R(sr) + 9, 4, sz + 1, embCol);
-  v.box(sx + R(sr) + 9, 1, sz - 2, sx + R(sr) + 11, 3, sz + 1, "white");
+  if (lv < 5) {
+    v.box(sx + R(sr) + 2, 1, hz - 4, sx + R(sr) + 8, 4, hz - 1, embCol);
+    v.box(sx + R(sr) + 8, 1, hz - 4, sx + R(sr) + 10, 3, hz - 1, "white");
+    v.put(sx + R(sr) + 9, 2, hz - 1, "warmGlow", 1);
+  }
   crowd(c, sx - 3, sz + R(sr) + 1, sx + 4, sz + R(sr) + 3, lv + 1);
   if (lv === 1) {
     // sorting cabin with recycling emblem
@@ -1462,7 +1465,7 @@ function foundry(c: Ctx) {
     // magnet gantry crane straddling a scrap mountain (centre)
     const gx0 = R(-hx * 0.1) - 5,
       gx1 = gx0 + 12,
-      gz = R(hz * 0.05),
+      gz = R(hz * 0.45),
       gh = lv5(c, [0, 0, 12, 14, 16]);
     for (const x of [gx0, gx1 - 1]) {
       v.box(x, 1, gz - 3, x + 1, gh, gz - 2, steel);
