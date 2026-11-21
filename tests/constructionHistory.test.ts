@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { rememberBuildingEdit, undoBuildingEdit } from "../src/game/constructionHistory";
 import { transfer } from "../src/game/cityEconomy";
 import { ensureInfrastructure, getTerrainCell, applyLandformPlacement } from "../src/game/terrain";
-import { createInitialGameState, removePlacedElements, type PlacedElement } from "../src/game/simulation";
+import { createInitialGameState, removePlacedElements, widenLegacyRoad, type PlacedElement } from "../src/game/simulation";
 
 function site(id:string,gx=0,gz=0):PlacedElement {
   return {id,defId:"house",gx,gz,spanX:1,spanZ:1,rotation:0,level:1,variant:0,connected:false,
@@ -55,4 +55,27 @@ test("batch demolition is atomic and paint undo refuses later ground work",()=>{
   assert.match(undoBuildingEdit(s).reason!,/public works/);
   inf.cells["4,4"]=fresh;
   assert.ok(undoBuildingEdit(s).ok);assert.equal(getTerrainCell(s,4,4).material,"grass");
+});
+
+
+test("undo restores a compact legacy freeway and reimburses widening and crossing receipts", () => {
+  const state = createInitialGameState("real");
+  const road: PlacedElement = {...site("freeway"), defId: "freeways", rotation: 1};
+  state.elements.push(road);
+  const before = structuredClone(state);
+  assert.ok(widenLegacyRoad(state, road).ok);
+  const price = before.money - state.money;
+  assert.ok(price > 0);
+  assert.ok(road.roadAxis);
+  rememberBuildingEdit(before, state, "Widen carriageway");
+  assert.equal(undoBuildingEdit(state).refunded, price);
+  assert.equal(state.elements[0].roadAxis, undefined);
+  assert.equal(state.money, before.money);
+
+  const crossing = structuredClone(state);
+  state.elements[0].level++;
+  transfer(state, "treasury", "outside", 48, "Crossing upgrade");
+  rememberBuildingEdit(crossing, state, "Upgrade crossing");
+  assert.equal(undoBuildingEdit(state).refunded, 48);
+  assert.equal(state.money, before.money);
 });

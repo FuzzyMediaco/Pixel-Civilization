@@ -1,20 +1,26 @@
 // Shared helpers for the UI review screenshots (read-only review tooling).
+import fs from "node:fs";
+import path from "node:path";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-export const { chromium } = require("playwright");
+export const { chromium } = (() => {
+  try { return require("playwright"); } catch { return require("playwright-core"); }
+})();
 export const PORT = process.env.GALLERY_PORT ?? "5311";
-export const OUT = process.env.OUT ?? "/tmp/claude-0/-home-user-Pixel-Civilization/82636313-3a2d-5962-b203-fb2d54579198/scratchpad/review_ui";
+export const OUT = process.env.OUT ?? path.resolve("scratchpad", "review_ui");
 export const PHONE = { viewport: { width: 430, height: 930 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 export const DESK = { viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1 };
 export async function launch() {
-  return chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+  fs.mkdirSync(OUT, {recursive: true});
+  return chromium.launch({ executablePath: process.env.CHROME_PATH, args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 }
 export async function open(browser, ctxOpts, hash = "") {
   const ctx = await browser.newContext(ctxOpts);
   const page = await ctx.newPage();
   page.on("pageerror", (e) => console.log("[pageerror]", e.message));
   await page.goto(`http://localhost:${PORT}/${hash}`);
-  await page.waitForTimeout(3500);
+  await page.locator('nav[aria-label="Main"]').waitFor();
+  await page.waitForFunction(() => !!window.__pixelWorld?.gameState);
   return { ctx, page };
 }
 // Inventory of visible interactive controls with sizes; flags tiny targets and overlaps.

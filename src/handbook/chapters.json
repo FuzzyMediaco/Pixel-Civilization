@@ -2,8 +2,8 @@
   {
     "id": "worlds",
     "label": "Worlds",
-    "title": "Three playable islands",
-    "intro": "Each island opens as an editable example. Use its guided viewpoints to find a working system, change it and watch what happens.",
+    "title": "Playable island tours",
+    "intro": "Open an island in Real mode to manage its budget or in God mode to experiment. Each mode remembers its own edits. The island guide takes you straight to a viewpoint.",
     "cover": "/handbook/worlds/pelican-reach.webp",
     "lessons": [
       {
@@ -12,7 +12,7 @@
         "world": "pelican-reach",
         "summary": "Take a ferry through an opening bridge and follow a submarine into the open sea.",
         "steps": [
-          "Start at The lift at Marina Cut. Follow the passenger ferry in Transit & harbor and watch the road deck open for the boat. Move the lift back to Automatic after experimenting with it.",
+          "Start at The lift at Marina Cut. Follow the passenger ferry in Transit and watch the road deck open for the boat. Move the lift back to Automatic after experimenting with it.",
           "Visit Admiralty Quay. Follow the submarine, send it to the deep-water waypoint at (38, 0), and use Recall to bring it home. The small boat can fit through the western canal and boat lift into the raised pond at (−6, 8).",
           "Use the viewpoint selector to visit Calder airfield or the chapel and churchyard. Inspect a building to see its operations or the boundaries it shares with its neighbors."
         ],
@@ -152,7 +152,7 @@
         "summary": "Ride the night train, inspect a giant cheesesteak restaurant and watch a research rocket launch.",
         "steps": [
           "Start at Cheesesteak Row. Select the Level 5 Cheesesteak Spot, inspect the joined townhouses across the street, and visit Market and cashpoint to find the ATM facing the bank.",
-          "Use Night train to find the railway platforms. In Transit & harbor, follow the passenger train, bus or taxi. Visit Northgate interchange to inspect the freeway lanes and traffic signals.",
+          "Use Night train to find the railway platforms. In Transit, follow the passenger train, bus or taxi. Visit Northgate interchange to inspect the freeway lanes and traffic signals.",
           "At Rocket works, open the Spaceport’s selected-site report to see a crew and its mission. Check Accounts after it returns. Open Fire & safety to follow the engine responding to the shop fire, then repair and reopen the shop after containment.",
           "Open Orchard Valley rail yard from the island guide to try its passenger and freight formations. Inspect the depot to manage the trains, or follow the steel crossing while both lines operate."
         ],
@@ -207,6 +207,106 @@
             "height": 600
           }
         ]
+      },
+      {
+        "id": "meridian-fair",
+        "world": "meridian-fair",
+        "title": "Meridian Fair",
+        "summary": "Walk among eight wonders, visit four herds, follow a school street and tour a spaceport on the quay.",
+        "steps": [
+          "Choose The eight-wonder promenade in the island guide. Inspect a monument and compare its footprint with another restoration on the same walk.",
+          "Visit Four-herd valley and zoom in on a pen. Move to College Walk and tap two schools to compare their seats, jobs and land use.",
+          "Finish at Tomorrow Quay. Inspect the spaceport and its operation, then move the camera from the land-based projects to the habitat in the water."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/round2-wonders.webp",
+            "caption": "The eight-wonder promenade on Meridian Fair puts excavations, partly restored monuments and completed landmarks side by side.",
+            "alt": "The eight-wonder promenade on Meridian Fair puts excavations, partly restored monuments and completed landmarks side by side.",
+            "width": 1000,
+            "height": 660
+          },
+          {
+            "image": "/handbook/scenes/round2-livestock.webp",
+            "caption": "Dairy cattle, beef cattle, poultry and horses occupy separate enclosures in Four-herd valley.",
+            "alt": "Dairy cattle, beef cattle, poultry and horses occupy separate enclosures in Four-herd valley.",
+            "width": 1000,
+            "height": 660
+          },
+          {
+            "image": "/handbook/scenes/round2-campus.webp",
+            "caption": "College Walk brings the smaller schoolyards and larger teaching campuses onto the same street.",
+            "alt": "College Walk brings the smaller schoolyards and larger teaching campuses onto the same street.",
+            "width": 1000,
+            "height": 660
+          },
+          {
+            "image": "/handbook/scenes/round2-projects.webp",
+            "caption": "Tomorrow Quay places a spaceport, teleportation depot and hanging-garden arcology beside the ocean habitat.",
+            "alt": "Tomorrow Quay places a spaceport, teleportation depot and hanging-garden arcology beside the ocean habitat.",
+            "width": 1000,
+            "height": 660
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "interface",
+    "title": "Find your way around the island",
+    "label": "Controls",
+    "intro": "Start with the four readings above your island. Use the five buttons below it to act on what you see.",
+    "cover": "/handbook/scenes/round2-desktop-interface.webp",
+    "lessons": [
+      {
+        "id": "phone-controls",
+        "title": "Read the island and place a building",
+        "steps": [
+          "Tap People for housing and the growth ceiling, Happy for issues, Treasury for accounts, or Power for the coverage map. The speed button cycles through 1×, 2×, 4× and pause.",
+          "Open Build and search by name, or browse a category. Pick a design, rotate it if needed and tap a clear site. Drag a road to lay a run. Undo on the confirmation returns that placement.",
+          "Tap a finished building to inspect or upgrade it. The inspector explains the price or missing requirement. On desktop the same sheets dock on the left."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/round2-phone-build.webp",
+            "caption": "Search for a building or choose a category in Build. The map stays visible above the sheet.",
+            "alt": "Search for a building or choose a category in Build. The map stays visible above the sheet.",
+            "width": 430,
+            "height": 930
+          },
+          {
+            "image": "/handbook/scenes/round2-desktop-interface.webp",
+            "caption": "The same five destinations sit below the island on desktop. Their sheets open at the side of the map.",
+            "alt": "The same five destinations sit below the island on desktop. Their sheets open at the side of the map.",
+            "width": 1280,
+            "height": 800
+          }
+        ]
+      },
+      {
+        "id": "phone-issues",
+        "title": "Find a shortage on the map",
+        "steps": [
+          "Tap the alert above the map or choose City → Issues. Read the highest-priority problem and select Fix for the suggested tool.",
+          "Choose Layers for a closer look. The main layers show supplies. Services includes safety coverage. Networks includes road lanes, ferry clearance, shared edges, passenger routes and aqueduct flow.",
+          "Read the legend before editing the island. Open Transit for lines, depots and boats. More holds camera settings, saved islands, guides and game modes."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/round2-phone-issues.webp",
+            "caption": "City groups shortages by urgency. Fix opens the tool for the selected problem.",
+            "alt": "City groups shortages by urgency. Fix opens the tool for the selected problem.",
+            "width": 430,
+            "height": 930
+          },
+          {
+            "image": "/handbook/scenes/round2-phone-layers.webp",
+            "caption": "The active map layer shows its own legend and a reading for the island.",
+            "alt": "The active map layer shows its own legend and a reading for the island.",
+            "width": 430,
+            "height": 930
+          }
+        ]
       }
     ]
   },
@@ -221,8 +321,8 @@
         "id": "open-town",
         "title": "Open the working town",
         "steps": [
-          "Open Island tools, choose God controls, then Explore the canal district. The game snapshots your previous sandbox before opening the district.",
-          "Choose Return to Transit & harbor. Expand Passenger ferry and select Follow vehicle. The service lists stops in order, riders aboard, and trips it has completed."
+          "Open More, choose God tools, then Explore the canal district. The game snapshots your previous sandbox before opening the district.",
+          "Choose Transit. Expand Passenger ferry and select Follow vehicle. The service lists stops in order, riders aboard, and trips it has completed."
         ],
         "examples": [
           {
@@ -256,9 +356,9 @@
         "id": "try-first-town",
         "title": "Start a Real or Survival island",
         "steps": [
-          "Choose a mode from the game menu. Put a home and a workplace on a short road and face their entrances toward it. Add power, drinking water, and a garden or food shop.",
+          "Choose More → Game mode. Put a home and a workplace on a short road and face their entrances toward it. Add power, drinking water, and a garden or food shop.",
           "Tap Population, Happiness or City wealth to inspect conditions. Read the first unmet need and use a building that supplies it. Farms need water and consumers need a way to reach the food.",
-          "Real unlocks tools and buildings as the town grows. Survival also tracks accumulating shortages, maintenance and emergencies. The game menu can open a separate God-mode copy for an experiment."
+          "Real unlocks tools and buildings as the town grows. Survival also tracks accumulating shortages, maintenance and emergencies. More → Game mode can open a separate God-mode copy for an experiment."
         ],
         "examples": [
           {
@@ -482,7 +582,7 @@
         "title": "Buses and taxis",
         "steps": [
           "Build a bus depot beside a drivable road. Put two bus stops along it with their curb faces against the street. Use the placement rotation control when the map offers two possible frontages.",
-          "In Island tools → Transit & harbor, choose Plan a line. Select Bus, choose the depot and use Suggest reachable stops or select stops in visit order. Start service, then follow the vehicle.",
+          "Open Transit and choose Plan a line. Select Bus, choose the depot and use Suggest reachable stops or select stops in visit order. Start service, then follow the vehicle.",
           "For a taxi, start at a Taxi Depot and choose ranks or street-facing homes and workplaces. A cab carries four riders. A bus can take 26. A bus stop keeps its one-tile footprint and finishes at level three."
         ],
         "examples": [
@@ -506,17 +606,24 @@
         "id": "rail-services",
         "title": "Trains and transfers",
         "steps": [
-          "Lay a continuous track. Turn the depot and each train stop so their platform side touches rail. Give the passenger side a walkable connection to town.",
-          "Choose Train in Plan a line, select a train depot and at least two stops, and start the line. A train can carry 72 people.",
-          "Give two services a shared stop or a short walking connection between stops. Transferring riders wait for a suitable passenger vehicle. The trip counts once, at the final destination."
+          "Place a depot and two platforms beside continuous track. Connect the passenger side to homes and jobs so people can reach the service.",
+          "Choose Transit → Rail Operations → Lines. Tap stations in order and confirm the route. Add another train to the same line when demand fills the first one. Passenger load depends on local demand and train capacity.",
+          "At Switchyard City compare the two trains on Market Local. A train reserves the track under its carriages and a short way ahead. A passing loop gives an oncoming train a free route. At level 2 or with block signals, trains can follow one another along signalled track."
         ],
         "examples": [
           {
-            "image": "/handbook/travel/rail.webp",
-            "caption": "The red-and-cream train is at a platform beside continuous track.",
-            "alt": "The red-and-cream train is at a platform beside continuous track.",
-            "width": 900,
-            "height": 540
+            "image": "/handbook/scenes/round2-rail-yard.webp",
+            "caption": "Market Local has two trains and a second stretch of track where they can pass.",
+            "alt": "Market Local has two trains and a second stretch of track where they can pass.",
+            "width": 1280,
+            "height": 800
+          },
+          {
+            "image": "/handbook/scenes/round2-rail-phone.webp",
+            "caption": "The Lines editor numbers platforms in the order you tap them.",
+            "alt": "The Lines editor numbers platforms in the order you tap them.",
+            "width": 430,
+            "height": 930
           }
         ]
       },
@@ -543,7 +650,7 @@
         "title": "Send a ship inland",
         "steps": [
           "Place a boat, sailboat, speedboat, naval vessel, carrier or submarine in suitable water. In Real and Survival it also needs a reachable home port.",
-          "Open Harbor master in Transit & harbor, choose the vessel, and read its beam, draft and headroom. Choose destination on map, tap water, then follow the ship. Return to berth recalls it.",
+          "Open Harbor master in Transit, choose the vessel, and read its beam, draft and headroom. Choose destination on map, tap water, then follow the ship. Return to berth recalls it.",
           "Widen bends for long hulls and leave room around the piers. A submarine dives in sufficiently deep water. A shallow cut, a closed gate, or a fixed deck can make a destination unreachable."
         ],
         "examples": [
@@ -587,17 +694,44 @@
         "id": "balance",
         "title": "Population, wealth and services",
         "steps": [
-          "Population and jobs need a reachable connection. Tap Population to see workers and housing, then inspect the neighborhood entrances or transit line serving a workplace.",
-          "Tap City wealth. Its three balances are the public treasury, businesses and household savings. Wages, taxes, food purchases, imports and upkeep appear in the ledger. Construction draws from the treasury.",
-          "A peak wealth milestone unlocks a group of projects. Their cards show a separate construction price. In God mode you can build the projects immediately and still watch their costs and effects with the experiment controls."
+          "Tap the money chip or choose City → Money. Households earn wages and spend in shops. Businesses can sell exports or earn tourism income. Grocers use working cash to restock food. Sales and trade taxes send a share of those flows to the treasury.",
+          "Construction and upkeep draw on public funds. Adjust taxes between 5% and 25% in Real or Survival. The starting rate is 12%. Above 15% residents lose happiness and become more likely to leave.",
+          "Project unlocks count the treasury and business balances. Household savings have their own line in the ledger. Once a milestone opens a project, its card shows the separate construction price."
         ],
         "examples": [
           {
-            "image": "/handbook/catalog/thumbs/banks.webp",
-            "caption": "Banks support the local economy. A neighboring ATM can open a useful retail frontage.",
-            "alt": "Banks support the local economy. A neighboring ATM can open a useful retail frontage.",
-            "width": 256,
-            "height": 256
+            "image": "/handbook/scenes/round2-phone-money.webp",
+            "caption": "The tax slider in City → Money changes the share of earnings that reaches the public treasury.",
+            "alt": "The tax slider in City → Money changes the share of earnings that reaches the public treasury.",
+            "width": 430,
+            "height": 930
+          }
+        ]
+      },
+      {
+        "id": "growth-and-upkeep",
+        "title": "Find the next limit on growth",
+        "steps": [
+          "Open City → Issues and read the population ceiling. Housing, jobs, food, waste, water and power each support a number of residents. Improve the lowest one, let the simulation run, then check which need sets the next ceiling.",
+          "Happiness and growth use typical solar supply, congestion and crime across the day. Fires, traffic and nighttime incidents still happen at the current hour.",
+          "Visit City → Goals for the next population threshold. Stage 3 starts at 15,000 people, stage 13 at 900,000 and stage 20 at 1.55 million. Development grants arrive at qualifying milestones.",
+          "Upgrading a typical producer from level 1 to 5 raises its main output sixteenfold. Service radius doubles and operating cost grows about fivefold. Crop harvests, retail throughput and road lanes follow their own rates.",
+          "In Survival, check City → Issues for maintenance. A manual repair costs 2% of construction price times the current level. Auto-maintain pays a 25% premium when repairs fall due."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/round2-phone-issues.webp",
+            "caption": "City groups shortages by urgency. Fix opens the tool for the selected problem.",
+            "alt": "City groups shortages by urgency. Fix opens the tool for the selected problem.",
+            "width": 430,
+            "height": 930
+          },
+          {
+            "image": "/handbook/scenes/round2-phone-money.webp",
+            "caption": "The tax slider in City → Money changes the share of earnings that reaches the public treasury.",
+            "alt": "The tax slider in City → Money changes the share of earnings that reaches the public treasury.",
+            "width": 430,
+            "height": 930
           }
         ]
       },
@@ -609,7 +743,7 @@
           "A staffed City Office, Government Building, Courthouse or Tax Collecting Office authorizes a staffed fire department. Keep a drivable route or a navigable waterfront approach open.",
           "Select the burning site and dispatch a crew. An engine needs local fresh water at its station or incident. Clear weather requires eight seconds of water application. A volunteer takes twenty.",
           "When the call is contained, select Repair and reopen to return the site to service.",
-          "In City accounts, open Fire & safety to compare staffed fire crews with the number your residents need. Each 50,000 residents needs one crew. An upgraded station supports more crews when it has enough workers. Areas outside station range increase the chance of a fire."
+          "In City → Issues, scroll to Fire & safety to compare staffed fire crews with the number your residents need. Each 50,000 residents needs one crew. An upgraded station supports more crews when it has enough workers. Areas outside station range increase the chance of a fire."
         ],
         "examples": [
           {
@@ -782,6 +916,83 @@
             "height": 256
           }
         ]
+      },
+      {
+        "id": "projects-district",
+        "title": "Tour Tomorrow Quay",
+        "steps": [
+          "Open the Tomorrow Quay viewpoint in Meridian Fair. Follow the road to the spaceport, look for its tracking dish, and inspect its launch operation. Select the teleportation depot for its passenger operation.",
+          "Find the planted terraces on the hanging-garden arcology, then follow the shoreline to the ocean habitat. Open any project below for its wealth threshold, level footprints and four designs."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/round2-projects.webp",
+            "caption": "Tomorrow Quay places a spaceport, teleportation depot and hanging-garden arcology beside the ocean habitat.",
+            "alt": "Tomorrow Quay places a spaceport, teleportation depot and hanging-garden arcology beside the ocean habitat.",
+            "width": 1000,
+            "height": 660
+          }
+        ],
+        "designs": [
+          "growers_exchange",
+          "bakery_coop",
+          "ferry_exchange",
+          "water_reuse_works",
+          "open_pit_mine",
+          "terraced_glasshouses",
+          "freight_rail_terminal",
+          "district_heat_works",
+          "regional_airport",
+          "canal_boat_lift",
+          "maritime_college",
+          "pumped_storage_station",
+          "flying_car_depot",
+          "solar_canopy_orchard",
+          "floodplain_park",
+          "hanging_garden_arcology",
+          "teleportation_depot",
+          "materials_foundry",
+          "rainwater_cathedral",
+          "spaceport",
+          "skybridge_university",
+          "ocean_habitat_ring"
+        ],
+        "visit": {
+          "world": "meridian-fair",
+          "view": 3
+        }
+      },
+      {
+        "id": "historical-plaza",
+        "title": "Walk the eight historical wonders",
+        "steps": [
+          "Choose The eight-wonder promenade on Meridian Fair. Start with the standing stones and the Moai. Compare them with the Parthenon’s columns, the Colosseum’s oval stands and the steps of Chichén Itzá.",
+          "Follow the Great Wall between towers, trace the causeway into Angkor Wat and climb the terraces at Machu Picchu. Open any monument below to see the restoration grow across five levels and four styles.",
+          "Stonehenge and Moai open at stage 13. The Parthenon follows at 15, the Colosseum and Chichén Itzá at 16, the Great Wall at 17, Angkor Wat at 19 and Machu Picchu at 20. God mode opens the whole collection."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/round2-wonders.webp",
+            "caption": "The eight-wonder promenade on Meridian Fair puts excavations, partly restored monuments and completed landmarks side by side.",
+            "alt": "The eight-wonder promenade on Meridian Fair puts excavations, partly restored monuments and completed landmarks side by side.",
+            "width": 1000,
+            "height": 660
+          }
+        ],
+        "designs": [
+          "stonehenge",
+          "moai_statues",
+          "parthenon",
+          "colosseum",
+          "chichen_itza",
+          "great_wall",
+          "angkor_wat",
+          "machu_picchu"
+        ],
+        "visit": {
+          "world": "meridian-fair",
+          "view": 0
+        }
       }
     ]
   },
@@ -1016,7 +1227,7 @@
         "id": "sandbox-lab",
         "title": "Set up an experiment",
         "steps": [
-          "Open God controls from Island tools or the game menu. Pause the clock, save a sandbox snapshot, and select a site or district. Step one second to advance while paused.",
+          "Open More → God tools. Pause the clock, save a sandbox snapshot, and select a site or district. Step one second to advance while paused.",
           "Choose Set or hold city values. Set once changes the value for an update. Hold keeps the chosen rule active until you release it. Look at the calculated value as well as the held value.",
           "Use Local experiment for one site, a radius around it, or the entire island. Restore the snapshot to compare the same starting town. Real and Survival have separate islands and can be copied into God mode."
         ],
@@ -1052,9 +1263,9 @@
         "id": "map-and-saves",
         "title": "Inspect the map and save a city",
         "steps": [
-          "Open Civilization Heat Maps. Passenger routes, shared edges, aqueduct flow, ferry clearance and road lanes answer different questions. Use the selected layer’s legend.",
+          "Open Layers. Passenger routes, shared edges, aqueduct flow, ferry clearance and road lanes answer different questions. Use the selected layer’s legend.",
           "Choose a place on the map for its connections or site panel. To inspect ground under a crossing, open Land & water and use Coordinates & inspection.",
-          "The game restores the active mode and clock speed when reloaded. Use Saved Civilizations for three named slots. A sandbox snapshot gives you a separate restore point for experiments."
+          "The game restores the active mode and clock speed when reloaded. Choose More → Saves for three named slots. A sandbox snapshot gives you a separate restore point for experiments."
         ],
         "examples": [
           {
@@ -1275,6 +1486,72 @@
             "height": 410
           }
         ]
+      },
+      {
+        "id": "grazing-pens",
+        "title": "Watch a working herd",
+        "steps": [
+          "Open Meridian Fair and select Four-herd valley. Zoom in on the dairy, cattle ranch, chicken enclosure and horse ranch. Watch a single animal turn, walk and stop to graze or peck.",
+          "Open a farm in the field guide and switch styles to compare its buildings and animal coats. Higher levels can expand the enclosure and add animals. Dairy cattle and beef cattle have different coats.",
+          "Give the farm water and workers. Inspect the food chain and its route to households. A herd is visible on the lot even while the city clock is paused."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/round2-livestock.webp",
+            "caption": "Dairy cattle, beef cattle, poultry and horses occupy separate enclosures in Four-herd valley.",
+            "alt": "Dairy cattle, beef cattle, poultry and horses occupy separate enclosures in Four-herd valley.",
+            "width": 1000,
+            "height": 660
+          }
+        ],
+        "designs": [
+          "dairy_farm",
+          "cattle_ranch",
+          "poultry_farm",
+          "horse_ranch",
+          "grazing_pasture",
+          "livestock_pen",
+          "chicken_coop",
+          "apiary"
+        ],
+        "visit": {
+          "world": "meridian-fair",
+          "view": 1
+        }
+      },
+      {
+        "id": "campus-designs",
+        "title": "Walk from the schoolyard to the institute",
+        "steps": [
+          "Choose College Walk on Meridian Fair. Compare a low preschool and its play yard with a school, sports field or university along the same road.",
+          "Select a school in the catalog below. Move across the levels to follow its additions. Switch style to change the architecture while keeping the school’s function."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/round2-campus.webp",
+            "caption": "College Walk brings the smaller schoolyards and larger teaching campuses onto the same street.",
+            "alt": "College Walk brings the smaller schoolyards and larger teaching campuses onto the same street.",
+            "width": 1000,
+            "height": 660
+          }
+        ],
+        "designs": [
+          "preschool",
+          "country_schoolhouse",
+          "elementary_school",
+          "middle_school",
+          "high_school",
+          "trade_school",
+          "community_college",
+          "university",
+          "research_university",
+          "sports_field",
+          "research_institute"
+        ],
+        "visit": {
+          "world": "meridian-fair",
+          "view": 2
+        }
       }
     ]
   },
@@ -1413,28 +1690,27 @@
         "id": "rail-console",
         "title": "Use the six Rail Operations tabs",
         "steps": [
-          "For a ready-to-run railway, open Switchyard City, expand the island guide and choose Open Orchard Valley rail yard. The passenger and freight trains share a turnout and a steel bridge. Reopen the yard to revisit your changes.",
-          "Overview shows actual stations, tracks, routes and connectivity problems. Inspect the switches if a reachable-looking branch is unavailable.",
-          "Lines sets the route, stations, frequency and active periods. Trains manages locomotives and assignments. Cars assembles the formation and shows the resulting capacity.",
-          "Cargo chooses eligible sources and recipients and matches them with appropriate freight cars. Upgrades extends platform length, adds sidings and signals, supports electric traction and improves freight handling. Read the current price and requirements before ordering."
+          "Choose Transit and open Rail Operations for a depot. Lines shows services and lets you tap reachable stations in travel order. Choose two or more, review the order and save.",
+          "Fleet controls engines, car formations and additional trains. Match the formation to the shortest platform. Trains share a timetable and park at the depot when their service is off duty.",
+          "Freight shows the supply chain for goods trains. Yard contains the track diagram, platforms, signals and depot works. Inspect a line to see whether its trains are loading, travelling or waiting for a path."
         ],
         "designs": [
           "train_depots"
         ],
         "examples": [
           {
-            "image": "/handbook/scenes/rail-operations-desktop.webp",
-            "caption": "Overview shows the actual yard, passenger stations, freight terminals and running trains.",
-            "alt": "Overview shows the actual yard, passenger stations, freight terminals and running trains.",
-            "width": 988,
-            "height": 680
+            "image": "/handbook/scenes/round2-rail-phone.webp",
+            "caption": "The Lines editor numbers platforms in the order you tap them.",
+            "alt": "The Lines editor numbers platforms in the order you tap them.",
+            "width": 430,
+            "height": 930
           },
           {
-            "image": "/handbook/scenes/rail-operations-mobile.webp",
-            "caption": "On a phone, Cars shows the locomotive, each wagon in order, and controls for changing the formation.",
-            "alt": "On a phone, Cars shows the locomotive, each wagon in order, and controls for changing the formation.",
-            "width": 393,
-            "height": 796
+            "image": "/handbook/scenes/round2-rail-lines.webp",
+            "caption": "Market Local groups both of its trains under one passenger service.",
+            "alt": "Market Local groups both of its trains under one passenger service.",
+            "width": 430,
+            "height": 930
           }
         ]
       },
@@ -1525,6 +1801,37 @@
             "name": "Boxcar",
             "detail": "20 freight units"
           }
+        ]
+      },
+      {
+        "id": "rail-speeds",
+        "title": "Read a passing loop",
+        "steps": [
+          "Open Switchyard City and choose the downtown rail viewpoint. Follow a train into the passing lane. A red signal means the next block is occupied. The last carriage must clear it before another train takes it.",
+          "Track speed limits rise from 1.5 to 1.9, 2.4, 2.8 and 3.5 tiles per second at levels 1–5. Curves, points, formation weight and storms affect actual speed. Electric and express trains need level 4 track for full-speed running.",
+          "Look in Fleet to compare the five eras. In Yard, lengthen platforms for longer formations. In Freight, connect a producer and a matching receiver, then watch for a delivered load."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/scenes/round2-rail-yard.webp",
+            "caption": "Market Local has two trains and a second stretch of track where they can pass.",
+            "alt": "Market Local has two trains and a second stretch of track where they can pass.",
+            "width": 1280,
+            "height": 800
+          },
+          {
+            "image": "/handbook/scenes/round2-rail-lines.webp",
+            "caption": "Market Local groups both of its trains under one passenger service.",
+            "alt": "Market Local groups both of its trains under one passenger service.",
+            "width": 430,
+            "height": 930
+          }
+        ],
+        "designs": [
+          "train_tracks",
+          "train_stops",
+          "train_depots",
+          "freight_rail_terminal"
         ]
       }
     ]

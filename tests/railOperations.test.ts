@@ -246,6 +246,16 @@ test("real locomotive and rolling-stock meshes are distinct and loaded open cars
   }
 });
 
+test("Real-mode Switchyard can visit its authored yard before bridge tools unlock", () => {
+  const original = createInitialGameState("real");
+  original.exampleWorldId = "switchyard-city";
+  const yard = visitPracticeRailway(original);
+  assert.equal(yard.state.mode, original.mode);
+  assert.equal(yard.state.money, original.money);
+  assert.equal(yard.state.mobility!.lines.find(l => l.rail?.service === "freight")?.rail?.contract?.type, "grain");
+  assert.equal(visitPracticeRailway(yard.state).state, yard.state);
+});
+
 test("Switchyard opens the practice railway once and both services work around the bend", () => {
   const original = createInitialGameState("god");
   original.exampleWorldId = "switchyard-city";

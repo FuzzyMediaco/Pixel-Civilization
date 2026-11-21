@@ -39,12 +39,13 @@ type Lesson = {
   designs?: string[];
   stock?: {image:string;name:string;detail:string}[];
   world?: string;
+  visit?: {world: string; view: number};
   summary?: string;
 };
 type Chapter = { id: string; title: string; label: string; intro: string; cover: string; lessons: Lesson[] };
 const book: Chapter[] = chapters;
 const worlds = book.find((chapter) => chapter.id === "worlds")?.lessons ?? [];
-const playWorld = (id: string) => "./index.html#world=" + encodeURIComponent(id);
+const playWorld = (id: string, real = false) => "./index.html#world=" + encodeURIComponent(id) + (real ? "&mode=real" : "");
 const asset = (path: string) => "./" + path.replace(/^\//, "");
 const categories = Array.from(new Set(catalog.map((entry) => entry.categoryName)));
 const readLocation = () => new URLSearchParams(location.hash.slice(1));
@@ -333,10 +334,12 @@ function App() {
                 {current.lessons.map((l) => (
                   <section className="lesson" key={l.id} id={l.id}>
                     <h2>{l.title}</h2>
+                    {l.visit && <a className="action" href={playWorld(l.visit.world) + "&view=" + l.visit.view}>Visit this viewpoint</a>}
                     {l.world && (
-                      <a className="action play-island" href={playWorld(l.world)}>
-                        Play this island <span aria-hidden="true">→</span>
-                      </a>
+                      <div className="world-actions">
+                        <a className="action play-island" href={playWorld(l.world, true)}>Play in Real mode</a>
+                        <a className="inline-link" href={playWorld(l.world)}>Explore in God mode</a>
+                      </div>
                     )}
                     <ol>
                       {l.steps.map((step, i) => (
@@ -375,11 +378,10 @@ function App() {
               <div className="opening-copy">
                 <h1>Island handbook</h1>
                 <p>
-                  Follow a ferry to the open sea, feed a hillside farm from a mountain spring, or catch the
-                  night train.
+                  Follow a ferry to the open sea, feed a hillside farm, ride the night train or walk among eight historical wonders.
                 </p>
                 <a className="action" href={link({ section: "worlds" })}>
-                  Tour the three islands <span aria-hidden="true">→</span>
+                  Tour the islands <span aria-hidden="true">→</span>
                 </a>
                 <a className="inline-link" href={catalogUrl}>
                   Browse all {catalog.length} designs

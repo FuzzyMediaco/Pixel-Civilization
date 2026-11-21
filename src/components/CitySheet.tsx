@@ -22,7 +22,7 @@ export function CitySheet({state, tab, onTab, mutate, selected, onFocus, onFix, 
   const limit = growthLimit(state);
   const stage = STAGES[Math.max(0, Math.min(STAGES.length - 1, state.currentStage - 1))];
   const next = state.currentStage < 20 ? STAGES[state.currentStage] : undefined;
-  const urgent = state.metrics.disrepairCount + state.metrics.burningCount;
+  const growthIssue = issues.find(i => i.id === "growth_limit");
   const tax = taxRateOf(state);
   const trailing = (i: CityIssue) => i.repairAll ? <Button small variant="quiet" label="Repair all" onClick={onMaintainAll}/>
     : i.fix ? <Button small variant="quiet" label={i.fix.label + " →"} onClick={() => onFix(i.fix!)}/>
@@ -39,9 +39,7 @@ export function CitySheet({state, tab, onTab, mutate, selected, onFocus, onFix, 
       <div className="ui-list">
         {limit && <ListRow icon="👥" tone={limit.atCap ? "warn" : undefined}
           title={limit.atCap ? "Growth limited by " + limit.need : "Room for " + limit.cap.toLocaleString() + " people"}
-          subtitle={state.population.toLocaleString() + " / " + limit.cap.toLocaleString() + " · " + limit.need + " sets the cap"}/>}
-        {state.mode === "survival" && urgent > 0 && <ListRow icon="🔧" tone="bad" title={urgent + " buildings need repair"} subtitle="Maintain all and put out fires"
-          trailing={<Button small variant="quiet" label="Repair all" onClick={onMaintainAll}/>}/>}
+          subtitle={state.population.toLocaleString() + " / " + limit.cap.toLocaleString() + " · " + limit.need + " sets the cap"} trailing={growthIssue ? trailing(growthIssue) : undefined}/>}
         {issues.filter(i => i.severity !== "good" && i.id !== "growth_limit").map(i => <ListRow key={i.id}
           icon={i.severity === "info" ? "ⓘ" : "⚠"} tone={i.severity === "critical" ? "bad" : i.severity === "warning" ? "warn" : undefined}
           title={i.title} subtitle={(i.deltaHappiness ? i.deltaHappiness + "% happiness · " : "") + i.fixHint} trailing={trailing(i)}/>)}

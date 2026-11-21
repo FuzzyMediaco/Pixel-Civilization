@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpen, ChevronLeft, Cloud, Compass, FlaskConical, Map, RotateCcw, Save, Settings, Sparkles } from "lucide-react";
+import { BookOpen, ChevronLeft, Cloud, Compass, FlaskConical, Map, RotateCcw, Save, Settings, Sparkles, Undo2 } from "lucide-react";
 import { type GameMode, STAGES } from "../game/catalog";
 import { MAX_SAVE_SLOTS } from "../game/saveSlots";
 import type { GameState, SelectionFilter } from "../game/simulation";
@@ -29,10 +29,11 @@ const KEYS: [string, string][] = [
 const TITLES: Record<Exclude<MorePage, null>, string> = {view: "View", mode: "Game mode", god: "God tools", settings: "Settings"};
 
 export function MoreSheet({state, page, onPage, height, onHeight, onClose, savedCount, onSaves, onExamples, onChangeMode, onCopyIsland, onReset,
-  view, godTools, cursorBehavior, onCursorBehavior, selectionFilter, onSelectionFilter}: {
+  view, godTools, cursorBehavior, onCursorBehavior, selectionFilter, onSelectionFilter, onUndo}: {
   state: GameState; page: MorePage; onPage: (p: MorePage) => void;
   height: SheetHeight; onHeight: (h: SheetHeight) => void; onClose: () => void;
   savedCount: number; onSaves: () => void; onExamples: () => void; onChangeMode: (m: GameMode) => void; onCopyIsland: () => void; onReset: () => void;
+  onUndo: () => void;
   view: React.ReactNode; godTools: React.ReactNode;
   cursorBehavior: CursorBehavior; onCursorBehavior: (b: CursorBehavior) => void;
   selectionFilter: SelectionFilter; onSelectionFilter: (f: SelectionFilter) => void;
@@ -65,7 +66,8 @@ export function MoreSheet({state, page, onPage, height, onHeight, onClose, saved
       {state.mode !== "god" && <Button block label="Experiment in a God-mode copy" icon={<FlaskConical size={18}/>} onClick={onCopyIsland}/>}
     </div>}
     {page === "settings" && <>
-      <p className="ui-section-title" style={{marginTop: 0}}>After placing</p>
+      <Button block label="Undo last building edit" icon={<Undo2 size={18}/>} disabled={!state.constructionHistory?.length} onClick={onUndo}/>
+      <p className="ui-section-title">After placing</p>
       <ChipRow label="Placement behaviour">{BEHAVIORS.map(b => <Chip key={b.id} label={b.label} selected={cursorBehavior === b.id} onClick={() => onCursorBehavior(b.id)}/>)}</ChipRow>
       <p className="ui-muted">{BEHAVIORS.find(b => b.id === cursorBehavior)?.hint}</p>
       <p className="ui-section-title">Tapping the map selects</p>

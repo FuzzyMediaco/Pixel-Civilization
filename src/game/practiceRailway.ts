@@ -207,7 +207,13 @@ export function visitPracticeRailway(city: GameState): {
       continue;
     const next = structuredClone(city);
     try {
-      return { state: next, depot: build(next, ox, oz) };
+      // Visiting reveals the authored example district, just like opening the island's original neighbourhood.
+      // Its existing bridges and stock should neither require a player's unlocks nor charge their treasury.
+      next.mode = "god";
+      const depot = build(next, ox, oz);
+      next.mode = city.mode;
+      recomputeConnectivityAndMetrics(next);
+      return { state: next, depot };
     } catch {
       continue;
     }

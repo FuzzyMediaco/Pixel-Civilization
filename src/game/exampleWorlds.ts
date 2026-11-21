@@ -1,6 +1,7 @@
 import { ELEMENT_BY_ID, getStandardFootprintForLevel } from "./catalog";
 import { transfer } from "./cityEconomy";
-import { addLine, dispatchVessel } from "./mobility";
+import { addLine, addTrainToLine, dispatchVessel } from "./mobility";
+import { defaultFormation, installYardWork } from "./railOperations";
 import { dispatchFire, igniteSite } from "./projectOperations";
 import {
   createInitialGameState,
@@ -12,7 +13,8 @@ import {
 } from "./simulation";
 import { applyInfrastructureStroke, applyLandformPlacement, type InfrastructureTool } from "./terrain";
 
-export type ExampleWorldId = "pelican-reach" | "copper-gorge" | "switchyard-city";
+export type ExampleWorldId = "pelican-reach" | "copper-gorge" | "switchyard-city" | "meridian-fair";
+export type ExampleMode = "god" | "real";
 type Camera = { gx: number; gz: number; zoom: number };
 export type ExampleViewpoint = Camera & { name: string; tryThis: string };
 export interface ExampleWorld {
@@ -172,11 +174,11 @@ export const EXAMPLE_WORLDS: readonly ExampleWorld[] = [
         "Find the giant Level 5 Cheesesteak Spot opposite the joined townhouses. The houses share walls, and the restaurant serves meals from local stock.",
       ),
       view(
-        "Night train",
+        "Switchyard passing loop",
         10,
         65,
         51,
-        "Follow the train between the two station platforms. Compare its runs with the late bus and taxi in Transit.",
+        "Watch the two Market Local trains share the signaled tracks. In Transit, open Rail Operations and compare their stops, headway and passengers.",
       ),
       view(
         "Rocket works",
@@ -206,6 +208,18 @@ export const EXAMPLE_WORLDS: readonly ExampleWorld[] = [
         40,
         "Open Fire & safety. Follow the engine from the staffed station to the incident. After containment, repair and reopen the shop.",
       ),
+    ],
+  },
+  {
+    id: "meridian-fair",
+    name: "Meridian Fair",
+    description: "Walk through eight wonders, meet the herds, tour the schools and ride a ferry to a floating neighborhood.",
+    camera: camera(5, 4, 155),
+    viewpoints: [
+      view("The eight-wonder promenade", -8, -8, 54, "Follow the garden walk from Stonehenge to Machu Picchu. Tap a monument to inspect its level and style."),
+      view("Four-herd valley", -8, 4, 37, "Watch the horses, dairy cows, beef cattle and hens in the four paddocks. Pinch to see their coats and movements."),
+      view("College Walk", 6, -8, 54, "Compare the little schoolhouse and preschool with the observatory and university quadrangle across the street."),
+      view("Tomorrow Quay", 13, 6, 70, "Watch a rocket and the paired teleportation depots. Follow the ferry from the quay to the ocean habitat."),
     ],
   },
 ];
@@ -457,15 +471,89 @@ function pelicanReach() {
   ]);
   return d.finish(85000, 9.2, 19);
 }
-export function createExampleWorld(id: ExampleWorldId): GameState {
-  switch (id) {
-    case "pelican-reach":
-      return pelicanReach();
-    case "copper-gorge":
-      return copperGorge();
-    case "switchyard-city":
-      return switchyardCity();
+export function createExampleWorld(id: ExampleWorldId, mode: ExampleMode = "god"): GameState {
+  const factories = { "pelican-reach": pelicanReach, "copper-gorge": copperGorge, "switchyard-city": switchyardCity, "meridian-fair": meridianFair };
+  const city = factories[id]();
+  if (mode !== city.mode) {
+    city.mode = mode;
+    recomputeConnectivityAndMetrics(city);
   }
+  return city;
+}
+
+function meridianFair() {
+  const d = new District("meridian-fair");
+  // A tidal inlet reaches the native eastern shore. Its northern bank carries utilities and a launch road.
+  d.works({ kind: "bay", depth: 5, radius: 3 }, [13, 8], [32, 8]);
+  d.works({ kind: "raise", height: 1.1, radius: 2 }, [-16, -15], [-9, -16], [-4, -15]);
+  d.works({ kind: "raise", height: 1.5, radius: 2 }, [-15, 12], [-9, 13], [-5, 12]);
+  d.path("pretty_roads", [-15, -8], [13, -8]);
+  d.path("roads", [-15, -1], [15, -1]);
+  d.path("pretty_roads", [-15, 5], [2, 5], [2, 3], [15, 3]);
+  d.path("roads", [-1, -8], [-1, 5]);
+  d.path("roads", [14, -1], [14, 3]);
+  d.path("roads", [-15, -8], [-18, -8], [-18, -1], [-15, -1]);
+  // Arrange the smaller monuments in front, keeping the towers and terraces visible over their roofs.
+  d.front("colosseum", -15, -8, -1, 4, 1);
+  d.front("angkor_wat", -12, -8, -1, 4, 0);
+  d.front("machu_picchu", -8, -8, -1, 5, 2);
+  d.front("chichen_itza", -4, -8, -1, 3, 1);
+  d.front("stonehenge", -14, -8, 1, 2, 2);
+  d.front("great_wall", -12, -8, 1, 5, 0);
+  d.front("parthenon", -8, -8, 1, 3, 3);
+  d.front("moai_statues", -4, -8, 1, 1, 0);
+  d.front("italian_gardens", -3, -8, 1, 2, 3);
+
+  d.front("country_schoolhouse", 0, -8, 1, 2, 0);
+  d.front("preschool", 2, -8, 1, 3, 1);
+  d.front("elementary_school", 5, -8, 1, 4, 2);
+  d.front("trade_school", 9, -8, 1, 3, 3);
+  d.front("high_school", 0, -8, -1, 3, 1);
+  d.front("community_college", 3, -8, -1, 3, 2);
+  d.front("university", 6, -8, -1, 5, 0);
+  d.front("research_university", 10, -8, -1, 4, 2);
+  d.front("middle_school", 12, -8, 1, 2, 1);
+
+  d.front("dairy_farm", -13, 5, -1, 4, 0);
+  d.front("cattle_ranch", -9, 5, -1, 4, 1);
+  d.front("poultry_farm", -12, 5, 1, 4, 3);
+  d.front("horse_ranch", -8, 5, 1, 4, 2);
+  d.front("farm_houses", -5, 5, -1, 2, 2);
+  d.front("fields", -3, 5, -1, 2, 1);
+  d.front("orchards", -5, 5, 1, 2, 0);
+
+  d.front("spaceport", 4, 3, -1, 4, 0);
+  d.front("teleportation_depot", 8, 3, -1, 3, 1);
+  d.front("teleportation_depot", 3, 3, 1, 2, 2);
+  d.front("hanging_garden_arcology", 7, 3, 1, 4, 1);
+  const pier = d.place("ferry_landings", 13, 4, 2);
+  const ring = d.place("ocean_habitat_ring", 16, 7, 4, 0, 2);
+
+  d.front("farm_houses", -15, -1, -1, 3, 0);
+  d.front("grocery_store", -12, -1, -1, 4, 2);
+  d.front("terraced_glasshouses", -9, -1, -1, 4, 0);
+  d.front("apartments", -5, -1, -1, 3, 1);
+  d.front("water_treatment_plant", 1, -1, -1, 5, 1);
+  d.front("geothermal_power_plants", 5, -1, -1, 4, 0);
+  d.front("trash_compacting_plants", 9, -1, -1, 4, 1);
+  d.front("city_offices", 12, -1, -1, 3, 0);
+  d.front("wells", -14, -1, 1, 5, 2);
+  d.front("fire_department", -11, -1, 1, 3, 0);
+  d.front("townhomes", -6, -1, 1, 3, 2);
+  d.front("police_precinct", -3, -1, 1, 2, 0);
+  d.front("banks", -18, -8, -1, 3, 1);
+  d.path("roads", [15, 3], [19, 3]);
+  d.front("desalination_plant", 16, 3, 1, 2, 2);
+  d.front("trash_burning_plants", -17, -1, 1, 3, 1);
+  d.plant("trees", 2, [[-15,-4], [-12,-4], [-6,-4], [-3,-5], [1,-5], [4,-5], [8,-5], [11,-5], [-14,8], [-4,10], [0,8], [2,10]]);
+  d.plant("shrubs", 2, [[-15,-7], [-5,-7], [-4,-6], [1,-7], [4,-7], [8,-7], [11,-7], [-15,6], [-7,8], [1,7], [8,7], [10,5]]);
+  d.plant("trees", 3, [[-20,-8], [-19,-11], [-17,-13], [-14,-14], [-10,-14], [-7,-15], [-2,-14], [1,-14], [5,-15], [9,-14], [14,-13], [16,-10], [16,-7], [17,-5]]);
+  d.plant("pine_trees", 3, [[-20,0], [-19,3], [-18,5], [-18,8], [-16,10], [-14,11], [-13,13], [-10,13], [-6,12], [-3,12], [1,11], [4,9], [7,9]]);
+  d.plant("orchards", 2, [[-14,9], [-12,10], [-9,10], [-7,10], [-3,8], [-2,10]]);
+  d.plant("plants", 2, [[-17,-12], [-11,-12], [-5,-13], [-1,-12], [4,-12], [10,-13], [15,-10], [16,-6], [-17,7], [-14,8], [-3,10], [1,9], [6,8], [10,5]]);
+  recomputeConnectivityAndMetrics(d.state);
+  addLine(d.state, "ferry", pier.id, [pier.id, ring.id]);
+  return d.finish(1_600_000, 10.5, 20);
 }
 function copperGorge() {
   const d = new District("copper-gorge", -63, -18),
@@ -658,10 +746,14 @@ function switchyardCity() {
   d.path("roads", [-12, -9], [4, -9], [4, -3]);
   d.path("roads", [-12, -9], [-12, -6]);
   d.works({ kind: "street", signal: "east", lanes: 4, period: 14 }, [-5, -2]);
+  // Signaled main and a separate return track between the market and the utility works.
   d.path("train_tracks", [-13, 4], [15, 4]);
+  d.path("train_tracks", [-2, 4], [-2, 6], [2, 6], [2, 4]);
+  for (const rail of s.elements.filter(e => e.defId === "train_tracks")) rail.level = 2;
   const train = d.front("train_depots", -13, 2, 1, 1, 0),
     stationA = d.front("train_stops", -6, 2, 1, 2, 2),
     stationB = d.front("train_stops", 6, 2, 1, 2, 1);
+  d.front("train_stops", 11, 2, 1, 2, 0);
   const bus = d.front("bus_depots", -12, -2, -1, 2, 1),
     stopA = d.front("bus_stops", -3, -2, -1, 1, 3),
     stopB = d.front("bus_stops", 9, -2, -1, 1, 0);
@@ -686,7 +778,7 @@ function switchyardCity() {
   d.path("roads", [-14, 2], [-14, 7], [14, 7], [14, 2]);
   d.front("water_treatment_plant", -7, 7, -1, 4, 2);
   d.front("water_towers", -4, 7, -1, 4);
-  d.front("freight_rail_terminal", 1, 7, -1, 3, 2);
+  d.front("freight_rail_terminal", 3, 7, -1, 3, 2);
   d.front("geothermal_power_plants", 6, 7, -1, 2, 1);
   d.front("trash_burning_plants", 9, 7, -1, 3, 2);
   d.front("data_centers", -10, -9, -1, 2, 1);
@@ -708,7 +800,11 @@ function switchyardCity() {
   d.works({ kind: "aqueduct", height: 1, style: 2 }, [-8, 6], [-6, 6]);
   d.works({ kind: "aqueduct", height: 1, style: 2 }, [-8, 6], [-10, 6]);
   recomputeConnectivityAndMetrics(s);
-  addLine(s, "rail", train.id, [stationA.id, stationB.id]);
+  installYardWork(s, train, "siding");
+  const marketLine = addLine(s, "rail", train.id, [stationA.id, stationB.id], {
+    ...defaultFormation(), name: "Market Local", pattern: "shuttle",
+  });
+  addTrainToLine(s, marketLine);
   addLine(s, "bus", bus.id, [stopA.id, stopB.id]);
   addLine(s, "taxi", taxi.id, [rankA.id, rankB.id]);
   // Wooded berms separate the freeway from housing. Pocket parks and a lit garden walk continue the station frontage.

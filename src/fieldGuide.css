@@ -76,3 +76,7 @@ h3 { font-size: clamp(27px,3vw,38px); }
 .join-toggle { border-radius:6px; border:1px solid #a4b89e; padding:6px 10px; background:#ebefdf; color:#234539; }
 .join-toggle[aria-pressed=true] { background:#1d493d; color:#fff; }
 .connection-entry .join-readout { color: #476444; font-weight: 600; font-size: 13px; }
+
+.operating-links { display: grid; gap: .5rem; margin-top: 1.2rem; }
+.operating-links h3 { margin: 0; }
+.operating-links a { color: #285c4c; text-decoration: underline; text-underline-offset: .16em; }

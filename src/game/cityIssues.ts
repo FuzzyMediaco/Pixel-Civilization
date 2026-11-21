@@ -71,5 +71,5 @@ export function alertIssues(state: GameState): CityIssue[] {
 
 /** Does this element help with a Build fix filter? */
 export function suppliesNeed(def: CivElementDef, need: FixNeed): boolean {
-  return ((def as unknown as Record<string, number | undefined>)[need] ?? 0) > 0;
+  return (def[need === "population" ? "popBase" : need] ?? 0) > 0;
 }

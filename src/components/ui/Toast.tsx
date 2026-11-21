@@ -1,5 +1,5 @@
 import React from "react";
-import { Undo2 } from "lucide-react";
+import { Undo2, X } from "lucide-react";
 
 export interface UiToast {
   id: string;
@@ -17,6 +17,9 @@ export function Toasts({items, onDismiss}: {items: UiToast[]; onDismiss: (id: st
       <span className="ui-toast-body"><b>{t.title}</b>{t.subtitle && <small>{t.subtitle}</small>}</span>
       {t.action && <button type="button" className="ui-btn is-small" onClick={() => {t.action!.run(); onDismiss(t.id);}}>
         {t.action.label === "Undo" && <Undo2 size={16} aria-hidden="true"/>}<span>{t.action.label}</span></button>}
+      <button type="button" className="ui-btn is-small ui-iconbtn" aria-label={"Dismiss " + t.title} onClick={() => onDismiss(t.id)}>
+        <X size={16} aria-hidden="true"/>
+      </button>
     </div>)}
   </div>;
 }

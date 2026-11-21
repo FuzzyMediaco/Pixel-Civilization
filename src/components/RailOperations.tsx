@@ -99,6 +99,10 @@ export function RailOperations({ state, selected, change, onClose, onTrack, onFo
   const stations = state.elements.filter((e) => isRailStation(e.defId)),
     depots = stations.filter((e) => e.defId === "train_depots");
   const name = (e?: PlacedElement) => (e ? stationName(state, e) : "—");
+  const freightSiteName = (id: string) => {
+    const e = net.byId.get(id);
+    return e ? ELEMENT_BY_ID[e.defId].name + " (" + e.gx + ", " + e.gz + ")" : "Site removed";
+  };
   const [tab, setTab] = useState<Tab>(() => {
     try {
       const t = sessionStorage.getItem("pixel-rail-tab2");
@@ -375,7 +379,12 @@ export function RailOperations({ state, selected, change, onClose, onTrack, onFo
           <span className="rail-headway">every ~{Math.max(1, Math.round(headway))}s</span>
           <button
             className="rail-ghost"
-            onClick={() => apply((s) => s.mobility!.lines.filter((l) => lineKey(l) === key).forEach((l) => (l.enabled = !l.enabled)), lead.enabled ? "Line paused." : "Line resumed.")}
+            onClick={() => {
+              const enabled = !lead.enabled;
+              apply((s) => {
+                for (const train of s.mobility!.lines.filter(l => lineKey(l) === key)) train.enabled = enabled;
+              }, enabled ? "Line resumed." : "Line paused.");
+            }}
           >
             {lead.enabled ? "Pause" : "Resume"}
           </button>
@@ -445,7 +454,7 @@ export function RailOperations({ state, selected, change, onClose, onTrack, onFo
               </header>
               {c && (
                 <p>
-                  {CARGO[c.type].name}: {name(net.byId.get(c.source))} → {name(net.byId.get(c.sink))} · {freightAvailable(state, c.source, c.type)} waiting · output ×
+                  {CARGO[c.type].name}: {freightSiteName(c.source)} → {freightSiteName(c.sink)} · {freightAvailable(state, c.source, c.type)} waiting · output ×
                   {Math.max(railFreightBonus(state, c.source, c.type), railFreightBonus(state, c.sink, c.type)).toFixed(2)}
                 </p>
               )}

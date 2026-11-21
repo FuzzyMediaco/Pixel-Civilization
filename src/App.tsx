@@ -10,7 +10,7 @@ import { CityEconomyPanel } from "./components/CityEconomyPanel";
 import { applyInfrastructureStroke, applyLandformPlacement, planInfrastructureStroke, type GridPoint, type InfrastructureTool } from "./game/terrain";
 import { visitPracticeRailway } from "./game/practiceRailway";
 import { ExampleIslands, WorldGuide } from "./components/ExampleIslands";
-import { EXAMPLE_WORLDS, createExampleWorld, type ExampleWorldId } from "./game/exampleWorlds";
+import { EXAMPLE_WORLDS, createExampleWorld, type ExampleMode, type ExampleWorldId } from "./game/exampleWorlds";
 import { loadModeState, persistMode, resumeIsland } from "./game/activeIsland";
 import { createCanalDistrict } from "./game/canalDistrict";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -109,8 +109,11 @@ export const App: React.FC = () => {
     if (!gameState.exampleWorldId && !route.has("world")) return;
     if (gameState.exampleWorldId) route.set("world", gameState.exampleWorldId);
     else route.delete("world");
+    if (gameState.exampleWorldId && gameState.mode === "real") route.set("mode", "real");
+    else route.delete("mode");
+    route.delete("view"); // A tour link sets the initial camera once. Refresh resumes the player's view.
     history.replaceState(null, "", "#" + route.toString());
-  }, [gameState.exampleWorldId]);
+  }, [gameState.exampleWorldId, gameState.mode]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedIdsRef = useRef<string[]>(selectedIds);
@@ -151,6 +154,7 @@ export const App: React.FC = () => {
   const [cameraMode, setCameraMode] = useState<CameraMode>("pan");
   const [autoSpin, setAutoSpin] = useState(false);
   const restoreIslandView = useCallback((state: GameState) => {
+    setUiToasts([]);
     const world = rendererRef.current;
     if (!world) return;
     const restored = world.restoreCameraView(state.cameraView);
@@ -180,12 +184,11 @@ export const App: React.FC = () => {
   /** Toasts made by the interface (placement, demolish, upgrade), each optionally actionable. */
   const toastTimers=useRef(new Map<string,number>());
   const showToast=useCallback((t:UiToast,ms=4500)=>{
-    setUiToasts(list=>[t,...list.filter(x=>x.id!==t.id)].slice(0,3));
+    setUiToasts(list=>[t,...list.filter(x=>x.id!==t.id && !(t.action && x.action))].slice(0,3));
     const timers=toastTimers.current;
     window.clearTimeout(timers.get(t.id));
     timers.set(t.id,window.setTimeout(()=>{setUiToasts(list=>list.filter(x=>x.id!==t.id));timers.delete(t.id);},ms));
   },[]);
-  const dismissToast=useCallback((id:string)=>setUiToasts(list=>list.filter(x=>x.id!==id)),[]);
   const undoRef=useRef<()=>void>(()=>{});
 
   /** Open a home (or close it if it is already open). Every sheet replaces whatever was open. */
@@ -218,6 +221,13 @@ export const App: React.FC = () => {
     saveActiveMode(next);
   }, [saveActiveMode]);
 
+  const dismissToast=useCallback((id:string)=>{
+    setUiToasts(list=>list.filter(t=>t.id!==id));
+    if (stateRef.current.toasts.some(t=>t.id===id)) {
+      commitState(draft=>{draft.toasts=draft.toasts.filter(t=>t.id!==id);});
+    }
+  },[commitState]);
+
   const setSimSpeed=(v:number)=>commitState(d=>{d.playSpeed=v;simSpeedRef.current=v;});
 
   const commitBuildingEdit = useCallback((label:string, mutate:(draft:GameState)=>void) => {
@@ -229,6 +239,7 @@ export const App: React.FC = () => {
   },[commitState]);
 
   const handleUndoBuilding = () => {
+    setUiToasts(list=>list.filter(toast=>!toast.action));
     commitState(draft=>{
       const result=undoBuildingEdit(draft);
       if(result.ok) {
@@ -447,8 +458,9 @@ export const App: React.FC = () => {
         el.rotation = nextRot;
       }
       recomputeConnectivityAndMetrics(draft);
+      showToast({id:"rotated",title:"Rotated "+ELEMENT_BY_ID[el.defId].name,action:{label:"Undo",run:()=>undoRef.current()}});
     });
-  },[commitBuildingEdit]);
+  },[commitBuildingEdit,showToast]);
 
   // Keyboard: B/L/C/T/M homes, R rotate, Del demolish (confirmed), Ctrl+Z undo, Esc steps back one level.
   useEffect(() => {
@@ -557,7 +569,8 @@ export const App: React.FC = () => {
   const handleMaintainAll = () => {
     commitState((draft) => {
       const fixed = maintainAllElements(draft);
-      if (fixed > 0) showToast({id:"maint",title:`Maintained ${fixed} building${fixed > 1 ? "s" : ""}`,subtitle:"Timers reset and fires put out."});
+      if (fixed === 0) showToast({id:"maint",title:"No buildings repaired",subtitle:"Repairs need available funds. Burning buildings need a fire crew."});
+      else showToast({id:"maint",title:`Maintained ${fixed} building${fixed > 1 ? "s" : ""}`,subtitle:"Service timers reset."});
     });
   };
 
@@ -577,6 +590,8 @@ export const App: React.FC = () => {
         }
       }
       if (patch.variant !== undefined) el.variant = patch.variant;
+      showToast({id:"changed",title:patch.level !== undefined ? ELEMENT_BY_ID[el.defId].name+" is now Lv "+el.level : "Changed style",
+        action:{label:"Undo",run:()=>undoRef.current()}});
       el.animProgress = 0.75;
       el.animKind = "upgrade";
       recomputeConnectivityAndMetrics(draft);
@@ -598,7 +613,7 @@ export const App: React.FC = () => {
   const handleResetCurrentIsland = () => {
     resetTools();
     const previous = stateRef.current;
-    const fresh = previous.exampleWorldId ? createExampleWorld(previous.exampleWorldId) : createInitialGameState(previous.mode);
+    const fresh = previous.exampleWorldId ? createExampleWorld(previous.exampleWorldId, previous.mode === "real" ? "real" : "god") : createInitialGameState(previous.mode);
     fresh.exampleReturnMode = previous.exampleReturnMode;
     restoreIslandView(fresh);
     stateRef.current = fresh;
@@ -748,7 +763,11 @@ export const App: React.FC = () => {
 
   const selected=gameState.elements.find(e=>e.id===selectedIds[0]);
   const selectedDef=selected?ELEMENT_BY_ID[selected.defId]:undefined;
-  const editCity=(fn:(draft:GameState)=>void)=>commitState(draft=>{fn(draft);recomputeConnectivityAndMetrics(draft);});
+  const editCity=(fn:(draft:GameState)=>void,buildingEdit?:string)=>{
+    const update=(draft:GameState)=>{fn(draft);recomputeConnectivityAndMetrics(draft);};
+    if(buildingEdit)commitBuildingEdit(buildingEdit,update);
+    else commitState(update);
+  };
   const focusSite=(id:string)=>{setSelectedIds([id]);rendererRef.current?.focusElement(id);};
   const snapshot=(s:GameState)=>{
     try{localStorage.setItem("pixel_civ_lab_snapshot",JSON.stringify({...s,toasts:[]}));setHasSnapshot(true);return true;}
@@ -761,10 +780,10 @@ export const App: React.FC = () => {
   };
   const activeExample = EXAMPLE_WORLDS.find(world => world.id === gameState.exampleWorldId);
   const openExamples = () => { setSheetState(null); setExamplesOpen(true); };
-  const visitExample = (id: ExampleWorldId) => {
+  const visitExample = (id: ExampleWorldId, mode: ExampleMode) => {
     const previous = stateRef.current;
     if (!saveActiveMode(previous)) return;
-    const next = previous.exampleWorldId === id ? previous : loadModeState("god", id);
+    const next = previous.exampleWorldId === id && previous.mode === mode ? previous : loadModeState(mode, id);
     next.exampleReturnMode = previous.exampleReturnMode ?? previous.mode;
     if (!saveModeState(next)) return;
     stateRef.current = next;
@@ -795,7 +814,11 @@ export const App: React.FC = () => {
   const copyIsland=()=>{
     const current=stateRef.current;if(!saveActiveMode(current))return;
     if(!snapshot(loadModeState("god")))return;
-    activateSandbox(cloneGameStateSnapshot(current));
+    const sandbox = cloneGameStateSnapshot(current);
+    delete sandbox.exampleWorldId;
+    delete sandbox.exampleReturnMode;
+    delete sandbox.exampleViewpoint;
+    activateSandbox(sandbox);
   };
   const worksPreview=pendingWorks?planInfrastructureStroke(gameState,pendingWorks.tool,pendingWorks.points):null;
   const passagePreview=useMemo(()=>pendingWorks?previewWaterPassage(stateRef.current,pendingWorks.tool,pendingWorks.points):[],[pendingWorks,gameState.infrastructure?.stamp,gameState.elements.length]);
@@ -899,7 +922,7 @@ export const App: React.FC = () => {
         onPickDestination={id=>{setDispatchTarget(id);setSheetState(null);}} onFollow={id=>rendererRef.current?.followService(id)} following={followedService}
         focusLine={returnLine} onGrid={(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openWorks();}}
         onRailOps={id=>setRailSite(id)}/>}
-      {sheet==="more"&&<MoreSheet {...sheetProps} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
+      {sheet==="more"&&<MoreSheet {...sheetProps} onUndo={handleUndoBuilding} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
         onSaves={()=>setSavesModalOpen(true)} onExamples={openExamples} onChangeMode={m=>{if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={copyIsland}
         onReset={()=>setConfirmResetOpen(true)} cursorBehavior={cursorBehavior} onCursorBehavior={handleChangeCursorBehavior}
         selectionFilter={selectionFilter} onSelectionFilter={setSelectionFilter}
@@ -923,7 +946,7 @@ export const App: React.FC = () => {
       {railSite && gameState.elements.some(e=>e.id===railSite) && <RailOperations state={gameState} selected={gameState.elements.find(e=>e.id===railSite)!} change={editCity}
         onClose={()=>setRailSite(undefined)} onFocus={e=>{setRailSite(undefined);setSheetState(null);focusSite(e.id);}}
         onTrack={e=>{setRailSite(undefined);rendererRef.current?.focusElement(e.id);handleSelectBrushDef("train_tracks");}}/>}
-      {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
+      {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} currentMode={gameState.mode === "real" ? "real" : "god"} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
         error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
       <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState}
         onClose={() => setSavesModalOpen(false)} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}

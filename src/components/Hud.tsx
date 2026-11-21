@@ -15,7 +15,7 @@ const NEED_NAMES: Record<LimitingNeed, string> = {housing: "homes", jobs: "jobs"
 /** Population cap from the simulation, when it reports one. */
 export function growthLimit(s: GameState) {
   const lim = s.metrics?.populationLimiter;
-  if (!lim || !lim.cap) return undefined;
+  if (!lim || (lim.cap === 0 && s.population === 0)) return undefined;
   return {cap: lim.cap, need: NEED_NAMES[lim.limitingNeed] ?? lim.limitingNeed, atCap: s.population >= 0.97 * lim.cap};
 }
 

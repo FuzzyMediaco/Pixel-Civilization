@@ -21,6 +21,8 @@ export interface CritterModel {
   parts: CritterPart[];
   /** all parts at rest, for static previews */
   whole: THREE.BufferGeometry;
+  /** Same resting shape in half-size voxels for the illustrated catalog. */
+  restVoxels: PixelVox;
 }
 
 /** A pen in element-local metres (same frame as smokePoints). */
@@ -281,6 +283,7 @@ export function critterModel(kind: CritterKind, coat: number): CritterModel {
       };
     }),
     whole: buildVoxelGeometry(whole, CRITTER_UNIT),
+    restVoxels: whole,
   };
   modelCache.set(key, model);
   return model;
@@ -304,6 +307,24 @@ export function buildCritterPens(pens: readonly CritterSpec[], unit: number, gro
   }));
 }
 
+/** Stable pen positions shared by the 3D preview and printed design sheets. */
+export function* restingCritters(pen: BuiltCritterPen, penIndex: number) {
+  const [x0, z0, x1, z1] = pen.area;
+  const margin = 0.3 * pen.scale;
+  for (let i = 0; i < pen.count; i++) {
+    const hx = critterHash(penIndex * 13 + i, 1.7);
+    const hz = critterHash(penIndex * 7 + i, 4.3);
+    const u = (i * 0.618034 + hx * 0.35) % 1;
+    const w = ((i + 0.5) / pen.count + hz * 0.25) % 1;
+    yield {
+      x: x0 + margin + u * Math.max(0, x1 - x0 - 2 * margin),
+      z: z0 + margin + w * Math.max(0, z1 - z0 - 2 * margin),
+      y: pen.y + (CRITTER_TUNING[pen.kind].fly ? (0.5 + hz) * pen.scale : 0),
+      heading: critterHash(i, penIndex + 9) * Math.PI * 2,
+    };
+  }
+}
+
 /** Rest poses for previews (gallery, ghost, field guide): animals spread over their pen, facing various ways. */
 export function buildCritterPreview(pens: readonly BuiltCritterPen[], material: THREE.Material = getPixelVoxelMaterial()): THREE.Group | undefined {
   if (!pens.length) return undefined;
@@ -316,23 +337,12 @@ export function buildCritterPreview(pens: readonly BuiltCritterPen[], material: 
   pens.forEach((pen, pi) => {
     if (!pen.count) return;
     const mesh = new THREE.InstancedMesh(critterModel(pen.kind, pen.coat).whole, material, pen.count);
-    const [x0, z0, x1, z1] = pen.area,
-      margin = 0.3 * pen.scale,
-      fly = CRITTER_TUNING[pen.kind].fly;
-    for (let i = 0; i < pen.count; i++) {
-      const hx = critterHash(pi * 13 + i, 1.7),
-        hz = critterHash(pi * 7 + i, 4.3);
-      // stratified spread: walk a golden-ratio sequence so herds don't clump
-      const u = (i * 0.618034 + hx * 0.35) % 1,
-        w = ((i + 0.5) / pen.count + hz * 0.25) % 1;
-      p.set(
-        x0 + margin + u * Math.max(0, x1 - x0 - 2 * margin),
-        pen.y + (fly ? (0.5 + hz) * pen.scale : 0),
-        z0 + margin + w * Math.max(0, z1 - z0 - 2 * margin),
-      );
-      q.setFromAxisAngle(up, critterHash(i, pi + 9) * Math.PI * 2);
+    let i = 0;
+    for (const pose of restingCritters(pen, pi)) {
+      p.set(pose.x, pose.y, pose.z);
+      q.setFromAxisAngle(up, pose.heading);
       s.setScalar(pen.scale);
-      mesh.setMatrixAt(i, m.compose(p, q, s));
+      mesh.setMatrixAt(i++, m.compose(p, q, s));
     }
     mesh.castShadow = true;
     mesh.userData.isCritterPreview = true;

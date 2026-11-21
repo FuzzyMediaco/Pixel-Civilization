@@ -4,7 +4,9 @@ import { EXAMPLE_WORLDS, createExampleWorld, type ExampleWorldId } from "./examp
 const SAVE_PREFIX = "pixel_civ_save_v1_";
 
 const exampleById = (value: string) => EXAMPLE_WORLDS.find(w => w.id === value)?.id;
-const saveName = (mode: GameMode, exampleId?: ExampleWorldId) => mode === "god" && exampleId ? "example-" + exampleId : mode;
+const saveName = (mode: GameMode, exampleId?: ExampleWorldId) => exampleId
+  ? "example-" + (mode === "real" ? "real-" : "") + exampleId
+  : mode;
 
 export function loadModeState(mode: GameMode, exampleId?: ExampleWorldId): GameState {
   try {
@@ -41,15 +43,23 @@ export function loadModeState(mode: GameMode, exampleId?: ExampleWorldId): GameS
   } catch {
     // Ignore storage read issues
   }
-  return exampleId ? createExampleWorld(exampleId) : createInitialGameState(mode);
+  return exampleId ? createExampleWorld(exampleId, mode === "real" ? "real" : "god") : createInitialGameState(mode);
 }
 
 export function resumeIsland(hash = ""): GameState {
   let last = "god";
   try { last = localStorage.getItem("pixel_civ_last_mode") ?? last; } catch { /* A private session can still play. */ }
-  const requested = exampleById(new URLSearchParams(hash.replace(/^#/, "")).get("world") ?? "");
+  const route = new URLSearchParams(hash.replace(/^#/, ""));
+  const requested = exampleById(route.get("world") ?? "");
   if (requested) {
-    const city = loadModeState("god", requested);
+    const city = loadModeState(route.get("mode") === "real" ? "real" : "god", requested);
+    const view = route.get("view");
+    const index = Number(view);
+    const example = EXAMPLE_WORLDS.find(w => w.id === requested);
+    if (view !== null && /^\d+$/.test(view) && example?.viewpoints[index]) {
+      city.exampleViewpoint = index;
+      delete city.cameraView;
+    }
     let origin = last;
     if (last.startsWith("example-")) {
       try { origin = localStorage.getItem("pixel_civ_example_origin") ?? "god"; } catch { origin = "god"; }
@@ -58,6 +68,10 @@ export function resumeIsland(hash = ""): GameState {
     return city;
   }
   if (last === "real" || last === "survival") return loadModeState(last);
+  if (last.startsWith("example-real-")) {
+    const id = exampleById(last.slice("example-real-".length));
+    if (id) return loadModeState("real", id);
+  }
   return loadModeState("god", last.startsWith("example-") ? exampleById(last.slice(8)) : undefined);
 }
 
