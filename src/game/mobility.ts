@@ -739,6 +739,8 @@ function stepRailLine(s: GameState, m: MobilityState, l: Run, dt: number, net: T
         path.splice(0, (hx - ax) * (bx - ax) + (hz - az) * (bz - az) > 0 ? 1 : 0, [hx, hz]);
     }
     l.path = prepareRailLeg(l, path, net, freeEnds.length ? freeEnds : allEnds, avoid);
+    // A train leaving the depot stays inside the shed (off the running line) until its leg is clear.
+    if (parked) r.trail = [];
     l.progress = 0;
     l.blocked = false;
     l.blocker = undefined;

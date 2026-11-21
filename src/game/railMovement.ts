@@ -391,7 +391,7 @@ export function claimRailLeg(s: GameState, l: Run, net: TravelNetwork): boolean 
   }
   r.waitingSince ??= s.activePlaySec;
   r.blockedBy = blocker.id;
-  if (!r.reservation) r.reservation = body;
+  r.reservation = onTrack(l) ? bodyTiles(r, l.position) : undefined;
   return false;
 }
 /**
@@ -445,8 +445,7 @@ export function starvingBehind(s: GameState, l: Run) {
       o.enabled &&
       o.rail?.blockedBy === l.id &&
       o.rail.waitingSince !== undefined &&
-      s.activePlaySec - o.rail.waitingSince > 25 &&
-      !(l.rail?.priority === "express" && o.rail.priority !== "express"),
+      s.activePlaySec - o.rail.waitingSince > (l.rail?.priority === "express" && o.rail.priority !== "express" ? 45 : 25),
   );
 }
 
