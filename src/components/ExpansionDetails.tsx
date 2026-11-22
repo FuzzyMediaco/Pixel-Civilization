@@ -4,6 +4,7 @@ import { economyOf, pondCisternCapacity } from "../game/cityEconomy";
 import { complexBoost, districtReport, isFarmPiece, SCHOOL_SPECIALTIES } from "../game/farmNetworks";
 import { FARM_MODULE_IDS } from "../game/expansionCatalog";
 import type { GameState, PlacedElement } from "../game/simulation";
+
 export function ExpansionDetails({ s, el }: { s: GameState; el: PlacedElement }) {
   const farm = isFarmPiece(el.defId),
     specialty = SCHOOL_SPECIALTIES[el.defId],
@@ -28,17 +29,17 @@ export function ExpansionDetails({ s, el }: { s: GameState; el: PlacedElement })
   ] as const;
   const next = [5, 10, 25, 50].find((n) => n > (complex?.modules.length ?? 0));
   return (
-    <details className="expansion-inspector" open>
-      <summary>
+    <div className="ui-panel-card">
+      <div className="ui-card-head">
         <strong>{farm ? "Farm complex" : "Campus details"}</strong>
-      </summary>
-      {art && (
-        <p>
-          {art.levels[Math.min(4, el.level - 1)]} · {art.styles[el.variant % 4]}
-        </p>
-      )}
+        {art && (
+          <span className="ui-card-sub">
+            {art.levels[Math.min(4, el.level - 1)]} · {art.styles[el.variant % 4]}
+          </span>
+        )}
+      </div>
       {school && (
-        <p>
+        <p className="ui-card-copy">
           {specialty ??
             (el.defId === "sports_field"
               ? "Athletics grounds provide recreation. Join a high school along a shared edge to form an Athletic Campus."
@@ -46,36 +47,36 @@ export function ExpansionDetails({ s, el }: { s: GameState; el: PlacedElement })
         </p>
       )}
       {school && account && (
-        <p>
-          {Math.round(account.attendees)} attending · {Math.round(account.workers)} staff
+        <p className="ui-card-meta">
+          {Math.round(account.attendees).toLocaleString()} attending · {Math.round(account.workers).toLocaleString()} staff
         </p>
       )}
       {farm && complex && (
         <>
-          <p>
+          <p className="ui-card-copy">
             {complex.live
               ? `${complex.anchors.length} anchor${complex.anchors.length === 1 ? "" : "s"} · ${complex.modules.length} connected modules`
               : "Give an anchor a local street entrance and join parcels along open edges."}
           </p>
           {complex.live && (
-            <p>
+            <p className="ui-card-copy">
               {FARM_MODULE_IDS.has(el.defId) && owner
-                ? `Served by ${ELEMENT_BY_ID[owner.defId].name} at ${owner.gx}, ${owner.gz}.`
+                ? `Served by ${ELEMENT_BY_ID[owner.defId].name} at (${owner.gx}, ${owner.gz}).`
                 : `${parcelCount} assigned modules · +${Math.round((complexBoost(parcelCount) - 1) * 100)}% anchor yield.`}{" "}
               Local harvest {Number(account?.yieldRate ?? 0).toFixed(2)} meals/s.
             </p>
           )}
           {el.defId === "irrigation_pond" && (
-            <p>
+            <p className="ui-card-meta">
               Stored irrigation water {Number(account?.cistern ?? 0).toFixed(1)} / {Math.round(pondCisternCapacity(el.level))} · supplying{" "}
               {Number(account?.irrigationOut ?? 0).toFixed(2)}/s
             </p>
           )}
           {el.defId === "feed_silo" && complex.live && (
-            <p>Covered storage reduces spoilage across this farm by one third.</p>
+            <p className="ui-card-copy">Covered storage reduces spoilage across this farm by one third.</p>
           )}
           {complex.live && (
-            <p>
+            <p className="ui-card-meta">
               Activity tier {complex.tier}/4
               {next ? ` · Next activity at ${next} modules.` : " · Full harvest crew on duty."}
             </p>
@@ -83,15 +84,16 @@ export function ExpansionDetails({ s, el }: { s: GameState; el: PlacedElement })
         </>
       )}
       {neighbors.length > 0 && (
-        <p>
+        <div className="ui-panel-bonus">
           <strong>{neighbors.join(" · ")}</strong>
-          <br />
-          {changes
-            .filter(([map]) => map.has(el.id))
-            .map(([map, name]) => "+" + Math.round(((map.get(el.id) ?? 1) - 1) * 100) + "% " + name)
-            .join(" · ")}
-        </p>
+          <span>
+            {changes
+              .filter(([map]) => map.has(el.id))
+              .map(([map, name]) => "+" + Math.round(((map.get(el.id) ?? 1) - 1) * 100) + "% " + name)
+              .join(" · ")}
+          </span>
+        </div>
       )}
-    </details>
+    </div>
   );
 }

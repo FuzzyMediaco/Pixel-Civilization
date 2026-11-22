@@ -85,13 +85,13 @@ function faces(map) {
   xs.sort((a, b) => a[2] - b[2]);
   return { xs, minU, minV, maxU, maxV, count: map.size };
 }
-function raster(m, common, CELL = 192, centered = false, HEIGHT = CELL) {
+function raster(m, common, CELL = 192, centered = false, HEIGHT = CELL, transparentBg = false) {
   const canvas = createCanvas(CELL, HEIGHT);
   const ctx = canvas.getContext("2d");
   const im = ctx.createImageData(CELL, HEIGHT);
   const buf = new Uint32Array(im.data.buffer);
   // Packed native RGBA on little-endian platforms.
-  const bg = 0xffe3edeb;
+  const bg = transparentBg ? 0x00000000 : 0xffe3edeb;
   buf.fill(bg);
   const scale = Math.min((CELL - 10) / (m.maxU - m.minU), (HEIGHT - 12) / (m.maxV - m.minV), common);
   const ox = CELL / 2 - ((m.maxU + m.minU) * scale) / 2,
@@ -265,7 +265,7 @@ function sheets() {
       }[row.id] ?? 0;
     fs.writeFileSync(
       path.join(thumb, row.id + ".webp"),
-      raster(modelRows[thumbIndex].at(-1), Infinity, 256, true).encodeSync("webp", 89),
+      raster(modelRows[thumbIndex].at(-1), Infinity, 256, true, 256, true).encodeSync("webp", 89),
     );
   }
 }

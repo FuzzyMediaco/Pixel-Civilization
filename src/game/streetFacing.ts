@@ -50,7 +50,7 @@ export function planFirstStreetFacing(
     for (let turn = 0; turn < (established?1:4); turn++) {
       if (turn % 2 && site.spanX !== site.spanZ) continue;
       candidate.rotation = (site.rotation + turn) % 4;
-      if (roadSiteAccess(road, neighbors, state).some((gate) => gate.site.id === site.id)) {
+      if (roadSiteAccess(road, neighbors, state).some((gate) => gate.site.id === site.id && gate.side === "front")) {
         result.push({ site, rotation: candidate.rotation });
         break;
       }

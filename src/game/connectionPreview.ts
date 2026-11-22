@@ -70,6 +70,11 @@ meets("orchard_block","apiary");
 meets("vineyard rice_farm","irrigation_pond");
 meets("greenhouse_farm vertical_farm","greenhouse_bay");
 meets("vegetable_fields grain_fields grazing_pasture livestock_pen chicken_coop feed_silo irrigation_pond greenhouse_bay","farm_houses");
+meets("police_heli_pad medevac_heli_pad fire_heli_base emergency_dispatch k9_police_unit forensic_crime_lab hazmat_response fire_academy traffic_precinct riot_command_center search_rescue_hq civil_defense_bunker","city_offices");
+meets("army_garrison army_signal_corps army_logistics_depot army_airborne_school army_engineer_base army_medical_corps strategic_bomber_wing stealth_bomber_hangar fighter_wing_base airlift_cargo_base awacs_radar_base drone_recon_base marine_corps_base marine_aviation_wing","city_offices");
+meets("coast_rescue_station harbor_patrol_pier naval_shipyard_base naval_coast_guard_base naval_destroyer_dock naval_carrier_berth naval_amphibious_dock marine_amphib_base seafood_pier","boats");
+meets("naval_patrol_cutter naval_frigate_ship naval_minesweeper naval_hospital_ship","docks");
+meets("artisan_bakery coffee_roastery retro_diner hardware_store indie_bookstore flower_shop neighborhood_pharmacy cinema_theater bowling_alley retro_arcade auto_dealership furniture_showroom boutique_hotel art_gallery jazz_club coworking_loft tech_startup_hub department_store night_market","shops");
 function model(id:string,level:number,rotation:number): PlacedElement {
   const [w,h]=getStandardFootprintForLevel(ELEMENT_BY_ID[id],level);
   return {id:id+"-guide",defId:id,gx:0,gz:0,rotation,level,spanX:rotation%2?h:w,spanZ:rotation%2?w:h,
@@ -108,8 +113,9 @@ export function getNeighborPreview(id:string,level:number): NeighborPreview[] {
       b.gz=horizontal?(side===2?a.spanZ:-b.spanZ):offset;
       const pair=[a,b], occ=buildOccupancyMap(pair), edges=getParcelEdges(a,occ);
       if(!edges.length) continue;
-      const score = Math.max(...edges.map(edge => ["garden","party","platform","bus","dock","cloister","skywalk"].includes(edge.kind) ? 5 :
-        edge.kind === "walk" || edge.kind === "yard" ? 1 : 3));
+      const prefSlot = id === "medium_sized_homes" || id === "large_homes" ? Math.min(1, a.spanX - 1) : 0;
+      const score = Math.max(...edges.map(edge => (["garden","party","platform","bus","dock","cloister","skywalk"].includes(edge.kind) ? 5 :
+        edge.kind === "walk" || edge.kind === "yard" ? 1 : 3) + (edge.side === "front" ? 0.5 : 0) + (edge.side === "front" && edge.slot === prefSlot ? 0.25 : 0)));
       if(score>bestScore) {best=pair.map(e=>({...e}));bestScore=score;}
     }
   }

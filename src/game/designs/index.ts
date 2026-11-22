@@ -19,3 +19,5 @@ import "./campuses";
 import "./farmsteads";
 import "./historical";
 import "./projectsFuture";
+import "./safetyMilitaryExpansion";
+import "./commerceExpansion";

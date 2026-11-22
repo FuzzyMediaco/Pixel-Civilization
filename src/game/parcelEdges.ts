@@ -50,14 +50,14 @@ const fresh = ids("rivers wide_rivers canals aqueduct municipal_reservoir");
 const basins = ids("rivers wide_rivers canals water_tile lakes ponds swamps municipal_reservoir");
 const shore = ids("beaches beach_houses beach_umbrellas sand boardwalks");
 const publicWalks = ids("paths walking_paths side_walks pretty_roads trails boardwalks");
-const ports = ids("docks naval_base submarine_base shipyards ship_building_areas ferry_landings ferry_exchange canal_boat_lift maritime_college ocean_habitat_ring");
-const vessels = ids("boats sail_boats speed_boats naval_vessels submarines aircraft_carriers");
+const ports = ids("docks naval_base submarine_base shipyards ship_building_areas ferry_landings ferry_exchange canal_boat_lift maritime_college ocean_habitat_ring coast_rescue_station harbor_patrol_pier naval_shipyard_base naval_coast_guard_base naval_destroyer_dock naval_carrier_berth naval_amphibious_dock marine_amphib_base seafood_pier");
+const vessels = ids("boats sail_boats speed_boats naval_vessels submarines aircraft_carriers naval_patrol_cutter naval_frigate_ship naval_minesweeper naval_hospital_ship");
 const fuelIndustry = ids("factories trash_burning_plants trash_compacting_plants landfill coal_powerplants natural_gas_power_plants");
 const industrial = ids("factories landfill trash_compacting_plants coal_powerplants natural_gas_power_plants trash_burning_plants blacksmiths data_centers open_pit_mine materials_foundry freight_rail_terminal nuclear_power_plants geothermal_power_plants micro_reactor_nuclear");
 const wetUtil = ids("water_treatment_plant water_pumping_station hydro_electric_power_plants municipal_reservoir aqueduct water_reuse_works pumped_storage_station");
 const supply = ids("water_treatment_plant water_pumping_station municipal_reservoir aqueduct wells water_towers desalination_plant rainwater_cathedral water_reuse_works");
 const civic = ids("city_offices government_buildings courthouses post_offices community_centers tax_collecting_office");
-const agencies = ids("police_precinct police_departments jails prisons military_base swat_team_hq airforce_base fire_department");
+const agencies = ids("police_precinct police_departments jails prisons military_base swat_team_hq airforce_base fire_department police_heli_pad medevac_heli_pad fire_heli_base emergency_dispatch k9_police_unit forensic_crime_lab hazmat_response fire_academy traffic_precinct riot_command_center search_rescue_hq civil_defense_bunker army_garrison army_signal_corps army_logistics_depot army_airborne_school army_engineer_base army_medical_corps strategic_bomber_wing stealth_bomber_hangar fighter_wing_base airlift_cargo_base awacs_radar_base drone_recon_base marine_corps_base marine_aviation_wing");
 const flora = ids("trees plants shrubs bushes pine_trees redwood_trees swamps ponds lakes hills mountains canyons deserts tubbleweeds alligators");
 const hardRoad = ids("highways freeways over_passes underpasses suspension_bridges stone_bridges bridges");
 const localRoad = (d: CivElementDef) => d.isRoadNetwork && !hardRoad.has(d.id) && !["paths","walking_paths","trails","side_walks","boardwalks"].includes(d.id);
@@ -138,11 +138,12 @@ function joint(a: CivElementDef, b: CivElementDef, sa: LocalSide, sb: LocalSide,
     const d = a === network ? b : a, side = a === network ? sb : sa;
     if (network.isRailNetwork && (d.id === "train_stops" || d.id === "train_depots")) return side === "back" || explicit ? "platform" : undefined;
     if (network.isRailNetwork && (industrial.has(d.id) || d.id === "post_offices" || ports.has(d.id))) return side !== "front" || explicit ? "freight" : undefined;
-    if ((d.id === "bus_stops" || d.id === "taxi_ranks") && localRoad(network)) return side === "front" || explicit ? "bus" : undefined;
-    if (localRoad(network) && (side === "front" || explicit) && !d.passiveNature) return "drive";
+    if ((d.id === "bus_stops" || d.id === "taxi_ranks") && localRoad(network)) return "bus";
+    if (localRoad(network) && side === "back" && (industrial.has(d.id) || ports.has(d.id) || d.id === "post_offices" || d.id === "grocery_store")) return "freight";
+    if (localRoad(network) && !d.passiveNature) return "drive";
     if (localRoad(network) && greens.has(d.id)) return "walk";
-    if (localRoad(network) && side==="back" && (industrial.has(d.id) || ports.has(d.id) || d.id==="post_offices" || d.id==="grocery_store")) return "freight";
-    if (publicWalks.has(network.id) && !vessels.has(d.id) && (side === "front" || greens.has(d.id) || d.passiveNature || explicit)) return "walk";
+    if (publicWalks.has(network.id) && !vessels.has(d.id)) return "walk";
+    if (network.isRoadNetwork && !vessels.has(d.id) && !d.passiveNature) return "drive";
   }
   if (frontage(a) && frontage(b)) return "arcade";
   if ((publicFaith.has(x) && supply.has(y)) || (publicFaith.has(y) && supply.has(x))) return "service";
@@ -156,8 +157,10 @@ function acceptsDriveSlot(e: ParcelPose, side: LocalSide, slot: number): boolean
   const alongLocalX=side==="front" || side==="back";
   const width=(e.rotation%2===0)===alongLocalX ? e.spanX : e.spanZ;
   if (width < 2) return true;
-  if (e.defId === "medium_sized_homes" || e.defId === "large_homes") return slot === Math.min(1,width-1);
-  if (e.defId === "mansions") return slot === 0;
+  if (side === "front") {
+    if (e.defId === "medium_sized_homes" || e.defId === "large_homes") return slot === Math.min(1,width-1);
+    if (e.defId === "mansions") return slot === 0;
+  }
   return true;
 }
 
@@ -197,8 +200,18 @@ export function getParcelEdges(el: ParcelPose, occupancy: ReadonlyMap<string, Pl
       const otherSlot=slotAt(n,(world+2)%4,gx+dx,gz+dz);
       const automatic=Boolean(localRoad(def)&&n.autoDrive?.side===otherSide&&n.autoDrive.slot===otherSlot || localRoad(other)&&el.autoDrive?.side===side&&el.autoDrive.slot===slot);
       if(automatic && !kind)kind="drive";
-      if (!automatic && kind === "drive" && ((!def.isNetwork && !acceptsDriveSlot(el,side,slot)) ||
-          (!other.isNetwork && !acceptsDriveSlot(n,otherSide,slotAt(n,(world+2)%4,gx+dx,gz+dz))))) continue;
+      if (!automatic && kind === "drive") {
+        // Keep wide homes' single neat front garage curb cut when the preferred garage slot is already served by a road;
+        // otherwise link automatically on any touching tile so a building next to a road is never left disconnected.
+        const checkSlot = (sitePose: ParcelPose, s: LocalSide, sl: number) => {
+          if (acceptsDriveSlot(sitePose, s, sl)) return true;
+          const prefSlot = sitePose.defId === "mansions" ? 0 : 1;
+          const [px, pz] = cellBeyondEdge(sitePose, s, prefSlot);
+          const prefNeighbor = occupancy.get(`${px},${pz}`);
+          return !(prefNeighbor && ELEMENT_BY_ID[prefNeighbor.defId]?.isRoadNetwork);
+        };
+        if ((!def.isNetwork && !checkSlot(el, side, slot)) || (!other.isNetwork && !checkSlot(n, otherSide, otherSlot))) continue;
+      }
       let stairRise:number|undefined;
       if ((kind==="drive" || kind==="freight" || kind==="bus") && (def.isRoadNetwork || other.isRoadNetwork)) {
         const rx=def.isRoadNetwork?gx:gx+dx, rz=def.isRoadNetwork?gz:gz+dz;

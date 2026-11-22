@@ -73,10 +73,17 @@ function tryServeStaticFile(req: IncomingMessage, res: ServerResponse, rootDir: 
 
 export async function startServer(customPort?: number) {
   const listenPort = resolvePort(customPort);
-  const isProd = process.env.NODE_ENV === "production" || process.argv.includes("--production");
   const distDir = path.join(__dirname, "dist");
   const publicDir = path.join(__dirname, "public");
-  const useViteDev = !isProd || !fs.existsSync(path.join(distDir, "index.html"));
+  const hasDist = fs.existsSync(path.join(distDir, "index.html"));
+  const forceDev = process.argv.includes("--dev");
+  const isProd =
+    !forceDev &&
+    (process.env.NODE_ENV === "production" ||
+      process.argv.includes("--production") ||
+      Boolean(process.env.K_SERVICE) ||
+      hasDist);
+  const useViteDev = !isProd || !hasDist;
 
   const httpServer = http.createServer();
 
@@ -119,6 +126,11 @@ export async function startServer(customPort?: number) {
       res.setHeader("content-type", "application/json; charset=utf-8");
       res.end(JSON.stringify({ ok: true, app: "Pixel Civilization" }));
       return;
+    }
+
+    if (urlPath.startsWith("/api/pix/")) {
+      const { handlePixApi } = await import("./src/server/pixApi.ts");
+      if (await handlePixApi(req, res, urlPath)) return;
     }
 
     if (viteMiddlewarePromise) {

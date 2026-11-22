@@ -31,7 +31,7 @@
   /* Tap targets. */
   --ui-tap: 44px;
   --ui-tap-lg: 48px;
-  --ui-nav-h: 64px;
+  --ui-nav-h: 52px;
   --ui-gap: 8px;
 }
 :where(button,a,input,select,textarea,summary):focus-visible {

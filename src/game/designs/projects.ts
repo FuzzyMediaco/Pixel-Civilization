@@ -18,6 +18,7 @@ import {
 import * as K from "./kit";
 import { defineDesigns } from "./registry";
 import { WEALTH_PROJECTS } from "../wealthProjects";
+import { quayFoundation } from "./vehicles";
 
 const walls = ["#e7c698", "#dde9db", "#bb765e", "#586f81"],
   trim = ["#97694e", "#288889", "#48654e", "#dea64d"];
@@ -1851,11 +1852,12 @@ function flowerBedRow(c: Ctx, x0: number, z: number, x1: number) {
   }
 }
 
-// Shared waterside pieces: water always sits at the BACK (-z) of the parcel, the street at the front.
+// Shared waterside pieces: real game water sits at the BACK (-z) on coast_or_water lots; street at front.
 function waterBack(c: Ctx, depth: number, quayCol: string) {
   const { v, hx, hz } = c;
   const qz = -hz + depth;
-  K.waterPlane(v, -hx, -hz, hx, qz, 0, "water");
+  v.clear(-hx, 0, -hz, hx, 2, qz);
+  quayFoundation(v, -hx, qz, hx, hz, quayCol);
   v.box(-hx, 0, qz, hx, 1, hz, quayCol);
   v.box(-hx, 1, qz, hx, 2, qz + 1, "stone");
   for (let x = -hx + 2; x < hx; x += 6) v.box(x, 2, qz, x + 1, 3, qz + 1, "charcoal");
@@ -1865,7 +1867,7 @@ function pier(c: Ctx, x0: number, x1: number, z0: number, z1: number) {
   const { v } = c;
   v.box(x0, 1, z0, x1, 2, z1, "woodLight");
   for (let z = z0; z < z1; z += 4)
-    for (const x of [x0, x1 - 1]) v.box(x, 0, z, x + 1, 3, z + 1, "woodDark");
+    for (const x of [x0, x1 - 1]) v.box(x, -4, z, x + 1, 3, z + 1, "woodDark");
 }
 /** Passenger ferry along z, bow toward -z. w = beam (x), len along z. */
 function ferryBoat(c: Ctx, x: number, z0: number, len: number, decks: number, w = 5) {
@@ -1875,7 +1877,7 @@ function ferryBoat(c: Ctx, x: number, z0: number, len: number, decks: number, w 
   for (let z = z0; z < z0 + len; z++) {
     const t = z - z0;
     const ww = t < 3 ? Math.max(1, half - (3 - t)) : half;
-    v.box(x - ww, 0, z, x + ww + 1, 1, z + 1, "#7a2a22");
+    v.box(x - ww, -1, z, x + ww + 1, 1, z + 1, "#7a2a22");
     v.box(x - ww, 1, z, x + ww + 1, 3, z + 1, s.livery);
     v.box(x - ww, 3, z, x + ww + 1, 4, z + 1, "white");
   }
@@ -2082,7 +2084,6 @@ function canalBoatLift(c: Ctx) {
   const depth = lvPick(c, [5, 11, 11, 14, 16]);
   const qz = waterBack(c, depth, s.ground);
   K.speckle(c, s.path, 0.2, 0, 0);
-  K.waterPlane(v, -hx, -hz, hx, qz, 0, "water");
   if (lv === 1) {
     // a lock chamber climbing toward the front
     const wallCol = ["#d9c39a", "concrete", "brick", "#4f5d6b"][k];

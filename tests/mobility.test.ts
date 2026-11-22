@@ -92,8 +92,10 @@ test("the depot, curb orientation and rails govern which stops can actually be r
   site(s, "businesses", 5, 1).rotation = 2;
   assert.deepEqual(autoStops(s, "bus", depot.id), [a.id, b.id]);
   b.rotation = 2;
-  assert.deepEqual(autoStops(s, "bus", depot.id), [a.id]);
-  assert.throws(() => addLine(s, "bus", depot.id, [a.id, b.id]));
+  assert.deepEqual(autoStops(s, "bus", depot.id), [a.id, b.id]);
+  const offRoad = site(s, "bus_stops", 5, -3);
+  assert.deepEqual(autoStops(s, "bus", depot.id), [a.id, b.id]);
+  assert.throws(() => addLine(s, "bus", depot.id, [a.id, offRoad.id]));
   b.rotation = 0;
   recomputeConnectivityAndMetrics(s);
   const id = addLine(s, "bus", depot.id, [a.id, b.id]);

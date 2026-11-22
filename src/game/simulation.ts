@@ -438,7 +438,7 @@ export function populationLimiterFor(state: GameState, m: CityMetrics, housingBa
 const LIMITER_LABELS: Record<LimitingNeed, { name: string; fix: string }> = {
   housing: { name: "Housing", fix: "Build or upgrade homes; every home also attracts settlers around it." },
   jobs: { name: "Jobs", fix: "Add businesses, shops, farms or factories reachable from the homes." },
-  food: { name: "Food", fix: "Connect farms, grocers or restaurants to the neighborhoods." },
+  food: { name: "Food", fix: "Connect food producers (farms, orchards, gardens) to homes; grocers add extra variety." },
   waste: { name: "Garbage", fix: "Add or upgrade landfills, compactors or trash plants." },
   water: { name: "Water", fix: "Add or upgrade water plants, towers or wells." },
   power: { name: "Power", fix: "Add steady generation; solar alone averages about half its daytime output." },
@@ -1210,7 +1210,21 @@ export function getConnectedRailCoordSet(elements: PlacedElement[]): Set<string>
  * Computes road network connected components, coverage radii (Police, Fire, Nuisance),
  * and full city supply/demand metrics + Advisor diagnostics.
  */
-const HARBOR_IDS = new Set(["docks", "shipyards", "ship_building_areas", "naval_base", "submarine_base"]);
+const HARBOR_IDS = new Set([
+  "docks",
+  "shipyards",
+  "ship_building_areas",
+  "naval_base",
+  "submarine_base",
+  "naval_shipyard_base",
+  "naval_coast_guard_base",
+  "naval_destroyer_dock",
+  "naval_carrier_berth",
+  "naval_amphibious_dock",
+  "coast_rescue_station",
+  "harbor_patrol_pier",
+  "marine_amphib_base",
+]);
 
 /** Foot-traffic-only network pieces (cars stay off; villagers love them) */
 export const PEDESTRIAN_IDS = new Set(["paths", "walking_paths", "trails", "side_walks", "boardwalks"]);
@@ -1694,7 +1708,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     checkNeed("water", "Clean Water", m.waterSupply, m.waterDemand, 24, "Build a Water Plant, Water Tower, or Wells connected to roads.");
     checkNeed("waste", "Garbage Pickup", m.wasteCapacity, m.wasteDemand, 16, "Add a Landfill or Trash Plant (keep a few tiles away from homes!).");
     checkNeed("jobs", "Jobs", m.jobsAvailable, m.jobsNeeded, 18, "Build Businesses, Shops, Farms, or Factories so citizens can work.");
-    checkNeed("food", "Food & Groceries", Math.min(m.foodSupply,Math.round(m.foodDemand*(1-ledger.report.shortage))), m.foodDemand, 18, "Connect a farm or a funded grocer to the affected homes.");
+    checkNeed("food", "Food & Groceries", Math.min(m.foodSupply,Math.round(m.foodDemand*(1-ledger.report.shortage))), m.foodDemand, 18, "Connect farms, orchards, gardens or a funded grocer to the affected homes.");
     checkNeed("edu", "Schools & Education", m.educationSupply, m.educationDemand, 13, "Build or upgrade schools so families stay happy.");
     checkNeed("rec", "Parks & Leisure", m.recreationSupply, m.recreationDemand, 12, "Add Parks, Gardens, Plazas, or Landmarks.");
 

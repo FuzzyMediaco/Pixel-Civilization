@@ -605,9 +605,9 @@ export function evaluateEconomy(
   m.jobsAvailable = r.reachable;
   m.jobsNeeded = r.workers;
   r.required = s.population / (s.mode==="survival"?103:115);
-  // Farm gates distribute 52% of their harvest directly. Convert those meals per second
-  // into the same resident supply units as the food demand shown on the HUD.
-  const foodCap = r.shopping + accessibleHarvest * 0.52 * (r.required > 0 ? m.foodDemand / r.required : 0);
+  // Connected food producers supply 100% of their yield directly to connected neighborhoods.
+  // Convert those meals per second into the same resident supply units shown on the HUD.
+  const foodCap = r.shopping + accessibleHarvest * (r.required > 0 ? m.foodDemand / r.required : 0);
   m.foodSupply = Math.round(effective(s, "food", foodCap));
   r.potable = potable;
   m.waterSupply = effective(
@@ -783,9 +783,9 @@ export function advanceEconomy(s: GameState, dt: number) {
         stock += qty;
       }
     }
-    // Farmers' gates sell modest amounts directly. Markets and restaurants increase local distribution.
+    // Connected food producers supply neighborhoods directly; markets and restaurants add imports and variety.
     const retail = sum(g.shops.map((el) => e.sites[el.id].retail)) * t * 0.15;
-    const gates = sum(g.suppliers.map((el) => e.sites[el.id].yieldRate)) * t * 0.52;
+    const gates = sum(g.suppliers.map((el) => e.sites[el.id].yieldRate)) * t;
     let portion = Math.min(stock, need, retail + gates, remainingCapacity);
     const voucher = Math.max(0, portion * MEAL_PRICE - e.households);
     transfer(s, "treasury", "households", voucher, "Household food assistance");
@@ -816,7 +816,7 @@ export function advanceEconomy(s: GameState, dt: number) {
     const perResident = 1 / (s.mode === "survival" ? 103 : 115);
     const lanes = [...groups.values()].filter((g) => g.people > 0).map((g) => ({
       share: g.people / Math.max(1, s.population),
-      meals: sum(g.shops.map((el) => e.sites[el.id].retail)) * 0.15 + sum(g.suppliers.map((el) => e.sites[el.id].yieldRate)) * 0.52,
+      meals: sum(g.shops.map((el) => e.sites[el.id].retail)) * 0.15 + sum(g.suppliers.map((el) => e.sites[el.id].yieldRate)),
     }));
     const fed = (p: number) => lanes.reduce((n, l) => n + Math.min(l.share * p * perResident, l.meals), 0);
     let lo = 0, hi = Math.max(1000, s.population * 40);

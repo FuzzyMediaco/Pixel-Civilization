@@ -2,12 +2,13 @@ import {VEHICLE_ROADS,roadStageName} from "./roadStandards";
 import { EXPANSION_ELEMENTS } from "./expansionCatalog";
 import { WEALTH_PROJECTS } from "./wealthProjects";
 import { HISTORICAL_WONDERS } from "./historicalCatalog";
+import { NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS } from "./expansionSafetyMilitaryCommerce";
 import { getDesign, getLevelName } from "./designs/registry";
 import { ELEMENT_LEVEL_SPANS } from "./levelSpans";
 
 export { ELEMENT_LEVEL_SPANS };
 
-export type GameMode = "god" | "real" | "survival";
+export type GameMode = "god" | "real" | "survival" | "idle" | "manager";
 
 export type ElementCategory =
   | "starter"
@@ -2551,6 +2552,7 @@ export const ELEMENTS: CivElementDef[] = [
   ...WEALTH_PROJECTS,
   ...EXPANSION_ELEMENTS,
   ...HISTORICAL_WONDERS,
+  ...NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS,
 ];
 
 export const ELEMENT_BY_ID: Record<string, CivElementDef> = Object.fromEntries(

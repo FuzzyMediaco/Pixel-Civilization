@@ -4,12 +4,15 @@ import {roadCapacity} from "../game/cityDynamics";
 import { fireServiceReadiness } from "../game/projectOperations";
 import React, { useEffect, useState } from "react";
 import {
+  CATEGORY_META,
   ELEMENT_BY_ID,
   getMaxElementLevel,
   getStandardFootprintForLevel,
-
+  type CivElementDef,
   STAGES,
 } from "../game/catalog";
+import { levelMultiplier, scaledRadius } from "../game/levelScaling";
+import { isFarmPiece } from "../game/farmNetworks";
 import {
   allocateWealth,
   buildingCharges,
@@ -27,12 +30,13 @@ import {
   upgradeReadiness,
   wealthTiers,
   type ControlKey,
+  type SiteAccount,
 } from "../game/cityEconomy";
 import { dispatchFire, igniteSite, operationsOf, requestProjectJourney } from "../game/projectOperations";
 import {
   maintainElement,
   resizeElementForLevel,
-  legacyRoadWidening,widenLegacyRoad,placedUpgradeCost,
+  legacyRoadWidening, widenLegacyRoad, placedUpgradeCost,
   getTrafficLoadMap,
   upgradeElementDirect,
   type GameState,
@@ -51,6 +55,8 @@ export interface EconomyPanelProps {
   selected?: PlacedElement | null;
   onFocus?: (id: string) => void;
   initialPanel?: EconomyTab;
+  /** True inside InspectorSheet so site title and top upgrade button are not duplicated. */
+  compactSite?: boolean;
 }
 const titles: Record<EconomyTab, string> = {
   population: "People",
@@ -62,15 +68,147 @@ const titles: Record<EconomyTab, string> = {
 };
 function Figures({ rows }: { rows: [string, string][] }) {
   return (
-    <dl className="grid grid-cols-2 gap-2">
+    <dl className="ui-stat-grid">
       {rows.map(([label, value]) => (
-        <div key={label} className="rounded border border-stone-300 bg-white p-2">
-          <dt className="text-xs text-stone-600">{label}</dt>
-          <dd className="font-bold text-stone-900">{value}</dd>
+        <div key={label} className="ui-stat-box">
+          <dt>{label}</dt>
+          <dd>{value}</dd>
         </div>
       ))}
     </dl>
   );
+}
+
+const DOMAIN_LABELS: Record<string, string> = {
+  land: "Land",
+  water: "Open water",
+  coast_or_water: "Coast or water",
+  any: "Any terrain",
+};
+
+function buildSiteSpecificRows(
+  s: GameState,
+  site: PlacedElement,
+  def: CivElementDef,
+  a: SiteAccount,
+): { rows: [string, string][]; utilityLine: string | null } {
+  const lv = site.level;
+  const out = levelMultiplier("output", lv);
+  const draw = levelMultiplier("draw", lv);
+  const rows: [string, string][] = [];
+  const push = (label: string, val: string) => {
+    if (!rows.some(([l]) => l === label)) rows.push([label, val]);
+  };
+
+  const farm = isFarmPiece(site.defId) || site.defId === "irrigation_pond" || site.defId === "feed_silo" || def.category === "agriculture";
+  const eduCampus =
+    (def.category === "civic_parks" && (def.education ?? 0) > 0) ||
+    site.defId === "school" ||
+    site.defId === "university" ||
+    site.defId === "research_institute" ||
+    site.defId === "sports_field" ||
+    site.defId === "research_university";
+
+  // 1. Housing
+  if (def.popBase) {
+    push("Housing capacity", n(def.popBase * out) + " residents");
+    if (site.landValue !== undefined) push("Land value", site.landValue.toFixed(2));
+    if (def.power) push("Power draw", n(Math.abs(def.power) * draw));
+    if (def.water) push("Water draw", n(Math.abs(def.water) * draw));
+    if (a.jobs > 0) push("Staff", n(a.workers) + " / " + n(a.jobs));
+    if (a.food > 0.05) push("Food stored", rate(a.food));
+  }
+  // 2. Farms, orchards, irrigation & food producers
+  else if (farm) {
+    if (site.defId === "irrigation_pond") {
+      push("Cistern reserve", rate(a.cistern ?? 0));
+      push("Water supplied", rate(a.irrigationOut ?? 0) + "/s");
+    } else {
+      const cropOut = (def.food ?? 0) * levelMultiplier("crop", lv);
+      push("Harvest output", a.yieldRate > 0 ? rate(a.yieldRate) + "/s" : cropOut > 0 ? "+" + n(cropOut) : "Support module");
+      push("Farm water", rate(readWaterService(s, site).irrigation) + "/s");
+    }
+    if (a.jobs > 0 || (def.jobs ?? 0) > 0) push("Staff", n(a.workers) + " / " + n(a.jobs));
+    if (a.harvested > 0 || a.served > 0 || a.food > 0.05) {
+      push("Stored / harvested", rate(a.food) + " · " + n(a.harvested));
+    }
+  }
+  // 3. Education & Research Campuses
+  else if (eduCampus) {
+    push("Attending", n(a.attendees));
+    if (a.jobs > 0 || (def.jobs ?? 0) > 0) push("Staff", n(a.workers) + " / " + n(a.jobs));
+    if (def.education) push("Education output", "+" + n(def.education * out));
+    if (def.recreation) push("Campus recreation", "+" + n(def.recreation * out));
+    if (def.income) push("Research income", money(def.income * out) + "/s");
+    if (site.landValue !== undefined) push("Land value", site.landValue.toFixed(2));
+  }
+  // 4. Police, Fire, Military & Civic Government
+  else if (def.fireRadius || def.policeRadius || def.police || def.military || def.government) {
+    if (a.jobs > 0 || (def.jobs ?? 0) > 0) push("Crew / staff", n(a.workers) + " / " + n(a.jobs));
+    if (def.fireRadius) push("Fire radius", n(scaledRadius(def.fireRadius, lv)) + " tiles");
+    if (def.policeRadius) push("Patrol radius", n(scaledRadius(def.policeRadius, lv)) + " tiles");
+    if (def.police) push("Policing power", "+" + n(def.police * out));
+    if (def.military) push("Defense rating", "+" + n(def.military * out));
+    if (def.government) push("Civic reach", "+" + n(def.government * out));
+    if (site.landValue !== undefined) push("Land value", site.landValue.toFixed(2));
+  }
+  // 5. Power, Water & Waste Utilities
+  else if ((def.power ?? 0) > 0 || (def.water ?? 0) > 0 || (def.waste ?? 0) > 0 || site.defId === "rainwater_cathedral") {
+    if (def.power && def.power > 0) push("Power output", "+" + n(def.power * out));
+    if (def.water && def.water > 0) push("Water output", "+" + n(def.water * out));
+    if (def.waste && def.waste > 0) push("Waste capacity", "+" + n(def.waste * out));
+    if (site.defId === "rainwater_cathedral") push("Cistern reserve", rate(a.cistern ?? 0));
+    if (a.jobs > 0 || (def.jobs ?? 0) > 0) push("Staff", n(a.workers) + " / " + n(a.jobs));
+    if (def.nuisanceRadius) push("Pollution radius", n(scaledRadius(def.nuisanceRadius, lv)) + " tiles");
+    if (site.landValue !== undefined) push("Land value", site.landValue.toFixed(2));
+  }
+  // 6. Commerce, Maritime, Faith, Parks, Landmarks, Rail & Nature
+  else {
+    if (a.jobs > 0 || (def.jobs ?? 0) > 0) push("Staff", n(a.workers) + " / " + n(a.jobs));
+    if ((def.food ?? 0) > 0 || a.food > 0.05 || a.served > 0) {
+      push("Food stock / served", rate(a.food) + " · " + n(a.served));
+    }
+    if (a.spending && a.spending > 0) push("Spending absorbed", money(a.spending) + "/s");
+    else if (def.income && def.income > 0) push(def.category === "landmarks" ? "Tourism income" : "Site income", money(def.income * out) + "/s");
+    if (def.recreation) push(def.category === "landmarks" ? "Visitor draw" : "Park / recreation", "+" + n(def.recreation * out));
+    if (def.education) push("Education bonus", "+" + n(def.education * out));
+    if (def.category === "faith") push("Faith service", elConnectedLabel(site));
+    if (def.nuisanceRadius) push("Noise / smog radius", n(scaledRadius(def.nuisanceRadius, lv)) + " tiles");
+    if (site.landValue !== undefined && !def.isNetwork && !def.passiveNature) {
+      push("Land value", site.landValue.toFixed(2));
+    }
+  }
+
+  // Ensure every element type (even purely decorative trees, parks, rail tracks, boats) shows meaningful info
+  if (rows.length < 2) {
+    const cat = CATEGORY_META.find((c) => c.id === def.category)?.label ?? def.category;
+    push("Category", cat);
+    push("Stage unlock", "Stage " + def.stage);
+    push("Placement domain", DOMAIN_LABELS[def.domain] ?? def.domain);
+    push("Build cost", def.cost > 0 ? money(def.cost) : "Free");
+  }
+
+  const utilParts: string[] = [];
+  if ((def.power ?? 0) < 0 && !rows.some(([l]) => l === "Power draw")) {
+    utilParts.push("Power −" + n(Math.abs(def.power!) * draw));
+  }
+  if ((def.water ?? 0) < 0 && !rows.some(([l]) => l === "Water draw")) {
+    utilParts.push("Water −" + n(Math.abs(def.water!) * draw));
+  }
+  if (def.jobs && def.jobs > 0 && def.popBase) {
+    utilParts.push("Jobs +" + n(def.jobs * out));
+  }
+  if (site.pollution && site.pollution > 0) {
+    utilParts.push("Local pollution " + site.pollution.toFixed(1));
+  }
+
+  return { rows: rows.slice(0, 6), utilityLine: utilParts.length ? utilParts.join(" · ") : null };
+}
+
+function elConnectedLabel(site: PlacedElement): string {
+  if (site.onFire) return "On fire";
+  if (site.disrepair) return "Needs repair";
+  return site.connected ? "Active sanctuary" : "Needs road access";
 }
 export function CityEconomyPanel({
   state: s,
@@ -78,6 +216,7 @@ export function CityEconomyPanel({
   selected,
   onFocus,
   initialPanel = "wealth",
+  compactSite = false,
 }: EconomyPanelProps) {
   const [tab, setTab] = useState<EconomyTab>(initialPanel),
     [message, setMessage] = useState(""),
@@ -345,123 +484,189 @@ export function CityEconomyPanel({
         </>
       )}
       {tab === "site" &&
-        (site && def && a && upgrade ? (
-          <>
-            <h3>
-              {def.name} · {PROJECT_BY_ID[site.defId]?.levels[site.level - 1] ?? "Level " + site.level}
-            </h3>
-            <p>
-              {site.gx}, {site.gz} · {site.spanX} × {site.spanZ} tiles ·{" "}
-              {operational(site)
-                ? "Operating"
-                : site.onFire
-                  ? "On fire"
-                  : site.disrepair
-                    ? "Awaiting repairs"
-                    : "Needs access"}
-            </p>
-            {VEHICLE_ROADS.has(site.defId)?<>
-              <h4>Street operations</h4>
-              <Figures rows={[
-                ["Capacity",Math.round(4*roadCapacity(def,site.level)*streetLaneFactor(s,site))+" traversals/hour"],
-                ["Current demand",Math.round((getTrafficLoadMap(s).get(site.gx+","+site.gz)??0)*4*roadCapacity(def,site.level)*streetLaneFactor(s,site))+" traversals/hour"],
-                ["Capacity used",Math.round(100*(getTrafficLoadMap(s).get(site.gx+","+site.gz)??0))+"%"],
-                ["Lane allocation",(s.infrastructure?.streets[site.gx+","+site.gz]?.lanes??standardRoadLanes(site.defId,site.level))+" lanes"],
-              ]}/>
-              <p>{site.roadAxis?frontageWidth(site.defId):"One-tile street"} · {(getTrafficLoadMap(s).get(site.gx+","+site.gz)??0)>1?"Upgrade this bottleneck, add a parallel route or link busy origins with transit.":"Traffic uses connected origin and destination gates. Compare the load here with adjoining streets."}</p>
-              {widening&&<><button disabled={Boolean(widening.reason)} onClick={()=>runSite((st,el)=>{const outcome=widenLegacyRoad(st,el);return outcome.ok?"Carriageway widened.":outcome.reason??"Unavailable.";}, "Widen carriageway")}>Widen existing carriageway · {money(widening.cost)}</button>{widening.reason&&<p>{widening.reason}</p>}</>}
-            </>:<Figures
-              rows={[
-                ["Staff", n(a.workers) + " / " + n(a.jobs)],
-                site.defId === "rainwater_cathedral"
-                  ? ["Cistern reserve", rate(a.cistern ?? 0)]
-                  : ["Food in store", rate(a.food)],
-                ["Farm water", rate(readWaterService(s, site).irrigation)],
-                ["Produced / served", n(a.harvested) + " / " + n(a.served)],
-              ]}
-            />}
-            {growth && (
-              <fieldset>
-                <legend>Upgrade · {money(price)}</legend>
-                <p>
-                  {VEHICLE_ROADS.has(site.defId)?"Next stage adds capacity and street equipment.":<>{upgrade.label} · {rate(upgrade.value)} / {upgrade.goal} · {next.join(" × ")} tiles.</>}
-                </p>
-                {preview && fits && !def.isNetwork && (
-                  <p>
-                    Expansion from {preview.gx}, {preview.gz} · {preview.spanX} × {preview.spanZ}.
-                  </p>
-                )}
-                {!fits && <p>Clear a neighboring {next.join(" × ")} footprint.</p>}
-
-                {upgrade.reasons.map((x) => (
-                  <p key={x}>{x}</p>
-                ))}
-                <button
-                  disabled={!upgrade.ready || !fits || price > s.money}
-                  onClick={() =>
-                    runSite((st, el) => {
-                      const result = upgradeElementDirect(st, el.id);
-                      return result.ok ? "Upgraded." : (result.reason ?? "Check this site.");
-                    })
-                  }
-                >
-                  Upgrade to level {site.level + 1}
-                </button>
-              </fieldset>
-            )}
-            {op.status[site.id] && (
-              <p>
-                Journey · {op.status[site.id]} · {op.completed[site.id] ?? 0} completed.
+        (site && def && a && upgrade ? (() => {
+          const specific = VEHICLE_ROADS.has(site.defId) ? null : buildSiteSpecificRows(s, site, def, a);
+          const statusLabel = operational(site)
+            ? "Operating"
+            : site.onFire
+              ? "On fire"
+              : site.disrepair
+                ? "Awaiting repairs"
+                : def.passiveNature || def.isNetwork
+                  ? "Placed"
+                  : "Needs road access";
+          const catLabel = CATEGORY_META.find((c) => c.id === def.category)?.label ?? def.category;
+          return (
+            <div className="ui-insp-tab">
+              {!compactSite && (
+                <h3>
+                  {def.name} · {PROJECT_BY_ID[site.defId]?.levels[site.level - 1] ?? "Level " + site.level}
+                </h3>
+              )}
+              <p className="ui-site-meta">
+                Plot ({site.gx}, {site.gz}) · {site.spanX}×{site.spanZ} tiles · {catLabel} · Stage {def.stage} · {statusLabel}
               </p>
-            )}
-            <div className="island-actions">
-              {["regional_airport", "spaceport", "teleportation_depot", "flying_car_depot"].includes(
-                site.defId,
-              ) && (
-                <button
-                  onClick={() =>
-                    runSite((st, el) =>
-                      requestProjectJourney(st, el.id) ? "Journey dispatched." : operationsOf(st).status[el.id],
-                    )
-                  }
-                >
-                  Dispatch journey
-                </button>
+              {def.description && <p className="ui-site-desc">{def.description}</p>}
+              {VEHICLE_ROADS.has(site.defId) ? (
+                <>
+                  <div className="ui-card-head" style={{marginBottom: 6}}>
+                    <strong>Street operations</strong>
+                  </div>
+                  <Figures
+                    rows={[
+                      ["Capacity", Math.round(4 * roadCapacity(def, site.level) * streetLaneFactor(s, site)) + " trips/hr"],
+                      ["Current demand", Math.round((getTrafficLoadMap(s).get(site.gx + "," + site.gz) ?? 0) * 4 * roadCapacity(def, site.level) * streetLaneFactor(s, site)) + " trips/hr"],
+                      ["Capacity used", Math.round(100 * (getTrafficLoadMap(s).get(site.gx + "," + site.gz) ?? 0)) + "%"],
+                      ["Lanes", (s.infrastructure?.streets[site.gx + "," + site.gz]?.lanes ?? standardRoadLanes(site.defId, site.level)) + " lanes"],
+                    ]}
+                  />
+                  <p className="ui-card-meta">
+                    {site.roadAxis ? frontageWidth(site.defId) : "One-tile street"} ·{" "}
+                    {(getTrafficLoadMap(s).get(site.gx + "," + site.gz) ?? 0) > 1
+                      ? "Upgrade this bottleneck, add a parallel route, or link busy origins with transit."
+                      : "Traffic uses connected origin and destination gates."}
+                  </p>
+                  {widening && (
+                    <div className="ui-quick-links" style={{marginTop: 6}}>
+                      <button
+                        type="button"
+                        className="ui-btn is-small"
+                        disabled={Boolean(widening.reason)}
+                        onClick={() =>
+                          runSite((st, el) => {
+                            const outcome = widenLegacyRoad(st, el);
+                            return outcome.ok ? "Carriageway widened." : (outcome.reason ?? "Unavailable.");
+                          }, "Widen carriageway")
+                        }
+                      >
+                        Widen carriageway · {money(widening.cost)}
+                      </button>
+                      {widening.reason && <p className="ui-card-meta">{widening.reason}</p>}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Figures rows={specific!.rows} />
+                  {specific!.utilityLine && <p className="ui-card-meta">{specific!.utilityLine}</p>}
+                </>
               )}
-              {site.onFire && (
-                <button
-                  onClick={() =>
-                    runSite((st, el) =>
-                      dispatchFire(st, el.id) ? "Crew dispatched." : "Waiting for a reachable crew.",
-                    )
-                  }
-                >
-                  Dispatch fire crew
-                </button>
+              {growth && (
+                <div className="ui-panel-card">
+                  <div className="ui-card-head">
+                    <strong>Next level · Lv {site.level + 1}</strong>
+                    <span className="ui-card-sub">{price > 0 ? money(price) : "Free"}</span>
+                  </div>
+                  <p className="ui-card-copy">
+                    {VEHICLE_ROADS.has(site.defId)
+                      ? "Next stage adds capacity and street equipment."
+                      : `${upgrade.label} · ${Math.floor(upgrade.value).toLocaleString()} / ${upgrade.goal.toLocaleString()}${!def.isNetwork ? ` · ${next.join("×")} tiles` : ""}.`}
+                  </p>
+                  {preview && !def.isNetwork && (site.spanX !== next[0] || site.spanZ !== next[1]) && (
+                    <p className="ui-card-meta">
+                      {fits
+                        ? `Footprint expands cleanly to ${next.join("×")} tiles.`
+                        : `Clear neighboring space for a ${next.join("×")} footprint.`}
+                    </p>
+                  )}
+                  {!fits && (site.spanX === next[0] && site.spanZ === next[1]) && (
+                    <p className="ui-card-meta">Clear a neighboring {next.join("×")} footprint.</p>
+                  )}
+                  {upgrade.reasons.map((x) => (
+                    <p key={x} className="ui-card-meta">{x}</p>
+                  ))}
+                  {!compactSite && (
+                    <div className="ui-quick-links" style={{marginTop: 8}}>
+                      <button
+                        type="button"
+                        className="ui-btn is-small is-primary"
+                        disabled={!upgrade.ready || !fits || price > s.money}
+                        onClick={() =>
+                          runSite((st, el) => {
+                            const result = upgradeElementDirect(st, el.id);
+                            return result.ok ? "Upgraded." : (result.reason ?? "Check this site.");
+                          })
+                        }
+                      >
+                        Upgrade to Lv {site.level + 1}
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
-              {site.disrepair && !site.onFire && (
-                <button
-                  onClick={() =>
-                    runSite((st, el) => (maintainElement(st, el.id) ? "Site reopened." : "Repair unavailable."))
-                  }
-                >
-                  Repair and reopen
-                </button>
+              {op.status[site.id] && (
+                <p className="ui-card-meta">
+                  Journey · {op.status[site.id]} · {op.completed[site.id] ?? 0} completed.
+                </p>
               )}
-              {s.mode === "god" && <button onClick={() => setTab("controls")}>Experiment here</button>}
+              <div className="ui-quick-links">
+                {["regional_airport", "spaceport", "teleportation_depot", "flying_car_depot"].includes(
+                  site.defId,
+                ) && (
+                  <button
+                    type="button"
+                    className="ui-btn is-small"
+                    onClick={() =>
+                      runSite((st, el) =>
+                        requestProjectJourney(st, el.id) ? "Journey dispatched." : operationsOf(st).status[el.id],
+                      )
+                    }
+                  >
+                    Dispatch journey
+                  </button>
+                )}
+                {site.onFire && (
+                  <button
+                    type="button"
+                    className="ui-btn is-small is-danger"
+                    onClick={() =>
+                      runSite((st, el) =>
+                        dispatchFire(st, el.id) ? "Crew dispatched." : "Waiting for a reachable crew.",
+                      )
+                    }
+                  >
+                    Dispatch fire crew
+                  </button>
+                )}
+                {site.disrepair && !site.onFire && (
+                  <button
+                    type="button"
+                    className="ui-btn is-small"
+                    onClick={() =>
+                      runSite((st, el) => (maintainElement(st, el.id) ? "Site reopened." : "Repair unavailable."))
+                    }
+                  >
+                    Repair and reopen
+                  </button>
+                )}
+                {s.mode === "god" && (
+                  <button type="button" className="ui-btn is-small" onClick={() => setTab("controls")}>
+                    Experiment here
+                  </button>
+                )}
+              </div>
             </div>
-          </>
-        ) : (
-          <p>Choose a building on the island to inspect its operations and next upgrade.</p>
+          );
+        })() : (
+          <p className="ui-muted">Choose a building on the island to inspect its operations and next upgrade.</p>
         ))}
       {tab === "controls" && s.mode === "god" && (
-        <>
-          <h3>God controls</h3>
-          <fieldset>
-            <legend>Experiment with a value</legend>
-            <label>
-              Control
+        <div className="ui-insp-tab">
+          {compactSite && (
+            <div className="ui-quick-links">
+              <button type="button" className="ui-btn is-small" onClick={() => setTab("site")}>
+                ← Back to site info
+              </button>
+            </div>
+          )}
+          <div className="ui-panel-card">
+            <div className="ui-card-head">
+              <strong>Experiment with a value</strong>
+            </div>
+            <label className="ui-field">
+              <span>Control</span>
               <select
+                className="ui-select"
                 value={key}
                 onChange={(ev) => {
                   const k = ev.target.value as ControlKey;
@@ -477,19 +682,19 @@ export function CityEconomyPanel({
               </select>
             </label>
             {local ? (
-              <label>
-                Scope
-                <select value={scope} onChange={(ev) => setScope(ev.target.value)}>
+              <label className="ui-field">
+                <span>Scope</span>
+                <select className="ui-select" value={scope} onChange={(ev) => setScope(ev.target.value)}>
                   <option value="site">Selected site</option>
                   <option value="district">District within four tiles</option>
                 </select>
               </label>
             ) : (
-              <p>Scope · Island</p>
+              <p className="ui-card-meta">Scope · Island</p>
             )}
-            {local && !site && <p>Choose the center site on the map.</p>}
-            <label>
-              Value
+            {local && !site && <p className="ui-card-meta">Choose the center site on the map.</p>}
+            <label className="ui-field">
+              <span>Value</span>
               <input
                 type="number"
                 min={CONTROLS[key].min}
@@ -498,79 +703,97 @@ export function CityEconomyPanel({
                 onChange={(ev) => setValue(ev.target.value)}
               />
             </label>
-            <p>Calculated · {rate(calc)}</p>
-            <div className="island-actions">
-              <button disabled={(local && !site) || value === ""} onClick={() => setControl(false)}>
+            <p className="ui-card-meta">Calculated · {rate(calc)}</p>
+            <div className="ui-quick-links" style={{marginTop: 6}}>
+              <button type="button" className="ui-btn is-small" disabled={(local && !site) || value === ""} onClick={() => setControl(false)}>
                 Set once
               </button>
-              <button disabled={(local && !site) || value === ""} onClick={() => setControl(true)}>
+              <button type="button" className="ui-btn is-small is-primary" disabled={(local && !site) || value === ""} onClick={() => setControl(true)}>
                 Hold
               </button>
             </div>
-          </fieldset>
-          <details>
-            <summary>Allocate total city wealth</summary>
-            <label>
-              Total $
-              <input type="number" value={allocation} onChange={(ev) => setAllocation(ev.target.value)} />
-            </label>
-            <label>
-              Treasury %
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={treasury}
-                onChange={(ev) => setTreasury(ev.target.value)}
-              />
-            </label>
-            <label>
-              Households %
-              <input
-                type="number"
-                min={0}
-                max={100 - Number(treasury)}
-                value={households}
-                onChange={(ev) => setHouseholds(ev.target.value)}
-              />
-            </label>
-            <p>Businesses receive {Math.max(0, 100 - Number(treasury) - Number(households))}%.</p>
-            <div className="island-actions">
-              {[false, true].map((hold) => (
-                <button
-                  key={String(hold)}
-                  disabled={Number(allocation) < 0 || Number(treasury) + Number(households) > 100}
-                  onClick={() =>
-                    mutate((st) =>
-                      allocateWealth(st, Number(allocation), Number(treasury), Number(households), hold),
-                    )
-                  }
-                >
-                  {hold ? "Hold allocation" : "Set allocation"}
+          </div>
+          <div className="ui-panel-card">
+            <details>
+              <summary>Allocate total city wealth</summary>
+              <div className="ui-edge-grid" style={{marginTop: 8}}>
+                <label className="ui-field">
+                  <span>Total $</span>
+                  <input type="number" value={allocation} onChange={(ev) => setAllocation(ev.target.value)} />
+                </label>
+                <label className="ui-field">
+                  <span>Treasury %</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={treasury}
+                    onChange={(ev) => setTreasury(ev.target.value)}
+                  />
+                </label>
+                <label className="ui-field">
+                  <span>Households %</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100 - Number(treasury)}
+                    value={households}
+                    onChange={(ev) => setHouseholds(ev.target.value)}
+                  />
+                </label>
+              </div>
+              <p className="ui-card-meta">Businesses receive {Math.max(0, 100 - Number(treasury) - Number(households))}%.</p>
+              <div className="ui-quick-links" style={{marginTop: 6}}>
+                {[false, true].map((hold) => (
+                  <button
+                    key={String(hold)}
+                    type="button"
+                    className="ui-btn is-small"
+                    disabled={Number(allocation) < 0 || Number(treasury) + Number(households) > 100}
+                    onClick={() =>
+                      mutate((st) =>
+                        allocateWealth(st, Number(allocation), Number(treasury), Number(households), hold),
+                      )
+                    }
+                  >
+                    {hold ? "Hold allocation" : "Set allocation"}
+                  </button>
+                ))}
+              </div>
+            </details>
+          </div>
+          {e.holds.length > 0 && (
+            <div className="ui-panel-card">
+              <div className="ui-card-head">
+                <strong>Active holds · {e.holds.length}</strong>
+              </div>
+              <div className="ui-quick-links">
+                {e.holds.map((h) => (
+                  <button
+                    key={h.key + (h.site ?? "")}
+                    type="button"
+                    className="ui-btn is-small"
+                    onClick={() => mutate((st) => releaseControl(st, h.key, h.site))}
+                  >
+                    {CONTROLS[h.key].label} · {n(h.value)}
+                    {h.site ? " · " + h.site : ""} · Release
+                  </button>
+                ))}
+                <button type="button" className="ui-btn is-small is-danger" onClick={() => mutate((st) => releaseControl(st))}>
+                  Release all holds
                 </button>
-              ))}
+              </div>
             </div>
-          </details>
-          <fieldset>
-            <legend>Active holds · {e.holds.length}</legend>
-            {e.holds.map((h) => (
-              <button
-                key={h.key + (h.site ?? "")}
-                onClick={() => mutate((st) => releaseControl(st, h.key, h.site))}
-              >
-                {CONTROLS[h.key].label} · {n(h.value)}
-                {h.site ? " · " + h.site : ""} · Release
-              </button>
-            ))}
-            {e.holds.length > 0 && (
-              <button onClick={() => mutate((st) => releaseControl(st))}>Release all holds</button>
-            )}
-          </fieldset>
+          )}
           {site && (
-            <fieldset>
-              <legend>Trigger · {def?.name}</legend>
-              <div className="island-actions">
+            <div className="ui-panel-card">
+              <div className="ui-card-head">
+                <strong>Trigger · {def?.name}</strong>
+              </div>
+              <div className="ui-quick-links">
                 <button
+                  type="button"
+                  className="ui-btn is-small is-danger"
                   onClick={() =>
                     runSite((st, el) =>
                       igniteSite(st, el.id) ? "Fire started." : "Choose a building that can burn.",
@@ -580,6 +803,8 @@ export function CityEconomyPanel({
                   Start fire
                 </button>
                 <button
+                  type="button"
+                  className="ui-btn is-small"
                   onClick={() =>
                     runSite((st, el) => {
                       el.onFire = false;
@@ -590,6 +815,8 @@ export function CityEconomyPanel({
                   Clear fire
                 </button>
                 <button
+                  type="button"
+                  className="ui-btn is-small"
                   onClick={() =>
                     runSite((st, el) =>
                       dispatchFire(st, el.id)
@@ -601,9 +828,9 @@ export function CityEconomyPanel({
                   Dispatch crew
                 </button>
               </div>
-            </fieldset>
+            </div>
           )}
-        </>
+        </div>
       )}
       {message && <p role="status">{message}</p>}
     </div>

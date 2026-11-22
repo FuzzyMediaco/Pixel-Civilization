@@ -1,5 +1,11 @@
 @import "../styles/interface.css";
-:root {
+
+body:has(> #handbook),
+body:has(> #guide) {
+  margin: 0;
+}
+
+.pc-handbook-scope {
   color-scheme: light;
   --ink: #172e29;
   --paper: #f7f4e9;
@@ -10,30 +16,32 @@
   font-family: var(--ui-font);
   color: var(--ink);
   background: var(--paper);
+  min-height: 100%;
+  box-sizing: border-box;
+  text-align: left;
 }
-* {
+.pc-handbook-scope *,
+.pc-handbook-scope *::before,
+.pc-handbook-scope *::after {
   box-sizing: border-box;
 }
-body {
-  margin: 0;
-}
-a {
+.pc-handbook-scope a {
   color: var(--green);
   text-underline-offset: 3px;
 }
-button,
-input,
-select {
+.pc-handbook-scope button,
+.pc-handbook-scope input,
+.pc-handbook-scope select {
   font: inherit;
 }
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
+.pc-handbook-scope a:focus-visible,
+.pc-handbook-scope button:focus-visible,
+.pc-handbook-scope input:focus-visible,
+.pc-handbook-scope select:focus-visible {
   outline: 3px solid #c76c39;
   outline-offset: 3px;
 }
-.skip {
+.pc-handbook-scope .skip {
   position: absolute;
   left: 1rem;
   top: -100px;
@@ -41,103 +49,112 @@ select:focus-visible {
   background: white;
   padding: 0.7rem;
 }
-.skip:focus {
+.pc-handbook-scope .skip:focus {
   top: 0.5rem;
 }
-.mast {
+.pc-handbook-scope .mast {
   color: #faf7e8;
   background: #143d34;
 }
-.mast > div,
-.shelf > div,
-main,
-footer {
+.pc-handbook-scope .mast > div,
+.pc-handbook-scope .shelf > div,
+.pc-handbook-scope main,
+.pc-handbook-scope footer {
   width: min(1200px, calc(100% - 64px));
   margin: auto;
 }
-.mast > div {
+.pc-handbook-scope .mast > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 62px;
   gap: 16px;
 }
-.brand,
-.back {
+.pc-handbook-scope .brand,
+.pc-handbook-scope .back {
   color: inherit;
   text-decoration: none;
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  cursor: pointer;
 }
-.brand {
+.pc-handbook-scope .brand {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   font-weight: 700;
 }
-.brand span {
+.pc-handbook-scope .brand span {
   color: #c3cdbb;
   font-weight: 450;
 }
-.mark {
+.pc-handbook-scope .mark {
   font-size: 27px;
   color: var(--ochre);
   line-height: 1;
 }
-.back {
+.pc-handbook-scope .back {
   font-size: 0.86rem;
 }
-.shelf {
+.pc-handbook-scope .shelf {
   border-bottom: 1px solid var(--line);
   background: #eeeee0;
 }
-.shelf > div {
+.pc-handbook-scope .shelf > div {
   display: flex;
   gap: 24px;
   overflow-x: auto;
   scrollbar-width: thin;
 }
-.shelf a {
+.pc-handbook-scope .shelf a,
+.pc-handbook-scope .shelf button {
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 600;
   text-decoration: none;
+  background: none;
+  border: 0;
   padding: 14px 0 11px;
   border-bottom: 3px solid transparent;
   white-space: nowrap;
+  cursor: pointer;
 }
-.shelf a[aria-current] {
+.pc-handbook-scope .shelf a[aria-current],
+.pc-handbook-scope .shelf button[aria-current] {
   color: var(--green);
   border-color: var(--green);
 }
-main {
+.pc-handbook-scope main {
   min-height: 60vh;
   padding: 38px 0 64px;
   outline: 0;
 }
-h1,
-h2,
-h3,
-p,
-figure {
+.pc-handbook-scope h1,
+.pc-handbook-scope h2,
+.pc-handbook-scope h3,
+.pc-handbook-scope p,
+.pc-handbook-scope figure {
   margin: 0;
 }
-h1,
-h2,
-h3 {
+.pc-handbook-scope h1,
+.pc-handbook-scope h2,
+.pc-handbook-scope h3 {
   font-family: var(--ui-font);
   line-height: 1.08;
-  font-weight: 500;
+  font-weight: 650;
   letter-spacing: -0.035em;
 }
-h1 {
+.pc-handbook-scope h1 {
   font-size: clamp(2.7rem, 5vw, 5.1rem);
 }
-h2 {
+.pc-handbook-scope h2 {
   font-size: clamp(1.65rem, 3vw, 2.5rem);
 }
-h3 {
+.pc-handbook-scope h3 {
   font-size: 1.48rem;
 }
-.opening {
+.pc-handbook-scope .opening {
   display: grid;
   grid-template-columns: 0.8fr 1.2fr;
   align-items: stretch;
@@ -146,60 +163,62 @@ h3 {
   overflow: hidden;
   border-radius: 9px;
 }
-.opening-copy {
+.pc-handbook-scope .opening-copy {
   padding: clamp(24px, 4vw, 54px);
   align-self: center;
 }
-.opening h1 {
+.pc-handbook-scope .opening h1 {
   font-size: clamp(3.4rem, 5.4vw, 5.2rem);
 }
-.opening p,
-.lede {
+.pc-handbook-scope .opening p,
+.pc-handbook-scope .lede {
   font-size: clamp(1rem, 1.4vw, 1.18rem);
   line-height: 1.55;
   color: var(--muted);
 }
-.opening p {
+.pc-handbook-scope .opening p {
   margin: 18px 0 22px;
   max-width: 34ch;
 }
-.opening > img {
+.pc-handbook-scope .opening > img {
   width: 100%;
   height: 100%;
   min-height: 300px;
   object-fit: cover;
   object-position: 52% 60%;
 }
-.action {
+.pc-handbook-scope .action {
   display: inline-flex;
   align-items: center;
   gap: 15px;
   color: #fffbed;
   background: var(--green);
+  border: 0;
   border-radius: 5px;
   text-decoration: none;
   padding: 11px 14px;
   font-weight: 650;
   font-size: 0.93rem;
+  cursor: pointer;
 }
-.action:hover {
+.pc-handbook-scope .action:hover {
   background: #23604e;
 }
-.inline-link {
+.pc-handbook-scope .inline-link {
   display: block;
   width: fit-content;
   margin-top: 12px;
   font-size: 0.9rem;
 }
-.collection-title {
+.pc-handbook-scope .collection-title {
   margin: 38px 0 20px;
 }
-.world-cards {
+.pc-handbook-scope .world-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
   gap: 17px;
 }
-.world-cards article {
+.pc-handbook-scope .world-cards article {
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -207,37 +226,37 @@ h3 {
   border-radius: 6px;
   background: #fffdf4;
 }
-.world-cards img {
+.pc-handbook-scope .world-cards img {
   width: 100%;
   height: auto;
   aspect-ratio: 8 / 5;
   object-fit: cover;
 }
-.world-cards article > div {
+.pc-handbook-scope .world-cards article > div {
   padding: 16px 17px 19px;
 }
-.world-cards article p {
+.pc-handbook-scope .world-cards article p {
   color: var(--muted);
   margin: 7px 0 16px;
 }
-.world-cards .inline-link {
+.pc-handbook-scope .world-cards .inline-link {
   display: inline-block;
   margin: 8px 0 0 14px;
 }
-.lesson .play-island {
+.pc-handbook-scope .lesson .play-island {
   margin: 9px 0 4px;
 }
-.chapters,
-.gallery,
-.pair {
+.pc-handbook-scope .chapters,
+.pc-handbook-scope .gallery,
+.pc-handbook-scope .pair {
   display: grid;
   gap: 17px;
 }
-.chapters {
+.pc-handbook-scope .chapters {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.chapters > a,
-.gallery > a {
+.pc-handbook-scope .chapters > a,
+.pc-handbook-scope .gallery > a {
   color: var(--ink);
   text-decoration: none;
   border: 1px solid var(--line);
@@ -245,46 +264,46 @@ h3 {
   border-radius: 6px;
   overflow: hidden;
 }
-.chapters > a:hover,
-.gallery > a:hover {
+.pc-handbook-scope .chapters > a:hover,
+.pc-handbook-scope .gallery > a:hover {
   border-color: #68836c;
   background: #fffef9;
 }
-.chapters img {
+.pc-handbook-scope .chapters img {
   display: block;
   width: 100%;
   aspect-ratio: 1.95;
   object-fit: cover;
 }
-.chapters a div {
+.pc-handbook-scope .chapters a div {
   padding: 15px 17px 17px;
 }
-.chapters p,
-.notes p,
-.lesson li,
-.notes li {
+.pc-handbook-scope .chapters p,
+.pc-handbook-scope .notes p,
+.pc-handbook-scope .lesson li,
+.pc-handbook-scope .notes li {
   font-size: 0.99rem;
   line-height: 1.58;
 }
-.chapters p {
+.pc-handbook-scope .chapters p {
   margin-top: 8px;
   color: var(--muted);
 }
-.title,
-.entry-intro {
+.pc-handbook-scope .title,
+.pc-handbook-scope .entry-intro {
   margin: 4px 0 32px;
 }
-.title .lede,
-.entry-intro .lede {
+.pc-handbook-scope .title .lede,
+.pc-handbook-scope .entry-intro .lede {
   max-width: 66ch;
   margin-top: 14px;
 }
-.chapter-grid {
+.pc-handbook-scope .chapter-grid {
   display: grid;
   grid-template-columns: minmax(145px, 205px) minmax(0, 1fr);
   gap: clamp(24px, 5vw, 76px);
 }
-.contents {
+.pc-handbook-scope .contents {
   align-self: start;
   position: sticky;
   top: 20px;
@@ -293,44 +312,43 @@ h3 {
   border-top: 1px solid var(--line);
   padding-top: 15px;
 }
-.contents h2,
-.notes h3 {
-  font:
-    700 0.78rem/1.4 var(--ui-font);
+.pc-handbook-scope .contents h2,
+.pc-handbook-scope .notes h3 {
+  font: 700 0.78rem/1.4 var(--ui-font);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   margin: 0 0 9px;
 }
-.contents a {
+.pc-handbook-scope .contents a {
   display: block;
   text-decoration: none;
   margin-bottom: 9px;
   font-size: 0.94rem;
   line-height: 1.35;
 }
-.contents a:hover,
-.contents a[aria-current] {
+.pc-handbook-scope .contents a:hover,
+.pc-handbook-scope .contents a[aria-current] {
   text-decoration: underline;
 }
-.lesson {
+.pc-handbook-scope .lesson {
   border-top: 1px solid var(--line);
   padding: 22px 0 25px;
   scroll-margin-top: 16px;
 }
-.lesson ol {
+.pc-handbook-scope .lesson ol {
   padding-left: 1.4rem;
   margin: 14px 0 17px;
 }
-.lesson li {
+.pc-handbook-scope .lesson li {
   padding-left: 4px;
   margin: 6px 0;
 }
-.lesson li::marker {
+.pc-handbook-scope .lesson li::marker {
   color: #6f5c35;
   font-weight: 700;
 }
-.plates img,
-.full-plate img {
+.pc-handbook-scope .plates img,
+.pc-handbook-scope .full-plate img {
   height: auto;
   display: block;
   width: 100%;
@@ -338,22 +356,22 @@ h3 {
   border: 1px solid var(--line);
   background: #e7eadc;
 }
-.plates a,
-.full-plate a {
+.pc-handbook-scope .plates a,
+.pc-handbook-scope .full-plate a {
   cursor: zoom-in;
 }
-.pair {
+.pc-handbook-scope .pair {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
 }
-.plates figcaption,
-.full-plate figcaption {
+.pc-handbook-scope .plates figcaption,
+.pc-handbook-scope .full-plate figcaption {
   color: #50645b;
   line-height: 1.45;
   font-size: 0.87rem;
   margin: 8px 0;
 }
-.filters {
+.pc-handbook-scope .filters {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
@@ -361,18 +379,18 @@ h3 {
   padding: 16px 0 22px;
   border-top: 1px solid var(--line);
 }
-.filters label {
+.pc-handbook-scope .filters label {
   display: grid;
   gap: 5px;
   font-size: 0.86rem;
   font-weight: 650;
 }
-.filters label:first-child {
+.pc-handbook-scope .filters label:first-child {
   flex: 1;
   min-width: 190px;
 }
-.filters input,
-.filters select {
+.pc-handbook-scope .filters input,
+.pc-handbook-scope .filters select {
   padding: 10px 12px;
   border: 1px solid #9eafa0;
   background: #fffef7;
@@ -381,97 +399,97 @@ h3 {
   width: 100%;
   font-weight: 400;
 }
-.filters span {
+.pc-handbook-scope .filters span {
   align-self: center;
   font-size: 0.85rem;
 }
-.gallery {
+.pc-handbook-scope .gallery {
   grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
   gap: 12px;
 }
-.gallery img {
+.pc-handbook-scope .gallery img {
   display: block;
   width: 100%;
   aspect-ratio: 1;
   object-fit: contain;
-  background: #eaece2;
+  background: transparent;
 }
-.gallery a div {
+.pc-handbook-scope .gallery a div {
   padding: 10px;
 }
-.gallery strong,
-.gallery span {
+.pc-handbook-scope .gallery strong,
+.pc-handbook-scope .gallery span {
   display: block;
 }
-.gallery span,
-.category {
+.pc-handbook-scope .gallery span,
+.pc-handbook-scope .category {
   font-size: 0.72rem;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.065em;
   margin: 0 0 4px;
 }
-.gallery strong {
+.pc-handbook-scope .gallery strong {
   font-size: 0.99rem;
 }
-.trail {
+.pc-handbook-scope .trail {
   margin: 0 0 20px;
   font-size: 0.9rem;
 }
-.entry-intro {
+.pc-handbook-scope .entry-intro {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 16px;
 }
-.entry-intro .action {
+.pc-handbook-scope .entry-intro .action {
   flex: none;
 }
-.article-grid {
+.pc-handbook-scope .article-grid {
   display: grid;
   grid-template-columns: minmax(0, 2.4fr) minmax(230px, 1fr);
   gap: 25px;
 }
-.notes {
+.pc-handbook-scope .notes {
   border-top: 2px solid var(--green);
   padding-top: 13px;
 }
-.notes h2 {
+.pc-handbook-scope .notes h2 {
   font-size: 1.75rem;
   margin: 0 0 10px;
 }
-.notes p {
+.pc-handbook-scope .notes p {
   margin-bottom: 10px;
 }
-.notes h3 {
+.pc-handbook-scope .notes h3 {
   margin: 22px 0 7px;
 }
-.notes table {
+.pc-handbook-scope .notes table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.87rem;
 }
-.notes td,
-.notes th {
+.pc-handbook-scope .notes td,
+.pc-handbook-scope .notes th {
   text-align: left;
   padding: 6px 3px;
   border-bottom: 1px solid var(--line);
 }
-.notes td:last-child {
+.pc-handbook-scope .notes td:last-child {
   white-space: nowrap;
 }
-.notes ul {
+.pc-handbook-scope .notes ul {
   padding-left: 1.3rem;
   margin: 3px 0;
 }
-.text-button {
+.pc-handbook-scope .text-button {
   color: var(--green);
   background: none;
   border: 0;
   text-decoration: underline;
   cursor: pointer;
 }
-footer {
+.pc-handbook-scope footer {
   border-top: 1px solid var(--line);
   padding: 20px 0 28px;
   display: flex;
@@ -479,174 +497,223 @@ footer {
   font-size: 0.87rem;
 }
 @media (max-width: 800px) {
-  .mast > div,
-  .shelf > div,
-  main,
-  footer {
+  .pc-handbook-scope .mast > div,
+  .pc-handbook-scope .shelf > div,
+  .pc-handbook-scope main,
+  .pc-handbook-scope footer {
     width: calc(100% - 36px);
   }
-  .chapters {
+  .pc-handbook-scope .chapters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .opening > img {
+  .pc-handbook-scope .opening > img {
     min-height: 220px;
   }
-  .article-grid {
+  .pc-handbook-scope .article-grid {
     grid-template-columns: 1fr;
   }
-  .chapter-grid {
+  .pc-handbook-scope .chapter-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  .contents {
+  .pc-handbook-scope .contents {
     position: static;
   }
-  .contents a {
+  .pc-handbook-scope .contents a {
     display: inline-block;
     margin-right: 14px;
   }
-  .brand span {
+  .pc-handbook-scope .brand span {
     display: none;
   }
 }
 @media (max-width: 560px) {
-  main {
+  .pc-handbook-scope main {
     padding-top: 20px;
   }
-  .opening,
-  .chapters,
-  .pair {
+  .pc-handbook-scope .opening,
+  .pc-handbook-scope .chapters,
+  .pc-handbook-scope .pair {
     grid-template-columns: 1fr;
   }
-  .opening > img {
+  .pc-handbook-scope .opening > img {
     min-height: 0;
     max-height: 240px;
     aspect-ratio: 1.8;
   }
-  .opening-copy {
+  .pc-handbook-scope .opening-copy {
     padding: 20px;
   }
-  .opening h1 {
+  .pc-handbook-scope .opening h1 {
     font-size: 3.05rem;
   }
-  .opening p {
+  .pc-handbook-scope .opening p {
     margin: 10px 0 15px;
   }
-  .mast > div {
+  .pc-handbook-scope .mast > div {
     min-height: 48px;
   }
-  .shelf > div {
+  .pc-handbook-scope .shelf > div {
     width: 100%;
     padding: 0 16px;
     gap: 18px;
   }
-  .chapters > a {
+  .pc-handbook-scope .chapters > a {
     display: grid;
     grid-template-columns: 96px minmax(0, 1fr);
   }
-  .chapters img {
+  .pc-handbook-scope .chapters img {
     height: 100%;
     width: 96px;
     object-fit: cover;
   }
-  .chapters h3 {
+  .pc-handbook-scope .chapters h3 {
     font-size: 1.22rem;
   }
-  .chapters a div {
+  .pc-handbook-scope .chapters a div {
     padding: 10px;
   }
-  .chapters p {
+  .pc-handbook-scope .chapters p {
     font-size: 0.87rem;
   }
-  .entry-intro {
+  .pc-handbook-scope .entry-intro {
     align-items: start;
     flex-direction: column;
   }
-  .gallery {
+  .pc-handbook-scope .gallery {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .filters {
+  .pc-handbook-scope .filters {
     gap: 10px;
   }
-  .filters label:first-child {
+  .pc-handbook-scope .filters label:first-child {
     flex-basis: 100%;
   }
-  .filters label:nth-child(2) {
+  .pc-handbook-scope .filters label:nth-child(2) {
     flex: 1;
   }
-  .gallery a div {
+  .pc-handbook-scope .gallery a div {
     padding: 8px;
   }
-  .gallery strong {
+  .pc-handbook-scope .gallery strong {
     font-size: 0.9rem;
   }
 }
 @media print {
-  .mast,
-  .shelf,
-  .contents,
-  .action,
-  footer {
+  .pc-handbook-scope .mast,
+  .pc-handbook-scope .shelf,
+  .pc-handbook-scope .contents,
+  .pc-handbook-scope .action,
+  .pc-handbook-scope footer {
     display: none;
   }
-  main {
+  .pc-handbook-scope main {
     width: 100%;
   }
-  .chapter-grid {
+  .pc-handbook-scope .chapter-grid {
     display: block;
   }
-  .lesson figure,
-  .full-plate {
+  .pc-handbook-scope .lesson figure,
+  .pc-handbook-scope .full-plate {
     break-inside: avoid;
   }
-  .lesson {
+  .pc-handbook-scope .lesson {
     break-before: auto;
   }
 }
 
-.facts {
+.pc-handbook-scope .facts {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 3px 12px;
   margin: 0;
   font-size: 0.9rem;
 }
-.facts dd {
+.pc-handbook-scope .facts dd {
   margin: 0;
   font-weight: 650;
   text-align: right;
 }
-.notes .fine {
+.pc-handbook-scope .notes .fine {
   font-size: 0.82rem;
   color: var(--muted);
   margin-top: 8px;
 }
 
-h1, h2, h3 { font-weight: 650; }
-
-.viewpoint-gallery {
+.pc-handbook-scope .viewpoint-gallery {
   margin-top: 1rem;
 }
-.viewpoint-gallery summary {
+.pc-handbook-scope .viewpoint-gallery summary {
   width: fit-content;
-  padding: .55rem 0;
+  padding: 0.55rem 0;
   color: var(--ink);
   font-weight: 650;
   cursor: pointer;
 }
-.viewpoint-gallery[open] .plates {
-  margin-top: .65rem;
+.pc-handbook-scope .viewpoint-gallery[open] .plates {
+  margin-top: 0.65rem;
 }
 
-.lesson-designs {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr));gap:.55rem;margin:1rem 0 1.5rem}
-.lesson-designs a {display:flex;align-items:center;gap:.65rem;border:1px solid #cbd5cb;border-radius:.45rem;text-decoration:none;color:#233d38;font-weight:650;padding:.3rem;line-height:1.2}
-.lesson-designs a:hover,.lesson-designs a:focus-visible {background:#e6eddd}
-.lesson-designs img {background:#ebede3;object-fit:contain;flex:none;border-radius:.25rem}
-.lesson-designs small {display:block;font-weight:400;font-size:.77rem;margin-top:.25rem;color:#53665f}
+.pc-handbook-scope .lesson-designs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 0.55rem;
+  margin: 1rem 0 1.5rem;
+}
+.pc-handbook-scope .lesson-designs a {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid #cbd5cb;
+  border-radius: 0.45rem;
+  text-decoration: none;
+  color: #233d38;
+  font-weight: 650;
+  padding: 0.3rem;
+  line-height: 1.2;
+}
+.pc-handbook-scope .lesson-designs a:hover,
+.pc-handbook-scope .lesson-designs a:focus-visible {
+  background: #e6eddd;
+}
+.pc-handbook-scope .lesson-designs img {
+  background: transparent;
+  object-fit: contain;
+  flex: none;
+  border-radius: 0.25rem;
+}
+.pc-handbook-scope .lesson-designs small {
+  display: block;
+  font-weight: 400;
+  font-size: 0.77rem;
+  margin-top: 0.25rem;
+  color: #53665f;
+}
 
-.rolling-stock {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr));gap:.65rem;margin:1rem 0}
-.rolling-stock figure {margin:0;padding:.5rem;border:1px solid #cbd5cb;border-radius:.45rem}
-.rolling-stock img {width:100%;height:5rem;object-fit:contain}
-.rolling-stock small {display:block}
+.pc-handbook-scope .rolling-stock {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+.pc-handbook-scope .rolling-stock figure {
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid #cbd5cb;
+  border-radius: 0.45rem;
+}
+.pc-handbook-scope .rolling-stock img {
+  width: 100%;
+  height: 5rem;
+  object-fit: contain;
+}
+.pc-handbook-scope .rolling-stock small {
+  display: block;
+}
 
-.world-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; }
+.pc-handbook-scope .world-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}

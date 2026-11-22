@@ -123,6 +123,17 @@ export function buildDesignAsset(
 
 const assetCache = new Map<string, BuiltVoxelAsset>();
 
+export function invalidateVoxelAssetCache(elementId: string): void {
+  const needle = `|${elementId}|`;
+  for (const [k, asset] of assetCache.entries()) {
+    if (k.includes(needle)) {
+      asset.baseGeo.dispose();
+      for (const r of asset.rotors ?? []) r.geo.dispose();
+      assetCache.delete(k);
+    }
+  }
+}
+
 // Only loose turf blends into the island. Paths, decks, planted beds and occupied foundations keep their edges.
 const turfStyles = new Set<number>();
 const turfProbe = new PixelVox();

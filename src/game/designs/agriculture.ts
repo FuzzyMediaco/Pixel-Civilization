@@ -1331,9 +1331,12 @@ function buildOlives(c: Ctx): void {
   const g = terrain(
     c,
     (x, z) => {
+      const edgeDist = Math.min(x + hx, hx - 1 - x, z + hz, hz - 1 - z);
+      if (edgeDist === 0) return 0;
+      const edgeBlend = Math.min(1, edgeDist / 3);
       const wob = V === 2 ? 0 : Math.round(Math.sin(x * 0.18 + V) * 1.4);
       const k = Math.floor((hz - 1 - z + wob) / stepD);
-      return Math.min(steps - 1, Math.max(0, k)) * 3;
+      return Math.round(Math.min(steps - 1, Math.max(0, k)) * 3 * edgeBlend);
     },
     (x, y, z, _h, top) => (top ? (h2(x, z, 3) < 0.2 ? soil2 : soil) : h2(x, y * 7 + z, 5) < 0.5 ? wallA : wallB),
   );
@@ -1465,7 +1468,13 @@ function buildPlantations(c: Ctx): void {
     const inManor = (x: number, z: number) => x < mx1 + 3 && z < mz1 + 3;
     g = terrain(
       c,
-      (x, z) => (inManor(x, z) ? 0 : Math.min(steps, Math.max(0, Math.floor(contour(x, z) / 7))) * 2),
+      (x, z) => {
+        if (inManor(x, z)) return 0;
+        const edgeDist = Math.min(x + hx, hx - 1 - x, z + hz, hz - 1 - z);
+        if (edgeDist === 0) return 0;
+        const edgeBlend = Math.min(1, edgeDist / 3);
+        return Math.round(Math.min(steps, Math.max(0, Math.floor(contour(x, z) / 7))) * 2 * edgeBlend);
+      },
       (x, y, z, h, top) => (top ? "soil" : y >= h - 1 && h2(x, z, 2) < 0.5 ? "leafDark" : "soilDark"),
     );
     for (let x = -hx + 1; x < hx - 1; x++) for (let z = -hz + 1; z < hz - 1; z++) {

@@ -14,7 +14,7 @@ import { EXAMPLE_WORLDS, createExampleWorld, type ExampleMode, type ExampleWorld
 import { loadModeState, persistMode, resumeIsland } from "./game/activeIsland";
 import { createCanalDistrict } from "./game/canalDistrict";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertOctagon, Check, Layers, Minus, Plus, RotateCcw, RotateCw, ShieldAlert, X } from "lucide-react";
+import { AlertOctagon, Check, Layers, Minus, Plus, RotateCcw, RotateCw, ShieldAlert, Trash2, X } from "lucide-react";
 import { settleStreetFacing } from "./game/streetFacing";
 import { GameDialog } from "./components/GameDialog";
 import { SaveSlotsModal } from "./components/SaveSlotsModal";
@@ -23,16 +23,75 @@ import { BottomNav, type NavSheet } from "./components/BottomNav";
 import { AlertPill, Hud, type HudStat } from "./components/Hud";
 import { BuildSheet, type BuildCategory } from "./components/BuildSheet";
 import { PlacementBar } from "./components/PlacementBar";
+import { QuickBuildRing } from "./components/QuickBuildRing";
+import { SelectionRing, type PendingConfirmAction } from "./components/SelectionRing";
+import { GuideModal, type GuideModalState } from "./components/GuideModal";
 import { InspectorSheet } from "./components/InspectorSheet";
 import { LayersSheet, LAYERS } from "./components/LayersSheet";
 import { CitySheet, type CityTab } from "./components/CitySheet";
 import { TransitSheet } from "./components/TransitSheet";
 import { MoreSheet, type CursorBehavior, type MorePage } from "./components/MoreSheet";
+import { IdleModeBanner, ManagerDecisionCard } from "./components/ManagerDecisionCard";
+import { PixBuilderModal, type PixTab } from "./components/PixBuilderModal";
+import { TutorialOverlay } from "./components/TutorialOverlay";
 import { Button, ConfirmDialog, IconButton, Toasts, type SheetHeight, type UiToast } from "./components/ui";
 import { alertIssues, type IssueFix } from "./game/cityIssues";
 import {
+  analyzeTileContext,
+  createEmptyBuildHabits,
+  loadBuildHabits,
+  recordBuildHabit,
+  recommendInstantQuickElements,
+  recommendQuickCategories,
+  recommendQuickElements,
+  saveBuildHabits,
+  type PlayerBuildHabits,
+  type QuickBuildCategoryId,
+} from "./game/adaptiveQuickBuild";
+import {
+  getDecisionTreeLeafElements,
+  loadQuickBuildMode,
+  saveQuickBuildMode,
+  type DecisionTreeParentId,
+  type QuickBuildMode,
+} from "./game/quickBuildTree";
+import {
+  loadQuickMenuPrefs,
+  recordQuickEditClick,
+  saveQuickMenuPrefs,
+  type QuickMenuPrefs,
+  type SmartBuildFocus,
+} from "./game/quickMenuPrefs";
+import {
+  createEmptyQuickDrawerHabits,
+  loadQuickDrawerHabits,
+  loadQuickDrawerPrefs,
+  recommendQuickDrawerActions,
+  recordQuickDrawerAction,
+  saveQuickDrawerHabits,
+  saveQuickDrawerPrefs,
+  type QuickDrawerActionId,
+  type QuickDrawerHabits,
+  type QuickDrawerItem,
+  type QuickDrawerPrefs,
+} from "./game/adaptiveQuickDrawer";
+import {
+  type AutoCivProfile,
+  type ManagerChoice,
+  type ManagerDecision,
+  applyManagerChoice,
+  createAutoCivProfile,
+  generateManagerDecision,
+  runAutoCivStep,
+} from "./game/autoCivilization";
+import { hydrateCustomElements } from "./game/customElements";
+import { applyPixWorldPlan, type PixWorldApplyResult, type PixWorldPlan } from "./game/pixWorldActions";
+import { MODE_TUTORIAL_LABELS, TUTORIAL_FLOWS, type TutorialEventKind } from "./game/tutorialFlows";
+import {
+  type CivElementDef,
   ELEMENT_BY_ID,
   type GameMode,
+  STAGES,
   getMaxElementLevel,
   getStandardFootprintForLevel,
 } from "./game/catalog";
@@ -71,7 +130,10 @@ import {
 } from "./game/simulation";
 import {
   type BuildBrush,
+  type BulkSelectFilter,
   type CameraMode,
+  type PendingNetworkStroke,
+  type SelectionRingProjection,
   PixelWorldRenderer,
 } from "./game/worldRenderer";
 
@@ -81,14 +143,37 @@ function unlockSky(state: GameState) {
   return state;
 }
 
-const DEFAULT_HEIGHT: Record<NavSheet, SheetHeight> = {build: "half", layers: "peek", city: "half", transit: "half", more: "half"};
+/** Inherit adjacent matching road/rail/canal variant so contiguous placed strips look cohesive rather than patchwork. */
+function pickAdjacentNetworkVariant(elements: PlacedElement[], gx: number, gz: number, def: CivElementDef): number {
+  const dirs: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  for (const [dx, dz] of dirs) {
+    const nx = gx + dx;
+    const nz = gz + dz;
+    const neighbor = elements.find((el) => {
+      if (nx < el.gx || nx >= el.gx + el.spanX || nz < el.gz || nz >= el.gz + el.spanZ) return false;
+      const nDef = ELEMENT_BY_ID[el.defId];
+      if (!nDef?.isNetwork) return false;
+      return (
+        nDef.id === def.id ||
+        Boolean(def.isRoadNetwork && nDef.isRoadNetwork) ||
+        Boolean(def.isRailNetwork && nDef.isRailNetwork)
+      );
+    });
+    if (neighbor) return neighbor.variant;
+  }
+  return 0;
+}
+
+const DEFAULT_HEIGHT: Record<NavSheet, SheetHeight> = {build: "peek", layers: "peek", city: "peek", transit: "peek", more: "peek"};
 const idleBrush = (b: BuildBrush): BuildBrush => ({...b, kind: "none", defId: undefined, movingElementId: undefined});
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<PixelWorldRenderer | null>(null);
 
-  const [gameState, setGameState] = useState<GameState>(() => unlockSky(resumeIsland(location.hash)));
+  const [gameState, setGameState] = useState<GameState>(() =>
+    unlockSky(resumeIsland(typeof location !== "undefined" ? location.hash : "")),
+  );
   const stateRef = useRef<GameState>(gameState);
   const [examplesOpen,setExamplesOpen] = useState(false);
   const [railSite,setRailSite] = useState<string>();
@@ -130,8 +215,8 @@ export const App: React.FC = () => {
   // One sheet at a time (plus the contextual inspector for a selection).
   const [sheet,setSheetState]=useState<NavSheet|null>(null);
   const sheetRef=useRef<NavSheet|null>(null);sheetRef.current=sheet;
-  const [sheetHeight,setSheetHeight]=useState<SheetHeight>("half");
-  const [inspectorHeight,setInspectorHeight]=useState<SheetHeight>("half");
+  const [sheetHeight,setSheetHeight]=useState<SheetHeight>("peek");
+  const [inspectorHeight,setInspectorHeight]=useState<SheetHeight>("peek");
   const [cityTab,setCityTab]=useState<CityTab>("issues");
   const [morePage,setMorePage]=useState<MorePage>(null);
   const [buildCat,setBuildCat]=useState<BuildCategory>("suggested");
@@ -139,7 +224,109 @@ export const App: React.FC = () => {
   const [buildQuery,setBuildQuery]=useState("");
   const [buildFix,setBuildFix]=useState<IssueFix>();
   const [uiToasts,setUiToasts]=useState<UiToast[]>([]);
-  const [confirmDemolish,setConfirmDemolish]=useState<string[]|null>(null);
+  const [inspectorDetailOpen, setInspectorDetailOpen] = useState(false);
+  const [deletedAnchor, setDeletedAnchor] = useState<{
+    gx: number;
+    gz: number;
+    spanX: number;
+    spanZ: number;
+    baseY?: number;
+    topY?: number;
+    name: string;
+    restoredId: string;
+  } | null>(null);
+  const deletedAnchorRef = useRef(deletedAnchor);
+  deletedAnchorRef.current = deletedAnchor;
+  const [quickBuild, setQuickBuild] = useState<{
+    gx: number;
+    gz: number;
+    category: QuickBuildCategoryId | null;
+    treeParentId: DecisionTreeParentId | null;
+    treeSubId: string | null;
+  } | null>(null);
+  const quickBuildRef = useRef(quickBuild);
+  quickBuildRef.current = quickBuild;
+  const [quickBuildMode, setQuickBuildMode] = useState<QuickBuildMode>(() => loadQuickBuildMode());
+  const quickBuildModeRef = useRef<QuickBuildMode>(quickBuildMode);
+  quickBuildModeRef.current = quickBuildMode;
+  const handleChangeQuickBuildMode = useCallback((mode: QuickBuildMode) => {
+    setQuickBuildMode(mode);
+    quickBuildModeRef.current = mode;
+    saveQuickBuildMode(mode);
+    setQuickBuild(null);
+  }, []);
+  const [quickMenuPrefs, setQuickMenuPrefs] = useState<QuickMenuPrefs>(() => loadQuickMenuPrefs());
+  const quickMenuPrefsRef = useRef<QuickMenuPrefs>(quickMenuPrefs);
+  quickMenuPrefsRef.current = quickMenuPrefs;
+  const handleChangeQuickMenuPrefs = useCallback((next: QuickMenuPrefs) => {
+    setQuickMenuPrefs(next);
+    quickMenuPrefsRef.current = next;
+    saveQuickMenuPrefs(next);
+  }, []);
+  const handleTrackQuickEditAction = useCallback((actionId: string) => {
+    setQuickMenuPrefs((prev) => {
+      const next = recordQuickEditClick(prev, actionId);
+      quickMenuPrefsRef.current = next;
+      saveQuickMenuPrefs(next);
+      return next;
+    });
+  }, []);
+  const [buildHabits, setBuildHabits] = useState<PlayerBuildHabits>(() => loadBuildHabits());
+  const buildHabitsRef = useRef<PlayerBuildHabits>(buildHabits);
+  buildHabitsRef.current = buildHabits;
+  const [quickDrawerOpen, setQuickDrawerOpen] = useState(false);
+  const quickDrawerOpenRef = useRef(false);
+  quickDrawerOpenRef.current = quickDrawerOpen;
+  const [quickDrawerHabits, setQuickDrawerHabits] = useState<QuickDrawerHabits>(() => loadQuickDrawerHabits());
+  const quickDrawerHabitsRef = useRef<QuickDrawerHabits>(quickDrawerHabits);
+  quickDrawerHabitsRef.current = quickDrawerHabits;
+  const [quickDrawerPrefs, setQuickDrawerPrefs] = useState<QuickDrawerPrefs>(() => loadQuickDrawerPrefs());
+  const quickDrawerPrefsRef = useRef<QuickDrawerPrefs>(quickDrawerPrefs);
+  quickDrawerPrefsRef.current = quickDrawerPrefs;
+  const handleChangeQuickDrawerPrefs = useCallback((next: QuickDrawerPrefs) => {
+    setQuickDrawerPrefs(next);
+    quickDrawerPrefsRef.current = next;
+    saveQuickDrawerPrefs(next);
+  }, []);
+  const [focusQuickDrawerConfig, setFocusQuickDrawerConfig] = useState(0);
+  const trackDrawerAction = useCallback((actionId: QuickDrawerActionId, weight = 1) => {
+    setQuickDrawerHabits((prev) => {
+      const next = recordQuickDrawerAction(prev, actionId, weight);
+      quickDrawerHabitsRef.current = next;
+      saveQuickDrawerHabits(next);
+      return next;
+    });
+  }, []);
+  const handleResetBuildHabits = useCallback(() => {
+    const empty = createEmptyBuildHabits();
+    setBuildHabits(empty);
+    buildHabitsRef.current = empty;
+    saveBuildHabits(empty);
+    const emptyDrawer = createEmptyQuickDrawerHabits();
+    setQuickDrawerHabits(emptyDrawer);
+    quickDrawerHabitsRef.current = emptyDrawer;
+    saveQuickDrawerHabits(emptyDrawer);
+  }, []);
+  const [selectionUndo, setSelectionUndo] = useState<{ targetId: string; steps: number } | null>(null);
+  const [guideModal, setGuideModal] = useState<GuideModalState | null>(null);
+  const [pixModal, setPixModal] = useState<{ open: boolean; tab: PixTab }>({ open: false, tab: "element" });
+  const autoProfileRef = useRef<AutoCivProfile>(createAutoCivProfile());
+  const [idlePaused, setIdlePaused] = useState(false);
+  const [autoLastAction, setAutoLastAction] = useState("");
+  const [managerDecision, setManagerDecision] = useState<ManagerDecision | null>(null);
+  const managerDecisionRef = useRef<ManagerDecision | null>(null);
+  managerDecisionRef.current = managerDecision;
+  const idlePausedRef = useRef(false);
+  idlePausedRef.current = idlePaused;
+
+  useEffect(() => {
+    hydrateCustomElements();
+  }, []);
+
+  const [tutorialState, setTutorialState] = useState<{ mode: GameMode; stepIndex: number; completed: boolean } | null>(null);
+  const tutorialStateRef = useRef(tutorialState);
+  tutorialStateRef.current = tutorialState;
+  const tutorialTimerRef = useRef<number | null>(null);
   const [placeStats,setPlaceStats]=useState<{defId:string;count:number;spent:number}>();
   const [hintsLeft,setHintsLeft]=useState(()=>{try{return Number(localStorage.getItem("pixel_civ_place_hints")??3);}catch{return 3;}});
 
@@ -149,7 +336,16 @@ export const App: React.FC = () => {
   const targetRef=useRef<string|undefined>(undefined);targetRef.current=dispatchTarget;
   const [inspectPoint,setInspectPoint]=useState<GridPoint>();
   const [pendingWorks,setPendingWorks]=useState<{tool:InfrastructureTool;points:GridPoint[]}|null>(null);
+  const pendingWorksRef = useRef<{tool:InfrastructureTool;points:GridPoint[]}|null>(null);
+  pendingWorksRef.current = pendingWorks;
   const [worksTool,setWorksTool]=useState<InfrastructureTool|null>(null);
+  const [pendingRoadStroke, setPendingRoadStroke] = useState<PendingNetworkStroke | null>(null);
+  const pendingRoadStrokeRef = useRef<PendingNetworkStroke | null>(null);
+  pendingRoadStrokeRef.current = pendingRoadStroke;
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const bulkSelectModeRef = useRef(false);
+  bulkSelectModeRef.current = bulkSelectMode;
+  const [bulkFilter, setBulkFilter] = useState<BulkSelectFilter>("all");
   const [hasSnapshot,setHasSnapshot]=useState(()=>{try{return !!localStorage.getItem("pixel_civ_lab_snapshot");}catch{return false;}});
   const [cameraMode, setCameraMode] = useState<CameraMode>("pan");
   const [autoSpin, setAutoSpin] = useState(false);
@@ -181,7 +377,7 @@ export const App: React.FC = () => {
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [hoverInfo, setHoverInfo] = useState<{gx: number; gz: number; valid: boolean; reason?: string} | null>(null);
 
-  /** Toasts made by the interface (placement, demolish, upgrade), each optionally actionable. */
+  /** Toasts made by the interface (failures / alerts). */
   const toastTimers=useRef(new Map<string,number>());
   const showToast=useCallback((t:UiToast,ms=4500)=>{
     setUiToasts(list=>[t,...list.filter(x=>x.id!==t.id && !(t.action && x.action))].slice(0,3));
@@ -190,19 +386,109 @@ export const App: React.FC = () => {
     timers.set(t.id,window.setTimeout(()=>{setUiToasts(list=>list.filter(x=>x.id!==t.id));timers.delete(t.id);},ms));
   },[]);
   const undoRef=useRef<()=>void>(()=>{});
+  const demolishRef=useRef<(ids:string[])=>void>(()=>{});
+  const ringObserverRef = useRef<((pos: SelectionRingProjection | null) => void) | null>(null);
+  const subscribeRingProjection = useCallback((cb: (pos: SelectionRingProjection | null) => void) => {
+    ringObserverRef.current = cb;
+    rendererRef.current?.setSelectionRingObserver(cb);
+    return () => {
+      if (ringObserverRef.current === cb) ringObserverRef.current = null;
+      rendererRef.current?.setSelectionRingObserver(null);
+    };
+  }, []);
+
+  const clearTutorialTimer = useCallback(() => {
+    if (tutorialTimerRef.current !== null) {
+      window.clearTimeout(tutorialTimerRef.current);
+      tutorialTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => clearTutorialTimer(), [clearTutorialTimer]);
+
+  const stopTutorial = useCallback((showCompleteToast = false, completedMode?: GameMode) => {
+    clearTutorialTimer();
+    setTutorialState(null);
+    if (showCompleteToast && completedMode) {
+      showToast({
+        id: "tutorial-done",
+        title: `${MODE_TUTORIAL_LABELS[completedMode]} tutorial complete`,
+        subtitle: "All menus are now unlocked. Replay anytime in Settings.",
+        tone: "gold",
+      });
+    }
+  }, [clearTutorialTimer, showToast]);
+
+  const advanceTutorial = useCallback(() => {
+    clearTutorialTimer();
+    setTutorialState((cur) => {
+      if (!cur) return null;
+      const steps = TUTORIAL_FLOWS[cur.mode];
+      if (cur.stepIndex + 1 >= steps.length) {
+        const finishedMode = cur.mode;
+        window.setTimeout(() => {
+          showToast({
+            id: "tutorial-done",
+            title: `${MODE_TUTORIAL_LABELS[finishedMode]} tutorial complete`,
+            subtitle: "All menus are now unlocked. Replay anytime in Settings.",
+            tone: "gold",
+          });
+        }, 0);
+        return null;
+      }
+      return { mode: cur.mode, stepIndex: cur.stepIndex + 1, completed: false };
+    });
+  }, [clearTutorialTimer, showToast]);
+
+  const notifyTutorial = useCallback((event: TutorialEventKind) => {
+    const cur = tutorialStateRef.current;
+    if (!cur || cur.completed) return;
+    const steps = TUTORIAL_FLOWS[cur.mode];
+    const step = steps[cur.stepIndex];
+    if (!step || !step.completeOn.includes(event)) return;
+    setTutorialState({ ...cur, completed: true });
+    clearTutorialTimer();
+    tutorialTimerRef.current = window.setTimeout(() => {
+      tutorialTimerRef.current = null;
+      setTutorialState((latest) => {
+        if (!latest || latest.mode !== cur.mode || latest.stepIndex !== cur.stepIndex) return latest;
+        if (latest.stepIndex + 1 >= steps.length) {
+          showToast({
+            id: "tutorial-done",
+            title: `${MODE_TUTORIAL_LABELS[latest.mode]} tutorial complete`,
+            subtitle: "All menus are now unlocked. Replay anytime in Settings.",
+            tone: "gold",
+          });
+          return null;
+        }
+        return { mode: latest.mode, stepIndex: latest.stepIndex + 1, completed: false };
+      });
+    }, 900);
+  }, [clearTutorialTimer, showToast]);
 
   /** Open a home (or close it if it is already open). Every sheet replaces whatever was open. */
   const openSheet=useCallback((id:NavSheet|null,toggle=false)=>{
     setPendingWorks(null);setWorksTool(null);setDispatchTarget(undefined);
+    setPendingRoadStroke(null);
+    setBulkSelectMode(false);
+    setQuickBuild(null);
+    setQuickDrawerOpen(false);
     setBrush(idleBrush);
-    setSheetState(current=>{
-      const next=toggle&&current===id?null:id;
-      if(next&&next!==current)setSheetHeight(DEFAULT_HEIGHT[next]);
-      if(next)setSelectedIds(ids=>next==="transit"?ids:[]);
-      return next;
-    });
-    if(id!=="more")setMorePage(null);
-  },[]);
+    setDeletedAnchor(null);
+    setInspectorDetailOpen(false);
+    setSelectionUndo(null);
+    const current = sheetRef.current;
+    const next = toggle && current === id ? null : id;
+    if (next && next !== current) setSheetHeight(DEFAULT_HEIGHT[next]);
+    if (next) setSelectedIds(ids => next === "transit" ? ids : []);
+    setSheetState(next);
+    if (id !== "more") setMorePage(null);
+    if (next === "build") notifyTutorial("open_build");
+    else if (next === "layers") notifyTutorial("open_layers");
+    else if (next === "city") notifyTutorial("open_city");
+    else if (next === "transit") notifyTutorial("open_transit");
+    else if (next === "more") notifyTutorial("open_more");
+  },[notifyTutorial]);
   const openWorks=useCallback(()=>{setBuildFix(undefined);setBuildQuery("");setBuildCat("works");openSheet("build");},[openSheet]);
   const openTransit=useCallback(()=>openSheet("transit"),[openSheet]);
   const openCity=useCallback((tab:CityTab)=>{setCityTab(tab);openSheet("city");},[openSheet]);
@@ -210,8 +496,8 @@ export const App: React.FC = () => {
   const showLayer=useCallback((layer:HeatmapKind)=>{setActiveHeatmap(layer);openSheet("layers");setSheetHeight("peek");},[openSheet]);
   const openMore=useCallback((page:MorePage)=>{openSheet("more");setMorePage(page);},[openSheet]);
 
-  const navigation=useRef({sheet,morePage,pendingWorks,dispatchTarget,worksTool});
-  navigation.current={sheet,morePage,pendingWorks,dispatchTarget,worksTool};
+  const navigation=useRef({sheet,morePage,pendingWorks,pendingRoadStroke,bulkSelectMode,dispatchTarget,worksTool,inspectorDetailOpen,quickBuild,quickDrawerOpen});
+  navigation.current={sheet,morePage,pendingWorks,pendingRoadStroke,bulkSelectMode,dispatchTarget,worksTool,inspectorDetailOpen,quickBuild,quickDrawerOpen};
 
   const commitState = useCallback((mutator: (draft: GameState) => void) => {
     const next: GameState = structuredClone(stateRef.current);
@@ -244,11 +530,20 @@ export const App: React.FC = () => {
       const result=undoBuildingEdit(draft);
       if(result.ok) {
         setSelectedIds(ids=>ids.filter(id=>draft.elements.some(e=>e.id===id)));
-        showToast({id:"undo",title:"Undone",subtitle:result.refunded ? "Treasury refunded $" + result.refunded.toLocaleString() + "." : result.label ?? ""});
       } else showToast({id:"undo",title:"Nothing to undo",subtitle:result.reason??"",tone:"alert"});
     });
   };
   undoRef.current=handleUndoBuilding;
+
+  const recordPlacementHabit = useCallback((def: CivElementDef, gx: number, gz: number) => {
+    const ctx = analyzeTileContext(stateRef.current, gx, gz);
+    setBuildHabits((prev) => {
+      const next = recordBuildHabit(prev, def, ctx.contextTag);
+      buildHabitsRef.current = next;
+      saveBuildHabits(next);
+      return next;
+    });
+  }, []);
 
   // Place tile callback from 3D canvas
   const handleTilePlace = useCallback(
@@ -272,7 +567,9 @@ export const App: React.FC = () => {
       const chosenVariant =
         cur.mode === "god" && curBrush.variantMode >= 0
           ? curBrush.variantMode
-          : randomVariant();
+          : def.isNetwork
+            ? pickAdjacentNetworkVariant(cur.elements, gx, gz, def)
+            : randomVariant();
       const charged = buildingCharges(cur) ? def.cost : 0;
 
       commitBuildingEdit("Place "+def.name,(draft) => {
@@ -313,21 +610,17 @@ export const App: React.FC = () => {
         recomputeConnectivityAndMetrics(draft);
       });
 
-      // One running toast per brush: "Placed 6 × Road −$60 · Undo".
-      setPlaceStats(prev=>{
-        const next=prev&&prev.defId===brushDef.id?{defId:brushDef.id,count:prev.count+1,spent:prev.spent+charged}:{defId:brushDef.id,count:1,spent:charged};
-        showToast({id:"placed",title:"Placed "+(next.count>1?next.count+" × ":"")+def.name,subtitle:next.spent?"−$"+next.spent.toLocaleString()+" from the treasury":"Free in God mode",
-          action:{label:"Undo",run:()=>undoRef.current()}});
-        return next;
-      });
+      recordPlacementHabit(def, gx, gz);
+      setPlaceStats(prev=>prev&&prev.defId===brushDef.id?{defId:brushDef.id,count:prev.count+1,spent:prev.spent+charged}:{defId:brushDef.id,count:1,spent:charged});
+      notifyTutorial("place_item");
 
       const beh = cursorBehaviorRef.current;
       if (beh === "select" || (beh === "auto" && !def.isNetwork)) setBrush(idleBrush);
     },
-    [commitBuildingEdit,showToast],
+    [commitBuildingEdit,showToast,notifyTutorial,recordPlacementHabit],
   );
 
-  // Move commit callback (God Mode relocation)
+  // Move commit callback
   const handleTileMoveCommit = useCallback(
     (elementId: string, gx: number, gz: number) => {
       const cur = stateRef.current;
@@ -335,24 +628,360 @@ export const App: React.FC = () => {
       if (!el) return;
       if (!planRelocation(cur, el, gx, gz).valid) return;
 
+      let moved = false;
       commitBuildingEdit("Move "+ELEMENT_BY_ID[el.defId].name,(draft) => {
         const target = draft.elements.find(e => e.id === elementId);
         if (target && relocatePlacedElement(draft, target, gx, gz)) {
           if (ELEMENT_BY_ID[target.defId].isRoadNetwork) settleStreetFacing(draft, target, false);
           recomputeConnectivityAndMetrics(draft);
+          moved = true;
         }
       });
-      showToast({id:"moved",title:"Moved "+ELEMENT_BY_ID[el.defId].name,action:{label:"Undo",run:()=>undoRef.current()}});
+      if (moved) {
+        setSelectionUndo(prev => ({ targetId: elementId, steps: (prev?.targetId === elementId ? prev.steps : 0) + 1 }));
+      }
       setBrush((b) => ({ ...b, kind: "none", movingElementId: undefined }));
     },
-    [commitBuildingEdit,showToast],
+    [commitBuildingEdit],
   );
 
-  // Tapping a building shows its inspector; sheets that work with a selection (Transit, Land & water) stay open.
+  // Tapping an element shows the floating radial quick-menu around it and closes any screen-covering sheet.
   const handleSelectElement = useCallback((elementId: string | null) => {
+    const prevId = selectedIdsRef.current[0];
+    setDeletedAnchor(null);
+    setInspectorDetailOpen(false);
+    setBulkSelectMode(false);
+    setQuickBuild(null);
+    setQuickDrawerOpen(false);
+    if (!elementId || elementId !== prevId) {
+      setSelectionUndo(null);
+    }
     setSelectedIds(elementId ? [elementId] : []);
-    const open=sheetRef.current;
-    if(elementId && open && open!=="transit" && !(open==="build"&&buildCatRef.current==="works")) setSheetState(null);
+    if (elementId) notifyTutorial("select_element");
+    const open = sheetRef.current;
+    if (elementId && open) setSheetState(null);
+  }, [notifyTutorial]);
+
+  // Tapping an empty tile dismisses any open sheet/selection/ring first, or opens the Quick-Build Spiral Menu.
+  const handleEmptyTileTap = useCallback((gx: number, gz: number) => {
+    const hadSheet = sheetRef.current !== null;
+    const hadSelection = selectedIdsRef.current.length > 0;
+    const hadDeleted = deletedAnchorRef.current !== null;
+    const hadQuickBuild = quickBuildRef.current !== null;
+    const hadQuickDrawer = quickDrawerOpenRef.current;
+
+    if (hadSheet || hadSelection || hadDeleted || hadQuickBuild || hadQuickDrawer) {
+      setSheetState(null);
+      setSelectedIds([]);
+      setDeletedAnchor(null);
+      setInspectorDetailOpen(false);
+      setSelectionUndo(null);
+      setQuickBuild(null);
+      setQuickDrawerOpen(false);
+      return;
+    }
+
+    const cur = stateRef.current;
+    if (cur.gameOver || cur.mode === "idle" || cur.mode === "manager") return;
+    if (quickBuildModeRef.current === "tree") {
+      setQuickBuild({ gx, gz, category: null, treeParentId: null, treeSubId: null });
+      return;
+    }
+    if (quickBuildModeRef.current === "instant") {
+      const instant = recommendInstantQuickElements(
+        cur,
+        gx,
+        gz,
+        buildHabitsRef.current,
+        6,
+        quickMenuPrefsRef.current.smartFocus,
+      );
+      if (instant.length > 0) {
+        setQuickBuild({ gx, gz, category: null, treeParentId: null, treeSubId: null });
+      }
+      return;
+    }
+    const cats = recommendQuickCategories(
+      cur,
+      gx,
+      gz,
+      buildHabitsRef.current,
+      6,
+      quickMenuPrefsRef.current.smartFocus,
+    );
+    if (cats.length > 0) {
+      setQuickBuild({ gx, gz, category: null, treeParentId: null, treeSubId: null });
+    }
+  }, []);
+
+  // Placing an element directly from the Quick-Build Spiral Menu (Adaptive or Decision Tree),
+  // then immediately opening the standard element-editing SelectionRing around the placed element.
+  const handleQuickBuildPlace = useCallback(
+    (defId: string) => {
+      const qb = quickBuildRef.current;
+      if (!qb) return;
+      const brushDef = ELEMENT_BY_ID[defId];
+      if (!brushDef) return;
+      const cur = stateRef.current;
+      if (cur.gameOver) return;
+
+      const { gx, gz } = qb;
+      const plan = planConstruction(cur, brushDef, gx, gz, 1, 0, false);
+      if (!plan.valid) {
+        if (buildingCharges(cur) && cur.money < plan.def.cost) {
+          showToast({
+            id: "funds",
+            title: "Not enough money",
+            subtitle: `Need $${plan.def.cost.toLocaleString()} to build ${plan.def.name}.`,
+            tone: "alert",
+          });
+        } else {
+          showToast({
+            id: "qb-blocked",
+            title: "Can't build here",
+            subtitle: plan.reason || `${brushDef.name} doesn't fit on this tile.`,
+            tone: "alert",
+          });
+        }
+        return;
+      }
+
+      const { def, level: placeLevel, spanX, spanZ, rotation, overWater, replaceId } = plan;
+      const chosenVariant = def.isNetwork
+        ? pickAdjacentNetworkVariant(cur.elements, gx, gz, def)
+        : randomVariant();
+      const charged = buildingCharges(cur) ? def.cost : 0;
+      const placedId = makeElementId();
+
+      commitBuildingEdit("Place " + def.name, (draft) => {
+        if (charged) transfer(draft, "treasury", "outside", def.cost, "Construction");
+        const placed: PlacedElement = {
+          id: placedId,
+          defId: def.id,
+          gx,
+          gz,
+          spanX,
+          spanZ,
+          rotation,
+          level: placeLevel,
+          variant: chosenVariant,
+          connected: false,
+          hasPoliceCover: false,
+          hasFireCover: false,
+          nuisancePenalty: 0,
+          maintTimerSec: 0,
+          disrepair: false,
+          onFire: false,
+          animProgress: 1.0,
+          animKind: "place",
+          ...(overWater ? { overWater: true } : {}),
+          ...(plan.roadAxis ? { roadAxis: plan.roadAxis } : {}),
+          ...(plan.pedestrianDeck ? { pedestrianDeck: true } : {}),
+        };
+        if (replaceId) {
+          placed.waterUnderlay = draft.elements.find((e) => e.id === replaceId);
+          draft.elements = draft.elements.filter((e) => e.id !== replaceId);
+        }
+        draft.elements.push(placed);
+        applyLandformPlacement(draft, placed);
+        settleStreetFacing(draft, placed, false);
+        recomputeConnectivityAndMetrics(draft);
+      });
+
+      recordPlacementHabit(def, gx, gz);
+      notifyTutorial("place_item");
+      setQuickBuild(null);
+      setDeletedAnchor(null);
+      setInspectorDetailOpen(false);
+      if (quickMenuPrefsRef.current.openQuickEditAfterPlace) {
+        setSelectedIds([placedId]);
+        setSelectionUndo({ targetId: placedId, steps: 1 });
+      } else {
+        setSelectedIds([]);
+        setSelectionUndo(null);
+      }
+    },
+    [commitBuildingEdit, notifyTutorial, recordPlacementHabit, showToast],
+  );
+
+  // Dragging 2+ road/bridge tiles holds the stretch in place with a floating checkmark to confirm (click elsewhere to cancel).
+  const handlePendingNetworkStroke = useCallback((stroke: PendingNetworkStroke) => {
+    setDeletedAnchor(null);
+    setSelectionUndo(null);
+    setSelectedIds([]);
+    setQuickBuild(null);
+    setPendingRoadStroke(stroke.points.length >= 2 ? stroke : null);
+  }, []);
+
+  const handleCancelPendingStroke = useCallback(() => {
+    setPendingRoadStroke(null);
+    if (pendingWorksRef.current?.tool.kind === "bridge") {
+      setPendingWorks(null);
+    }
+  }, []);
+
+  const handleConfirmRoadStroke = useCallback(() => {
+    const stroke = pendingRoadStrokeRef.current;
+    if (!stroke || stroke.points.length === 0) return;
+    const brushDef = ELEMENT_BY_ID[stroke.defId];
+    if (!brushDef) {
+      setPendingRoadStroke(null);
+      return;
+    }
+    const cur = stateRef.current;
+    if (cur.gameOver) {
+      setPendingRoadStroke(null);
+      return;
+    }
+    const curBrush = brushRef.current;
+    let placedCount = 0;
+    let totalSpent = 0;
+    let autoBridgeName: string | null = null;
+
+    commitBuildingEdit(`Place ${stroke.points.length} ${brushDef.name}`, (draft) => {
+      for (const pt of stroke.points) {
+        const plan = planConstruction(draft, brushDef, pt.gx, pt.gz, curBrush.level, curBrush.rotation, curBrush.faceManually);
+        if (!plan.valid) continue;
+        const { def, level: placeLevel, spanX, spanZ, rotation, overWater, replaceId } = plan;
+        const chosenVariant =
+          draft.mode === "god" && curBrush.variantMode >= 0
+            ? curBrush.variantMode
+            : def.isNetwork
+              ? pickAdjacentNetworkVariant(draft.elements, pt.gx, pt.gz, def)
+              : randomVariant();
+        const charged = buildingCharges(draft) ? def.cost : 0;
+        if (charged) transfer(draft, "treasury", "outside", def.cost, "Construction");
+        const placed: PlacedElement = {
+          id: makeElementId(),
+          defId: def.id,
+          gx: pt.gx,
+          gz: pt.gz,
+          spanX,
+          spanZ,
+          rotation,
+          level: placeLevel,
+          variant: chosenVariant,
+          connected: false,
+          hasPoliceCover: false,
+          hasFireCover: false,
+          nuisancePenalty: 0,
+          maintTimerSec: 0,
+          disrepair: false,
+          onFire: false,
+          animProgress: 1.0,
+          animKind: "place",
+          ...(overWater ? { overWater: true } : {}),
+          ...(plan.roadAxis ? { roadAxis: plan.roadAxis } : {}),
+          ...(plan.pedestrianDeck ? { pedestrianDeck: true } : {}),
+        };
+        if (replaceId) {
+          placed.waterUnderlay = draft.elements.find((e) => e.id === replaceId);
+          draft.elements = draft.elements.filter((e) => e.id !== replaceId);
+        }
+        draft.elements.push(placed);
+        applyLandformPlacement(draft, placed);
+        settleStreetFacing(draft, placed, curBrush.faceManually === true);
+        if (def.id !== brushDef.id) autoBridgeName = def.name;
+        placedCount++;
+        totalSpent += charged;
+      }
+      if (autoBridgeName && !draft.achievements?.includes("bridge_builder")) {
+        pushToast(draft, "merge", `Auto-Bridge: ${autoBridgeName}`, "Roads dragged across water become bridges automatically.");
+      }
+      if (placedCount > 0) {
+        recomputeConnectivityAndMetrics(draft);
+      }
+    });
+
+    setPendingRoadStroke(null);
+    if (placedCount === 0) {
+      showToast({
+        id: "road-confirm",
+        title: "Could not build stretch",
+        subtitle: buildingCharges(cur) ? "Check funds or blocked tiles." : "All tiles in this stretch were blocked.",
+        tone: "alert",
+      });
+      return;
+    }
+    if (stroke.points[0]) {
+      recordPlacementHabit(brushDef, stroke.points[0].gx, stroke.points[0].gz);
+    }
+    setPlaceStats((prev) =>
+      prev && prev.defId === brushDef.id
+        ? { defId: brushDef.id, count: prev.count + placedCount, spent: prev.spent + totalSpent }
+        : { defId: brushDef.id, count: placedCount, spent: totalSpent },
+    );
+    notifyTutorial("place_item");
+    if (cursorBehaviorRef.current === "select") setBrush(idleBrush);
+  }, [commitBuildingEdit, notifyTutorial, recordPlacementHabit, showToast]);
+  const confirmRoadStrokeRef = useRef(handleConfirmRoadStroke);
+  confirmRoadStrokeRef.current = handleConfirmRoadStroke;
+
+  const handleBulkSelectElements = useCallback((ids: string[], mode: "add" | "toggle") => {
+    setDeletedAnchor(null);
+    setInspectorDetailOpen(false);
+    setSelectionUndo(null);
+    setQuickBuild(null);
+    if (mode === "toggle") {
+      const target = ids[0];
+      if (!target) return;
+      setSelectedIds((prev) => (prev.includes(target) ? prev.filter((id) => id !== target) : [...prev, target]));
+      return;
+    }
+    if (ids.length === 0) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) next.add(id);
+      return Array.from(next);
+    });
+  }, []);
+
+  const handleSelectConnectedRoads = useCallback(() => {
+    const cur = stateRef.current;
+    const currentSet = new Set(selectedIdsRef.current);
+    const seeds = cur.elements.filter((el) => {
+      if (!currentSet.has(el.id)) return false;
+      const def = ELEMENT_BY_ID[el.defId];
+      return Boolean(def?.isRoadNetwork || def?.isRailNetwork);
+    });
+    if (seeds.length === 0) return;
+    const matchRail = seeds.every((el) => ELEMENT_BY_ID[el.defId]?.isRailNetwork);
+    const tileToId = new Map<string, string>();
+    const elById = new Map<string, PlacedElement>();
+    for (const el of cur.elements) {
+      const def = ELEMENT_BY_ID[el.defId];
+      const matches = matchRail ? Boolean(def?.isRailNetwork) : Boolean(def?.isRoadNetwork);
+      if (!matches) continue;
+      elById.set(el.id, el);
+      for (let x = el.gx; x < el.gx + el.spanX; x++) {
+        for (let z = el.gz; z < el.gz + el.spanZ; z++) {
+          tileToId.set(`${x},${z}`, el.id);
+        }
+      }
+    }
+    const visited = new Set<string>(seeds.map((s) => s.id));
+    const queue = [...seeds];
+    const dirs: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    while (queue.length > 0) {
+      const el = queue.shift()!;
+      for (let x = el.gx; x < el.gx + el.spanX; x++) {
+        for (let z = el.gz; z < el.gz + el.spanZ; z++) {
+          for (const [dx, dz] of dirs) {
+            const nid = tileToId.get(`${x + dx},${z + dz}`);
+            if (nid && !visited.has(nid)) {
+              visited.add(nid);
+              const neighbor = elById.get(nid);
+              if (neighbor) queue.push(neighbor);
+            }
+          }
+        }
+      }
+    }
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of visited) next.add(id);
+      return Array.from(next);
+    });
   }, []);
 
   // Initialize Three.js renderer once
@@ -362,10 +991,14 @@ export const App: React.FC = () => {
 
     const world = new PixelWorldRenderer(canvas, stateRef.current, {
       onTilePlace: handleTilePlace,
+      onPendingNetworkStroke: handlePendingNetworkStroke,
+      onCancelPendingStroke: handleCancelPendingStroke,
+      onBulkSelectElements: handleBulkSelectElements,
       onTileMoveCommit: handleTileMoveCommit,
       onSelectElement: handleSelectElement,
+      onEmptyTileTap: handleEmptyTileTap,
       onFollowChange: setFollowedService,
-      onSelectService:id=>{setReturnLine(id);openTransit();setSelectedIds([]);},
+      onSelectService:id=>{setReturnLine(id);openTransit();setSelectedIds([]);setDeletedAnchor(null);setSelectionUndo(null);setQuickBuild(null);},
       onHoverInfo: setHoverInfo,
       onInspectTile: (gx,gz)=>{
         setInspectPoint({gx,gz});
@@ -375,6 +1008,7 @@ export const App: React.FC = () => {
       onInfrastructureStroke: (tool,points)=>setPendingWorks({tool:{...tool},points:points.map(p=>({...p}))}),
     });
     rendererRef.current = world;
+    if (ringObserverRef.current) world.setSelectionRingObserver(ringObserverRef.current);
     restoreIslandView(stateRef.current);
     (window as unknown as { __pixelWorld?: PixelWorldRenderer }).__pixelWorld = world;
 
@@ -382,9 +1016,85 @@ export const App: React.FC = () => {
       world.dispose();
       rendererRef.current = null;
     };
-  }, [handleTilePlace, handleTileMoveCommit, handleSelectElement, commitState, restoreIslandView, openTransit]);
+  }, [
+    handleTilePlace,
+    handlePendingNetworkStroke,
+    handleCancelPendingStroke,
+    handleBulkSelectElements,
+    handleTileMoveCommit,
+    handleSelectElement,
+    handleEmptyTileTap,
+    commitState,
+    restoreIslandView,
+    openTransit,
+  ]);
 
   useEffect(() => {rendererRef.current?.syncState(gameState, selectedIds);}, [gameState, selectedIds]);
+  useEffect(() => {rendererRef.current?.setQuickBuildTile(quickBuild ? { gx: quickBuild.gx, gz: quickBuild.gz } : null);}, [quickBuild]);
+  useEffect(() => {rendererRef.current?.setPendingNetworkStroke(pendingRoadStroke);}, [pendingRoadStroke]);
+  useEffect(() => {
+    const bridgePending = Boolean(pendingWorks && pendingWorks.tool.kind === "bridge" && pendingWorks.points.length >= 2);
+    rendererRef.current?.setHasPendingBridgeConfirm(bridgePending, bridgePending ? pendingWorks : null);
+  }, [pendingWorks]);
+  useEffect(() => {rendererRef.current?.setBulkSelect(bulkSelectMode, bulkFilter);}, [bulkSelectMode, bulkFilter]);
+  useEffect(() => {
+    if (pendingRoadStroke && pendingRoadStroke.points.length >= 2) {
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      for (const p of pendingRoadStroke.points) {
+        if (p.gx < minX) minX = p.gx;
+        if (p.gx > maxX) maxX = p.gx;
+        if (p.gz < minZ) minZ = p.gz;
+        if (p.gz > maxZ) maxZ = p.gz;
+      }
+      rendererRef.current?.setCustomRingTarget({
+        gx: minX,
+        gz: minZ,
+        spanX: Math.max(1, maxX - minX + 1),
+        spanZ: Math.max(1, maxZ - minZ + 1),
+        topY: 1.5,
+      });
+      return;
+    }
+    if (pendingWorks && pendingWorks.tool.kind === "bridge" && pendingWorks.points.length >= 2) {
+      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+      for (const p of pendingWorks.points) {
+        if (p.gx < minX) minX = p.gx;
+        if (p.gx > maxX) maxX = p.gx;
+        if (p.gz < minZ) minZ = p.gz;
+        if (p.gz > maxZ) maxZ = p.gz;
+      }
+      rendererRef.current?.setCustomRingTarget({
+        gx: minX,
+        gz: minZ,
+        spanX: Math.max(1, maxX - minX + 1),
+        spanZ: Math.max(1, maxZ - minZ + 1),
+        topY: 2.2,
+      });
+      return;
+    }
+    if (quickBuild) {
+      rendererRef.current?.setCustomRingTarget({
+        gx: quickBuild.gx,
+        gz: quickBuild.gz,
+        spanX: 1,
+        spanZ: 1,
+        topY: 1.1,
+      });
+      return;
+    }
+    rendererRef.current?.setCustomRingTarget(
+      deletedAnchor
+        ? {
+            gx: deletedAnchor.gx,
+            gz: deletedAnchor.gz,
+            spanX: deletedAnchor.spanX,
+            spanZ: deletedAnchor.spanZ,
+            baseY: deletedAnchor.baseY,
+            topY: deletedAnchor.topY,
+          }
+        : null,
+    );
+  }, [pendingRoadStroke, pendingWorks, quickBuild, deletedAnchor]);
   useEffect(()=>{rendererRef.current?.setInfrastructureTool(worksTool);},[worksTool]);
   useEffect(() => {rendererRef.current?.setBrush(brush);}, [brush]);
   useEffect(() => {rendererRef.current?.setHeatmap(activeHeatmap);}, [activeHeatmap]);
@@ -438,6 +1148,41 @@ export const App: React.FC = () => {
     return () => {window.clearInterval(timer);window.removeEventListener("pagehide",flush);document.removeEventListener("visibilitychange",visibility);};
   }, []);
 
+  // Algorithmic Idle Mode & Manager Mode growth loop
+  useEffect(() => {
+    if (gameState.mode !== "idle" && gameState.mode !== "manager") return;
+    let tickCount = 0;
+    const interval = window.setInterval(() => {
+      if (document.hidden || simSpeedRef.current <= 0) return;
+      const cur = stateRef.current;
+      if (cur.gameOver || (cur.mode !== "idle" && cur.mode !== "manager")) return;
+      if (cur.mode === "idle" && idlePausedRef.current) return;
+      if (cur.mode === "manager" && managerDecisionRef.current) return;
+
+      tickCount++;
+      // In Manager mode, surface an executive decision every other cycle once a road exists
+      if (cur.mode === "manager" && tickCount % 2 === 0 && cur.elements.length >= 2) {
+        const decision = generateManagerDecision(cur, autoProfileRef.current, tickCount);
+        if (decision) {
+          setManagerDecision(decision);
+          return;
+        }
+      }
+
+      let outcomeSummary = "";
+      let acted = false;
+      commitState((draft) => {
+        const out = runAutoCivStep(draft, autoProfileRef.current, tickCount);
+        acted = out.didAct;
+        outcomeSummary = out.summary;
+      });
+      if (acted && outcomeSummary) {
+        setAutoLastAction(outcomeSummary);
+      }
+    }, 2400);
+    return () => window.clearInterval(interval);
+  }, [gameState.mode, commitState]);
+
   const rotateSelected=useCallback((id:string)=>{
     commitBuildingEdit("Rotate building",(draft) => {
       const el = draft.elements.find((item) => item.id === id);
@@ -458,11 +1203,11 @@ export const App: React.FC = () => {
         el.rotation = nextRot;
       }
       recomputeConnectivityAndMetrics(draft);
-      showToast({id:"rotated",title:"Rotated "+ELEMENT_BY_ID[el.defId].name,action:{label:"Undo",run:()=>undoRef.current()}});
     });
-  },[commitBuildingEdit,showToast]);
+    setSelectionUndo(prev => ({ targetId: id, steps: (prev?.targetId === id ? prev.steps : 0) + 1 }));
+  },[commitBuildingEdit]);
 
-  // Keyboard: B/L/C/T/M homes, R rotate, Del demolish (confirmed), Ctrl+Z undo, Esc steps back one level.
+  // Keyboard: B/L/C/T/M homes, R rotate, Del demolish immediately, Ctrl+Z undo, Esc steps back one level.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if(e.defaultPrevented || document.querySelector("dialog[open]")) return;
@@ -470,9 +1215,40 @@ export const App: React.FC = () => {
       const typing=!!target?.closest('input,textarea,select,[contenteditable="true"]');
       if((e.ctrlKey||e.metaKey) && e.code==="KeyZ" && !typing){e.preventDefault();undoRef.current();return;}
       if(e.ctrlKey || e.metaKey || e.altKey) return;
+      if(e.key==="Enter" && !typing) {
+        if (pendingRoadStrokeRef.current) {
+          e.preventDefault();
+          confirmRoadStrokeRef.current();
+          return;
+        }
+        if (pendingWorksRef.current?.tool.kind === "bridge") {
+          const edit = pendingWorksRef.current;
+          const preview = planInfrastructureStroke(stateRef.current, edit.tool, edit.points);
+          if (preview.valid) {
+            e.preventDefault();
+            commitBuildingEdit("Build bridge", (st) => {
+              const p = applyInfrastructureStroke(st, edit.tool, edit.points);
+              if (!p.valid) pushToast(st, "alert", "Public works", p.reason);
+              recomputeConnectivityAndMetrics(st);
+            });
+            setPendingWorks(null);
+            return;
+          }
+        }
+      }
       if(e.key==="Escape") {
         const ui=navigation.current;
+        if(ui.quickDrawerOpen) {setQuickDrawerOpen(false);return;}
+        if(ui.quickBuild) {
+          if (ui.quickBuild.treeSubId) setQuickBuild({ ...ui.quickBuild, treeSubId: null });
+          else if (ui.quickBuild.treeParentId) setQuickBuild({ ...ui.quickBuild, treeParentId: null, treeSubId: null });
+          else if (ui.quickBuild.category) setQuickBuild({ ...ui.quickBuild, category: null });
+          else setQuickBuild(null);
+          return;
+        }
+        if(ui.pendingRoadStroke) {setPendingRoadStroke(null);return;}
         if(ui.pendingWorks || ui.dispatchTarget) {setPendingWorks(null);setDispatchTarget(undefined);return;}
+        if(ui.bulkSelectMode) {setBulkSelectMode(false);setSelectedIds([]);return;}
         if(ui.worksTool){setWorksTool(null);return;}
         if(brushRef.current.kind!=="none"){setBrush(idleBrush);return;}
         if(ui.sheet==="more"&&ui.morePage){setMorePage(null);return;}
@@ -481,8 +1257,11 @@ export const App: React.FC = () => {
           document.querySelector<HTMLButtonElement>('[data-panel-toggle="'+ui.sheet+'"]')?.focus({preventScroll:true});
           return;
         }
+        if(ui.inspectorDetailOpen){setInspectorDetailOpen(false);return;}
         rendererRef.current?.followService();
         setSelectedIds([]);
+        setDeletedAnchor(null);
+        setSelectionUndo(null);
       } else if(typing) return;
       else if(e.repeat && ["KeyB","KeyL","KeyC","KeyT","KeyM","KeyH","KeyV","KeyR"].includes(e.code)) return;
       else if (["KeyB","KeyL","KeyC","KeyT","KeyM","KeyH"].includes(e.code)) {
@@ -497,19 +1276,19 @@ export const App: React.FC = () => {
       } else if (e.code === "KeyR") {
         if (brushRef.current.kind === "place") {
           setBrush((b) => ({ ...b, rotation: (b.rotation + 1) % 4, faceManually:true }));
-        } else if (stateRef.current.mode === "god" && selectedIdsRef.current.length === 1) {
+        } else if (selectedIdsRef.current.length === 1) {
           rotateSelected(selectedIdsRef.current[0]);
         }
       } else if ((e.key === "Delete" || e.key === "Backspace") && selectedIdsRef.current.length > 0) {
-        setConfirmDemolish([...selectedIdsRef.current]);
+        demolishRef.current([...selectedIdsRef.current]);
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [openSheet,rotateSelected]);
+  }, [openSheet,rotateSelected,commitBuildingEdit]);
 
-  const resetTools=()=>{setDispatchTarget(undefined);setPendingWorks(null);setWorksTool(null);setSheetState(null);setMorePage(null);rendererRef.current?.followService();};
+  const resetTools=()=>{setDispatchTarget(undefined);setPendingWorks(null);setPendingRoadStroke(null);setBulkSelectMode(false);setQuickBuild(null);setQuickDrawerOpen(false);setWorksTool(null);setSheetState(null);setMorePage(null);setInspectorDetailOpen(false);setDeletedAnchor(null);setSelectionUndo(null);rendererRef.current?.followService();};
 
   // UI Handlers
   const handleSwitchMode = (mode: GameMode) => {
@@ -523,13 +1302,36 @@ export const App: React.FC = () => {
     setSelectedIds([]);
     setActiveSlotIndex(null);
     setBrush({kind: "none", level: 1, variantMode: -1, rotation: 0});
+    autoProfileRef.current = createAutoCivProfile();
+    setManagerDecision(null);
+    setAutoLastAction("");
+    setIdlePaused(false);
     return true;
+  };
+
+  const handleStartTutorial = (mode: GameMode) => {
+    clearTutorialTimer();
+    if (stateRef.current.mode !== mode) {
+      if (!handleSwitchMode(mode)) return;
+    } else {
+      resetTools();
+      setSelectedIds([]);
+      setBrush(idleBrush);
+    }
+    setActiveHeatmap("none");
+    setTutorialState({ mode, stepIndex: 0, completed: false });
   };
 
   const handleSelectBrushDef = (defId: string | null) => {
     setWorksTool(null);
+    setPendingRoadStroke(null);
+    setBulkSelectMode(false);
+    setQuickBuild(null);
     if (!defId) {setBrush(idleBrush);return;}
     setSelectedIds([]);
+    setDeletedAnchor(null);
+    setInspectorDetailOpen(false);
+    setSelectionUndo(null);
     setSheetState(null);
     setBrush((b) => ({
       ...b,
@@ -547,16 +1349,15 @@ export const App: React.FC = () => {
   };
 
   const handleUpgradeSelected = (id: string) => {
+    let upgraded = false;
     commitBuildingEdit("Upgrade building",(draft) => {
-      const before = draft.money;
       const res = upgradeElementDirect(draft, id);
       if (!res.ok && res.reason) showToast({id:"upgrade",title:"Can't upgrade yet",subtitle:res.reason,tone:"alert"});
-      else if (res.ok) {
-        const el = draft.elements.find(e => e.id === id)!;
-        const spent = Math.round(before - draft.money);
-        showToast({id:"upgrade",title:ELEMENT_BY_ID[el.defId].name+" is now Lv "+el.level,subtitle:spent>0?"−$"+spent.toLocaleString():undefined,action:{label:"Undo",run:()=>undoRef.current()}});
-      }
+      else if (res.ok) upgraded = true;
     });
+    if (upgraded) {
+      setSelectionUndo(prev => ({ targetId: id, steps: (prev?.targetId === id ? prev.steps : 0) + 1 }));
+    }
   };
 
   const handleMaintainSelected = (id: string) => {
@@ -578,6 +1379,7 @@ export const App: React.FC = () => {
     id: string,
     patch: { level?: number; variant?: number; rotation?: number },
   ) => {
+    let mutated = false;
     commitBuildingEdit("Change building",(draft) => {
       const el = draft.elements.find((item) => item.id === id);
       if (!el) return;
@@ -590,24 +1392,68 @@ export const App: React.FC = () => {
         }
       }
       if (patch.variant !== undefined) el.variant = patch.variant;
-      showToast({id:"changed",title:patch.level !== undefined ? ELEMENT_BY_ID[el.defId].name+" is now Lv "+el.level : "Changed style",
-        action:{label:"Undo",run:()=>undoRef.current()}});
       el.animProgress = 0.75;
       el.animKind = "upgrade";
       recomputeConnectivityAndMetrics(draft);
+      mutated = true;
     });
+    if (mutated) {
+      setSelectionUndo(prev => ({ targetId: id, steps: (prev?.targetId === id ? prev.steps : 0) + 1 }));
+    }
   };
 
   const demolish = (ids: string[]) => {
     const set = new Set(ids);
-    const names = stateRef.current.elements.filter(e => set.has(e.id)).map(e => ELEMENT_BY_ID[e.defId].name);
-    commitBuildingEdit("Remove building",(draft) => {
+    const removed = stateRef.current.elements.filter((e) => set.has(e.id));
+    if (removed.length === 0) return;
+    const primary = removed[0];
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const el of removed) {
+      if (el.gx < minX) minX = el.gx;
+      if (el.gx + el.spanX > maxX) maxX = el.gx + el.spanX;
+      if (el.gz < minZ) minZ = el.gz;
+      if (el.gz + el.spanZ > maxZ) maxZ = el.gz + el.spanZ;
+    }
+    commitBuildingEdit(removed.length > 1 ? `Remove ${removed.length} items` : "Remove building", (draft) => {
       removePlacedElements(draft, set);
       recomputeConnectivityAndMetrics(draft);
     });
     setSelectedIds([]);
-    setConfirmDemolish(null);
-    showToast({id:"removed",title:"Demolished "+(names.length>1?names.length+" buildings":names[0]??"building"),action:{label:"Undo",run:()=>undoRef.current()}});
+    setBulkSelectMode(false);
+    setInspectorDetailOpen(false);
+    setDeletedAnchor({
+      gx: minX,
+      gz: minZ,
+      spanX: Math.max(1, maxX - minX),
+      spanZ: Math.max(1, maxZ - minZ),
+      name: removed.length > 1 ? `${removed.length} items` : (ELEMENT_BY_ID[primary.defId]?.name ?? "building"),
+      restoredId: primary.id,
+    });
+    setSelectionUndo((prev) => ({
+      targetId: primary.id,
+      steps: (prev?.targetId === primary.id ? prev.steps : 0) + 1,
+    }));
+  };
+  demolishRef.current = demolish;
+
+  const handleRingUndo = () => {
+    const anchor = deletedAnchor;
+    let restored = false;
+    commitState((draft) => {
+      const res = undoBuildingEdit(draft);
+      if (res.ok) {
+        restored = true;
+        if (anchor && draft.elements.some((e) => e.id === anchor.restoredId)) {
+          setSelectedIds([anchor.restoredId]);
+        } else {
+          setSelectedIds((ids) => ids.filter((id) => draft.elements.some((e) => e.id === id)));
+        }
+      }
+    });
+    if (restored) {
+      if (anchor) setDeletedAnchor(null);
+      setSelectionUndo((prev) => (prev && prev.steps > 1 ? { ...prev, steps: prev.steps - 1 } : null));
+    }
   };
 
   const handleResetCurrentIsland = () => {
@@ -621,6 +1467,21 @@ export const App: React.FC = () => {
     saveModeState(fresh);
     setSelectedIds([]);
     setConfirmResetOpen(false);
+    autoProfileRef.current = createAutoCivProfile();
+    setManagerDecision(null);
+    setAutoLastAction("");
+    setIdlePaused(false);
+  };
+
+  const handleManagerChoice = (choice: ManagerChoice) => {
+    setManagerDecision(null);
+    let summary = "";
+    commitState((draft) => {
+      const turnIdx = draft.elements.length + Math.round(draft.activePlaySec);
+      const out = applyManagerChoice(draft, autoProfileRef.current, choice, turnIdx);
+      summary = out.summary;
+    });
+    if (summary) setAutoLastAction(summary);
   };
 
   const handleSaveToSlot = (slotIndex: number, name: string) => {
@@ -830,18 +1691,209 @@ export const App: React.FC = () => {
   };
   const showPanel=(p:"transit"|"money"|"people")=>p==="transit"?openTransit():openCity(p);
 
-  // Context layer: placing / moving / drawing wins over sheets; the inspector shows a selection when no sheet is open.
+  // Context layer: any specialized menu, sheet, tool, ring, or modal takes clean screen focus and hides outer chrome.
   const brushDef=brush.kind==="place"&&brush.defId?ELEMENT_BY_ID[brush.defId]:undefined;
   const movingEl=brush.kind==="move"?gameState.elements.find(e=>e.id===brush.movingElementId):undefined;
-  const placing=!!(brushDef||movingEl||worksTool||pendingWorks||dispatchTarget);
-  const showInspector=!!(selected&&selectedDef&&!sheet&&!placing);
-  const issues=alertIssues(gameState);
-  const showAlert=!sheet&&!placing&&!showInspector&&issues.length>0;
   const charges=buildingCharges(gameState);
+  const roadStrokeStats = useMemo(() => {
+    if (!pendingRoadStroke || pendingRoadStroke.points.length < 2) return null;
+    const def = ELEMENT_BY_ID[pendingRoadStroke.defId];
+    if (!def) return null;
+    const virtualState: GameState = {
+      ...gameState,
+      elements: [...gameState.elements],
+      money: gameState.money,
+    };
+    let validCount = 0;
+    let totalCost = 0;
+    for (const pt of pendingRoadStroke.points) {
+      const plan = planConstruction(virtualState, def, pt.gx, pt.gz, brush.level, brush.rotation, brush.faceManually);
+      if (!plan.valid) continue;
+      const cost = charges ? plan.def.cost : 0;
+      if (charges) virtualState.money -= cost;
+      virtualState.elements.push({
+        id: `preview-${validCount}`,
+        defId: plan.def.id,
+        gx: pt.gx,
+        gz: pt.gz,
+        spanX: plan.spanX,
+        spanZ: plan.spanZ,
+        rotation: plan.rotation,
+        level: plan.level,
+        variant: 0,
+        connected: false,
+        hasPoliceCover: false,
+        hasFireCover: false,
+        nuisancePenalty: 0,
+        maintTimerSec: 0,
+        disrepair: false,
+        onFire: false,
+        animProgress: 0,
+        animKind: "place",
+      });
+      validCount++;
+      totalCost += cost;
+    }
+    return { def, validCount, totalCount: pendingRoadStroke.points.length, totalCost };
+  }, [pendingRoadStroke, gameState, brush.level, brush.rotation, brush.faceManually, charges]);
+
+  const isBridgeConfirm = Boolean(
+    pendingWorks && pendingWorks.tool.kind === "bridge" && worksPreview && worksPreview.points.length >= 2,
+  );
+  const pendingConfirm: PendingConfirmAction | null = roadStrokeStats
+    ? {
+        key: `road:${roadStrokeStats.def.id}:${pendingRoadStroke!.points.map((p) => `${p.gx},${p.gz}`).join(";")}`,
+        label: `Build ${roadStrokeStats.validCount} ${roadStrokeStats.def.name} tiles`,
+        sublabel:
+          roadStrokeStats.validCount > 0
+            ? `${roadStrokeStats.validCount} tiles${roadStrokeStats.totalCost > 0 ? ` · $${roadStrokeStats.totalCost.toLocaleString()}` : ""}`
+            : "Blocked",
+        valid: roadStrokeStats.validCount > 0,
+        onConfirm: handleConfirmRoadStroke,
+      }
+    : isBridgeConfirm && pendingWorks && worksPreview
+      ? {
+          key: `bridge:${pendingWorks.points.map((p) => `${p.gx},${p.gz}`).join(";")}`,
+          label: `Build ${worksPreview.points.length}-tile bridge`,
+          sublabel: worksPreview.valid
+            ? `${worksPreview.points.length} tiles${worksPreview.cost > 0 ? ` · $${worksPreview.cost.toLocaleString()}` : ""}`
+            : worksPreview.reason,
+          valid: worksPreview.valid,
+          onConfirm: () => {
+            const edit = pendingWorks;
+            editCity((st) => {
+              const p = applyInfrastructureStroke(st, edit.tool, edit.points);
+              if (!p.valid) pushToast(st, "alert", "Public works", p.reason);
+            }, "Build bridge");
+            setPendingWorks(null);
+          },
+        }
+      : null;
+
+  const placing=!!(brushDef||movingEl||worksTool||pendingWorks||dispatchTarget);
+  const showQuickBuildRing = Boolean(
+    quickBuild &&
+      !sheet &&
+      !inspectorDetailOpen &&
+      !guideModal &&
+      !pixModal.open &&
+      !placing &&
+      !bulkSelectMode &&
+      !pendingConfirm &&
+      selectedIds.length === 0 &&
+      !deletedAnchor,
+  );
+  const quickCategories = useMemo(
+    () =>
+      showQuickBuildRing && quickBuild && quickBuildMode === "adaptive"
+        ? recommendQuickCategories(gameState, quickBuild.gx, quickBuild.gz, buildHabits, 6, quickMenuPrefs.smartFocus)
+        : [],
+    [showQuickBuildRing, quickBuild, quickBuildMode, gameState, buildHabits, quickMenuPrefs.smartFocus],
+  );
+  const quickElements = useMemo(
+    () =>
+      showQuickBuildRing && quickBuildMode === "adaptive" && quickBuild?.category
+        ? recommendQuickElements(
+            gameState,
+            quickBuild.category,
+            quickBuild.gx,
+            quickBuild.gz,
+            buildHabits,
+            6,
+            quickMenuPrefs.smartFocus,
+          )
+        : [],
+    [showQuickBuildRing, quickBuildMode, quickBuild, gameState, buildHabits, quickMenuPrefs.smartFocus],
+  );
+  const quickInstantElements = useMemo(
+    () =>
+      showQuickBuildRing && quickBuild && quickBuildMode === "instant"
+        ? recommendInstantQuickElements(
+            gameState,
+            quickBuild.gx,
+            quickBuild.gz,
+            buildHabits,
+            6,
+            quickMenuPrefs.smartFocus,
+          )
+        : [],
+    [showQuickBuildRing, quickBuild, quickBuildMode, gameState, buildHabits, quickMenuPrefs.smartFocus],
+  );
+  const quickTreeElements = useMemo(
+    () =>
+      showQuickBuildRing && quickBuildMode === "tree" && quickBuild?.treeParentId && quickBuild?.treeSubId
+        ? getDecisionTreeLeafElements(
+            gameState,
+            quickBuild.treeParentId,
+            quickBuild.treeSubId,
+            quickBuild.gx,
+            quickBuild.gz,
+          )
+        : [],
+    [showQuickBuildRing, quickBuildMode, quickBuild, gameState],
+  );
+  const showSelectionRing = Boolean(
+    !showQuickBuildRing &&
+      !sheet &&
+      !inspectorDetailOpen &&
+      !guideModal &&
+      !pixModal.open &&
+      (pendingConfirm ||
+        (bulkSelectMode && selectedIds.length > 0) ||
+        (!placing && (selectedIds.length > 1 || (selected && selectedDef) || deletedAnchor))),
+  );
+  const showInspector=!!(selected&&selectedDef&&inspectorDetailOpen&&!sheet&&!placing&&!bulkSelectMode&&!guideModal&&!pixModal.open);
+  const inFocusMenu = Boolean(
+    showQuickBuildRing ||
+      showSelectionRing ||
+      showInspector ||
+      bulkSelectMode ||
+      pendingRoadStroke ||
+      sheet ||
+      placing ||
+      railSite ||
+      examplesOpen ||
+      savesModalOpen ||
+      guideModal ||
+      pixModal.open ||
+      confirmResetOpen ||
+      gameState.gameOver,
+  );
+  const hideChrome = inFocusMenu;
+  const issues=alertIssues(gameState);
+  const showAlert=!hideChrome&&issues.length>0;
   const gameToasts:UiToast[]=gameState.toasts.map(t=>({id:t.id,title:t.title,subtitle:t.subtitle,tone:t.kind==="stage"?"gold":t.kind==="raid"||t.kind==="alert"?"alert":"normal"}));
   const layerName=LAYERS.find(l=>l.id===activeHeatmap)?.label;
   const hoverBad=brush.kind!=="none"&&hoverInfo&&!hoverInfo.valid?hoverInfo.reason:undefined;
   const sheetProps={height:sheetHeight,onHeight:setSheetHeight,onClose:()=>openSheet(null)};
+  const ringCanUndo = Boolean(
+    (deletedAnchor && selectionUndo && selectionUndo.steps > 0) ||
+      (selected && selectionUndo?.targetId === selected.id && selectionUndo.steps > 0),
+  );
+  const selectedHasNetwork = useMemo(
+    () => selectedIds.some((id) => {
+      const el = gameState.elements.find((e) => e.id === id);
+      const d = el ? ELEMENT_BY_ID[el.defId] : undefined;
+      return Boolean(d?.isRoadNetwork || d?.isRailNetwork);
+    }),
+    [selectedIds, gameState.elements],
+  );
+  const canManualEdit = gameState.mode !== "idle" && gameState.mode !== "manager";
+  const startBulkSelect = (initialFilter: BulkSelectFilter = "all", keepSelection = false) => {
+    setSheetState(null);
+    setWorksTool(null);
+    setPendingWorks(null);
+    setPendingRoadStroke(null);
+    setQuickBuild(null);
+    setQuickDrawerOpen(false);
+    setBrush(idleBrush);
+    setDeletedAnchor(null);
+    setInspectorDetailOpen(false);
+    setSelectionUndo(null);
+    if (!keepSelection) setSelectedIds([]);
+    setBulkFilter(initialFilter);
+    setBulkSelectMode(true);
+  };
 
   const worksPanel=<>
     {returnLine&&<Button variant="quiet" small label={"← Back to "+returnLine.replace("line-","service #")} onClick={openTransit}/>}
@@ -850,24 +1902,262 @@ export const App: React.FC = () => {
       onToolChange={t=>{setPendingWorks(null);setWorksTool(t);}} onClose={()=>openSheet(null)}/>
   </>;
 
+  const activeTutorialStep = tutorialState ? TUTORIAL_FLOWS[tutorialState.mode][tutorialState.stepIndex] ?? null : null;
+  const showTutorialOverlay = Boolean(
+    tutorialState &&
+      activeTutorialStep &&
+      !guideModal &&
+      !savesModalOpen &&
+      !examplesOpen &&
+      !confirmResetOpen &&
+      !gameState.gameOver,
+  );
+  const showHud = !hideChrome && (!activeTutorialStep || activeTutorialStep.showHud);
+  const openPixStudio = (tab?: PixTab) => {
+    setSheetState(null);
+    setQuickBuild(null);
+    setQuickDrawerOpen(false);
+    const defaultTab: PixTab = tab ?? (gameState.mode === "idle" || gameState.mode === "manager" ? "advise" : "element");
+    setPixModal({ open: true, tab: defaultTab });
+  };
+  const quickDrawerItems = useMemo(
+    () =>
+      recommendQuickDrawerActions(
+        gameState,
+        {
+          quickBuildMode,
+          quickMenuPrefs,
+          bulkSelectMode,
+          canManualEdit,
+          simSpeed,
+          activeHeatmap,
+          autoSpin,
+          canUndo: Boolean(gameState.constructionHistory?.length),
+        },
+        quickDrawerHabits,
+        6,
+        quickDrawerPrefs,
+      ),
+    [
+      gameState,
+      quickBuildMode,
+      quickMenuPrefs,
+      bulkSelectMode,
+      canManualEdit,
+      simSpeed,
+      activeHeatmap,
+      autoSpin,
+      quickDrawerHabits,
+      quickDrawerPrefs,
+    ],
+  );
+  const handlePickQuickDrawerItem = useCallback(
+    (item: QuickDrawerItem) => {
+      trackDrawerAction(item.id, 1);
+      switch (item.id) {
+        case "bulk_select":
+          if (bulkSelectMode) {
+            setBulkSelectMode(false);
+            setSelectedIds([]);
+          } else {
+            startBulkSelect("all", false);
+          }
+          break;
+        case "mode_smart":
+          handleChangeQuickBuildMode("adaptive");
+          break;
+        case "mode_quick":
+          handleChangeQuickBuildMode("instant");
+          break;
+        case "mode_exact":
+          handleChangeQuickBuildMode("tree");
+          break;
+        case "sim_speed": {
+          const nextSpd = simSpeed === 0 ? 1 : simSpeed === 1 ? 2 : simSpeed === 2 ? 4 : 0;
+          setSimSpeed(nextSpd);
+          break;
+        }
+        case "undo":
+          handleUndoBuilding();
+          break;
+        case "city_issues":
+          openCity("issues");
+          break;
+        case "repair_all":
+          handleMaintainAll();
+          break;
+        case "camera_recenter":
+          rendererRef.current?.recentreCamera();
+          break;
+        case "camera_orbit":
+          setAutoSpin((s) => !s);
+          break;
+        case "heatmap_power":
+          setActiveHeatmap((h) => (h === "power" ? "none" : "power"));
+          break;
+        case "heatmap_water":
+          setActiveHeatmap((h) => (h === "water" ? "none" : "water"));
+          break;
+        case "heatmap_safety":
+          setActiveHeatmap((h) => (h === "police" ? "none" : "police"));
+          break;
+        case "heatmap_traffic":
+          setActiveHeatmap((h) => (h === "traffic" ? "none" : "traffic"));
+          break;
+        case "public_works":
+          openWorks();
+          break;
+        case "save_slots":
+          setSavesModalOpen(true);
+          break;
+        case "handbook":
+          setSheetState(null);
+          setGuideModal({ kind: "unified", atlasRoute: { tab: "chapters" } });
+          break;
+        case "pix_advise":
+          openPixStudio("advise");
+          break;
+        case "quick_edit_order": {
+          const curP = quickMenuPrefsRef.current;
+          handleChangeQuickMenuPrefs({
+            ...curP,
+            quickEdit: {
+              ...curP.quickEdit,
+              orderMode: curP.quickEdit.orderMode === "adaptive" ? "fixed" : "adaptive",
+            },
+          });
+          break;
+        }
+        case "after_place_qe": {
+          const curP = quickMenuPrefsRef.current;
+          handleChangeQuickMenuPrefs({
+            ...curP,
+            openQuickEditAfterPlace: !curP.openQuickEditAfterPlace,
+          });
+          break;
+        }
+        case "build_focus": {
+          const curP = quickMenuPrefsRef.current;
+          const order: SmartBuildFocus[] = ["balanced", "needs", "habits", "local"];
+          const nextFocus = order[(order.indexOf(curP.smartFocus) + 1) % order.length];
+          handleChangeQuickMenuPrefs({ ...curP, smartFocus: nextFocus });
+          break;
+        }
+        case "weather_cycle": {
+          const wOrder: WeatherKind[] = ["clear", "cloudy", "rain", "storm"];
+          const curW = stateRef.current.weather;
+          handleSetWeather(wOrder[(wOrder.indexOf(curW) + 1) % wOrder.length]);
+          break;
+        }
+        case "day_night": {
+          const hr = stateRef.current.timeOfDay;
+          const currentlyNight = hr < 6 || hr >= 19;
+          handleSetTimeOfDay(currentlyNight ? 12 : 22.5);
+          break;
+        }
+        case "game_mode":
+          openMore("mode");
+          break;
+        case "settings":
+          openMore("settings");
+          break;
+      }
+      if (!item.stayOpen) {
+        setQuickDrawerOpen(false);
+      }
+    },
+    [
+      bulkSelectMode,
+      handleChangeQuickBuildMode,
+      handleChangeQuickMenuPrefs,
+      handleMaintainAll,
+      handleSetTimeOfDay,
+      handleSetWeather,
+      handleUndoBuilding,
+      openCity,
+      openMore,
+      openWorks,
+      setSimSpeed,
+      simSpeed,
+      startBulkSelect,
+      trackDrawerAction,
+    ],
+  );
+  const currentStageMeta = STAGES[Math.max(0, Math.min(STAGES.length - 1, gameState.currentStage - 1))];
+  const autoVisibleNav: NavSheet[] | undefined = activeTutorialStep?.visibleNav
+    ?? (gameState.mode === "idle" || gameState.mode === "manager" ? ["layers", "city", "transit", "more"] : undefined);
+
   return (
-    <main className={"island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]"+(showAlert?" has-alert":"")}>
+    <main className={"island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]"+(showAlert?" has-alert":"")+(inFocusMenu?" has-focus-menu":"")}>
       <canvas ref={canvasRef} className="block h-full w-full cursor-crosshair touch-none" aria-label="Pixel Civilization 3D Voxel Island"/>
 
-      <Hud state={gameState} speed={simSpeed} onSpeed={setSimSpeed} onStat={onHudStat}/>
+      {showHud && (
+        <Hud
+          state={gameState}
+          speed={simSpeed}
+          onStat={(s) => {
+            setQuickDrawerOpen(false);
+            onHudStat(s);
+          }}
+          onOpenPix={() => openPixStudio()}
+          quickDrawerOpen={quickDrawerOpen}
+          quickDrawerManual={quickDrawerPrefs.mode === "manual"}
+          bulkSelectActive={bulkSelectMode}
+          drawerItems={quickDrawerItems}
+          onToggleQuickDrawer={() => {
+            setQuickBuild(null);
+            setQuickDrawerOpen((o) => !o);
+          }}
+          onPickDrawerItem={handlePickQuickDrawerItem}
+          onCustomizeQuickDrawer={() => {
+            setQuickDrawerOpen(false);
+            setFocusQuickDrawerConfig((c) => c + 1);
+            openMore("settings");
+            setSheetHeight("half");
+          }}
+        />
+      )}
+      {!hideChrome && gameState.mode === "idle" && (
+        <IdleModeBanner
+          stage={gameState.currentStage}
+          stageName={currentStageMeta.name}
+          lastAction={autoLastAction}
+          paused={idlePaused}
+          onTogglePause={() => setIdlePaused((p) => !p)}
+        />
+      )}
+      {!hideChrome && gameState.mode === "manager" && managerDecision && (
+        <ManagerDecisionCard
+          decision={managerDecision}
+          lastAction={autoLastAction}
+          onChoose={handleManagerChoice}
+        />
+      )}
+      {showTutorialOverlay && tutorialState && activeTutorialStep && (
+        <TutorialOverlay
+          mode={tutorialState.mode}
+          step={activeTutorialStep}
+          stepIndex={tutorialState.stepIndex}
+          totalSteps={TUTORIAL_FLOWS[tutorialState.mode].length}
+          completedStep={tutorialState.completed}
+          belowHud={showHud}
+          onNext={advanceTutorial}
+          onExit={() => stopTutorial(false)}
+        />
+      )}
       {showAlert&&<AlertPill issues={issues} onOpen={()=>openCity("issues")}/>}
       {saveError&&<p className="storage-notice" role="alert">This island could not be saved in browser storage. Keep the game open while you free space.</p>}
-      {gameState.activeAttack&&<div className="ui-banner" role="alert">
+      {!hideChrome && gameState.activeAttack&&<div className="ui-banner" role="alert">
         <ShieldAlert size={18} aria-hidden="true"/>
         <span style={{flex:1}}>{gameState.activeAttack.units.length} enemies · {gameState.activeAttack.defenders.length} defenders
           {gameState.activeAttack.defenders.length?"":" · no defenders!"} · lost {gameState.activeAttack.buildingsDestroyed}</span>
         {gameState.mode==="god"&&<Button small label="Stop" onClick={handleClearAttack}/>}
       </div>}
-      <Toasts items={[...uiToasts,...gameToasts]} onDismiss={dismissToast}/>
+      {!hideChrome && <Toasts items={[...uiToasts,...gameToasts]} onDismiss={dismissToast}/>}
 
-      {activeExample && !sheet && !showInspector && !placing &&
+      {!hideChrome && activeExample && !sheet && !showInspector && !placing &&
         <WorldGuide key={activeExample.id} world={activeExample} selected={gameState.exampleViewpoint} onVisit={visitViewpoint} onBrowse={openExamples} onRailYard={openRailYard}/>}
-      {activeHeatmap!=="none"&&!sheet&&!placing&&!showInspector&&!activeExample&&<div className="ui-layer-chip">
+      {!hideChrome && activeHeatmap!=="none"&&!sheet&&!placing&&!showInspector&&!activeExample&&<div className="ui-layer-chip">
         <button type="button" onClick={()=>openSheet("layers")} aria-label={"Layer: "+layerName+". Open Layers"}><Layers size={16} aria-hidden="true"/>{layerName}</button>
         <IconButton variant="quiet" aria-label="Clear layer" icon={<X size={16}/>} onClick={()=>setActiveHeatmap("none")}/>
       </div>}
@@ -875,23 +2165,42 @@ export const App: React.FC = () => {
       {/* Context layer */}
       {brushDef&&<PlacementBar label="Placing" def={brushDef} title={brushDef.name+(gameState.mode==="god"?" · Lv "+brush.level:"")}
         subtitle={(charges?"$"+brushDef.cost.toLocaleString()+(brushDef.isNetwork?" / tile":" each"):"Free")+(placeStats?.defId===brushDef.id?" · "+placeStats.count+" placed"+(placeStats.spent?" = $"+placeStats.spent.toLocaleString():""):"")}
-        hint={hoverBad??(hintsLeft>0?"Tap or drag on the map to place"+(brushDef.isNetwork||cursorBehavior==="place"?" · keeps placing until you tap ✓":""):undefined)} hintBad={!!hoverBad}>
+        hint={
+          pendingRoadStroke
+            ? "Tap ✓ above the road stretch to build · Tap anywhere else to cancel"
+            : hoverBad ??
+              (brushDef.isRoadNetwork
+                ? "Tap 1 tile to place · Drag 2+ tiles, then tap ✓ to confirm"
+                : hintsLeft > 0
+                  ? (brushDef.isNetwork || cursorBehavior === "place"
+                      ? "Tap or drag to draw · 2-finger pan/zoom · Space+drag or Right-drag camera · ✓ done"
+                      : "Tap map to place · 2-finger pan/zoom")
+                  : undefined)
+        }
+        hintBad={!!hoverBad && !pendingRoadStroke}>
         {!brushDef.isNetwork&&<IconButton aria-label="Rotate 90° (R)" icon={<RotateCw size={18}/>} onClick={()=>setBrush(b=>({...b,rotation:(b.rotation+1)%4,faceManually:true}))}/>}
         {gameState.mode==="god"&&<span className="ui-level" role="group" aria-label="Placement level">
           <IconButton variant="quiet" aria-label="Lower placement level" icon={<Minus size={16}/>} disabled={brush.level<=1} onClick={()=>setBrush(b=>({...b,level:Math.max(1,b.level-1)}))}/>
           <span>Lv{brush.level}</span>
           <IconButton variant="quiet" aria-label="Raise placement level" icon={<Plus size={16}/>} disabled={brush.level>=getMaxElementLevel(brushDef.id)} onClick={()=>setBrush(b=>({...b,level:Math.min(getMaxElementLevel(brushDef.id),b.level+1)}))}/>
         </span>}
-        <IconButton variant="primary" aria-label="Done placing" icon={<Check size={20}/>} onClick={()=>setBrush(idleBrush)}/>
+        <IconButton variant="primary" aria-label="Done placing" icon={<Check size={20}/>} onClick={()=>{setPendingRoadStroke(null);setBrush(idleBrush);}}/>
       </PlacementBar>}
       {movingEl&&<PlacementBar label="Moving" def={ELEMENT_BY_ID[movingEl.defId]} title={"Moving "+ELEMENT_BY_ID[movingEl.defId].name} subtitle="Tap a free spot on the map" hint={hoverBad} hintBad={!!hoverBad}>
         <Button label="Cancel" onClick={()=>setBrush(idleBrush)}/>
       </PlacementBar>}
-      {worksTool&&!pendingWorks&&<PlacementBar label="Land and water" title={worksToolLabel(worksTool.kind)} subtitle="Drag on the map to preview the works">
+      {worksTool&&!pendingWorks&&<PlacementBar label="Land and water" title={worksToolLabel(worksTool.kind)} subtitle={worksTool.kind==="bridge"?"Drag 2+ tiles across water, then tap ✓ to confirm":"Drag on the map · 2-finger or Space+drag to move camera"}>
         <Button small label="Options" onClick={openWorks}/>
         <IconButton variant="primary" aria-label="Done with land and water tool" icon={<Check size={20}/>} onClick={()=>setWorksTool(null)}/>
       </PlacementBar>}
-      {pendingWorks&&worksPreview&&<div className="ui-placebar is-works" role="toolbar" aria-label="Confirm works">
+      {pendingWorks&&worksPreview&&isBridgeConfirm&&(
+        <p className={"ui-placebar-hint" + (worksPreview.valid ? "" : " is-bad")} role={worksPreview.valid ? "status" : "alert"}>
+          {worksPreview.valid
+            ? `Tap ✓ above the ${worksPreview.points.length}-tile bridge to build · Tap anywhere else to cancel`
+            : `${worksPreview.reason} · Tap anywhere to cancel`}
+        </p>
+      )}
+      {pendingWorks&&worksPreview&&!isBridgeConfirm&&<div className="ui-placebar is-works" role="toolbar" aria-label="Confirm works">
         <span className="ui-icard-body"><span className="ui-icard-title">{worksToolLabel(pendingWorks.tool.kind)} · {worksPreview.points.length} tiles</span>
           <span className={"ui-icard-sub"+(worksPreview.valid?"":" is-bad")}>{worksPreview.valid?("$"+worksPreview.cost.toLocaleString()+" · "+worksPreview.affected.length+" sites affected"):worksPreview.reason}</span></span>
         <Button label="Cancel" small onClick={()=>setPendingWorks(null)}/>
@@ -902,35 +2211,203 @@ export const App: React.FC = () => {
         <Button label="Cancel" onClick={()=>{setDispatchTarget(undefined);openTransit();}}/>
       </PlacementBar>}
 
+      {bulkSelectMode && (
+        <>
+          <p className="ui-placebar-hint" role="status">
+            {selectedIds.length === 0
+              ? "Draw across the map or tap items to bulk select · 2-finger / Right-drag moves camera"
+              : `${selectedIds.length} item${selectedIds.length === 1 ? "" : "s"} selected · Draw more or tap Trash to bulk delete`}
+          </p>
+          <div className="ui-placebar ui-bulkbar" role="toolbar" aria-label="Bulk select and delete">
+            <div className="ui-bulk-filters" role="group" aria-label="Selection filter">
+              {(["all", "roads", "buildings"] as BulkSelectFilter[]).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className="ui-bulk-chip"
+                  aria-pressed={bulkFilter === f}
+                  onClick={() => setBulkFilter(f)}
+                >
+                  {f === "all" ? "All" : f === "roads" ? "Roads" : "Buildings"}
+                </button>
+              ))}
+              {selectedHasNetwork && (
+                <button
+                  type="button"
+                  className="ui-bulk-chip is-accent"
+                  onClick={handleSelectConnectedRoads}
+                  title="Select the entire connected road stretch"
+                >
+                  Connected
+                </button>
+              )}
+            </div>
+            <div className="ui-bulk-actions">
+              {selectedIds.length > 0 && (
+                <Button small variant="quiet" label="Clear" onClick={() => setSelectedIds([])} />
+              )}
+              <Button
+                small
+                variant="danger"
+                className="is-solid"
+                icon={<Trash2 size={15} />}
+                label={selectedIds.length > 0 ? `Delete (${selectedIds.length})` : "Delete"}
+                disabled={selectedIds.length === 0}
+                onClick={() => demolish(selectedIds)}
+              />
+              <IconButton
+                variant="primary"
+                aria-label="Done bulk selecting"
+                icon={<Check size={19} />}
+                onClick={() => {
+                  setBulkSelectMode(false);
+                  setSelectedIds([]);
+                }}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {showQuickBuildRing && quickBuild && (
+        <QuickBuildRing
+          mode={quickBuildMode}
+          state={gameState}
+          tileKey={`${quickBuild.gx},${quickBuild.gz}`}
+          selectedCategory={quickBuild.category}
+          categories={quickCategories}
+          elements={quickElements}
+          instantElements={quickInstantElements}
+          treeParentId={quickBuild.treeParentId}
+          treeSubId={quickBuild.treeSubId}
+          treeElements={quickTreeElements}
+          exactParentOrder={quickMenuPrefs.exactParentOrder}
+          onSubscribeProjection={subscribeRingProjection}
+          onPickCategory={(cat) =>
+            setQuickBuild({ gx: quickBuild.gx, gz: quickBuild.gz, category: cat, treeParentId: null, treeSubId: null })
+          }
+          onPickTreeParent={(parentId) =>
+            setQuickBuild({ gx: quickBuild.gx, gz: quickBuild.gz, category: null, treeParentId: parentId, treeSubId: null })
+          }
+          onPickTreeSub={(subId) =>
+            setQuickBuild({
+              gx: quickBuild.gx,
+              gz: quickBuild.gz,
+              category: null,
+              treeParentId: quickBuild.treeParentId,
+              treeSubId: subId,
+            })
+          }
+          onPickElement={handleQuickBuildPlace}
+          onBack={() =>
+            setQuickBuild((prev) => {
+              if (!prev) return null;
+              if (quickBuildMode === "tree") {
+                if (prev.treeSubId) return { ...prev, treeSubId: null };
+                if (prev.treeParentId) return { ...prev, treeParentId: null, treeSubId: null };
+                return null;
+              }
+              return prev.category ? { ...prev, category: null } : null;
+            })
+          }
+          onClose={() => setQuickBuild(null)}
+        />
+      )}
+
+      {showSelectionRing && (
+        <SelectionRing
+          state={gameState}
+          el={selected}
+          def={selectedDef}
+          deletedName={deletedAnchor?.name}
+          pendingConfirm={pendingConfirm}
+          bulkCount={selectedIds.length}
+          bulkActive={bulkSelectMode}
+          canUndo={ringCanUndo}
+          quickEditPrefs={quickMenuPrefs.quickEdit}
+          onTrackQuickEditAction={handleTrackQuickEditAction}
+          onSubscribeProjection={subscribeRingProjection}
+          onUpgrade={() => {
+            if (!selected) return;
+            if (gameState.mode === "god") handleGodMutateSelected(selected.id, { level: selected.level + 1 });
+            else handleUpgradeSelected(selected.id);
+          }}
+          onDemolish={() => {
+            if (selected) demolish([selected.id]);
+          }}
+          onBulkDemolish={() => {
+            if (selectedIds.length > 0) demolish(selectedIds);
+          }}
+          onStartBulkSelect={
+            canManualEdit
+              ? () => {
+                  const defaultFilter: BulkSelectFilter = selectedDef?.isRoadNetwork ? "roads" : "all";
+                  startBulkSelect(defaultFilter, true);
+                }
+              : undefined
+          }
+          onVariant={() => {
+            if (selected) handleGodMutateSelected(selected.id, { variant: (selected.variant + 1) % 4 });
+          }}
+          onMove={() => {
+            if (selected) setBrush((b) => ({ ...b, kind: "move", movingElementId: selected.id, defId: undefined }));
+          }}
+          onRotate={() => {
+            if (selected) rotateSelected(selected.id);
+          }}
+          onMaintain={() => {
+            if (selected) handleMaintainSelected(selected.id);
+          }}
+          onRailOps={() => {
+            if (selected) setRailSite(selected.id);
+          }}
+          onUndo={handleRingUndo}
+          onOpenDetails={() => { setInspectorDetailOpen(true); notifyTutorial("open_inspector"); }}
+        />
+      )}
+
       {showInspector&&selected&&selectedDef&&<InspectorSheet key={selected.id} state={gameState} el={selected} def={selectedDef}
-        height={inspectorHeight} onHeight={setInspectorHeight} onClose={()=>setSelectedIds([])}
+        height={inspectorHeight} onHeight={setInspectorHeight} onClose={()=>setInspectorDetailOpen(false)}
         onUpgrade={()=>gameState.mode==="god"?handleGodMutateSelected(selected.id,{level:selected.level+1}):handleUpgradeSelected(selected.id)}
         onLevelDown={()=>handleGodMutateSelected(selected.id,{level:Math.max(1,selected.level-1)})}
-        onMove={()=>setBrush(b=>({...b,kind:"move",movingElementId:selected.id,defId:undefined}))}
+        onMove={()=>{setInspectorDetailOpen(false);setBrush(b=>({...b,kind:"move",movingElementId:selected.id,defId:undefined}));}}
         onRotate={()=>rotateSelected(selected.id)} onVariant={()=>handleGodMutateSelected(selected.id,{variant:(selected.variant+1)%4})}
-        onMaintain={()=>handleMaintainSelected(selected.id)} onDemolish={()=>setConfirmDemolish([selected.id])}
-        onRailOps={()=>setRailSite(selected.id)} onFix={openFix} onShowLayer={showLayer}
+        onMaintain={()=>handleMaintainSelected(selected.id)} onDemolish={()=>demolish([selected.id])}
+        onRailOps={()=>setRailSite(selected.id)}
+        onFieldGuide={()=>setGuideModal({kind:"field_guide",elementId:selectedDef.id,level:selected.level,variant:selected.variant+1})}
+        onFix={openFix} onShowLayer={showLayer}
         links={<Connections s={gameState} el={selected} change={editCity} go={t=>t==="transit"?openTransit():t==="works"?(setInspectPoint({gx:selected.gx,gz:selected.gz}),openWorks()):undefined}/>}
-        info={<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel="site"/>}/>}
+        info={<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel="site" compactSite/>}/>}
 
       {sheet==="build"&&<BuildSheet {...sheetProps} state={gameState} brush={brush} cat={buildCat} onCat={setBuildCat} query={buildQuery} onQuery={setBuildQuery}
         fix={buildFix} onClearFix={()=>setBuildFix(undefined)} onPick={id=>handleSelectBrushDef(id)} works={worksPanel}/>}
-      {sheet==="layers"&&<LayersSheet {...sheetProps} state={gameState} active={activeHeatmap} onSelect={setActiveHeatmap} onFix={openFix}/>}
+      {sheet==="layers"&&<LayersSheet {...sheetProps} state={gameState} active={activeHeatmap} onSelect={l=>{setActiveHeatmap(l);if(l==="power")trackDrawerAction("heatmap_power",0.5);else if(l==="water")trackDrawerAction("heatmap_water",0.5);else if(l==="police")trackDrawerAction("heatmap_safety",0.5);else if(l==="traffic")trackDrawerAction("heatmap_traffic",0.5);if(l!=="none")notifyTutorial("pick_layer");}} onFix={openFix}/>}
       {sheet==="city"&&<CitySheet {...sheetProps} state={gameState} tab={cityTab} onTab={setCityTab} mutate={editCity} selected={selected} onFocus={focusSite}
-        onFix={openFix} onShowLayer={showLayer} onShowPanel={showPanel} onMaintainAll={handleMaintainAll}/>}
+        onFix={openFix} onShowLayer={showLayer} onShowPanel={showPanel} onMaintainAll={()=>{trackDrawerAction("repair_all",0.5);handleMaintainAll();}}/>}
       {sheet==="transit"&&<TransitSheet {...sheetProps} state={gameState} mutate={editCity} selected={selected} onFocus={focusSite}
         onPickDestination={id=>{setDispatchTarget(id);setSheetState(null);}} onFollow={id=>rendererRef.current?.followService(id)} following={followedService}
         focusLine={returnLine} onGrid={(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openWorks();}}
         onRailOps={id=>setRailSite(id)}/>}
-      {sheet==="more"&&<MoreSheet {...sheetProps} onUndo={handleUndoBuilding} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
-        onSaves={()=>setSavesModalOpen(true)} onExamples={openExamples} onChangeMode={m=>{if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={copyIsland}
+      {sheet==="more"&&<MoreSheet {...sheetProps} onUndo={()=>{trackDrawerAction("undo",0.5);handleUndoBuilding();}} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
+        onSaves={()=>{trackDrawerAction("save_slots",0.5);setSavesModalOpen(true);}} onExamples={openExamples}
+        onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"chapters"}});}}
+        onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
+        onChangeMode={m=>{trackDrawerAction("game_mode",0.5);stopTutorial(false);if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={()=>{stopTutorial(false);copyIsland();}}
         onReset={()=>setConfirmResetOpen(true)} cursorBehavior={cursorBehavior} onCursorBehavior={handleChangeCursorBehavior}
         selectionFilter={selectionFilter} onSelectionFilter={setSelectionFilter}
+        quickBuildMode={quickBuildMode} onQuickBuildMode={(m)=>{trackDrawerAction(m==="adaptive"?"mode_smart":m==="instant"?"mode_quick":"mode_exact",0.5);handleChangeQuickBuildMode(m);}}
+        quickMenuPrefs={quickMenuPrefs} onQuickMenuPrefs={handleChangeQuickMenuPrefs}
+        quickDrawerPrefs={quickDrawerPrefs} onQuickDrawerPrefs={handleChangeQuickDrawerPrefs}
+        focusQuickDrawerConfig={focusQuickDrawerConfig}
+        learnedBuildsCount={Object.values(buildHabits.elementCounts).reduce((a, b) => a + b, 0) + quickDrawerHabits.totalUses}
+        onResetBuildHabits={handleResetBuildHabits}
+        simSpeed={simSpeed} onSimSpeed={(v)=>{trackDrawerAction("sim_speed",0.5);setSimSpeed(v);}}
+        tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onStopTutorial={()=>stopTutorial(false)}
         view={<ViewEnvPanel activeTab={viewEnvTab} state={gameState} cameraMode={cameraMode} autoSpin={autoSpin} attackSeverity={attackSeverity}
           onChangeTab={setViewEnvTab} onChangeCameraMode={m=>{setCameraMode(m);rendererRef.current?.setCameraMode(m);}}
           onSpinLeft={()=>rendererRef.current?.rotateCameraBy(-Math.PI/4)} onSpinRight={()=>rendererRef.current?.rotateCameraBy(Math.PI/4)}
-          onToggleAutoSpin={()=>setAutoSpin(s=>!s)} onZoomIn={()=>rendererRef.current?.zoomBy(0.76)} onZoomOut={()=>rendererRef.current?.zoomBy(1.3)}
-          onRecentre={()=>rendererRef.current?.recentreCamera()} onSetTimeOfDay={handleSetTimeOfDay} onToggleTimeLocked={handleToggleTimeLocked}
+          onToggleAutoSpin={()=>{trackDrawerAction("camera_orbit",0.5);setAutoSpin(s=>!s);}} onZoomIn={()=>rendererRef.current?.zoomBy(0.76)} onZoomOut={()=>rendererRef.current?.zoomBy(1.3)}
+          onRecentre={()=>{trackDrawerAction("camera_recenter",0.5);rendererRef.current?.recentreCamera();}} onSetTimeOfDay={handleSetTimeOfDay} onToggleTimeLocked={handleToggleTimeLocked}
           onSetWeather={handleSetWeather} onToggleWeatherLocked={handleToggleWeatherLocked} onSetWeatherIntensity={handleSetWeatherIntensity}
           onSetWindSpeed={handleSetWindSpeed} onTriggerLightning={handleTriggerLightning} onChangeAttackSeverity={setAttackSeverity}
           onLaunchAttack={handleLaunchAttack} onClearAttack={handleClearAttack} onToggleGodCrime={handleToggleGodCrime} onTriggerCrime={handleTriggerCrime}
@@ -941,7 +2418,8 @@ export const App: React.FC = () => {
           canRestore={hasSnapshot} onRestore={()=>{try{const raw=localStorage.getItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{showToast({id:"snap",title:"Unable to restore snapshot",subtitle:"The saved data could not be opened.",tone:"alert"});}}}
           onDistrict={()=>{const current=stateRef.current;const district=createCanalDistrict();if(saveActiveMode(current)&&snapshot(current.exampleWorldId?loadModeState("god"):current)){activateSandbox(district);openTransit();setSheetHeight("peek");rendererRef.current?.focusGrid(0,-1,74);}}}/>}/>}
 
-      <BottomNav active={sheet} onToggle={id=>openSheet(id,true)} badges={{city:issues.length}}/>
+      {!hideChrome && <BottomNav active={sheet} onToggle={id=>openSheet(id,true)} badges={{city:issues.length}}
+        visibleIds={autoVisibleNav} highlightId={activeTutorialStep?.highlightNav}/>}
 
       {railSite && gameState.elements.some(e=>e.id===railSite) && <RailOperations state={gameState} selected={gameState.elements.find(e=>e.id===railSite)!} change={editCity}
         onClose={()=>setRailSite(undefined)} onFocus={e=>{setRailSite(undefined);setSheetState(null);focusSite(e.id);}}
@@ -951,9 +2429,49 @@ export const App: React.FC = () => {
       <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState}
         onClose={() => setSavesModalOpen(false)} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
         onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}/>
-      {confirmDemolish&&<ConfirmDialog title={"Demolish "+(confirmDemolish.length>1?confirmDemolish.length+" buildings":ELEMENT_BY_ID[gameState.elements.find(e=>e.id===confirmDemolish[0])?.defId??""]?.name??"building")+"?"}
-        message="It is removed from the island. You can undo right after." confirmLabel="Demolish" onCancel={()=>setConfirmDemolish(null)} onConfirm={()=>demolish(confirmDemolish)}/>}
-      {confirmResetOpen&&<ConfirmDialog title={"Reset "+(gameState.mode==="god"?"God mode":gameState.mode==="real"?"Real mode":"Survival")+" island?"}
+      {guideModal && <GuideModal modal={guideModal} currentMode={gameState.mode} onChange={setGuideModal} onClose={() => setGuideModal(null)}
+        onPlayWorld={(id, mode, viewIndex) => {
+          visitExample(id, mode);
+          if (viewIndex !== undefined) {
+            const world = EXAMPLE_WORLDS.find((w) => w.id === id);
+            const pt = world?.viewpoints[viewIndex] ?? world?.camera;
+            if (pt) rendererRef.current?.focusGrid(pt.gx, pt.gz, pt.zoom);
+          }
+        }}/>}
+      {pixModal.open && (
+        <PixBuilderModal
+          state={gameState}
+          initialTab={pixModal.tab}
+          onClose={() => setPixModal((p) => ({ ...p, open: false }))}
+          onPickElementToPlace={(defId) => {
+            setBuildCat("custom");
+            handleSelectBrushDef(defId);
+          }}
+          onApplyWorldPlan={(plan: PixWorldPlan): PixWorldApplyResult => {
+            let result: PixWorldApplyResult = {
+              terrainOpsApplied: 0,
+              roadsPlaced: 0,
+              buildingsPlaced: 0,
+              skipped: [],
+              terrainDirty: false,
+            };
+            commitState((draft) => {
+              result = applyPixWorldPlan(draft, plan);
+            });
+            showToast({
+              id: "pix-world",
+              title: "PixBuilder applied",
+              subtitle: `${result.terrainOpsApplied} terrain ops · ${result.roadsPlaced} roads · ${result.buildingsPlaced} buildings`,
+              tone: "gold",
+            });
+            return result;
+          }}
+          onUndoWorld={handleUndoBuilding}
+          onOpenLayer={(layer) => showLayer(layer)}
+          onFocusGrid={(gx, gz) => rendererRef.current?.focusGrid(gx, gz, 46)}
+        />
+      )}
+      {confirmResetOpen&&<ConfirmDialog title={"Reset "+(MODE_TUTORIAL_LABELS[gameState.mode] ?? gameState.mode)+" island?"}
         message="This clears every placed element on this mode's island. Other modes and your save slots stay as they are."
         confirmLabel="Reset island" onCancel={()=>setConfirmResetOpen(false)} onConfirm={handleResetCurrentIsland}/>}
 

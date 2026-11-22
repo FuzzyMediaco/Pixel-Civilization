@@ -8,7 +8,17 @@ import { getRoadTripNetwork } from "../game/roadTraffic";
 import { mobilityOf } from "../game/mobility";
 import { igniteSite } from "../game/projectOperations";
 import type { ChangeCity } from "./MobilityPanel";
+
 export type LinkTarget = "info" | "transit" | "works";
+type ParcelSide = (typeof PARCEL_SIDES)[number];
+
+const SIDE_LABELS: Record<ParcelSide, string> = {
+  back: "Back edge",
+  right: "Right edge",
+  front: "Front edge",
+  left: "Left edge",
+};
+
 function CarAccess({city, site}: {city: GameState; site: PlacedElement}) {
   const def = ELEMENT_BY_ID[site.defId];
   const isStreet = Boolean(def.isRoadNetwork && !PEDESTRIAN_IDS.has(def.id) && !site.pedestrianDeck);
@@ -18,16 +28,33 @@ function CarAccess({city, site}: {city: GameState; site: PlacedElement}) {
     ? network.routes.find(trip => trip.path.some(([x,z]) => x === site.gx && z === site.gz))
     : network.routes.find(trip => trip.origin.siteId === site.id || trip.destination.siteId === site.id);
   if (!route) {
-    return <p><b>Car access</b> · {isStreet
-      ? "No car trips use this tile. Join two building entrances with a continuous drivable street."
-      : "No car trips reach this site. Connect its entrance to a second building by local street."}</p>;
+    return (
+      <div className="ui-panel-card">
+        <div className="ui-card-head">
+          <strong>Car access</strong>
+        </div>
+        <p className="ui-card-copy">
+          {isStreet
+            ? "No car trips use this tile. Join two building entrances with a continuous drivable street."
+            : "No car trips reach this site. Connect its entrance to a second building by local street."}
+        </p>
+      </div>
+    );
   }
   const describe = (id: string) => {
     const stop = city.elements.find(el => el.id === id)!;
     return ELEMENT_BY_ID[stop.defId].name + " (" + stop.gx + ", " + stop.gz + ")";
   };
-  return <p><b>Car route</b> · {describe(route.origin.siteId)} → {describe(route.destination.siteId)}</p>;
+  return (
+    <div className="ui-panel-card">
+      <div className="ui-card-head">
+        <strong>Active car route</strong>
+      </div>
+      <p className="ui-card-copy">{describe(route.origin.siteId)} → {describe(route.destination.siteId)}</p>
+    </div>
+  );
 }
+
 export function Connections({
   s,
   el,
@@ -39,78 +66,74 @@ export function Connections({
   change: ChangeCity;
   go: (tab: LinkTarget) => void;
 }) {
-  if (!el) return <p>Tap a building or vessel on the island to inspect its neighbors.</p>;
-  const d = ELEMENT_BY_ID[el.defId],
-    edges = getParcelEdges(el, buildOccupancyMap(s.elements), s);
+  if (!el) return <p className="ui-muted">Tap a building or vessel on the island to inspect its neighbors.</p>;
+  const edges = getParcelEdges(el, buildOccupancyMap(s.elements), s);
+  const lighting = el.exteriorLighting ?? "auto";
   return (
-    <div className="island-content">
-      <h3>{d.name}</h3>
-      <p>
-        Level {el.level} · Style {String.fromCharCode(65 + el.variant)} · {el.spanX} × {el.spanZ} tiles · {el.gx},{" "}
-        {el.gz}
+    <div className="island-content ui-insp-tab">
+      <p className="ui-site-meta">
+        Lv {el.level} · Style {String.fromCharCode(65 + el.variant)} · {el.spanX}×{el.spanZ} tiles · Plot ({el.gx}, {el.gz})
       </p>
       <CarAccess city={s} site={el} />
       <FaithDetails s={s} el={el} change={change} />
       <ExpansionDetails s={s} el={el} />
       {edges.length ? (
-        <ul>
-          {edges.map((e, i) => (
-            <li key={i}>
-              <b>{e.side}</b> · {EDGE_LABELS[e.kind]} · {ELEMENT_BY_ID[e.neighbor]?.name ?? e.neighbor}
-            </li>
-          ))}
-        </ul>
+        <div className="ui-panel-card">
+          <div className="ui-card-head">
+            <strong>Shared edges ({edges.length})</strong>
+          </div>
+          <ul className="ui-edge-list">
+            {edges.map((e, i) => (
+              <li key={i}>
+                <b>{SIDE_LABELS[e.side] ?? e.side}</b>
+                <span>{EDGE_LABELS[e.kind]} · {ELEMENT_BY_ID[e.neighbor]?.name ?? e.neighbor}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : (
-        <p>No shared edge here yet. Place a compatible neighbor or connect the front entrance.</p>
+        <p className="ui-muted">No adjacent neighbors yet. Any road placed beside a building links automatically.</p>
       )}
-      <div className="island-actions">
-        <button onClick={() => go("info")}>Services &amp; upgrade</button>
-        <button onClick={() => go("transit")}>Transit nearby</button>
-        <button onClick={() => go("works")}>Land &amp; water here</button>
+      <div className="ui-quick-links">
+        <button type="button" className="ui-btn is-small" onClick={() => go("info")}>Services &amp; upgrade</button>
+        <button type="button" className="ui-btn is-small" onClick={() => go("transit")}>Transit nearby</button>
+        <button type="button" className="ui-btn is-small" onClick={() => go("works")}>Land &amp; water</button>
       </div>
       {s.mode === "god" && (
-        <fieldset>
-          <legend>Site controls</legend>
-          {PARCEL_SIDES.map((side) => (
-            <label key={side}>
-              {side} edge
-              <select
-                value={el.edgeOverrides?.[side] ?? "auto"}
-                onChange={(ev) => {
-                  const value = ev.target.value as "auto" | "open" | "closed";
-                  change((st) => {
-                    const site = st.elements.find((e) => e.id === el.id)!;
-                    site.edgeOverrides = { ...site.edgeOverrides, [side]: value };
-                  });
-                }}
-              >
-                <option value="auto">Match neighbors</option>
-                <option value="open">Open connection</option>
-                <option value="closed">Keep boundary</option>
-              </select>
-            </label>
-          ))}
-          <label>
-            Exterior lighting
-            <select
-              value={el.exteriorLighting ?? "auto"}
-              onChange={(ev) => {
-                const value = ev.target.value as "auto" | "dark" | "lit";
-                change((st) => {
-                  st.elements.find((e) => e.id === el.id)!.exteriorLighting = value;
-                });
-              }}
-            >
-              <option value="auto">Follow the city clock</option>
-              <option value="lit">Always lit</option>
-              <option value="dark">Keep dark</option>
-            </select>
-          </label>
-        </fieldset>
+        <div className="ui-panel-card">
+          <div className="ui-card-head">
+            <strong>Site lighting</strong>
+            <span className="ui-card-sub">Roads link automatically to neighbors</span>
+          </div>
+          <div className="ui-field-block">
+            <span className="ui-field-label">Exterior lighting</span>
+            <div className="ui-seg-bar" role="group" aria-label="Exterior lighting">
+              {([
+                ["auto", "City clock"],
+                ["lit", "Always lit"],
+                ["dark", "Keep dark"],
+              ] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  aria-pressed={lighting === val}
+                  onClick={() => {
+                    change((st) => {
+                      st.elements.find((e) => e.id === el.id)!.exteriorLighting = val;
+                    });
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 }
+
 interface GodProps {
   s: GameState;
   el?: PlacedElement;
@@ -121,6 +144,7 @@ interface GodProps {
   onStep: () => void;
   onDistrict: () => void;
 }
+
 export function GodControls({
   s,
   el,
@@ -163,14 +187,16 @@ export function GodControls({
     });
   }
   return (
-    <div className="island-content">
-      <div className="island-actions">
-        <button onClick={onStep}>Step one second</button>
-      </div>
-      <fieldset>
-        <legend>Travel</legend>
-        <label>
-          Island travel demand ×
+    <div className="island-content ui-insp-tab">
+      <div className="ui-panel-card">
+        <div className="ui-card-head">
+          <strong>Simulation &amp; travel</strong>
+        </div>
+        <div className="ui-quick-links">
+          <button type="button" className="ui-btn is-small" onClick={onStep}>Step one second</button>
+        </div>
+        <label className="ui-field" style={{marginTop: 8}}>
+          <span>Island travel demand ×</span>
           <input
             type="number"
             min="0"
@@ -185,20 +211,22 @@ export function GodControls({
             }}
           />
         </label>
-      </fieldset>
-      <fieldset>
-        <legend>Local experiment</legend>
-        <label>
-          Scope
-          <select value={scope} onChange={(e) => setScope(e.target.value as typeof scope)}>
+      </div>
+      <div className="ui-panel-card">
+        <div className="ui-card-head">
+          <strong>Local experiment</strong>
+        </div>
+        <label className="ui-field">
+          <span>Scope</span>
+          <select className="ui-select" value={scope} onChange={(e) => setScope(e.target.value as typeof scope)}>
             <option value="island">Whole island</option>
             <option value="district">Around selected site</option>
             <option value="item">Selected site</option>
           </select>
         </label>
         {scope === "district" && (
-          <label>
-            District radius · {radius} tiles
+          <label className="ui-field">
+            <span>District radius · {radius} tiles</span>
             <input
               type="range"
               min="1"
@@ -209,11 +237,11 @@ export function GodControls({
           </label>
         )}
         {scope !== "island" && (
-          <p>{el ? ELEMENT_BY_ID[el.defId].name + " at " + el.gx + ", " + el.gz : "Select a site on the map."}</p>
+          <p className="ui-card-meta">{el ? ELEMENT_BY_ID[el.defId].name + " at (" + el.gx + ", " + el.gz + ")" : "Select a site on the map."}</p>
         )}
-        <label>
-          Action
-          <select value={effect} onChange={(e) => setEffect(e.target.value)}>
+        <label className="ui-field">
+          <span>Action</span>
+          <select className="ui-select" value={effect} onChange={(e) => setEffect(e.target.value)}>
             <option value="light">Hold exterior lights on</option>
             <option value="dark">Hold exterior lights off</option>
             <option value="auto">Resume automatic lighting</option>
@@ -221,22 +249,26 @@ export function GodControls({
             <option value="restore">Extinguish and repair</option>
           </select>
         </label>
-        <button disabled={!scopeAllowed} onClick={apply}>
-          Apply to scope
-        </button>
-      </fieldset>
-      <fieldset>
-        <legend>Experiment snapshots</legend>
-        <div className="island-actions">
-          <button onClick={onSave}>Save sandbox snapshot</button>
-          <button disabled={!canRestore} onClick={onRestore}>
-            Restore last snapshot
+        <div className="ui-quick-links" style={{marginTop: 8}}>
+          <button type="button" className="ui-btn is-small is-primary" disabled={!scopeAllowed} onClick={apply}>
+            Apply to scope
           </button>
-          <button onClick={onDistrict}>Explore the canal district</button>
         </div>
-        <p>The canal district saves your current sandbox as a snapshot first.</p>
-      </fieldset>
-      {message && <p role="status">{message}</p>}
+      </div>
+      <div className="ui-panel-card">
+        <div className="ui-card-head">
+          <strong>Experiment snapshots</strong>
+          <span className="ui-card-sub">Canal district auto-saves your sandbox first</span>
+        </div>
+        <div className="ui-quick-links">
+          <button type="button" className="ui-btn is-small" onClick={onSave}>Save snapshot</button>
+          <button type="button" className="ui-btn is-small" disabled={!canRestore} onClick={onRestore}>
+            Restore snapshot
+          </button>
+          <button type="button" className="ui-btn is-small" onClick={onDistrict}>Explore canal district</button>
+        </div>
+      </div>
+      {message && <p className="ui-card-meta" role="status">{message}</p>}
     </div>
   );
 }

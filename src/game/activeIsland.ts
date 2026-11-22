@@ -64,10 +64,11 @@ export function resumeIsland(hash = ""): GameState {
     if (last.startsWith("example-")) {
       try { origin = localStorage.getItem("pixel_civ_example_origin") ?? "god"; } catch { origin = "god"; }
     }
-    city.exampleReturnMode = origin === "real" || origin === "survival" ? origin : "god";
+    city.exampleReturnMode =
+      origin === "real" || origin === "survival" || origin === "idle" || origin === "manager" ? origin : "god";
     return city;
   }
-  if (last === "real" || last === "survival") return loadModeState(last);
+  if (last === "real" || last === "survival" || last === "idle" || last === "manager") return loadModeState(last);
   if (last.startsWith("example-real-")) {
     const id = exampleById(last.slice("example-real-".length));
     if (id) return loadModeState("real", id);

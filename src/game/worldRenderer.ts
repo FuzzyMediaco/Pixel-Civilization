@@ -5,6 +5,7 @@ import { getTravelNetwork, travelSignature, type TravelNetwork } from "./travelN
 import { advanceCarSegment, departureInterval, getRoadTripNetwork, roadTripPoints, trafficFleetTarget, type RoadTrip, type RoadTripNetwork, type TripPoint } from "./roadTraffic";
 import { FarmActivityVisuals } from "./farmActivity";
 import { MobilityVisuals, voyagePlacement } from "./mobilityVisuals";
+import { PatrolCraftManager } from "./patrolCraft";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import {
@@ -53,6 +54,22 @@ import {
 
 export type CameraMode = "pan" | "orbit" | "walk";
 
+export interface SelectionRingProjection {
+  x: number;
+  y: number;
+  radiusPx: number;
+  visible: boolean;
+}
+
+export interface SelectionRingBox {
+  gx: number;
+  gz: number;
+  spanX: number;
+  spanZ: number;
+  baseY?: number;
+  topY?: number;
+}
+
 export interface IslandCameraView {
   mode: CameraMode;
   target: [number, number, number];
@@ -77,14 +94,25 @@ export interface BuildBrush {
   faceManually?: boolean;
 }
 
+export type BulkSelectFilter = "all" | "roads" | "buildings";
+
+export interface PendingNetworkStroke {
+  defId: string;
+  points: GridPoint[];
+}
+
 export interface WorldCallbacks {
   onInfrastructureStroke?: (tool:InfrastructureTool,points:GridPoint[])=>void;
   onTilePlace: (gx: number, gz: number) => void;
+  onPendingNetworkStroke?: (stroke: PendingNetworkStroke) => void;
+  onCancelPendingStroke?: () => void;
+  onBulkSelectElements?: (ids: string[], mode: "add" | "toggle") => void;
   onTileMoveCommit: (elementId: string, gx: number, gz: number) => void;
   onInspectTile?: (gx:number,gz:number)=>boolean|void;
   onSelectService?: (id: string) => void;
   onFollowChange?: (id?: string) => void;
   onSelectElement: (elementId: string | null, additiveShift: boolean) => void;
+  onEmptyTileTap?: (gx: number, gz: number) => void;
   onHoverInfo?: (info: { gx: number; gz: number; valid: boolean; reason?: string } | null) => void;
 }
 
@@ -260,6 +288,7 @@ export class PixelWorldRenderer {
   private gameState: GameState;
   private brush: BuildBrush = { kind: "none", level: 1, variantMode: -1, rotation: 0 };
   private selectedIds: string[] = [];
+  private quickBuildTile: GridPoint | null = null;
 
   // Camera state
   private cameraMode: CameraMode = "pan";
@@ -401,6 +430,7 @@ export class PixelWorldRenderer {
   private villagerAgents: VillagerAgent[] = [];
   private particles: VoxelParticle[] = [];
   private trafficSyncAccum = 0;
+  private patrolCraft = new PatrolCraftManager();
   // Cached network sets (recomputed only when the layout changes, not every frame)
   private roadTrips?: RoadTripNetwork;
   private cachedRoadSet = new Set<string>();
@@ -426,13 +456,33 @@ export class PixelWorldRenderer {
   private pointerDownPos = { x: 0, y: 0 };
   private lastPointerPos = { x: 0, y: 0 };
   private isDraggingCamera = false;
+  private pointerPanOverride = false;
+  private spaceDown = false;
+  private pendingTouchStart: { gx: number; gz: number; clientX: number; clientY: number } | null = null;
   private paintedTilesInStroke = new Set<string>();
   private lastPaintedGrid: [number, number] | null = null;
+  private networkStroke: GridPoint[] = [];
+  private pendingNetworkStroke: PendingNetworkStroke | null = null;
+  private hasPendingBridgeConfirm = false;
+  private pendingBridgeStroke: { tool: InfrastructureTool; points: GridPoint[] } | null = null;
+  private cancelPendingOnTap = false;
+  private networkPreviewGroup = new THREE.Group();
+  private bulkSelectMode = false;
+  private bulkSelectFilter: BulkSelectFilter = "all";
+  private bulkStrokeIds = new Set<string>();
+  private bulkLastGrid: [number, number] | null = null;
+  private bulkHasDragged = false;
   private activePointers = new Map<number, { x: number; y: number }>();
   private lastPinchDist: number | null = null;
   private lastPinchAngle: number | null = null;
   private lastPinchMid: { x: number; y: number } | null = null;
   private hadMultiTouch = false;
+
+  // Billboard selection ring observer & projection scratch
+  private selectionRingObserver: ((pos: SelectionRingProjection | null) => void) | null = null;
+  private customRingTarget: SelectionRingBox | null = null;
+  private lastRingProjectionKey = "";
+  private projVec = new THREE.Vector3();
 
   private clock = new THREE.Clock();
   private fencePixel = new Uint8Array(4);
@@ -517,6 +567,7 @@ export class PixelWorldRenderer {
     this.scene.add(this.villagerGroup);
     this.scene.add(this.crimeGroup);
     this.scene.add(this.attackGroup);
+    this.scene.add(this.patrolCraft.root);
     this.scene.add(this.weatherGroup);
     this.scene.add(this.fxGroup);
 
@@ -528,6 +579,7 @@ export class PixelWorldRenderer {
     );
     this.cursorOutline.visible = false;
     this.overlayGroup.add(this.cursorOutline);
+    this.overlayGroup.add(this.networkPreviewGroup);
 
     this.bindEvents();
     this.syncState(initialState, []);
@@ -791,7 +843,55 @@ export class PixelWorldRenderer {
   public setBrush(brush: BuildBrush): void {
     this.brush = brush;
     this.ghostKey = ""; // force ghost refresh
+    if (brush.kind !== "place") {
+      this.networkStroke = [];
+      this.pendingNetworkStroke = null;
+      this.rebuildNetworkStrokePreview();
+    }
     this.updateHoverOverlay();
+  }
+
+  public setPendingNetworkStroke(stroke: PendingNetworkStroke | null): void {
+    this.pendingNetworkStroke = stroke;
+    if (!stroke) {
+      this.networkStroke = [];
+    }
+    this.rebuildNetworkStrokePreview();
+    this.updateHoverOverlay();
+  }
+
+  public setHasPendingBridgeConfirm(
+    active: boolean,
+    pending?: { tool: InfrastructureTool; points: GridPoint[] } | null,
+  ): void {
+    this.hasPendingBridgeConfirm = active;
+    this.pendingBridgeStroke = active && pending ? pending : null;
+    this.updateHoverOverlay();
+  }
+
+  public setBulkSelect(active: boolean, filter: BulkSelectFilter = "all"): void {
+    const changed = this.bulkSelectMode !== active || this.bulkSelectFilter !== filter;
+    this.bulkSelectMode = active;
+    this.bulkSelectFilter = filter;
+    if (!active) {
+      this.bulkStrokeIds.clear();
+      this.bulkLastGrid = null;
+      this.bulkHasDragged = false;
+    }
+    if (changed) {
+      this.rebuildSelectionAndRadiusOverlays();
+      this.updateHoverOverlay();
+    }
+  }
+
+  public setQuickBuildTile(pt: GridPoint | null): void {
+    const changed =
+      (this.quickBuildTile?.gx ?? null) !== (pt?.gx ?? null) ||
+      (this.quickBuildTile?.gz ?? null) !== (pt?.gz ?? null);
+    this.quickBuildTile = pt ? { gx: pt.gx, gz: pt.gz } : null;
+    if (changed) {
+      this.rebuildSelectionAndRadiusOverlays();
+    }
   }
 
   public rotateCameraBy(deltaTheta: number): void {
@@ -805,6 +905,139 @@ export class PixelWorldRenderer {
 
   public setAutoSpin(enabled: boolean): void {
     this.autoSpin360 = enabled;
+  }
+
+  public setSelectionRingObserver(cb: ((pos: SelectionRingProjection | null) => void) | null): void {
+    this.selectionRingObserver = cb;
+    this.lastRingProjectionKey = "";
+    this.projectSelectionRing();
+  }
+
+  public setCustomRingTarget(box: SelectionRingBox | null): void {
+    this.customRingTarget = box;
+    this.lastRingProjectionKey = "";
+    this.projectSelectionRing();
+  }
+
+  private projectSelectionRing(): void {
+    if (!this.selectionRingObserver) return;
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minZ = Infinity;
+    let maxZ = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+    let hasTarget = false;
+
+    if (this.customRingTarget) {
+      const box = this.customRingTarget;
+      minX = box.gx * TILE_SIZE;
+      maxX = (box.gx + box.spanX) * TILE_SIZE;
+      minZ = box.gz * TILE_SIZE;
+      maxZ = (box.gz + box.spanZ) * TILE_SIZE;
+      minY = box.baseY ?? 0;
+      maxY = minY + Math.max(1.2, box.topY ?? 2.4);
+      hasTarget = true;
+    } else if (this.selectedIds.length === 1) {
+      const selId = this.selectedIds[0];
+      const el = this.gameState.elements.find((e) => e.id === selId);
+      const entry = this.placedEntries.get(selId);
+      if (el) {
+        const voyage = this.gameState.mobility?.voyages[el.id];
+        if (voyage && entry) {
+          const halfW = (el.spanX * TILE_SIZE) * 0.5;
+          const halfD = (el.spanZ * TILE_SIZE) * 0.5;
+          minX = entry.group.position.x - halfW;
+          maxX = entry.group.position.x + halfW;
+          minZ = entry.group.position.z - halfD;
+          maxZ = entry.group.position.z + halfD;
+          minY = entry.group.position.y;
+          maxY = minY + Math.max(1.2, (entry.group.userData.topY as number) || 2.2);
+        } else {
+          const reserved = el.roadAxis ? roadReservation(el) : undefined;
+          const gMinX = reserved ? Math.min(...reserved.map(([x]) => x)) : el.gx;
+          const gMinZ = reserved ? Math.min(...reserved.map(([, z]) => z)) : el.gz;
+          const spanX = reserved ? Math.max(...reserved.map(([x]) => x)) - gMinX + 1 : el.spanX;
+          const spanZ = reserved ? Math.max(...reserved.map(([, z]) => z)) - gMinZ + 1 : el.spanZ;
+          minX = gMinX * TILE_SIZE;
+          maxX = (gMinX + spanX) * TILE_SIZE;
+          minZ = gMinZ * TILE_SIZE;
+          maxZ = (gMinZ + spanZ) * TILE_SIZE;
+          minY = entry?.baseY ?? 0;
+          maxY = minY + Math.max(1.2, (entry?.group.userData.topY as number) || 2.5);
+        }
+        hasTarget = true;
+      }
+    } else if (this.selectedIds.length > 1) {
+      // Combined bounding box for multi-selection / bulk-delete floating toolbar
+      for (const id of this.selectedIds) {
+        const el = this.gameState.elements.find((e) => e.id === id);
+        if (!el) continue;
+        const entry = this.placedEntries.get(id);
+        const ex0 = el.gx * TILE_SIZE;
+        const ex1 = (el.gx + el.spanX) * TILE_SIZE;
+        const ez0 = el.gz * TILE_SIZE;
+        const ez1 = (el.gz + el.spanZ) * TILE_SIZE;
+        const ey0 = entry?.baseY ?? 0;
+        const ey1 = ey0 + Math.max(1.2, (entry?.group.userData.topY as number) || 2.5);
+        if (ex0 < minX) minX = ex0;
+        if (ex1 > maxX) maxX = ex1;
+        if (ez0 < minZ) minZ = ez0;
+        if (ez1 > maxZ) maxZ = ez1;
+        if (ey0 < minY) minY = ey0;
+        if (ey1 > maxY) maxY = ey1;
+        hasTarget = true;
+      }
+    }
+
+    if (!hasTarget) {
+      if (this.lastRingProjectionKey !== "none") {
+        this.lastRingProjectionKey = "none";
+        this.selectionRingObserver(null);
+      }
+      return;
+    }
+
+    const w = this.canvas.clientWidth || window.innerWidth;
+    const h = this.canvas.clientHeight || window.innerHeight;
+    const cxW = (minX + maxX) * 0.5;
+    const cyW = (minY + maxY) * 0.5;
+    const czW = (minZ + maxZ) * 0.5;
+
+    this.projVec.set(cxW, cyW, czW).project(this.camera);
+    const inFront = this.projVec.z >= -1 && this.projVec.z <= 1;
+    const centerX = (this.projVec.x * 0.5 + 0.5) * w;
+    const centerY = (-this.projVec.y * 0.5 + 0.5) * h;
+
+    let maxCornerDist = 0;
+    const xs = [minX, maxX];
+    const ys = [minY, maxY];
+    const zs = [minZ, maxZ];
+    for (const x of xs) {
+      for (const y of ys) {
+        for (const z of zs) {
+          this.projVec.set(x, y, z).project(this.camera);
+          const sx = (this.projVec.x * 0.5 + 0.5) * w;
+          const sy = (-this.projVec.y * 0.5 + 0.5) * h;
+          const d = Math.hypot(sx - centerX, sy - centerY);
+          if (d > maxCornerDist) maxCornerDist = d;
+        }
+      }
+    }
+
+    const maxAllowedRadius = Math.max(66, Math.min(w, h) * 0.34);
+    const radiusPx = THREE.MathUtils.clamp(Math.round(maxCornerDist * 0.8 + 30), 66, Math.min(132, maxAllowedRadius));
+    const padX = Math.min(w * 0.45, radiusPx + 28);
+    const padY = Math.min(h * 0.45, radiusPx + 28);
+    const x = Math.round(THREE.MathUtils.clamp(centerX, padX, w - padX));
+    const y = Math.round(THREE.MathUtils.clamp(centerY, padY, h - padY));
+    const visible = inFront && centerX > -180 && centerX < w + 180 && centerY > -180 && centerY < h + 180;
+
+    const key = `${x},${y},${radiusPx},${visible ? 1 : 0}`;
+    if (key !== this.lastRingProjectionKey) {
+      this.lastRingProjectionKey = key;
+      this.selectionRingObserver({ x, y, radiusPx, visible });
+    }
   }
 
   public setHeatmap(kind: HeatmapKind): void {
@@ -1248,12 +1481,24 @@ export class PixelWorldRenderer {
       const box = new THREE.BoxGeometry(width * TILE_SIZE + 0.16, h, depth * TILE_SIZE + 0.16);
       const edges = new THREE.EdgesGeometry(box);
       box.dispose();
-      const col = 0xf4c44e;
+      const col = this.bulkSelectMode || this.selectedIds.length > 1 ? 0xff5a5f : 0xf4c44e;
       const seg = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: col }));
       seg.position.set(reserved?(minX+width/2)*TILE_SIZE:wx, baseY+h*.5,reserved?(minZ+depth/2)*TILE_SIZE:wz);
       this.overlayGroup.add(seg);
       this.selectionOutlines.push(seg);
     });
+
+    if (this.quickBuildTile) {
+      const { gx, gz } = this.quickBuildTile;
+      const [wx, wz] = gridToWorldCenter(gx, gz, 1, 1);
+      const box = new THREE.BoxGeometry(TILE_SIZE + 0.14, 0.36, TILE_SIZE + 0.14);
+      const edges = new THREE.EdgesGeometry(box);
+      box.dispose();
+      const seg = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x2fb996 }));
+      seg.position.set(wx, 0.24, wz);
+      this.overlayGroup.add(seg);
+      this.selectionOutlines.push(seg);
+    }
 
     this.updateRadiusRing();
   }
@@ -1354,7 +1599,111 @@ export class PixelWorldRenderer {
     this.curbPreviews.delete(id);
   }
 
+  private clearNetworkStrokePreview(): void {
+    while (this.networkPreviewGroup.children.length > 0) {
+      const child = this.networkPreviewGroup.children[0];
+      this.networkPreviewGroup.remove(child);
+      if (child instanceof THREE.Group) {
+        releaseParcelGeometry(child);
+      } else if (child instanceof THREE.LineSegments || child instanceof THREE.Mesh) {
+        child.geometry.dispose();
+        (child.material as THREE.Material).dispose();
+      }
+    }
+  }
+
+  private rebuildNetworkStrokePreview(): void {
+    this.clearNetworkStrokePreview();
+    const activeDefId = this.networkStroke.length > 0 ? this.brush.defId : this.pendingNetworkStroke?.defId;
+    const activePoints = this.networkStroke.length > 0 ? this.networkStroke : (this.pendingNetworkStroke?.points ?? []);
+    if (!activeDefId || activePoints.length === 0) return;
+    const baseDef = ELEMENT_BY_ID[activeDefId];
+    if (!baseDef) return;
+
+    const level = this.brush.level;
+    const variant = this.brush.variantMode >= 0 ? this.brush.variantMode : 0;
+    const occ = buildOccupancyMap(this.gameState.elements);
+    const virtualElements: PlacedElement[] = [...this.gameState.elements];
+    const plans: { pt: GridPoint; plan: ReturnType<typeof planConstruction> }[] = [];
+
+    for (const pt of activePoints) {
+      const plan = planConstruction(this.gameState, baseDef, pt.gx, pt.gz, level, 0, false);
+      plans.push({ pt, plan });
+      if (plan.valid) {
+        const key = tileKey(pt.gx, pt.gz);
+        const virt: PlacedElement = {
+          id: `__preview_${pt.gx}_${pt.gz}`,
+          defId: plan.def.id,
+          gx: pt.gx,
+          gz: pt.gz,
+          spanX: plan.spanX,
+          spanZ: plan.spanZ,
+          rotation: 0,
+          level: plan.level,
+          variant,
+          connected: true,
+          hasPoliceCover: false,
+          hasFireCover: false,
+          nuisancePenalty: 0,
+          maintTimerSec: 0,
+          disrepair: false,
+          onFire: false,
+          animProgress: 0,
+          animKind: "place",
+          ...(plan.overWater ? { overWater: true } : {}),
+          ...(plan.roadAxis ? { roadAxis: plan.roadAxis } : {}),
+        };
+        occ.set(key, virt);
+        virtualElements.push(virt);
+      }
+    }
+
+    for (const { pt, plan } of plans) {
+      const def = plan.def;
+      const mask = def.isNetwork
+        ? getNetworkConnMask(
+            virtualElements,
+            { defId: def.id, gx: pt.gx, gz: pt.gz, overWater: plan.overWater },
+            occ,
+            this.gameState,
+          )
+        : 0;
+      const [wx, wz] = gridToWorldCenter(pt.gx, pt.gz, plan.spanX, plan.spanZ);
+      const baseY = this.getGroundElevationForElement(def, wx, wz);
+      const asset = getOrBuildElementAsset(def.id, plan.level, variant, plan.spanX, plan.spanZ, mask, {});
+      const ghost = buildPlacedGroupFromAsset(asset, true, plan.valid);
+      ghost.position.set(wx, baseY + 0.04, wz);
+      this.networkPreviewGroup.add(ghost);
+
+      const box = new THREE.BoxGeometry(plan.spanX * TILE_SIZE, 0.25, plan.spanZ * TILE_SIZE);
+      const edges = new THREE.EdgesGeometry(box);
+      box.dispose();
+      const outline = new THREE.LineSegments(
+        edges,
+        new THREE.LineBasicMaterial({ color: plan.valid ? 0x64f5df : 0xff5a5f, transparent: true, opacity: 0.92 }),
+      );
+      outline.position.set(wx, baseY + VOXEL_SIZE + 0.08, wz);
+      this.networkPreviewGroup.add(outline);
+    }
+  }
+
   private updateHoverOverlay(): void {
+    if (this.pendingNetworkStroke || this.networkStroke.length > 0 || this.bulkSelectMode) {
+      this.updateCurbPreviews();
+      this.cursorOutline.visible = false;
+      if (this.ghostGroup) this.ghostGroup.visible = false;
+      this.updateRadiusRing();
+      if (this.bulkSelectMode) this.callbacks.onHoverInfo?.(null);
+      return;
+    }
+    if (this.pendingBridgeStroke && this.pendingBridgeStroke.points.length >= 2) {
+      this.updateCurbPreviews();
+      this.cursorOutline.visible = false;
+      if (this.ghostGroup) this.ghostGroup.visible = false;
+      const plan = planInfrastructureStroke(this.gameState, this.pendingBridgeStroke.tool, this.pendingBridgeStroke.points);
+      this.engineering.showPreview(this.gameState, plan, this.pendingBridgeStroke.tool);
+      return;
+    }
     if(this.worksTool && this.hoverGrid){
       this.updateCurbPreviews();
       this.cursorOutline.visible=false;if(this.ghostGroup)this.ghostGroup.visible=false;
@@ -2000,6 +2349,7 @@ export class PixelWorldRenderer {
     // Smoke plumes, steam & blinking beacons
     this.stepSmokeAndBeacons(dt, elapsed);
     this.farmActivity.animateHerds(dt);
+    this.patrolCraft.update(this.gameState, dt, elapsed);
 
     // Fire voxels, destruction rubble & celebration particles
     this.emitFireVoxels(dt);
@@ -2046,6 +2396,7 @@ export class PixelWorldRenderer {
     }
 
     this.renderer.render(this.scene, this.camera);
+    this.projectSelectionRing();
     this.scheduleNextFrame();
   }
 
@@ -3077,7 +3428,7 @@ export class PixelWorldRenderer {
     }
 
     this.spherical.radius = THREE.MathUtils.clamp(this.spherical.radius, 5.5, GRID_SIZE*TILE_SIZE*1.7);
-    this.spherical.phi = THREE.MathUtils.clamp(this.spherical.phi, 0.22, 1.44);
+    this.spherical.phi = THREE.MathUtils.clamp(this.spherical.phi, 0.06, 1.44);
     this.target.x = THREE.MathUtils.clamp(this.target.x,-GRID_HALF*TILE_SIZE,GRID_HALF*TILE_SIZE);
     this.target.y = THREE.MathUtils.clamp(this.target.y, 0, 14);
     this.target.z = THREE.MathUtils.clamp(this.target.z,-GRID_HALF*TILE_SIZE,GRID_HALF*TILE_SIZE);
@@ -3162,14 +3513,38 @@ export class PixelWorldRenderer {
     return [gx, gz];
   }
 
+  private matchesBulkFilter(el: PlacedElement): boolean {
+    const def = ELEMENT_BY_ID[el.defId];
+    if (!def) return false;
+    if (this.bulkSelectFilter === "roads") return Boolean(def.isRoadNetwork || def.isRailNetwork);
+    if (this.bulkSelectFilter === "buildings") return !def.isNetwork;
+    return true;
+  }
+
+  private collectBulkAtGrid(gx: number, gz: number): string[] {
+    const added: string[] = [];
+    for (const el of this.gameState.elements) {
+      if (gx >= el.gx && gx < el.gx + el.spanX && gz >= el.gz && gz < el.gz + el.spanZ) {
+        if (!this.matchesBulkFilter(el)) continue;
+        if (!this.bulkStrokeIds.has(el.id)) {
+          this.bulkStrokeIds.add(el.id);
+          added.push(el.id);
+        }
+      }
+    }
+    return added;
+  }
+
   private raycastPlacedElement(clientX: number, clientY: number): string | null {
     const rect = this.canvas.getBoundingClientRect();
     this.pointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     this.pointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
     this.raycaster.setFromCamera(this.pointerNdc, this.camera);
-    const hits = this.raycaster.intersectObjects([...this.placedGroup.children, this.mobilityVisuals.root], true);
-    for (const h of hits) {
+    // Prioritize placed roads and buildings FIRST so buses/taxis/transit trails riding over a road
+    // NEVER hijack a road tap into opening the full-screen Transit sheet!
+    const placedHits = this.raycaster.intersectObjects(this.placedGroup.children, true);
+    for (const h of placedHits) {
       let cur: THREE.Object3D | null = h.object;
       while (cur) {
         if (cur.userData?.elementId) {
@@ -3181,9 +3556,21 @@ export class PixelWorldRenderer {
               break; // Skip dimmed layers so clicks hit underlying roads/pipes/utilities
             }
           }
-          return cur.userData.serviceId ?? elId;
+          return elId;
         }
         cur = cur.parent;
+      }
+    }
+    if (!this.bulkSelectMode) {
+      const mobilityHits = this.raycaster.intersectObjects([this.mobilityVisuals.root], true);
+      for (const h of mobilityHits) {
+        let cur: THREE.Object3D | null = h.object;
+        while (cur) {
+          if (cur.userData?.serviceId) {
+            return cur.userData.serviceId as string;
+          }
+          cur = cur.parent;
+        }
       }
     }
     return null;
@@ -3202,8 +3589,19 @@ export class PixelWorldRenderer {
         y: (pts[0].y + pts[1].y) * 0.5,
       };
       this.hadMultiTouch = true;
+      this.pendingTouchStart = null;
+      this.worksStroke = [];
+      this.networkStroke = [];
+      this.cancelPendingOnTap = false;
+      this.bulkLastGrid = null;
+      this.bulkHasDragged = false;
+      this.paintedTilesInStroke.clear();
+      this.lastPaintedGrid = null;
       this.isPointerDown = false;
+      this.pointerPanOverride = false;
       this.isDraggingCamera = true;
+      this.rebuildNetworkStrokePreview();
+      this.updateHoverOverlay();
       return;
     }
 
@@ -3213,22 +3611,65 @@ export class PixelWorldRenderer {
     this.pointerDownPos = { x: e.clientX, y: e.clientY };
     this.lastPointerPos = { x: e.clientX, y: e.clientY };
     this.isDraggingCamera = false;
+    this.pendingTouchStart = null;
+    this.cancelPendingOnTap = false;
     this.paintedTilesInStroke.clear();
+
+    const panOverride = e.button === 1 || (e.button === 0 && this.spaceDown) || (e.button === 2 && e.shiftKey);
+    this.pointerPanOverride = panOverride;
+    if (panOverride || e.button === 2) {
+      return;
+    }
+
+    // If a 2+ road/bridge stretch checkmark is hovering, tapping anywhere else on the canvas cancels it!
+    if (e.button === 0 && (this.pendingNetworkStroke || this.hasPendingBridgeConfirm)) {
+      this.cancelPendingOnTap = true;
+      return;
+    }
 
     const g = this.computePointerGrid(e.clientX, e.clientY);
     this.hoverGrid = g;
     this.updateHoverOverlay();
 
-    if(e.button===0&&this.worksTool&&g){this.worksStroke=this.worksAnchor?[this.worksAnchor,{gx:g[0],gz:g[1]}]:[{gx:g[0],gz:g[1]}];this.updateHoverOverlay();return;}
+    // Bulk draw-to-select mode: prepare stroke across roads/buildings
+    if (e.button === 0 && this.bulkSelectMode) {
+      this.bulkStrokeIds.clear();
+      this.bulkHasDragged = false;
+      this.bulkLastGrid = g ? [g[0], g[1]] : null;
+      return;
+    }
 
-    // Support continuous click-drag painting for 1x1 roads, paths, tracks & starter tiles on left button!
+    if (e.button === 0 && this.worksTool && g) {
+      this.worksStroke = this.worksAnchor ? [this.worksAnchor, { gx: g[0], gz: g[1] }] : [{ gx: g[0], gz: g[1] }];
+      this.updateHoverOverlay();
+      return;
+    }
+
+    // Continuous drag painting for 1x1 networks.
+    // Roads & bridges (isRoadNetwork) accumulate into a live ghost stretch:
+    //   1 tile -> places immediately on release; 2+ tiles -> freezes with floating Checkmark confirmation!
     if (e.button === 0 && this.brush.kind === "place" && this.brush.defId && g) {
       const def = ELEMENT_BY_ID[this.brush.defId];
-      if (def?.isNetwork) {
-        const key = `${g[0]},${g[1]}`;
-        this.paintedTilesInStroke.add(key);
-        this.lastPaintedGrid = [g[0], g[1]];
-        this.callbacks.onTilePlace(g[0], g[1]);
+      if (def?.isRoadNetwork) {
+        if (e.pointerType === "touch") {
+          this.pendingTouchStart = { gx: g[0], gz: g[1], clientX: e.clientX, clientY: e.clientY };
+        } else {
+          const key = `${g[0]},${g[1]}`;
+          this.paintedTilesInStroke.add(key);
+          this.lastPaintedGrid = [g[0], g[1]];
+          this.networkStroke = [{ gx: g[0], gz: g[1] }];
+          this.rebuildNetworkStrokePreview();
+          this.updateHoverOverlay();
+        }
+      } else if (def?.isNetwork) {
+        if (e.pointerType === "touch") {
+          this.pendingTouchStart = { gx: g[0], gz: g[1], clientX: e.clientX, clientY: e.clientY };
+        } else {
+          const key = `${g[0]},${g[1]}`;
+          this.paintedTilesInStroke.add(key);
+          this.lastPaintedGrid = [g[0], g[1]];
+          this.callbacks.onTilePlace(g[0], g[1]);
+        }
       }
     }
   };
@@ -3249,7 +3690,7 @@ export class PixelWorldRenderer {
         y: (pts[0].y + pts[1].y) * 0.5,
       };
 
-      if (this.lastPinchDist && dist > 6) {
+      if (this.lastPinchDist && dist > 6 && Math.abs(dist - this.lastPinchDist) > 0.5) {
         const ratio = this.lastPinchDist / dist;
         this.zoomBy(THREE.MathUtils.clamp(ratio, 0.85, 1.18));
       }
@@ -3265,12 +3706,33 @@ export class PixelWorldRenderer {
       }
 
       if (this.lastPinchMid !== null) {
+        const midDx = mid.x - this.lastPinchMid.x;
         const midDy = mid.y - this.lastPinchMid.y;
-        if (Math.abs(midDy) > 0.25) {
+        if (Math.abs(midDx) > 0.25 || Math.abs(midDy) > 0.25) {
           if (this.cameraMode === "walk") {
-            this.walkPitch = THREE.MathUtils.clamp(this.walkPitch - midDy * 0.004, -1.1, 0.9);
+            this.walkYaw -= midDx * 0.0045;
+            this.walkPitch = THREE.MathUtils.clamp(this.walkPitch - midDy * 0.0045, -1.1, 0.9);
+          } else if (this.cameraMode === "orbit") {
+            // In 1-finger orbit mode, 2-finger drag pans smoothly across the island
+            const viewH = Math.max(200, this.canvas.clientHeight || window.innerHeight);
+            const worldPerPx = (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5)) * this.spherical.radius) / viewH;
+            const fwdScale = worldPerPx / Math.max(0.35, Math.cos(this.spherical.phi));
+            const right = new THREE.Vector3(Math.cos(this.spherical.theta), 0, -Math.sin(this.spherical.theta));
+            const fwd = new THREE.Vector3(-Math.sin(this.spherical.theta), 0, -Math.cos(this.spherical.theta));
+            this.target.addScaledVector(right, -midDx * worldPerPx);
+            this.target.addScaledVector(fwd, midDy * fwdScale);
           } else {
-            this.spherical.phi += midDy * 0.0045;
+            // In default pan mode: 2-finger vertical drag tilts viewing angle (straight overhead <-> low angle),
+            // while horizontal slide glides smoothly sideways.
+            if (Math.abs(midDy) > 0.25) {
+              this.spherical.phi -= midDy * 0.0065;
+            }
+            if (Math.abs(midDx) > 0.25) {
+              const viewH = Math.max(200, this.canvas.clientHeight || window.innerHeight);
+              const worldPerPx = (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5)) * this.spherical.radius) / viewH;
+              const right = new THREE.Vector3(Math.cos(this.spherical.theta), 0, -Math.sin(this.spherical.theta));
+              this.target.addScaledVector(right, -midDx * worldPerPx);
+            }
           }
           this.updateCameraTransform();
         }
@@ -3289,18 +3751,141 @@ export class PixelWorldRenderer {
     }
 
     if (!this.isPointerDown) return;
-    if(this.worksTool&&this.worksStroke.length&&this.pointerButton===0){
-      const previous=this.worksStroke.at(-1)!;if(g&&(g[0]!==previous.gx||g[1]!==previous.gz)){this.worksStroke.push({gx:g[0],gz:g[1]});this.updateHoverOverlay();}return;
-    }
 
     const dx = e.clientX - this.lastPointerPos.x;
     const dy = e.clientY - this.lastPointerPos.y;
     this.lastPointerPos = { x: e.clientX, y: e.clientY };
 
-    // Left-drag continuous Manhattan painting when placing roads/paths/tracks (zero gaps on fast sweeps!)
-    if (this.pointerButton === 0 && this.brush.kind === "place" && this.brush.defId) {
+    // PC camera pan/orbit overrides always take priority over placement strokes
+    const panOverrideNow = this.pointerPanOverride || this.pointerButton === 1 || (this.pointerButton === 0 && this.spaceDown);
+    if (panOverrideNow || this.pointerButton === 2) {
+      const totalDist = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
+      if (totalDist > 2 || panOverrideNow) {
+        this.isDraggingCamera = true;
+      }
+      if (this.cameraMode === "walk") {
+        this.walkYaw -= dx * 0.0045;
+        this.walkPitch = THREE.MathUtils.clamp(this.walkPitch - dy * 0.0035, -1.1, 0.9);
+      } else if (this.pointerButton === 2 && !e.shiftKey && !panOverrideNow) {
+        this.spherical.theta -= dx * 0.0065;
+        this.spherical.phi -= dy * 0.0055;
+      } else {
+        const panScale = this.spherical.radius * 0.0016;
+        const right = new THREE.Vector3(Math.cos(this.spherical.theta), 0, -Math.sin(this.spherical.theta));
+        const fwd = new THREE.Vector3(-Math.sin(this.spherical.theta), 0, -Math.cos(this.spherical.theta));
+        this.target.addScaledVector(right, -dx * panScale);
+        this.target.addScaledVector(fwd, dy * panScale);
+        this.target.y = THREE.MathUtils.lerp(this.target.y, 0, 0.15);
+      }
+      this.updateCameraTransform();
+      return;
+    }
+
+    // Bulk draw-to-select brush sweep (Manhattan interpolated so fast drags never miss a road tile)
+    if (this.bulkSelectMode && this.pointerButton === 0 && !this.cancelPendingOnTap && g) {
+      const moved = Math.hypot(e.clientX - this.pointerDownPos.x, e.clientY - this.pointerDownPos.y);
+      if (moved > 5) {
+        const newlyAdded: string[] = [];
+        if (!this.bulkHasDragged) {
+          this.bulkHasDragged = true;
+          if (this.bulkLastGrid) {
+            newlyAdded.push(...this.collectBulkAtGrid(this.bulkLastGrid[0], this.bulkLastGrid[1]));
+          }
+        }
+        const [tx, tz] = g;
+        if (!this.bulkLastGrid) {
+          this.bulkLastGrid = [tx, tz];
+          newlyAdded.push(...this.collectBulkAtGrid(tx, tz));
+        } else {
+          let [cx, cz] = this.bulkLastGrid;
+          let guard = 0;
+          while ((cx !== tx || cz !== tz) && guard < 48) {
+            guard += 1;
+            if (cx !== tx) cx += Math.sign(tx - cx);
+            else if (cz !== tz) cz += Math.sign(tz - cz);
+            newlyAdded.push(...this.collectBulkAtGrid(cx, cz));
+          }
+          this.bulkLastGrid = [tx, tz];
+        }
+        if (newlyAdded.length > 0) {
+          this.callbacks.onBulkSelectElements?.(newlyAdded, "add");
+        }
+        return;
+      }
+      return;
+    }
+
+    if (this.worksTool && this.worksStroke.length && this.pointerButton === 0) {
+      const previous = this.worksStroke.at(-1)!;
+      if (g && (g[0] !== previous.gx || g[1] !== previous.gz)) {
+        this.worksStroke.push({ gx: g[0], gz: g[1] });
+        this.updateHoverOverlay();
+      }
+      return;
+    }
+
+    // Left-drag continuous Manhattan painting when placing roads/paths/bridges/tracks (zero gaps on fast sweeps!)
+    if (!this.cancelPendingOnTap && this.pointerButton === 0 && this.brush.kind === "place" && this.brush.defId) {
       const def = ELEMENT_BY_ID[this.brush.defId];
-      if (def?.isNetwork && g) {
+      if (def?.isRoadNetwork && g) {
+        let strokeChanged = false;
+        if (this.pendingTouchStart) {
+          const moved = Math.hypot(e.clientX - this.pendingTouchStart.clientX, e.clientY - this.pendingTouchStart.clientY);
+          if (moved <= 4) return;
+          const start = this.pendingTouchStart;
+          this.pendingTouchStart = null;
+          const startKey = `${start.gx},${start.gz}`;
+          this.paintedTilesInStroke.add(startKey);
+          this.lastPaintedGrid = [start.gx, start.gz];
+          this.networkStroke = [{ gx: start.gx, gz: start.gz }];
+          strokeChanged = true;
+        }
+
+        const [tx, tz] = g;
+        if (!this.lastPaintedGrid) {
+          this.lastPaintedGrid = [tx, tz];
+          const key = `${tx},${tz}`;
+          if (!this.paintedTilesInStroke.has(key)) {
+            this.paintedTilesInStroke.add(key);
+            this.networkStroke.push({ gx: tx, gz: tz });
+            strokeChanged = true;
+          }
+        } else {
+          let [cx, cz] = this.lastPaintedGrid;
+          let guard = 0;
+          while ((cx !== tx || cz !== tz) && guard < 48) {
+            guard += 1;
+            if (cx !== tx) {
+              cx += Math.sign(tx - cx);
+            } else if (cz !== tz) {
+              cz += Math.sign(tz - cz);
+            }
+            const key = `${cx},${cz}`;
+            if (!this.paintedTilesInStroke.has(key)) {
+              this.paintedTilesInStroke.add(key);
+              this.networkStroke.push({ gx: cx, gz: cz });
+              strokeChanged = true;
+            }
+          }
+          this.lastPaintedGrid = [tx, tz];
+        }
+        if (strokeChanged) {
+          this.rebuildNetworkStrokePreview();
+          this.updateHoverOverlay();
+        }
+        return;
+      } else if (def?.isNetwork && g) {
+        if (this.pendingTouchStart) {
+          const moved = Math.hypot(e.clientX - this.pendingTouchStart.clientX, e.clientY - this.pendingTouchStart.clientY);
+          if (moved <= 4) return;
+          const start = this.pendingTouchStart;
+          this.pendingTouchStart = null;
+          const startKey = `${start.gx},${start.gz}`;
+          this.paintedTilesInStroke.add(startKey);
+          this.lastPaintedGrid = [start.gx, start.gz];
+          this.callbacks.onTilePlace(start.gx, start.gz);
+        }
+
         const [tx, tz] = g;
         if (!this.lastPaintedGrid) {
           this.lastPaintedGrid = [tx, tz];
@@ -3350,14 +3935,16 @@ export class PixelWorldRenderer {
       (this.pointerButton === 0 && (this.cameraMode === "orbit" || e.altKey));
 
     if (wantOrbit) {
-      this.spherical.theta -= dx * 0.0065;
-      this.spherical.phi -= dy * 0.0055;
+      this.spherical.theta -= dx * 0.0072;
+      this.spherical.phi -= dy * 0.0062;
     } else {
-      const panScale = this.spherical.radius * 0.0016;
+      const viewH = Math.max(200, this.canvas.clientHeight || window.innerHeight);
+      const worldPerPx = (2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov * 0.5)) * this.spherical.radius) / viewH;
+      const fwdScale = worldPerPx / Math.max(0.35, Math.cos(this.spherical.phi));
       const right = new THREE.Vector3(Math.cos(this.spherical.theta), 0, -Math.sin(this.spherical.theta));
       const fwd = new THREE.Vector3(-Math.sin(this.spherical.theta), 0, -Math.cos(this.spherical.theta));
-      this.target.addScaledVector(right, -dx * panScale);
-      this.target.addScaledVector(fwd, dy * panScale);
+      this.target.addScaledVector(right, -dx * worldPerPx);
+      this.target.addScaledVector(fwd, dy * fwdScale);
       this.target.y = THREE.MathUtils.lerp(this.target.y, 0, 0.15);
     }
     this.updateCameraTransform();
@@ -3372,10 +3959,19 @@ export class PixelWorldRenderer {
     }
 
     if (this.hadMultiTouch) {
-      if (this.activePointers.size === 0) {
-        this.hadMultiTouch = false;
+      if (this.activePointers.size === 1) {
+        // Seamless 2-finger -> 1-finger handoff without needing to lift and retouch
+        const remaining = Array.from(this.activePointers.values())[0];
+        this.lastPointerPos = { x: remaining.x, y: remaining.y };
+        this.pointerDownPos = { x: remaining.x, y: remaining.y };
+        this.isPointerDown = true;
+        this.isDraggingCamera = true;
+        return;
       }
+      this.hadMultiTouch = false;
+      this.pendingTouchStart = null;
       this.isPointerDown = false;
+      this.pointerPanOverride = false;
       this.isDraggingCamera = false;
       this.lastPaintedGrid = null;
       return;
@@ -3384,11 +3980,74 @@ export class PixelWorldRenderer {
     if (!this.isPointerDown) return;
     this.isPointerDown = false;
     this.lastPaintedGrid = null;
-    if(this.worksTool&&this.worksStroke.length&&e.button===0){
-      const points=this.worksStroke;this.worksStroke=[];
-      if(this.worksTool.kind==="bridge"&&points.length===1&&!this.worksAnchor&&!this.gameState.infrastructure?.spans[tileKey(points[0].gx,points[0].gz)])this.worksAnchor=points[0];
-      else {this.worksAnchor=null;this.callbacks.onInfrastructureStroke?.(this.worksTool,points);}
-      this.updateHoverOverlay();return;
+
+    if (this.pointerPanOverride) {
+      this.pointerPanOverride = false;
+      this.pendingTouchStart = null;
+      return;
+    }
+
+    if (this.cancelPendingOnTap) {
+      this.cancelPendingOnTap = false;
+      if (!this.isDraggingCamera && e.button === 0) {
+        this.callbacks.onCancelPendingStroke?.();
+      }
+      return;
+    }
+
+    if (this.bulkSelectMode && e.button === 0) {
+      const wasDragged = this.bulkHasDragged;
+      this.bulkHasDragged = false;
+      this.bulkLastGrid = null;
+      this.bulkStrokeIds.clear();
+      if (!wasDragged && !this.isDraggingCamera) {
+        const hitId = this.raycastPlacedElement(e.clientX, e.clientY);
+        if (hitId) {
+          const hitEl = this.gameState.elements.find((item) => item.id === hitId);
+          if (hitEl && this.matchesBulkFilter(hitEl)) {
+            this.callbacks.onBulkSelectElements?.([hitId], "toggle");
+          }
+        }
+      }
+      return;
+    }
+
+    if (this.networkStroke.length > 0 && e.button === 0 && this.brush.kind === "place" && this.brush.defId) {
+      const pts = [...this.networkStroke];
+      this.networkStroke = [];
+      if (pts.length === 1) {
+        this.rebuildNetworkStrokePreview();
+        this.updateHoverOverlay();
+        this.callbacks.onTilePlace(pts[0].gx, pts[0].gz);
+      } else {
+        const pending: PendingNetworkStroke = { defId: this.brush.defId, points: pts };
+        this.pendingNetworkStroke = pending;
+        this.rebuildNetworkStrokePreview();
+        this.updateHoverOverlay();
+        this.callbacks.onPendingNetworkStroke?.(pending);
+      }
+      return;
+    }
+
+    if (this.pendingTouchStart) {
+      const start = this.pendingTouchStart;
+      this.pendingTouchStart = null;
+      if (e.button === 0 && !this.isDraggingCamera) {
+        this.callbacks.onTilePlace(start.gx, start.gz);
+      }
+      return;
+    }
+
+    if (this.worksTool && this.worksStroke.length && e.button === 0) {
+      const points = this.worksStroke;
+      this.worksStroke = [];
+      if (this.worksTool.kind === "bridge" && points.length === 1 && !this.worksAnchor && !this.gameState.infrastructure?.spans[tileKey(points[0].gx, points[0].gz)]) this.worksAnchor = points[0];
+      else {
+        this.worksAnchor = null;
+        this.callbacks.onInfrastructureStroke?.(this.worksTool, points);
+      }
+      this.updateHoverOverlay();
+      return;
     }
 
     if (!this.isDraggingCamera && e.button === 0) {
@@ -3401,16 +4060,27 @@ export class PixelWorldRenderer {
           this.callbacks.onTilePlace(g[0], g[1]);
         }
       } else {
-        if(g && this.callbacks.onInspectTile?.(g[0],g[1]))return;
+        if (g && this.callbacks.onInspectTile?.(g[0], g[1])) return;
         const hitId = this.raycastPlacedElement(e.clientX, e.clientY);
-        if(hitId&&this.gameState.mobility?.lines.some(l=>l.id===hitId))this.callbacks.onSelectService?.(hitId);
-        else this.callbacks.onSelectElement(hitId, e.shiftKey);
+        if (hitId && this.gameState.mobility?.lines.some((l) => l.id === hitId)) this.callbacks.onSelectService?.(hitId);
+        else if (hitId) this.callbacks.onSelectElement(hitId, e.shiftKey);
+        else if (g && this.callbacks.onEmptyTileTap) this.callbacks.onEmptyTileTap(g[0], g[1]);
+        else this.callbacks.onSelectElement(null, e.shiftKey);
       }
     }
   };
 
   private onPointerCancel = (e: PointerEvent) => {
-    this.worksStroke=[];this.worksAnchor=null;this.updateHoverOverlay();
+    this.worksStroke = [];
+    this.worksAnchor = null;
+    this.networkStroke = [];
+    this.cancelPendingOnTap = false;
+    this.bulkHasDragged = false;
+    this.bulkLastGrid = null;
+    this.bulkStrokeIds.clear();
+    this.pendingTouchStart = null;
+    this.rebuildNetworkStrokePreview();
+    this.updateHoverOverlay();
     this.activePointers.delete(e.pointerId);
     if (this.activePointers.size < 2) {
       this.lastPinchDist = null;
@@ -3420,6 +4090,7 @@ export class PixelWorldRenderer {
     if (this.activePointers.size === 0) {
       this.hadMultiTouch = false;
       this.isPointerDown = false;
+      this.pointerPanOverride = false;
       this.isDraggingCamera = false;
       this.lastPaintedGrid = null;
     }
@@ -3460,14 +4131,28 @@ export class PixelWorldRenderer {
   };
 
   private onKeyDown = (e: KeyboardEvent) => {
-    if (document.querySelector("dialog[open]") || (e.target instanceof Element && e.target.closest("input,textarea,select,button,summary,a,[contenteditable=true]")))return;
+    if (document.querySelector("dialog[open]") || (e.target instanceof Element && e.target.closest("input,textarea,select,button,summary,a,[contenteditable=true]"))) return;
     const tag = (e.target as HTMLElement | null)?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA") return;
+    if (e.code === "Space") {
+      this.spaceDown = true;
+      e.preventDefault();
+    }
     this.keysDown.add(e.code);
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
+    if (e.code === "Space") {
+      this.spaceDown = false;
+    }
     this.keysDown.delete(e.code);
+  };
+
+  private onWindowBlur = () => {
+    this.keysDown.clear();
+    this.spaceDown = false;
+    this.pointerPanOverride = false;
+    this.pendingTouchStart = null;
   };
 
   private onResize = () => {
@@ -3487,6 +4172,7 @@ export class PixelWorldRenderer {
     this.canvas.addEventListener("contextmenu", this.onContextMenu);
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
+    window.addEventListener("blur", this.onWindowBlur);
     window.addEventListener("resize", this.onResize);
   }
 
@@ -3507,6 +4193,7 @@ export class PixelWorldRenderer {
     this.canvas.removeEventListener("contextmenu", this.onContextMenu);
     window.removeEventListener("keydown", this.onKeyDown);
     window.removeEventListener("keyup", this.onKeyUp);
+    window.removeEventListener("blur", this.onWindowBlur);
     window.removeEventListener("resize", this.onResize);
     this.unitCubeGeo.dispose();
     this.wrenchMat.dispose();
@@ -3526,6 +4213,7 @@ export class PixelWorldRenderer {
     this.sirenRedMat.dispose();
     this.sirenBlueMat.dispose();
     this.farmActivity.dispose();
+    this.patrolCraft.dispose();
     this.mobilityVisuals.dispose();
     this.renderer.dispose();
   }

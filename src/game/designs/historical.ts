@@ -632,10 +632,14 @@ function greatWall(c: Ctx): void {
   const hillSide = c.vpick(["grass3", "sandDark", "#d9e2e6", "olive"]);
   const amp = [1, 3, 5, 7, 9][lv - 1];
   const phase = c.variant * 0.9;
-  const ground = (x: number, z: number) => Math.max(1, Math.round(
-    1 + amp * (0.5 + 0.5 * Math.sin(x * 0.11 + phase)) * (0.7 + 0.3 * Math.cos(z * 0.18 + phase)),
-  ));
-  lot(c, hillSide);
+  const ground = (x: number, z: number) => {
+    const edgeDist = Math.min(x + hx, hx - 1 - x, z + hz, hz - 1 - z);
+    const edgeBlend = Math.min(1, edgeDist / 5);
+    return Math.round(
+      amp * edgeBlend * (0.5 + 0.5 * Math.sin(x * 0.11 + phase)) * (0.7 + 0.3 * Math.cos(z * 0.18 + phase)),
+    );
+  };
+  lot(c, "grass2");
   const hmap = new Map<number, number>();
   const H = (x: number, z: number) => {
     const k = (x + 64) * 256 + (z + 64);
@@ -645,8 +649,12 @@ function greatWall(c: Ctx): void {
   };
   for (let x = -hx; x < hx; x++) for (let z = -hz; z < hz; z++) {
     const h = H(x, z);
-    const lo = Math.min(h, H(x + 1, z), H(x - 1, z), H(x, z + 1), H(x, z - 1));
     const edge = x === -hx || x === hx - 1 || z === -hz || z === hz - 1;
+    if (h <= 0) {
+      if (!edge && (x + z) % 3 === 0) v.put(x, 0, z, hillTop === "sand" ? "grass2" : hillSide);
+      continue;
+    }
+    const lo = Math.min(h, H(x + 1, z), H(x - 1, z), H(x, z + 1), H(x, z - 1));
     const y0 = edge ? 1 : Math.max(1, lo);
     if (h > 1) v.box(x, y0, z, x + 1, h, z + 1, hillSide);
     v.put(x, h, z, (x * 3 + z * 5) % 7 === 0 ? hillSide : hillTop);
@@ -945,13 +953,19 @@ function moaiStatues(c: Ctx): void {
   lot(c, "grass2");
   speckle(c, "grass3", 0.14);
   const slope = variant === 3;
-  // Sea along the back edge from Lv2
+  // Volcanic basalt headland behind the ahu from Lv2
   const shoreZ = lv >= 2 ? -hz + (hz >= 16 ? 6 : 4) : -hz - 1;
   if (lv >= 2) {
-    v.box(-hx, 0, -hz, hx, 1, shoreZ, "water", 0.08);
-    for (let x = -hx; x < hx; x++) if ((x * 5) % 3 !== 0) v.put(x, 0, shoreZ - 1, "foam", 0.2);
-    for (let x = -hx; x < hx; x++) v.put(x, 0, shoreZ, (x % 3) ? "sand" : "basalt");
-    for (let i = 0; i < hx / 3; i++) rocks(c, c.ri(-hx + 1, hx - 2), 0, shoreZ, 1, "basalt");
+    for (let x = -hx; x < hx; x++) {
+      for (let z = -hz; z < shoreZ; z++) {
+        const edgeDist = Math.min(x + hx, hx - 1 - x, z + hz);
+        if (edgeDist > 0 && ((x + z) % 3 === 0 || z > -hz + 2)) {
+          v.put(x, 0, z, (x * 3 + z) % 2 === 0 ? "basalt" : "sandDark");
+        }
+      }
+      v.put(x, 0, shoreZ, x % 3 ? "sandDark" : "basalt");
+    }
+    for (let i = 0; i < hx / 3; i++) rocks(c, c.ri(-hx + 1, hx - 2), 0, shoreZ - 1, 1, "basalt");
   }
   const pk = (i: number) => variant === 1 || (lv >= 5 && variant !== 3 && i % 3 === 1);
   const eyes = variant === 2;
@@ -1209,9 +1223,8 @@ function machuPicchu(c: Ctx): void {
   const granite2 = c.vpick(["#857f74", "#737a6e", "#8a8476", "#9c7c5c"]);
   const grassTop = c.vpick(["grass", "leaf", "grass2", "#9fb85a"]);
   const thatch = c.vpick(["#b08a4a", "#8f7a43", "#e0b85a", "#c79a4a"]);
-  lot(c, "leafDark");
-  // Ridge rising toward the back and falling away to both sides; quantised into 3-voxel
-  // terraces so the terrace walls follow the mountain's contours.
+  lot(c, "grass2");
+  // Ridge rising toward the back and falling away to both sides, tapering smoothly to y=0 around the parcel perimeter.
   const maxH = [7, 10, 13, 16, 19][lv - 1];
   const raw = (x: number, z: number) => {
     const tb = (hz - z) / (2 * hz);
@@ -1223,14 +1236,25 @@ function machuPicchu(c: Ctx): void {
     if (x < -hx || x >= hx || z < -hz || z >= hz) return 0;
     const k = (x + 64) * 256 + z + 64;
     let h = hmap.get(k);
-    if (h === undefined) { h = Math.max(1, 1 + 3 * Math.floor(raw(x, z) / 3)); hmap.set(k, h); }
+    if (h === undefined) {
+      const edgeDist = Math.min(x + hx, hx - 1 - x, z + hz, hz - 1 - z);
+      const skirt = Math.min(1, edgeDist / 4);
+      const val = raw(x, z) * skirt;
+      h = edgeDist === 0 || val < 1.4 ? 0 : 1 + 3 * Math.floor(val / 3);
+      hmap.set(k, h);
+    }
     return h;
   };
   for (let x = -hx; x < hx; x++) for (let z = -hz; z < hz; z++) {
     const h = H(x, z);
+    if (h <= 0) {
+      const edgeDist = Math.min(x + hx, hx - 1 - x, z + hz, hz - 1 - z);
+      if (edgeDist > 0 && (x + z) % 3 === 0) v.put(x, 0, z, "grass3");
+      continue;
+    }
     const lo = Math.min(H(x + 1, z), H(x - 1, z), H(x, z + 1), H(x, z - 1));
     for (let y = Math.max(1, lo); y < h; y++) v.put(x, y, z, (x + y * 2 + z) % 5 === 0 ? granite2 : granite);
-    v.put(x, h, z, h > lo ? grassTop : grassTop);
+    v.put(x, h, z, grassTop);
   }
   const yAt = (x: number, z: number) => H(x, z) + 1;
   // Huayna Picchu: an asymmetric sugarloaf of granite cliffs and cloud forest behind the citadel
@@ -1255,7 +1279,7 @@ function machuPicchu(c: Ctx): void {
   const house = (x: number, z: number, w: number, d: number, roof: boolean) => {
     let y = 0, lo = 99;
     for (let i = x; i < x + w; i++) for (let k = z; k < z + d; k++) { y = Math.max(y, H(i, k)); lo = Math.min(lo, H(i, k)); }
-    v.box(x, lo, z, x + w, y + 1, z + d, granite2);
+    v.box(x, Math.max(1, lo), z, x + w, y + 1, z + d, granite2);
     y += 1;
     v.hollowBox(x, y, z, x + w, y + 4, z + d, granite);
     v.box(x + Math.floor(w / 2), y, z + d - 1, x + Math.floor(w / 2) + 1, y + 3, z + d, "charcoal");

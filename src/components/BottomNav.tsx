@@ -11,11 +11,30 @@ export const NAV_ITEMS: {id: NavSheet; label: string; key: string; Icon: typeof 
 ];
 
 /** The five homes. Every feature lives in exactly one of them. */
-export function BottomNav({active, onToggle, badges}: {active: NavSheet | null; onToggle: (id: NavSheet) => void; badges?: Partial<Record<NavSheet, number>>}) {
-  return <nav className="ui-nav" aria-label="Main">
-    {NAV_ITEMS.map(({id, label, key, Icon}) => <button key={id} type="button" data-panel-toggle={id} aria-pressed={active === id}
+export function BottomNav({
+  active,
+  onToggle,
+  badges,
+  visibleIds,
+  highlightId,
+}: {
+  active: NavSheet | null;
+  onToggle: (id: NavSheet) => void;
+  badges?: Partial<Record<NavSheet, number>>;
+  /** Optional progressive reveal filter during interactive tutorials. */
+  visibleIds?: NavSheet[];
+  /** Optional spotlighted menu tab during interactive tutorials. */
+  highlightId?: NavSheet;
+}) {
+  const items = visibleIds
+    ? NAV_ITEMS.filter((item) => visibleIds.includes(item.id))
+    : NAV_ITEMS;
+
+  return <nav className={"ui-nav" + (visibleIds ? " is-tutorial" : "")} aria-label="Main">
+    {items.map(({id, label, key, Icon}) => <button key={id} type="button" data-panel-toggle={id} aria-pressed={active === id}
+      className={highlightId === id ? "is-tut-spotlight" : undefined}
       aria-controls={"sheet-" + id} aria-keyshortcuts={key} title={label + " (" + key + ")"} onClick={() => onToggle(id)}>
-      <Icon size={22} aria-hidden="true"/><span>{label}</span>
+      <Icon size={18} aria-hidden="true"/><span>{label}</span>
       {badges?.[id] ? <span className="ui-nav-badge" aria-label={badges[id] + " issues"}>{badges[id]}</span> : null}
     </button>)}
   </nav>;

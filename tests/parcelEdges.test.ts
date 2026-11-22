@@ -47,9 +47,12 @@ test("rotation, partial-width garage, close/open overrides and row orientation r
     const [a,b]=cellBeyondEdge(house,"front",0), other=piece("roads",a,b);
     const [u,w]=cellBeyondEdge(house,"back",0), rear=piece("roads",u,w);
     const occ=buildOccupancyMap([house,correct,other,rear]);
-    assert.deepEqual(getParcelEdges(house,occ).map(e=>[e.side,e.kind,e.slot]),[["front","drive",1]]);
+    assert.deepEqual(
+      getParcelEdges(house,occ).map(e=>[e.side,e.kind,e.slot]).sort(),
+      [["back","drive",0],["front","drive",1]],
+    );
     assert.equal(getParcelEdges(other,occ).filter(e=>e.kind==="drive").length,0);
-    house.edgeOverrides={front:"closed"};
+    house.edgeOverrides={front:"closed",back:"closed"};
     assert.equal(getParcelEdges(house,occ).length,0);
     assert.equal(getParcelEdges(correct,occ).filter(e=>e.kind==="drive").length,0);
   }
@@ -129,13 +132,13 @@ test("coastal scenery and an unsupported basin do not create hydraulic service e
   assert.ok(getParcelEdges(el,buildOccupancyMap([el]),st).some(e=>e.kind==="intake"));
 });
 
-test("a road, a transit catchment and a shared garden all respect the actual front gate",()=>{
+test("a road automatically connects adjacent buildings on any side and transit catchment reaches them",()=>{
   const st=createInitialGameState("real"),home=piece("house",0,1),shop=piece("shops",2,1,2);
   const stop=piece("bus_stops",1,-1), garden=piece("gardens",0,2);
   st.elements=[home,shop,stop,garden,piece("roads",0,0),piece("roads",1,0),piece("roads",2,0)];
   recomputeConnectivityAndMetrics(st);
-  assert.equal(home.connected,false,"a road against the rear fence must not connect");
-  assert.equal(new TravelNetwork(st).catchment(stop).has(home.id),false);
+  assert.equal(home.connected,true,"a road beside any edge automatically connects without manual linking");
+  assert.equal(new TravelNetwork(st).catchment(stop).has(home.id),true);
   home.rotation=2;
   recomputeConnectivityAndMetrics(st);
   assert.equal(home.connected,true);

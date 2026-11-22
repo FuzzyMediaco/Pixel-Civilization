@@ -2175,12 +2175,13 @@ function buildBeachHouse(c: Ctx): void {
   lot(c, "sand");
   speckle(c, "sandDark", 0.1);
   const big = hz > 8;
-  // ocean along the front at L3+
+  // Natural wet tide flat at the front edge of the dune (no painted fake ocean slab)
   const shore = big ? 2 : hz - 3;
   if (lv >= 3 || big) {
-    v.box(-hx, 0, shore, hx, 1, hz, "water", 0.08);
-    for (let x = -hx; x < hx; x++) v.put(x, 0, shore + ((x * 7) % 3 === 0 ? 1 : 0), "foam", 0.2);
-    v.box(-hx, 0, shore - 1, hx, 1, shore, "sandDark");
+    v.box(-hx, 0, shore, hx, 1, hz, "sandDark");
+    for (let x = -hx; x < hx; x += 2) {
+      if ((x * 7) % 3 === 0) v.put(x, 0, shore + 1, "sand");
+    }
   }
   const w = big || hx > 8 ? 16 : 11;
   const x0 = big ? -hx + 4 : hx > 8 ? -hx + 4 : -6;
@@ -2209,7 +2210,7 @@ function buildBeachHouse(c: Ctx): void {
     umbrella(v, big ? hx - 8 : hx - 4, big ? shore - 6 : hz - 4, ["red", "teal", "white", "yellow"][s]);
   }
   if (lv >= 3) {
-    // boardwalk over the dunes to the water, hammock between palms
+    // boardwalk over the dunes to the beach apron, hammock between palms
     const bx = x0 + 1;
     v.box(bx, 1, z1 + 4, bx + 3, 2, hz, "woodLight");
     for (let z = z1 + 4; z < hz; z += 3) v.box(bx, 1, z, bx + 3, 2, z + 1, "wood");
@@ -2220,27 +2221,28 @@ function buildBeachHouse(c: Ctx): void {
     for (let z = z0 + 2; z < z0 + 8; z++) v.put(p1, 3 - (z === z0 + 4 || z === z0 + 5 ? 1 : 0), z, ["red", "white", "orange"][z % 3]);
   }
   if (lv >= 4 && big) {
-    // dock into the sea with a sailboat and kayaks
+    // dune jetty & boat cradle on the wet sand with a sailboat and kayaks
     const dx = 4;
     v.box(dx, 1, shore - 2, dx + 4, 2, hz - 1, "wood");
     for (let z = shore; z < hz; z += 4) {
       v.box(dx - 1, 0, z, dx, 3, z + 1, "woodDark");
       v.box(dx + 4, 0, z, dx + 5, 3, z + 1, "woodDark");
     }
-    // sailboat
+    // sailboat resting on beach cradle beside the jetty
     const sx = dx + 8;
     const sz = hz - 6;
-    v.box(sx - 1, 1, sz - 1, sx + 6, 2, sz + 2, "white");
-    v.box(sx, 1, sz - 2, sx + 5, 2, sz + 3, "white");
-    v.box(sx + 2, 2, sz, sx + 3, 14, sz + 1, "silver");
-    for (let y = 3; y < 13; y++) v.box(sx + 3, y, sz, sx + 3 + Math.floor((13 - y) / 2), y + 1, sz + 1, "white");
-    v.put(sx - 1, 1, sz, "blue");
+    v.box(sx, 1, sz - 1, sx + 5, 2, sz + 2, "woodDark");
+    v.box(sx - 1, 2, sz - 1, sx + 6, 3, sz + 2, "white");
+    v.box(sx, 2, sz - 2, sx + 5, 3, sz + 3, "white");
+    v.box(sx + 2, 3, sz, sx + 3, 14, sz + 1, "silver");
+    for (let y = 4; y < 13; y++) v.box(sx + 3, y, sz, sx + 3 + Math.floor((13 - y) / 2), y + 1, sz + 1, "white");
+    v.put(sx - 1, 2, sz, "blue");
     // kayaks on the sand
     v.box(-hx + 2, 1, shore - 3, -hx + 8, 2, shore - 2, "orange");
     v.box(-hx + 3, 1, shore - 5, -hx + 9, 2, shore - 4, "yellow");
   }
   if (lv >= 5) {
-    // rooftop lookout / widow's walk + hot tub + lifeguard tower + jet ski
+    // rooftop lookout / widow's walk + hot tub + lifeguard tower + beach-parked watercraft
     const lx = x1 - 6;
     if (s === 2) {
       v.box(x0 + 6, top, z0 + 1, x1 - 1, top + 1, z1 - 1, "woodLight");
@@ -2261,10 +2263,9 @@ function buildBeachHouse(c: Ctx): void {
       v.box(gx - 1, 10, gz - 1, gx + 5, 11, gz + 5, "white");
       v.box(gx + 1, 8, gz + 4, gx + 3, 9, gz + 5, "glass", 0.4);
       flag(v, gx + 4, 11, gz, 4, ["red", "yellow"]);
-      // jet ski
+      // jet ski parked on a timber skid
       v.box(-hx + 8, 1, hz - 4, -hx + 12, 2, hz - 2, "yellow");
       v.put(-hx + 9, 2, hz - 3, "black");
-      c.bob();
     }
     folk(c, x0 + 3, z1 + 6, 1);
   }

@@ -138,7 +138,7 @@ test("a spur with no destination, a broken street and a pedestrian bridge cannot
   assert.equal(view.ambientCarTrips().length, 0);
   shop.edgeOverrides = { front: "auto" };
   shop.rotation = 2;
-  assert.equal(getRoadTripNetwork(loaded).routes.length, 0);
+  assert.ok(getRoadTripNetwork(loaded).routes.length > 0, "roads automatically connect to adjacent buildings from any side");
 });
 test("separated decks, restricted approaches and a permanent lift opening break invalid journeys", () => {
   const s = island([

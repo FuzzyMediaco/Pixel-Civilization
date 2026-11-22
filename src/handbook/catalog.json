@@ -19668,5 +19668,5337 @@
     },
     "image": "/handbook/catalog/machu_picchu.webp",
     "thumbnail": "/handbook/catalog/thumbs/machu_picchu.webp"
+  },
+  {
+    "id": "police_heli_pad",
+    "name": "Police Helicopter Pad",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 420,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 14,
+      "power": -4,
+      "water": -2,
+      "police": 32,
+      "policeRadius": 22
+    },
+    "description": "Dedicated aviation pad that launches patrolling police helicopters across the island skyline.",
+    "usage": "Dedicated aviation pad that launches patrolling police helicopters across the island skyline.",
+    "growth": "A painted H-pad expands with beacon lights, a hangar, radar mast and patrolling police choppers in the sky.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Landing Pad",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Patrol Hangar",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Air Unit Apron",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Twin-Rotor Base",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Metro Air Wing",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Metro Blue"
+      },
+      {
+        "index": 1,
+        "name": "Highway Black"
+      },
+      {
+        "index": 2,
+        "name": "Coastal White"
+      },
+      {
+        "index": 3,
+        "name": "Night Stealth"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/police_heli_pad.webp",
+    "thumbnail": "/handbook/catalog/thumbs/police_heli_pad.webp"
+  },
+  {
+    "id": "medevac_heli_pad",
+    "name": "Emergency Medevac Pad",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 440,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 16,
+      "power": -4,
+      "water": -3,
+      "recreation": 18,
+      "police": 14,
+      "policeRadius": 14,
+      "fireRadius": 16
+    },
+    "description": "Air-ambulance trauma pad dispatching red-and-white medevac helicopters over every district.",
+    "usage": "Air-ambulance trauma pad dispatching red-and-white medevac helicopters over every district.",
+    "growth": "A rooftop-grade H-pad adds an ambulance bay, triage clinic, approach strobes and airborne medevac choppers.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Trauma Pad",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Air Ambulance Bay",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Flight Clinic",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Regional Medevac",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Island Air Rescue",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Alpine Red"
+      },
+      {
+        "index": 1,
+        "name": "City White"
+      },
+      {
+        "index": 2,
+        "name": "Coast Yellow"
+      },
+      {
+        "index": 3,
+        "name": "Night Flight"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/medevac_heli_pad.webp",
+    "thumbnail": "/handbook/catalog/thumbs/medevac_heli_pad.webp"
+  },
+  {
+    "id": "fire_heli_base",
+    "name": "Aerial Fire Helipad",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 520,
+    "stage": 7,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 18,
+      "power": -5,
+      "water": -5,
+      "fireRadius": 26
+    },
+    "description": "Water-bomber fire helicopter base with refill tanks; dispatches firefighting choppers to active blazes.",
+    "usage": "Water-bomber fire helicopter base with refill tanks; dispatches firefighting choppers to active blazes.",
+    "growth": "A portable water dip-tank and pad grow into a multi-bay helitack station with water towers and flying fire choppers.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Tanker Pad",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Dip-Tank Base",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Helitack Hangar",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Aerial Fire Wing",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Sky-Tanker Command",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Forestry Yellow"
+      },
+      {
+        "index": 1,
+        "name": "Firehouse Red"
+      },
+      {
+        "index": 2,
+        "name": "Highland Orange"
+      },
+      {
+        "index": 3,
+        "name": "Coastal Silver"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/fire_heli_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/fire_heli_base.webp"
+  },
+  {
+    "id": "emergency_dispatch",
+    "name": "911 Dispatch Center",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 340,
+    "stage": 5,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 24,
+      "power": -6,
+      "water": -2,
+      "government": 16,
+      "police": 26,
+      "policeRadius": 18,
+      "fireRadius": 18
+    },
+    "description": "Central emergency call and radio-relay hub coordinating police, fire and rescue coverage.",
+    "usage": "Central emergency call and radio-relay hub coordinating police, fire and rescue coverage.",
+    "growth": "A small radio relay office grows tall antenna arrays, backup generators and a hardened dispatch hall.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Radio Desk",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Call Center",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Relay Bunker",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Regional 911 Hub",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Unified Command",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Civic Brick"
+      },
+      {
+        "index": 1,
+        "name": "Glass Modern"
+      },
+      {
+        "index": 2,
+        "name": "Hardened Concrete"
+      },
+      {
+        "index": 3,
+        "name": "Coastal Stone"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/emergency_dispatch.webp",
+    "thumbnail": "/handbook/catalog/thumbs/emergency_dispatch.webp"
+  },
+  {
+    "id": "k9_police_unit",
+    "name": "Police K-9 Precinct",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 310,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 16,
+      "power": -3,
+      "water": -3,
+      "police": 28,
+      "policeRadius": 15
+    },
+    "description": "Neighborhood K-9 kennel and agility yard boosting street safety and rapid suspect tracking.",
+    "usage": "Neighborhood K-9 kennel and agility yard boosting street safety and rapid suspect tracking.",
+    "growth": "Covered kennels and a grass training run expand into a full K-9 academy with patrol SUV bays.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Kennel Post",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Agility Yard",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "K-9 Precinct",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Handler Academy",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Metro K-9 Complex",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Timber Lodge"
+      },
+      {
+        "index": 1,
+        "name": "Red Brick"
+      },
+      {
+        "index": 2,
+        "name": "Modern Slate"
+      },
+      {
+        "index": 3,
+        "name": "Desert Stucco"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/k9_police_unit.webp",
+    "thumbnail": "/handbook/catalog/thumbs/k9_police_unit.webp"
+  },
+  {
+    "id": "forensic_crime_lab",
+    "name": "Forensic Crime Lab",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 490,
+    "stage": 7,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 28,
+      "power": -7,
+      "water": -4,
+      "education": 18,
+      "police": 40,
+      "policeRadius": 18
+    },
+    "description": "Scientific forensics and evidence laboratory that sharply suppresses island crime rates.",
+    "usage": "Scientific forensics and evidence laboratory that sharply suppresses island crime rates.",
+    "growth": "A quiet evidence office upgrades into a skylight laboratory with clean-room vents and mobile crime vans.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Evidence Room",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Chemistry Lab",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Forensic Wing",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Crime Science Center",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "National Forensics HQ",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Clean Glass"
+      },
+      {
+        "index": 1,
+        "name": "Limestone"
+      },
+      {
+        "index": 2,
+        "name": "Brutalist Grey"
+      },
+      {
+        "index": 3,
+        "name": "Lab Copper"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/forensic_crime_lab.webp",
+    "thumbnail": "/handbook/catalog/thumbs/forensic_crime_lab.webp"
+  },
+  {
+    "id": "coast_rescue_station",
+    "name": "Coastal Rescue Station",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 390,
+    "stage": 6,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 18,
+      "power": -4,
+      "water": -2,
+      "recreation": 12,
+      "police": 20,
+      "policeRadius": 16,
+      "fireRadius": 18
+    },
+    "description": "Boathouse and beacon tower launching orange-and-white sea rescue boats across island waters.",
+    "usage": "Boathouse and beacon tower launching orange-and-white sea rescue boats across island waters.",
+    "growth": "A timber slipway grows a covered lifeboat shed, searchlight tower and active rescue boats patrolling the sea.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Lifeboat Slip",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Boathouse Quay",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Rescue Pier",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Watchtower Station",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Maritime Rescue HQ",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "New England Red"
+      },
+      {
+        "index": 1,
+        "name": "Coast Guard White"
+      },
+      {
+        "index": 2,
+        "name": "Nordic Timber"
+      },
+      {
+        "index": 3,
+        "name": "Modern Steel"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/coast_rescue_station.webp",
+    "thumbnail": "/handbook/catalog/thumbs/coast_rescue_station.webp"
+  },
+  {
+    "id": "hazmat_response",
+    "name": "Hazmat Response Depot",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 480,
+    "stage": 8,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 20,
+      "power": -5,
+      "water": -4,
+      "waste": 32,
+      "fireRadius": 20
+    },
+    "description": "Specialized industrial fire and decontamination squad protecting factories and power districts.",
+    "usage": "Specialized industrial fire and decontamination squad protecting factories and power districts.",
+    "growth": "A single decontamination bay adds foam tanks, sealed equipment trucks and a containment command deck.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Decontam Bay",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Hazmat Garage",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Response Depot",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Containment Unit",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Industrial Safety HQ",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Hazard Yellow"
+      },
+      {
+        "index": 1,
+        "name": "Steel Blue"
+      },
+      {
+        "index": 2,
+        "name": "Concrete White"
+      },
+      {
+        "index": 3,
+        "name": "Fire Red"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/hazmat_response.webp",
+    "thumbnail": "/handbook/catalog/thumbs/hazmat_response.webp"
+  },
+  {
+    "id": "fire_academy",
+    "name": "Fire Training Tower",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 370,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 22,
+      "power": -4,
+      "water": -6,
+      "education": 16,
+      "fireRadius": 22
+    },
+    "description": "Multi-story ladder drill tower and hydrant yard training faster, wider-reaching fire brigades.",
+    "usage": "Multi-story ladder drill tower and hydrant yard training faster, wider-reaching fire brigades.",
+    "growth": "A hydrant practice yard rises into a towering burn-drill structure with engine bays and classroom wings.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Hose Yard",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Drill Tower",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Ladder Grounds",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Fire Academy",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "National Fire College",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Classic Brick"
+      },
+      {
+        "index": 1,
+        "name": "Steel Lattice"
+      },
+      {
+        "index": 2,
+        "name": "Concrete Burn-Tower"
+      },
+      {
+        "index": 3,
+        "name": "Modern Campus"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/fire_academy.webp",
+    "thumbnail": "/handbook/catalog/thumbs/fire_academy.webp"
+  },
+  {
+    "id": "traffic_precinct",
+    "name": "Highway Patrol Precinct",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 430,
+    "stage": 8,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 22,
+      "power": -4,
+      "water": -2,
+      "police": 34,
+      "policeRadius": 20
+    },
+    "description": "Interceptor cruiser depot and speed-control post keeping avenues and freeways orderly.",
+    "usage": "Interceptor cruiser depot and speed-control post keeping avenues and freeways orderly.",
+    "growth": "A roadside trooper booth expands into a wide garage lined with pursuit cruisers and radio masts.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Roadside Post",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Trooper Garage",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Patrol Barracks",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Highway Precinct",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "State Patrol HQ",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "State Blue"
+      },
+      {
+        "index": 1,
+        "name": "Trooper Tan"
+      },
+      {
+        "index": 2,
+        "name": "Interceptor Black"
+      },
+      {
+        "index": 3,
+        "name": "Modern Silver"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/traffic_precinct.webp",
+    "thumbnail": "/handbook/catalog/thumbs/traffic_precinct.webp"
+  },
+  {
+    "id": "riot_command_center",
+    "name": "Crisis Command Center",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 680,
+    "stage": 11,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 34,
+      "power": -9,
+      "water": -4,
+      "government": 24,
+      "police": 58,
+      "policeRadius": 24,
+      "fireRadius": 16
+    },
+    "description": "Armored emergency coordination fortress combining SWAT tactics, disaster ops and rooftop helipad.",
+    "usage": "Armored emergency coordination fortress combining SWAT tactics, disaster ops and rooftop helipad.",
+    "growth": "An operations bunker adds armored rescue vans, satellite uplinks and a rooftop command helipad.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Field Command",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Tactical Staging",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Operations Bunker",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Crisis Center",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Joint Emergency HQ",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Slate Tactical"
+      },
+      {
+        "index": 1,
+        "name": "Civic Granite"
+      },
+      {
+        "index": 2,
+        "name": "Steel Modern"
+      },
+      {
+        "index": 3,
+        "name": "Desert Sand"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/riot_command_center.webp",
+    "thumbnail": "/handbook/catalog/thumbs/riot_command_center.webp"
+  },
+  {
+    "id": "search_rescue_hq",
+    "name": "Air & Mountain Rescue",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 510,
+    "stage": 9,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 22,
+      "power": -5,
+      "water": -3,
+      "recreation": 16,
+      "police": 22,
+      "policeRadius": 18,
+      "fireRadius": 20
+    },
+    "description": "High-country rescue lodge and helipad launching all-weather emergency helicopters over rugged terrain.",
+    "usage": "High-country rescue lodge and helipad launching all-weather emergency helicopters over rugged terrain.",
+    "growth": "A timber ranger post expands with a bright rescue helipad, beacon tower and weather-tracking domes.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Ranger Outpost",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Rescue Lodge",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Heli-Rescue Base",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Alpine Command",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Island SAR HQ",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Alpine Timber"
+      },
+      {
+        "index": 1,
+        "name": "Hi-Vis Orange"
+      },
+      {
+        "index": 2,
+        "name": "Glacier White"
+      },
+      {
+        "index": 3,
+        "name": "Stone Lodge"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/search_rescue_hq.webp",
+    "thumbnail": "/handbook/catalog/thumbs/search_rescue_hq.webp"
+  },
+  {
+    "id": "civil_defense_bunker",
+    "name": "Civil Defense Shelter",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 620,
+    "stage": 10,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 18,
+      "power": -6,
+      "water": -5,
+      "police": 24,
+      "policeRadius": 16,
+      "fireRadius": 16,
+      "military": 60
+    },
+    "description": "Reinforced public emergency shelter and siren tower safeguarding citizens during storms or raids.",
+    "usage": "Reinforced public emergency shelter and siren tower safeguarding citizens during storms or raids.",
+    "growth": "A bermed concrete entrance grows air-filtration stacks, warning sirens and a solar-backed command bunker.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Blast Hatch",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Siren Shelter",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Reinforced Vault",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Civil Bunker",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Deep Shield Complex",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Concrete Dome"
+      },
+      {
+        "index": 1,
+        "name": "Grass-Bermed"
+      },
+      {
+        "index": 2,
+        "name": "Steel Vault"
+      },
+      {
+        "index": 3,
+        "name": "Alpine Stone"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/civil_defense_bunker.webp",
+    "thumbnail": "/handbook/catalog/thumbs/civil_defense_bunker.webp"
+  },
+  {
+    "id": "harbor_patrol_pier",
+    "name": "Harbor Police Pier",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 410,
+    "stage": 7,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 16,
+      "power": -4,
+      "water": -2,
+      "police": 30,
+      "policeRadius": 19
+    },
+    "description": "Waterfront law-enforcement dock that dispatches patrolling harbor police boats across bays and canals.",
+    "usage": "Waterfront law-enforcement dock that dispatches patrolling harbor police boats across bays and canals.",
+    "growth": "A small patrol jetty grows covered boat slips, blue marine beacons and cruising police launches.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Patrol Slip",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Marine Boathouse",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Harbor Precinct",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Twin-Dock Station",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Port Security HQ",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Harbor Blue"
+      },
+      {
+        "index": 1,
+        "name": "Brick Quay"
+      },
+      {
+        "index": 2,
+        "name": "Modern Glass"
+      },
+      {
+        "index": 3,
+        "name": "Timber Pier"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/harbor_patrol_pier.webp",
+    "thumbnail": "/handbook/catalog/thumbs/harbor_patrol_pier.webp"
+  },
+  {
+    "id": "army_garrison",
+    "name": "Army Garrison Fort",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 880,
+    "stage": 10,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 48,
+      "power": -10,
+      "water": -8,
+      "military": 165
+    },
+    "description": "Fortified army garrison with parade quadrangle, barracks blocks and flagstaff command hall.",
+    "usage": "Fortified army garrison with parade quadrangle, barracks blocks and flagstaff command hall.",
+    "growth": "Guard posts and barracks form a full quadrangle around a flagstaff plaza and command headquarters.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Outpost Camp",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Company Barracks",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Regiment Fort",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Division Garrison",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Citadel",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Woodland Olive"
+      },
+      {
+        "index": 1,
+        "name": "Desert Tan"
+      },
+      {
+        "index": 2,
+        "name": "Stone Heritage"
+      },
+      {
+        "index": 3,
+        "name": "Arctic White"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/army_garrison.webp",
+    "thumbnail": "/handbook/catalog/thumbs/army_garrison.webp"
+  },
+  {
+    "id": "army_signal_corps",
+    "name": "Army Signal Corps Hub",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 760,
+    "stage": 11,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 36,
+      "power": -12,
+      "water": -4,
+      "education": 24,
+      "military": 135
+    },
+    "description": "High-gain satellite dish and radar communications hub coordinating national defense networks.",
+    "usage": "High-gain satellite dish and radar communications hub coordinating national defense networks.",
+    "growth": "A lone radio mast grows into a cluster of spinning radar dishes, geodesic radomes and ops bunkers.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Field Radio",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Relay Dish",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Signal Post",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Comms Array",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Strategic SATCOM Hub",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Olive Tech"
+      },
+      {
+        "index": 1,
+        "name": "Arctic Dome"
+      },
+      {
+        "index": 2,
+        "name": "Desert Dish"
+      },
+      {
+        "index": 3,
+        "name": "Stealth Slate"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/army_signal_corps.webp",
+    "thumbnail": "/handbook/catalog/thumbs/army_signal_corps.webp"
+  },
+  {
+    "id": "army_logistics_depot",
+    "name": "Army Logistics Depot",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 720,
+    "stage": 11,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 44,
+      "power": -8,
+      "water": -6,
+      "military": 120
+    },
+    "description": "Quartermaster warehouses, fuel tanks and supply cranes keeping island defense forces provisioned.",
+    "usage": "Quartermaster warehouses, fuel tanks and supply cranes keeping island defense forces provisioned.",
+    "growth": "Stacked supply crates expand into vaulted logistics warehouses, crane gantries and fuel depots.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Supply Yard",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Quartermaster Shed",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Depot Warehouses",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Logistics Terminal",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Theater Supply HQ",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Woodland Green"
+      },
+      {
+        "index": 1,
+        "name": "Sandstone Khaki"
+      },
+      {
+        "index": 2,
+        "name": "Industrial Grey"
+      },
+      {
+        "index": 3,
+        "name": "Arctic Steel"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/army_logistics_depot.webp",
+    "thumbnail": "/handbook/catalog/thumbs/army_logistics_depot.webp"
+  },
+  {
+    "id": "army_airborne_school",
+    "name": "Airborne Jump School",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 960,
+    "stage": 13,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 46,
+      "power": -10,
+      "water": -6,
+      "military": 195
+    },
+    "description": "Iconic paratrooper jump-training towers, rigging lofts and a short-strip drop zone.",
+    "usage": "Iconic paratrooper jump-training towers, rigging lofts and a short-strip drop zone.",
+    "growth": "Rigging sheds gain towering steel jump-training gantries, parachute lofts and a drop-zone apron.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Harness Rack",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Mock-Door Yard",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Jump Tower",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Airborne Wing",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Elite Paratroop Center",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Classic Green"
+      },
+      {
+        "index": 1,
+        "name": "Steel Lattice"
+      },
+      {
+        "index": 2,
+        "name": "Desert Airborne"
+      },
+      {
+        "index": 3,
+        "name": "Night Ops"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/army_airborne_school.webp",
+    "thumbnail": "/handbook/catalog/thumbs/army_airborne_school.webp"
+  },
+  {
+    "id": "army_engineer_base",
+    "name": "Combat Engineer Base",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 810,
+    "stage": 12,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 42,
+      "power": -9,
+      "water": -5,
+      "fireRadius": 16,
+      "military": 145
+    },
+    "description": "Pontoon bridge yards, heavy earthmovers and disaster-engineering workshops supporting defense and recovery.",
+    "usage": "Pontoon bridge yards, heavy earthmovers and disaster-engineering workshops supporting defense and recovery.",
+    "growth": "Bridge sections and timber stores grow into heavy fabrication bays, cranes and engineering workshops.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Tool Yard",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Pontoon Bay",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Engineer Depot",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Heavy Works Base",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Corps of Engineers HQ",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Olive Works"
+      },
+      {
+        "index": 1,
+        "name": "Desert Sand"
+      },
+      {
+        "index": 2,
+        "name": "Steel Yard"
+      },
+      {
+        "index": 3,
+        "name": "Forest Timber"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/army_engineer_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/army_engineer_base.webp"
+  },
+  {
+    "id": "army_medical_corps",
+    "name": "Army Medical Corps",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 790,
+    "stage": 12,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 40,
+      "power": -8,
+      "water": -8,
+      "recreation": 26,
+      "fireRadius": 14,
+      "military": 110
+    },
+    "description": "Field hospital compound with red-cross pavilions and medevac helipad boosting defense resilience.",
+    "usage": "Field hospital compound with red-cross pavilions and medevac helipad boosting defense resilience.",
+    "growth": "Medical tents upgrade into clean modular wards, a command clinic and an active medevac landing pad.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Aid Tents",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Field Infirmary",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Surgical Pavilion",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Base Hospital",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Joint Medical Command",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Canvas Olive"
+      },
+      {
+        "index": 1,
+        "name": "White Clinical"
+      },
+      {
+        "index": 2,
+        "name": "Desert Ward"
+      },
+      {
+        "index": 3,
+        "name": "Arctic Med"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/army_medical_corps.webp",
+    "thumbnail": "/handbook/catalog/thumbs/army_medical_corps.webp"
+  },
+  {
+    "id": "naval_shipyard_base",
+    "name": "Naval Drydock Shipyard",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1280,
+    "stage": 14,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 64,
+      "power": -16,
+      "water": -10,
+      "military": 250
+    },
+    "description": "Heavy navy graving docks and gantry cranes that launch patrolling warships into surrounding waters.",
+    "usage": "Heavy navy graving docks and gantry cranes that launch patrolling warships into surrounding waters.",
+    "growth": "A repair quay expands into floodable drydocks, tall blue gantry cranes and patrolling naval ships.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Fitting Slip",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Naval Basin",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Drydock Yard",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Fleet Shipyard",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Admiralty Works",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Haze Grey"
+      },
+      {
+        "index": 1,
+        "name": "Red Brick Yard"
+      },
+      {
+        "index": 2,
+        "name": "Steel Industrial"
+      },
+      {
+        "index": 3,
+        "name": "Arctic Dock"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/naval_shipyard_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/naval_shipyard_base.webp"
+  },
+  {
+    "id": "naval_coast_guard_base",
+    "name": "Coast Guard Base",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 740,
+    "stage": 10,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 34,
+      "power": -8,
+      "water": -5,
+      "police": 36,
+      "policeRadius": 22,
+      "fireRadius": 18,
+      "military": 130
+    },
+    "description": "White-and-orange Coast Guard station with cutter pier and helipad dispatching sea patrols and choppers.",
+    "usage": "White-and-orange Coast Guard station with cutter pier and helipad dispatching sea patrols and choppers.",
+    "growth": "A single cutter slip grows a lighthouse watchtower, cutter piers, helipad and roaming Coast Guard boats.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Cutter Pier",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Station House",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Air-Sea Quay",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Sector Base",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Coast Guard District HQ",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Classic Orange Stripe"
+      },
+      {
+        "index": 1,
+        "name": "Harbor White"
+      },
+      {
+        "index": 2,
+        "name": "Nordic Red"
+      },
+      {
+        "index": 3,
+        "name": "Modern Glass"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/naval_coast_guard_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/naval_coast_guard_base.webp"
+  },
+  {
+    "id": "naval_destroyer_dock",
+    "name": "Destroyer Pier Base",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1180,
+    "stage": 14,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 54,
+      "power": -14,
+      "water": -8,
+      "military": 260
+    },
+    "description": "Deep-water fleet pier berthed with destroyers that automatically cruise island shipping lanes.",
+    "usage": "Deep-water fleet pier berthed with destroyers that automatically cruise island shipping lanes.",
+    "growth": "A concrete berth expands into twin deep-water piers with radar masts and cruising naval destroyers.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Escort Pier",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Destroyer Berth",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Squadron Quay",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Fleet Mole",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Destroyer Command",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Atlantic Grey"
+      },
+      {
+        "index": 1,
+        "name": "Pacific Mist"
+      },
+      {
+        "index": 2,
+        "name": "Stealth Hull"
+      },
+      {
+        "index": 3,
+        "name": "Heritage Steel"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/naval_destroyer_dock.webp",
+    "thumbnail": "/handbook/catalog/thumbs/naval_destroyer_dock.webp"
+  },
+  {
+    "id": "naval_carrier_berth",
+    "name": "Carrier Strike Pier",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 2200,
+    "stage": 19,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 95,
+      "power": -24,
+      "water": -14,
+      "military": 520
+    },
+    "description": "Massive deep-water homeport berth supporting carrier strike groups, escorts and carrier aviation.",
+    "usage": "Massive deep-water homeport berth supporting carrier strike groups, escorts and carrier aviation.",
+    "growth": "A heavy concrete mole grows shore-power substations, command towers, berthed flattops and patrolling ships.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Deep Wharf",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Strike Pier",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Carrier Quay",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Fleet Homeport",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Supercarrier Command",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Modern Haze"
+      },
+      {
+        "index": 1,
+        "name": "Atlantic Slate"
+      },
+      {
+        "index": 2,
+        "name": "Night Ops"
+      },
+      {
+        "index": 3,
+        "name": "Pacific Steel"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/naval_carrier_berth.webp",
+    "thumbnail": "/handbook/catalog/thumbs/naval_carrier_berth.webp"
+  },
+  {
+    "id": "naval_amphibious_dock",
+    "name": "Amphibious Assault Dock",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1320,
+    "stage": 15,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 58,
+      "power": -14,
+      "water": -8,
+      "military": 280
+    },
+    "description": "Well-deck naval pier launching fast amphibious landing craft and coastal patrol boats across the bay.",
+    "usage": "Well-deck naval pier launching fast amphibious landing craft and coastal patrol boats across the bay.",
+    "growth": "A concrete landing ramp grows covered well-deck slips, command bridge and active sea craft patrols.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Landing Ramp",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Well-Deck Slip",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Amphibious Pier",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Expeditionary Quay",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Joint Sea-Lift Base",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Fleet Grey"
+      },
+      {
+        "index": 1,
+        "name": "Coastal Concrete"
+      },
+      {
+        "index": 2,
+        "name": "Olive Trim"
+      },
+      {
+        "index": 3,
+        "name": "Stealth Dark"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/naval_amphibious_dock.webp",
+    "thumbnail": "/handbook/catalog/thumbs/naval_amphibious_dock.webp"
+  },
+  {
+    "id": "naval_patrol_cutter",
+    "name": "Naval Patrol Boat",
+    "category": "maritime",
+    "categoryName": "Maritime",
+    "cost": 420,
+    "stage": 11,
+    "domain": "water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 14,
+      "police": 22,
+      "policeRadius": 16,
+      "military": 95
+    },
+    "description": "Fast agile gunboat and coastal interceptor built for harbor security and coastal sweeps.",
+    "usage": "Fast agile gunboat and coastal interceptor built for harbor security and coastal sweeps.",
+    "growth": "A nimble patrol boat upgrades into an armed coastal corvette with spinning radar and twin wakes.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Harbor Launch",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Patrol Cutter",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Fast Attack Craft",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Corvette Cutter",
+        "dimensions": [
+          1,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Fleet Interceptor",
+        "dimensions": [
+          2,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Haze Grey"
+      },
+      {
+        "index": 1,
+        "name": "Coast Guard White"
+      },
+      {
+        "index": 2,
+        "name": "Stealth Slate"
+      },
+      {
+        "index": 3,
+        "name": "Dazzle Camo"
+      }
+    ],
+    "partner": {
+      "id": "docks",
+      "name": "Dock"
+    },
+    "image": "/handbook/catalog/naval_patrol_cutter.webp",
+    "thumbnail": "/handbook/catalog/thumbs/naval_patrol_cutter.webp"
+  },
+  {
+    "id": "naval_frigate_ship",
+    "name": "Guided-Missile Frigate",
+    "category": "maritime",
+    "categoryName": "Maritime",
+    "cost": 860,
+    "stage": 14,
+    "domain": "water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 32,
+      "military": 210
+    },
+    "description": "Sleek blue-water frigate with phased-array mast and aft helicopter flight deck.",
+    "usage": "Sleek blue-water frigate with phased-array mast and aft helicopter flight deck.",
+    "growth": "An escort hull elongates into an angled stealth frigate with radar tower and aft helideck.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Escort Frigate",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Patrol Frigate",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Aegis Frigate",
+        "dimensions": [
+          1,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Stealth Frigate",
+        "dimensions": [
+          2,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Flagship Cruiser",
+        "dimensions": [
+          2,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Modern Grey"
+      },
+      {
+        "index": 1,
+        "name": "Stealth Charcoal"
+      },
+      {
+        "index": 2,
+        "name": "Nordic Blue"
+      },
+      {
+        "index": 3,
+        "name": "Dazzle Heritage"
+      }
+    ],
+    "partner": {
+      "id": "docks",
+      "name": "Dock"
+    },
+    "image": "/handbook/catalog/naval_frigate_ship.webp",
+    "thumbnail": "/handbook/catalog/thumbs/naval_frigate_ship.webp"
+  },
+  {
+    "id": "naval_minesweeper",
+    "name": "Naval Minesweeper",
+    "category": "maritime",
+    "categoryName": "Maritime",
+    "cost": 480,
+    "stage": 12,
+    "domain": "water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 16,
+      "military": 110
+    },
+    "description": "Specialized harbor-clearance vessel with stern sweep winches and sonar dome keeping sea lanes safe.",
+    "usage": "Specialized harbor-clearance vessel with stern sweep winches and sonar dome keeping sea lanes safe.",
+    "growth": "A compact minesweeper adds A-frame stern cranes, sonar arrays and rescue launch davits.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Channel Sweeper",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Coastal Hunter",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Sonar Sweeper",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Deep Sweeper",
+        "dimensions": [
+          1,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Fleet Mine-Hunter",
+        "dimensions": [
+          2,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Naval Grey"
+      },
+      {
+        "index": 1,
+        "name": "Orange Trim"
+      },
+      {
+        "index": 2,
+        "name": "Arctic White"
+      },
+      {
+        "index": 3,
+        "name": "Dark Steel"
+      }
+    ],
+    "partner": {
+      "id": "docks",
+      "name": "Dock"
+    },
+    "image": "/handbook/catalog/naval_minesweeper.webp",
+    "thumbnail": "/handbook/catalog/thumbs/naval_minesweeper.webp"
+  },
+  {
+    "id": "naval_hospital_ship",
+    "name": "Naval Hospital Ship",
+    "category": "maritime",
+    "categoryName": "Maritime",
+    "cost": 920,
+    "stage": 15,
+    "domain": "water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 42,
+      "recreation": 40,
+      "fireRadius": 16,
+      "military": 140
+    },
+    "description": "Gleaming white fleet hospital ship marked with bold red crosses and a twin-spot medevac helideck.",
+    "usage": "Gleaming white fleet hospital ship marked with bold red crosses and a twin-spot medevac helideck.",
+    "growth": "A white aid vessel grows tall illuminated hospital decks, red-cross emblems and an aft helideck.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Aid Barge",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Medical Tender",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Fleet Clinic Ship",
+        "dimensions": [
+          1,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Mercy Vessel",
+        "dimensions": [
+          2,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Hospital Ship",
+        "dimensions": [
+          2,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Mercy White"
+      },
+      {
+        "index": 1,
+        "name": "Comfort Cream"
+      },
+      {
+        "index": 2,
+        "name": "Arctic Rescue"
+      },
+      {
+        "index": 3,
+        "name": "Pacific White"
+      }
+    ],
+    "partner": {
+      "id": "docks",
+      "name": "Dock"
+    },
+    "image": "/handbook/catalog/naval_hospital_ship.webp",
+    "thumbnail": "/handbook/catalog/thumbs/naval_hospital_ship.webp"
+  },
+  {
+    "id": "strategic_bomber_wing",
+    "name": "B-52 Bomber Airbase",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1850,
+    "stage": 17,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 78,
+      "power": -20,
+      "water": -10,
+      "military": 420
+    },
+    "description": "Long-runway strategic airbase housing iconic 8-engine B-52 Stratofortress bombers that periodically fly over the island.",
+    "usage": "Long-runway strategic airbase housing iconic 8-engine B-52 Stratofortress bombers that periodically fly over the island.",
+    "growth": "A heavy concrete strip grows giant bomber hangars, parked B-52 Stratofortresses and high-altitude sky flyovers.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Alert Apron",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Bomber Strip",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "B-52 Squadron",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Strategic Wing",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Global Bomber Command",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Strategic Grey"
+      },
+      {
+        "index": 1,
+        "name": "SAC Silver"
+      },
+      {
+        "index": 2,
+        "name": "Desert Camo"
+      },
+      {
+        "index": 3,
+        "name": "Night Charcoal"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/strategic_bomber_wing.webp",
+    "thumbnail": "/handbook/catalog/thumbs/strategic_bomber_wing.webp"
+  },
+  {
+    "id": "stealth_bomber_hangar",
+    "name": "B-2 Stealth Airbase",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 2150,
+    "stage": 18,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 72,
+      "power": -24,
+      "water": -10,
+      "military": 480
+    },
+    "description": "Climate-controlled stealth hangars fielding flying-wing B-2 Spirit bombers that glide silently overhead.",
+    "usage": "Climate-controlled stealth hangars fielding flying-wing B-2 Spirit bombers that glide silently overhead.",
+    "growth": "Single hardened clamshell bays expand into a secretive stealth wing with parked and flying B-2 Spirit wings.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Black Shelter",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Stealth Bay",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Spirit Apron",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Flying-Wing Base",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Stealth Strike Command",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Obsidian Stealth"
+      },
+      {
+        "index": 1,
+        "name": "Graphite Grey"
+      },
+      {
+        "index": 2,
+        "name": "Desert Skunkworks"
+      },
+      {
+        "index": 3,
+        "name": "Arctic White-Roof"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/stealth_bomber_hangar.webp",
+    "thumbnail": "/handbook/catalog/thumbs/stealth_bomber_hangar.webp"
+  },
+  {
+    "id": "fighter_wing_base",
+    "name": "Fighter Squadron Base",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1380,
+    "stage": 14,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 64,
+      "power": -16,
+      "water": -8,
+      "military": 320
+    },
+    "description": "Quick-reaction alert shelters launching supersonic delta-wing fighter jets across island skies.",
+    "usage": "Quick-reaction alert shelters launching supersonic delta-wing fighter jets across island skies.",
+    "growth": "An alert strip adds hardened arched jet shelters, control tower, parked jets and fast fighter flyovers.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Alert Strip",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Tactical Apron",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Fighter Shelters",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Interceptor Wing",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Air Superiority Base",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Air-Superiority Grey"
+      },
+      {
+        "index": 1,
+        "name": "Blue Aggressor"
+      },
+      {
+        "index": 2,
+        "name": "Desert Viper"
+      },
+      {
+        "index": 3,
+        "name": "Stealth Charcoal"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/fighter_wing_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/fighter_wing_base.webp"
+  },
+  {
+    "id": "airlift_cargo_base",
+    "name": "Heavy Airlift Base",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1420,
+    "stage": 15,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 68,
+      "power": -16,
+      "water": -8,
+      "military": 270,
+      "income": 65
+    },
+    "description": "Wide-body military transport hub sending massive four-engine airlifters soaring over the island.",
+    "usage": "Wide-body military transport hub sending massive four-engine airlifters soaring over the island.",
+    "growth": "A freight ramp expands with giant cargo hangars, loading cranes and heavy transport planes cruising the sky.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Cargo Strip",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Pallet Ramp",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Transport Apron",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Airlift Wing",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Global Mobility Base",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Mobility Grey"
+      },
+      {
+        "index": 1,
+        "name": "Arctic Rescue"
+      },
+      {
+        "index": 2,
+        "name": "Desert Tan"
+      },
+      {
+        "index": 3,
+        "name": "High-Vis Stripe"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/airlift_cargo_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/airlift_cargo_base.webp"
+  },
+  {
+    "id": "awacs_radar_base",
+    "name": "AWACS Radar Airbase",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1620,
+    "stage": 16,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 62,
+      "power": -20,
+      "water": -8,
+      "policeRadius": 24,
+      "military": 360
+    },
+    "description": "Airborne early-warning base with huge geodesic radomes and orbiting AWACS radar planes.",
+    "usage": "Airborne early-warning base with huge geodesic radomes and orbiting AWACS radar planes.",
+    "growth": "A white radome and tarmac grow into an AWACS command hub with rotating radar planes patrolling aloft.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Radar Strip",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Radome Post",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Sentry Apron",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "AWACS Squadron",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Sky-Eye Command",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Sentry White"
+      },
+      {
+        "index": 1,
+        "name": "Slate Grey"
+      },
+      {
+        "index": 2,
+        "name": "Arctic Dome"
+      },
+      {
+        "index": 3,
+        "name": "Midnight Blue"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/awacs_radar_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/awacs_radar_base.webp"
+  },
+  {
+    "id": "drone_recon_base",
+    "name": "Recon Aviation Base",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1240,
+    "stage": 16,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 42,
+      "power": -16,
+      "water": -5,
+      "policeRadius": 22,
+      "military": 290
+    },
+    "description": "High-altitude reconnaissance strip and satellite-link hangars launching sleek long-wing recon craft.",
+    "usage": "High-altitude reconnaissance strip and satellite-link hangars launching sleek long-wing recon craft.",
+    "growth": "A compact launch strip grows telemetry domes, solar-roofed hangars and patrolling high-altitude recon craft.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Launch Rail",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Recon Shed",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Telemetry Strip",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Recon Squadron",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Autonomous Air Wing",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Slate Grey"
+      },
+      {
+        "index": 1,
+        "name": "Desert Tan"
+      },
+      {
+        "index": 2,
+        "name": "Solar White"
+      },
+      {
+        "index": 3,
+        "name": "Obsidian"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/drone_recon_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/drone_recon_base.webp"
+  },
+  {
+    "id": "marine_corps_base",
+    "name": "Marine Corps Base",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1050,
+    "stage": 12,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 56,
+      "power": -12,
+      "water": -8,
+      "military": 235
+    },
+    "description": "Expeditionary Marine Corps barracks with crimson-and-gold colors, obstacle course and readiness armory.",
+    "usage": "Expeditionary Marine Corps barracks with crimson-and-gold colors, obstacle course and readiness armory.",
+    "growth": "Barracks and drill fields expand into a disciplined Marine expeditionary compound with ceremonial arches.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Recruit Camp",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Marine Barracks",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Expeditionary Post",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Regimental Base",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Marine Corps HQ",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Scarlet & Gold"
+      },
+      {
+        "index": 1,
+        "name": "Woodland Camo"
+      },
+      {
+        "index": 2,
+        "name": "Desert Corps"
+      },
+      {
+        "index": 3,
+        "name": "Pacific Concrete"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/marine_corps_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/marine_corps_base.webp"
+  },
+  {
+    "id": "marine_amphib_base",
+    "name": "Marine Amphibious Base",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1260,
+    "stage": 14,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 58,
+      "power": -14,
+      "water": -8,
+      "military": 275
+    },
+    "description": "Beach-ramp and hovercraft staging quay launching Marine landing craft onto coastal waters.",
+    "usage": "Beach-ramp and hovercraft staging quay launching Marine landing craft onto coastal waters.",
+    "growth": "A sloped beach ramp grows wide hovercraft aprons, boat slips and active Marine landing craft offshore.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Beach Ramp",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Craft Slipway",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Hovercraft Pad",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Amphibious Base",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Marine Sea-Air Quay",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Pacific Sand"
+      },
+      {
+        "index": 1,
+        "name": "Corps Slate"
+      },
+      {
+        "index": 2,
+        "name": "Concrete Pier"
+      },
+      {
+        "index": 3,
+        "name": "Tropical Timber"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/marine_amphib_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/marine_amphib_base.webp"
+  },
+  {
+    "id": "marine_aviation_wing",
+    "name": "Marine Tilt-Rotor Wing",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1580,
+    "stage": 16,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 64,
+      "power": -16,
+      "water": -8,
+      "military": 345
+    },
+    "description": "Vertical-takeoff aviation pads fielding twin-rotor Marine tilt-rotor aircraft that patrol the island skies.",
+    "usage": "Vertical-takeoff aviation pads fielding twin-rotor Marine tilt-rotor aircraft that patrol the island skies.",
+    "growth": "A single VTOL pad grows into multi-pad rotor hangars with twin-prop tilt-rotors flying across the island.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "VTOL Pad",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Rotor Apron",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Marine Air Pad",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Tilt-Rotor Wing",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Expeditionary Air HQ",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Tactical Grey"
+      },
+      {
+        "index": 1,
+        "name": "Corps Crimson Trim"
+      },
+      {
+        "index": 2,
+        "name": "Desert Sand"
+      },
+      {
+        "index": 3,
+        "name": "Night Ops"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/marine_aviation_wing.webp",
+    "thumbnail": "/handbook/catalog/thumbs/marine_aviation_wing.webp"
+  },
+  {
+    "id": "artisan_bakery",
+    "name": "Artisan Bakery",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 115,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 14,
+      "power": -2,
+      "water": -2,
+      "food": 18,
+      "income": 22
+    },
+    "description": "Warm brick-oven bakery filling nearby streets with fresh loaves, pastries and local jobs.",
+    "usage": "Warm brick-oven bakery filling nearby streets with fresh loaves, pastries and local jobs.",
+    "growth": "A sidewalk bread counter grows a brick hearth chimney, striped awnings and a two-story patisserie.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Bread Stall",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Corner Bakery",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Patisserie",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Boulangerie Row",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Bakehouse",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Parisian Cream"
+      },
+      {
+        "index": 1,
+        "name": "Brick Hearth"
+      },
+      {
+        "index": 2,
+        "name": "Nordic Timber"
+      },
+      {
+        "index": 3,
+        "name": "Pastel Mint"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/artisan_bakery.webp",
+    "thumbnail": "/handbook/catalog/thumbs/artisan_bakery.webp"
+  },
+  {
+    "id": "coffee_roastery",
+    "name": "Coffee Roastery",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 120,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 16,
+      "power": -2,
+      "water": -2,
+      "recreation": 10,
+      "income": 24
+    },
+    "description": "Neighborhood espresso bar and bean roastery with sunny sidewalk tables and a rooftop coffee-cup sign.",
+    "usage": "Neighborhood espresso bar and bean roastery with sunny sidewalk tables and a rooftop coffee-cup sign.",
+    "growth": "An espresso stand evolves into a glowing glass roastery with sidewalk umbrellas and a steaming cup sign.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Espresso Cart",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Corner Cafe",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Roaster Bar",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Cafe Courtyard",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Flagship Roastery",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Warm Brick"
+      },
+      {
+        "index": 1,
+        "name": "Nordic Wood"
+      },
+      {
+        "index": 2,
+        "name": "Copper Loft"
+      },
+      {
+        "index": 3,
+        "name": "Botanical Green"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/coffee_roastery.webp",
+    "thumbnail": "/handbook/catalog/thumbs/coffee_roastery.webp"
+  },
+  {
+    "id": "retro_diner",
+    "name": "Classic Chrome Diner",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 145,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 20,
+      "power": -3,
+      "water": -2,
+      "food": 16,
+      "recreation": 12,
+      "income": 28
+    },
+    "description": "Streamlined stainless-steel diner glowing with neon trim and checkered-floor charm.",
+    "usage": "Streamlined stainless-steel diner glowing with neon trim and checkered-floor charm.",
+    "growth": "A silver railcar diner adds a neon pylon, drive-in canopy and glowing classic car bays.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Lunch Car",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Chrome Diner",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Drive-In Diner",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Neon Boulevard Diner",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "All-Night Palace",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Cherry & Chrome"
+      },
+      {
+        "index": 1,
+        "name": "Turquoise 50s"
+      },
+      {
+        "index": 2,
+        "name": "Checkerboard Gold"
+      },
+      {
+        "index": 3,
+        "name": "Midnight Neon"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/retro_diner.webp",
+    "thumbnail": "/handbook/catalog/thumbs/retro_diner.webp"
+  },
+  {
+    "id": "hardware_store",
+    "name": "Hardware & Lumber",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 130,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 22,
+      "power": -2,
+      "water": -1,
+      "income": 26
+    },
+    "description": "Local tool shop and timber yard supplying builders, DIYers and neighborhood projects.",
+    "usage": "Local tool shop and timber yard supplying builders, DIYers and neighborhood projects.",
+    "growth": "A corner tool counter adds covered lumber racks, loading trucks and a wide builder's showroom.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Tool Shed",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Hardware Shop",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Lumber & Tools",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Builder's Supply",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Home Supply Superstore",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Red Barn Trim"
+      },
+      {
+        "index": 1,
+        "name": "Classic Brick"
+      },
+      {
+        "index": 2,
+        "name": "Timber Mill"
+      },
+      {
+        "index": 3,
+        "name": "Modern Orange"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/hardware_store.webp",
+    "thumbnail": "/handbook/catalog/thumbs/hardware_store.webp"
+  },
+  {
+    "id": "indie_bookstore",
+    "name": "Indie Bookstore",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 150,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 16,
+      "power": -2,
+      "water": -1,
+      "education": 22,
+      "recreation": 14,
+      "income": 24
+    },
+    "description": "Cozy timber-and-brick bookshop with bay windows and reading terraces that boost city education.",
+    "usage": "Cozy timber-and-brick bookshop with bay windows and reading terraces that boost city education.",
+    "growth": "An outdoor book kiosk blossoms into a multi-story literary hall with rooftop reading garden.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Book Stall",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Corner Bookshop",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Reading House",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Literary Emporium",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Book Hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Oxford Green"
+      },
+      {
+        "index": 1,
+        "name": "Brownstone"
+      },
+      {
+        "index": 2,
+        "name": "Parisian Blue"
+      },
+      {
+        "index": 3,
+        "name": "Warm Cedar"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/indie_bookstore.webp",
+    "thumbnail": "/handbook/catalog/thumbs/indie_bookstore.webp"
+  },
+  {
+    "id": "flower_shop",
+    "name": "Florist & Conservatory",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 110,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 14,
+      "power": -1,
+      "water": -2,
+      "recreation": 18,
+      "income": 20
+    },
+    "description": "Vibrant flower stalls and glasshouse conservatory brightening neighborhoods and lifting happiness.",
+    "usage": "Vibrant flower stalls and glasshouse conservatory brightening neighborhoods and lifting happiness.",
+    "growth": "A colorful flower cart grows an arched glass conservatory overflowing with blooming beds.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Flower Cart",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Corner Florist",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Glass Conservatory",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Botanical Shop",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Flower Market",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Rose Terrace"
+      },
+      {
+        "index": 1,
+        "name": "White Glasshouse"
+      },
+      {
+        "index": 2,
+        "name": "Lavender Cottage"
+      },
+      {
+        "index": 3,
+        "name": "Sunflower Market"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/flower_shop.webp",
+    "thumbnail": "/handbook/catalog/thumbs/flower_shop.webp"
+  },
+  {
+    "id": "neighborhood_pharmacy",
+    "name": "Corner Pharmacy",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 160,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 18,
+      "power": -3,
+      "water": -2,
+      "recreation": 14,
+      "income": 28
+    },
+    "description": "Illuminated apothecary and neighborhood wellness counter with iconic glowing green cross.",
+    "usage": "Illuminated apothecary and neighborhood wellness counter with iconic glowing green cross.",
+    "growth": "A classic apothecary upgrades into a bright corner pharmacy with drive-thru lane and clinic wing.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Apothecary",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Corner Chemist",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Wellness Pharmacy",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Health Plaza",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Medical Emporium",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Emerald Cross"
+      },
+      {
+        "index": 1,
+        "name": "Heritage Brick"
+      },
+      {
+        "index": 2,
+        "name": "Clean Clinical"
+      },
+      {
+        "index": 3,
+        "name": "Art Deco Cream"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/neighborhood_pharmacy.webp",
+    "thumbnail": "/handbook/catalog/thumbs/neighborhood_pharmacy.webp"
+  },
+  {
+    "id": "cinema_theater",
+    "name": "Grand Cinema Theater",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 320,
+    "stage": 5,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 30,
+      "power": -6,
+      "water": -3,
+      "recreation": 54,
+      "income": 46
+    },
+    "description": "Art-deco movie palace with glowing marquee, velvet lobby and rooftop vertical blade sign.",
+    "usage": "Art-deco movie palace with glowing marquee, velvet lobby and rooftop vertical blade sign.",
+    "growth": "A single-screen marquee theater expands into a grand illuminated movie palace with twin auditoriums.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Nickelodeon",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Bijou Theater",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Art-Deco Cinema",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Multiplex Palace",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "IMAX Grand Theater",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Crimson Deco"
+      },
+      {
+        "index": 1,
+        "name": "Golden Hollywood"
+      },
+      {
+        "index": 2,
+        "name": "Neon Retro"
+      },
+      {
+        "index": 3,
+        "name": "Modern Glass"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/cinema_theater.webp",
+    "thumbnail": "/handbook/catalog/thumbs/cinema_theater.webp"
+  },
+  {
+    "id": "bowling_alley",
+    "name": "Neon Bowling Alley",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 290,
+    "stage": 5,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 24,
+      "power": -5,
+      "water": -2,
+      "recreation": 48,
+      "income": 40
+    },
+    "description": "Mid-century bowling lanes crowned with a giant rooftop bowling pin and neon googie roof.",
+    "usage": "Mid-century bowling lanes crowned with a giant rooftop bowling pin and neon googie roof.",
+    "growth": "A retro lane hall adds a towering rooftop bowling pin, glowing neon marquee and arcade lounge.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Six-Lane Alley",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Starlight Bowl",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Googie Lanes",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Championship Bowl",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Mega Strike Arena",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Turquoise Googie"
+      },
+      {
+        "index": 1,
+        "name": "Retro Crimson"
+      },
+      {
+        "index": 2,
+        "name": "Cosmic Neon"
+      },
+      {
+        "index": 3,
+        "name": "Woodland Lodge"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/bowling_alley.webp",
+    "thumbnail": "/handbook/catalog/thumbs/bowling_alley.webp"
+  },
+  {
+    "id": "retro_arcade",
+    "name": "Pixel Arcade Hall",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 310,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 24,
+      "power": -7,
+      "water": -2,
+      "recreation": 56,
+      "income": 44
+    },
+    "description": "Electric neon-lit video game arcade and esports lounge packed with glowing pixel signs.",
+    "usage": "Electric neon-lit video game arcade and esports lounge packed with glowing pixel signs.",
+    "growth": "A bright corner game room climbs into a multi-story neon arcade tower with giant rooftop pixel art.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Cabinet Nook",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Neon Arcade",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Pixel Palace",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Esports Lounge",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Cyber Arcade Tower",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Synthwave Purple"
+      },
+      {
+        "index": 1,
+        "name": "Tokyo Electric"
+      },
+      {
+        "index": 2,
+        "name": "8-Bit Primary"
+      },
+      {
+        "index": 3,
+        "name": "Laser Cyan"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/retro_arcade.webp",
+    "thumbnail": "/handbook/catalog/thumbs/retro_arcade.webp"
+  },
+  {
+    "id": "auto_dealership",
+    "name": "Auto Showroom",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 380,
+    "stage": 7,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 34,
+      "power": -6,
+      "water": -3,
+      "income": 58
+    },
+    "description": "Glass-walled car showroom with pennant flags, display turntables and sleek parked vehicles.",
+    "usage": "Glass-walled car showroom with pennant flags, display turntables and sleek parked vehicles.",
+    "growth": "A pennant-lined car lot transforms into a multi-level glass showroom with rooftop vehicle display.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Car Lot",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Motor Showroom",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Glass Pavilion",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Auto Plaza",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Mobility Center",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Blue Glass"
+      },
+      {
+        "index": 1,
+        "name": "Racing Red"
+      },
+      {
+        "index": 2,
+        "name": "Luxury Obsidian"
+      },
+      {
+        "index": 3,
+        "name": "Solar Silver"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/auto_dealership.webp",
+    "thumbnail": "/handbook/catalog/thumbs/auto_dealership.webp"
+  },
+  {
+    "id": "furniture_showroom",
+    "name": "Furniture Gallery",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 340,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 32,
+      "power": -5,
+      "water": -2,
+      "income": 52
+    },
+    "description": "Airy home-design gallery and flat-pack showroom stocked with timber crafts and modern interiors.",
+    "usage": "Airy home-design gallery and flat-pack showroom stocked with timber crafts and modern interiors.",
+    "growth": "A local carpentry store grows into a bold showcase warehouse with loading bays and rooftop garden.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Joinery Shop",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Design Loft",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Home Gallery",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Nordic Showroom",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Flagship Design Hall",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Nordic Blue-Yellow"
+      },
+      {
+        "index": 1,
+        "name": "Warm Walnut"
+      },
+      {
+        "index": 2,
+        "name": "Minimal White"
+      },
+      {
+        "index": 3,
+        "name": "Industrial Brick"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/furniture_showroom.webp",
+    "thumbnail": "/handbook/catalog/thumbs/furniture_showroom.webp"
+  },
+  {
+    "id": "boutique_hotel",
+    "name": "Boutique Hotel",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 520,
+    "stage": 8,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 46,
+      "power": -9,
+      "water": -8,
+      "recreation": 46,
+      "income": 78
+    },
+    "description": "Upscale traveler hotel with canopy drop-off, glowing lobby, balconies and rooftop pool terrace.",
+    "usage": "Upscale traveler hotel with canopy drop-off, glowing lobby, balconies and rooftop pool terrace.",
+    "growth": "An intimate inn climbs into a glamorous skyline hotel with porte-cochere and rooftop pool deck.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Guesthouse",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Corner Inn",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Boutique Hotel",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Grand Hotel",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Skyline Resort Tower",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Belle Epoque"
+      },
+      {
+        "index": 1,
+        "name": "Miami Pastel"
+      },
+      {
+        "index": 2,
+        "name": "Modern Glass"
+      },
+      {
+        "index": 3,
+        "name": "Alpine Stone"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/boutique_hotel.webp",
+    "thumbnail": "/handbook/catalog/thumbs/boutique_hotel.webp"
+  },
+  {
+    "id": "art_gallery",
+    "name": "Modern Art Gallery",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 460,
+    "stage": 8,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 28,
+      "power": -6,
+      "water": -3,
+      "education": 36,
+      "recreation": 58,
+      "income": 54
+    },
+    "description": "Sculptural sunlit museum gallery and sculpture plaza enriching culture, learning and tourism.",
+    "usage": "Sculptural sunlit museum gallery and sculpture plaza enriching culture, learning and tourism.",
+    "growth": "A quiet studio opens into an architectural gallery with outdoor voxel sculptures and sawtooth skylights.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Artist Studio",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "White-Cube Gallery",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Sculpture Court",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Contemporary Wing",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Island Art Museum",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Gallery White"
+      },
+      {
+        "index": 1,
+        "name": "Terracotta Modern"
+      },
+      {
+        "index": 2,
+        "name": "Glass Atrium"
+      },
+      {
+        "index": 3,
+        "name": "Brutalist Concrete"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/art_gallery.webp",
+    "thumbnail": "/handbook/catalog/thumbs/art_gallery.webp"
+  },
+  {
+    "id": "jazz_club",
+    "name": "Late-Night Jazz Club",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 330,
+    "stage": 7,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 26,
+      "power": -5,
+      "water": -2,
+      "recreation": 52,
+      "income": 48
+    },
+    "description": "Velvet-awning music lounge radiating warm brass-and-neon nightlife across downtown streets.",
+    "usage": "Velvet-awning music lounge radiating warm brass-and-neon nightlife across downtown streets.",
+    "growth": "A subterranean music stoop rises into a glowing iron-balcony jazz hall with marquee lights.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Cellar Stage",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Velvet Lounge",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Jazz Club",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Music Hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Supper Club",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Blue Note Brick"
+      },
+      {
+        "index": 1,
+        "name": "Bourbon Balcony"
+      },
+      {
+        "index": 2,
+        "name": "Golden Deco"
+      },
+      {
+        "index": 3,
+        "name": "Neon Velvet"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/jazz_club.webp",
+    "thumbnail": "/handbook/catalog/thumbs/jazz_club.webp"
+  },
+  {
+    "id": "coworking_loft",
+    "name": "Coworking Loft",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 480,
+    "stage": 9,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 54,
+      "power": -8,
+      "water": -4,
+      "education": 18,
+      "income": 74
+    },
+    "description": "Converted brick-and-glass creative loft filled with makers, designers and rooftop terrace seating.",
+    "usage": "Converted brick-and-glass creative loft filled with makers, designers and rooftop terrace seating.",
+    "growth": "A converted studio expands with wraparound glass additions, rooftop pergola and bustling work decks.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Shared Studio",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Maker Loft",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Brick Cowork",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Creative Hub",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Innovation Lofts",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Industrial Brick"
+      },
+      {
+        "index": 1,
+        "name": "Timber Glass"
+      },
+      {
+        "index": 2,
+        "name": "White Minimal"
+      },
+      {
+        "index": 3,
+        "name": "Botanical Loft"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/coworking_loft.webp",
+    "thumbnail": "/handbook/catalog/thumbs/coworking_loft.webp"
+  },
+  {
+    "id": "tech_startup_hub",
+    "name": "Tech Startup Campus",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 820,
+    "stage": 12,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 92,
+      "power": -16,
+      "water": -7,
+      "education": 32,
+      "income": 128
+    },
+    "description": "Curved glass-and-solar innovation campus driving high-wage jobs and strong municipal tax revenue.",
+    "usage": "Curved glass-and-solar innovation campus driving high-wage jobs and strong municipal tax revenue.",
+    "growth": "A humble startup garage blossoms into a gleaming glass-and-solar campus with courtyard atrium.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Garage Lab",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Incubator",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Startup Studio",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Tech Campus",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Global Tech HQ",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Aqua Glass"
+      },
+      {
+        "index": 1,
+        "name": "Solar Timber"
+      },
+      {
+        "index": 2,
+        "name": "Carbon Sleek"
+      },
+      {
+        "index": 3,
+        "name": "White Ring"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/tech_startup_hub.webp",
+    "thumbnail": "/handbook/catalog/thumbs/tech_startup_hub.webp"
+  },
+  {
+    "id": "department_store",
+    "name": "Grand Department Store",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 680,
+    "stage": 10,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 76,
+      "power": -12,
+      "water": -6,
+      "recreation": 42,
+      "income": 106
+    },
+    "description": "Landmark multi-story emporium with arched display windows, gilded clock and rooftop conservatory.",
+    "usage": "Landmark multi-story emporium with arched display windows, gilded clock and rooftop conservatory.",
+    "growth": "A tall corner emporium expands with ornamental domes, street-level vitrines and a gilded clock.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Dry Goods",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Corner Emporium",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Arcade Store",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Grand Emporium",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Flagship Palace",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Gilded Limestone"
+      },
+      {
+        "index": 1,
+        "name": "Parisian Haussmann"
+      },
+      {
+        "index": 2,
+        "name": "Terracotta Classic"
+      },
+      {
+        "index": 3,
+        "name": "Glass Flagship"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/department_store.webp",
+    "thumbnail": "/handbook/catalog/thumbs/department_store.webp"
+  },
+  {
+    "id": "night_market",
+    "name": "Lantern Night Market",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 280,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 34,
+      "power": -4,
+      "water": -3,
+      "food": 28,
+      "recreation": 44,
+      "income": 46
+    },
+    "description": "Festive street-food stalls draped in glowing red and gold lanterns that come alive after dusk.",
+    "usage": "Festive street-food stalls draped in glowing red and gold lanterns that come alive after dusk.",
+    "growth": "A pair of steaming noodle stalls expands into an arched lantern-lit night bazaar humming with visitors.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Food Carts",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Lantern Alley",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Street Market",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Bazaar Square",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Night Bazaar",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Crimson Lantern"
+      },
+      {
+        "index": 1,
+        "name": "Golden Spice"
+      },
+      {
+        "index": 2,
+        "name": "Jade Pavilion"
+      },
+      {
+        "index": 3,
+        "name": "Neon Street"
+      }
+    ],
+    "partner": {
+      "id": "shops",
+      "name": "Shops"
+    },
+    "image": "/handbook/catalog/night_market.webp",
+    "thumbnail": "/handbook/catalog/thumbs/night_market.webp"
+  },
+  {
+    "id": "seafood_pier",
+    "name": "Waterfront Seafood Pier",
+    "category": "commerce",
+    "categoryName": "Commerce",
+    "cost": 340,
+    "stage": 6,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 30,
+      "power": -4,
+      "water": -2,
+      "food": 36,
+      "recreation": 36,
+      "income": 52
+    },
+    "description": "Boardwalk fish market and waterfront restaurant pier with moored skiffs and warm harbor lights.",
+    "usage": "Boardwalk fish market and waterfront restaurant pier with moored skiffs and warm harbor lights.",
+    "growth": "A timber fish stall extends over the water with oyster decks, lighthouse sign and string-lit dining.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Fish Stall",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Chowder Shack",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Seafood Deck",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Harbor Market Pier",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Wharf Dining",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Weathered Cedar"
+      },
+      {
+        "index": 1,
+        "name": "Nautical Blue"
+      },
+      {
+        "index": 2,
+        "name": "Red Cannery"
+      },
+      {
+        "index": 3,
+        "name": "Coastal White"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/seafood_pier.webp",
+    "thumbnail": "/handbook/catalog/thumbs/seafood_pier.webp"
   }
 ]
