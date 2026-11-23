@@ -1,4 +1,5 @@
-import { readPlayerItem, slotKey, writePlayerItem } from "./deviceSaves";
+import { readPlayerItem, slotKey, writePlayerItem, insertPlayerSlot } from "./deviceSaves";
+import { listCustomElements, type CustomElementSpec } from "./customElements";
 import { type GameMode, STAGES } from "./catalog";
 import { type GameState, recomputeConnectivityAndMetrics } from "./simulation";
 
@@ -70,6 +71,23 @@ export function cloneGameStateSnapshot(state: GameState): GameState {
   return cloned;
 }
 
+function makeSlot(index: number, name: string, state: GameState): CivilizationSaveSlot {
+  const stage = STAGES[Math.max(0, Math.min(STAGES.length - 1, state.currentStage - 1))];
+  return {
+    slotIndex: index,
+    name: name.trim() || `Civilization ${index + 1}`,
+    mode: state.mode,
+    savedAt: Date.now(),
+    population: state.population,
+    happiness: state.happiness,
+    currentStage: state.currentStage,
+    stageName: state.mode === "god" ? "Sandbox" : stage.name,
+    money: Math.floor(state.money),
+    elementCount: state.elements.length,
+    state,
+  };
+}
+
 export function saveCivilizationToSlot(
   slotIndex: number,
   customName: string,
@@ -77,26 +95,20 @@ export function saveCivilizationToSlot(
 ): (CivilizationSaveSlot | null)[] {
   const slots = loadSaveSlots();
   const idx = Math.max(0, Math.min(MAX_SAVE_SLOTS - 1, slotIndex));
-  const stageObj = STAGES[Math.max(0, Math.min(STAGES.length - 1, state.currentStage - 1))];
-  const cleanName = customName.trim() || `Civilization ${idx + 1}`;
-  const snapshot = cloneGameStateSnapshot(state);
-
-  slots[idx] = {
-    slotIndex: idx,
-    name: cleanName,
-    mode: snapshot.mode,
-    savedAt: Date.now(),
-    population: snapshot.population,
-    happiness: snapshot.happiness,
-    currentStage: snapshot.currentStage,
-    stageName: snapshot.mode === "god" ? "Sandbox" : stageObj.name,
-    money: Math.floor(snapshot.money),
-    elementCount: snapshot.elements.length,
-    state: snapshot,
-  };
-
+  slots[idx] = makeSlot(idx, customName, cloneGameStateSnapshot(state));
   writePlayerItem(slotKey(idx), JSON.stringify(slots[idx]));
   return slots;
+}
+
+export async function saveImportedCivilization(slotIndex: number, name: string, state: GameState, additions: CustomElementSpec[]) {
+  if (slotIndex < 0 || slotIndex >= MAX_SAVE_SLOTS || loadSaveSlots()[slotIndex]) {
+    throw Error("Choose an empty slot to import this world.");
+  }
+  const custom: [string, string] | undefined = additions.length
+    ? ["pixel_civ_pix_custom_elements_v1", JSON.stringify([...listCustomElements(), ...additions])] : undefined;
+  // Preserve the source state, including its camera and earthworks. Load refreshes derived metrics.
+  await insertPlayerSlot(slotIndex, JSON.stringify(makeSlot(slotIndex, name, state)), custom);
+  return loadSaveSlots();
 }
 
 export function renameCivilizationSlot(

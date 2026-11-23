@@ -1,3 +1,5 @@
+import { downloadWorld, importWorldIntoSlot, readLinkedWorld, type TransferWorld } from "./game/worldTransfer";
+import { autosync } from "./game/accountSync";
 import { readPlayerItem, writePlayerItem, deviceIssue, onDeviceChange, flushDevice } from "./game/deviceSaves";
 import { RailOperations } from "./components/RailOperations";
 import { rememberBuildingEdit, undoBuildingEdit } from "./game/constructionHistory";
@@ -379,6 +381,19 @@ export const App: React.FC = () => {
   const [selectionFilter, setSelectionFilter] = useState<SelectionFilter>("all");
 
   const [savesModalOpen, setSavesModalOpen] = useState(false);
+  const [linkedWorlds, setLinkedWorlds] = useState<TransferWorld[]>([]);
+  useEffect(() => {
+    const transfer = new URLSearchParams(location.hash.slice(1)).get("transfer");
+    if (!transfer) return;
+    setSavesModalOpen(true);
+    const controller = new AbortController();
+    void readLinkedWorld(transfer, controller.signal).then(worlds => {
+      if (!controller.signal.aborted) setLinkedWorlds(worlds);
+    }, error => {
+      if (!controller.signal.aborted) setSlotError(error instanceof Error ? error.message : "The private world could not be opened.");
+    });
+    return () => controller.abort();
+  }, []);
   const [saveSlots, setSaveSlots] = useState<(CivilizationSaveSlot | null)[]>(() => loadSaveSlots());
   const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
@@ -1512,6 +1527,39 @@ export const App: React.FC = () => {
     showToast({id:"saved",title:`Saved "${savedName}"`,subtitle:`Slot ${slotIndex + 1}`});
   };
 
+  const handleExportWorld = (slotIndex?: number) => {
+    try {
+      const slot = slotIndex === undefined ? undefined : saveSlots[slotIndex];
+      if (slotIndex !== undefined && !slot) return;
+      if (!slot) captureView(stateRef.current);
+      downloadWorld(slot?.name ?? "Current Civilization", slot?.state ?? stateRef.current);
+      setSlotError("");
+    } catch (error) {
+      setSlotError(error instanceof Error ? error.message : "This world could not be exported.");
+    }
+  };
+
+  const handleImportWorld = async (slotIndex: number, world: TransferWorld) => {
+    try {
+      const slots = await importWorldIntoSlot(slotIndex, world);
+      setSaveSlots(slots);
+      setSlotError("");
+      if (linkedWorlds.includes(world)) {
+        const url = new URL(location.href);
+        const hash = new URLSearchParams(url.hash.slice(1));
+        hash.delete("transfer");
+        url.hash = hash.toString();
+        history.replaceState(null, "", url);
+        setLinkedWorlds([]);
+      }
+      void autosync();
+      return true;
+    } catch (error) {
+      setSlotError(error instanceof Error ? error.message : "This world could not be saved.");
+      return false;
+    }
+  };
+
   const handleLoadSlot = (slotIndex: number) => {
     resetTools();
     const slot = saveSlots[slotIndex];
@@ -2595,7 +2643,8 @@ export const App: React.FC = () => {
         error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
       <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState}
         onClose={() => setSavesModalOpen(false)} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
-        onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}/>
+        onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}
+        linkedWorlds={linkedWorlds} onImportWorld={handleImportWorld} onExportWorld={handleExportWorld}/>
       {guideModal && <GuideModal modal={guideModal} currentMode={gameState.mode} onChange={setGuideModal} onClose={() => setGuideModal(null)}
         onPlayWorld={(id, mode, viewIndex) => {
           visitExample(id, mode);

@@ -259,6 +259,71 @@ export function writePlayerItems(items: [string, string][]) {
     if (hadError || deviceIssue()) notify();
   });
 }
+/** Install an imported slot and any new design definitions as one operation. */
+export async function insertPlayerSlot(index: number, data: string, custom?: [string, string]) {
+  await flushDevice();
+  if (frozen) throw Error("Wait for the account switch to finish, then try again.");
+  const key = slotKey(index);
+  const who = scope();
+  const items: [string, string][] = [[key, data]];
+  if (custom) items.push(custom);
+  if (!db) {
+    const disk = localStorage.getItem(key);
+    if (disk !== null && disk !== "null") throw Error("This slot is already occupied.");
+    // A storage quota error must leave the original save and library intact.
+    const previous = custom && localStorage.getItem(custom[0]);
+    if (custom) localStorage.setItem(...custom);
+    try {
+      localStorage.setItem(key, data);
+    } catch (error) {
+      if (custom) {
+        if (previous == null) localStorage.removeItem(custom[0]);
+        else localStorage.setItem(custom[0], previous);
+      }
+      throw error;
+    }
+    return;
+  }
+
+  const tx = db.transaction("saves", "readwrite");
+  const done = complete(tx);
+  const store = tx.objectStore("saves");
+  let conflict = false;
+  const rows: SaveRecord[] = [];
+  // Read and write in callbacks of the same transaction, including on Safari.
+  for (const [itemKey, value] of items) {
+    const expected = cache.get(itemKey);
+    const get = store.get([who, itemKey]);
+    get.onsuccess = () => {
+      const disk = get.result as SaveRecord | undefined;
+      if (itemKey === key ? disk && disk.data !== "null" : disk?.rev !== expected?.rev) {
+        conflict = true;
+        tx.abort();
+        return;
+      }
+      const row = { ...newRow(who, itemKey, value), version: disk?.version ?? 0 };
+      rows.push(row);
+      store.put(row);
+    };
+  }
+  const work = done.then(() => {
+    if (scope() === who) {
+      for (const row of rows) cache.set(row.key, row);
+      notify();
+    }
+  });
+  // Account switches and cloud sync flush any transfer already in flight.
+  const tracked = work.catch(() => {});
+  pending.add(tracked);
+  try {
+    await work;
+  } catch (error) {
+    if (conflict) throw Error("This slot or its Pix designs changed on another device. Reload and try again.");
+    throw error;
+  } finally {
+    pending.delete(tracked);
+  }
+}
 export async function flushDevice() {
   await Promise.all([...pending]);
   if (errors.size) throw Error(deviceIssue());

@@ -1,9 +1,11 @@
 import { GameDialog } from "./GameDialog";
 import React, { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronUp, FolderOpen, Pencil, Save, Trash2, X } from "lucide-react";
+import { Download, Upload, Check, ChevronDown, ChevronUp, FolderOpen, Pencil, Save, Trash2, X } from "lucide-react";
 import { type GameMode } from "../game/catalog";
 import { type CivilizationSaveSlot, MAX_SAVE_SLOTS } from "../game/saveSlots";
 import { type GameState } from "../game/simulation";
+
+import { MAX_TRANSFER_BYTES, readWorldFile, type TransferWorld } from "../game/worldTransfer";
 
 interface SaveSlotsModalProps {
   error?:string;
@@ -12,6 +14,9 @@ interface SaveSlotsModalProps {
   activeSlotIndex: number | null;
   currentState: GameState;
   onClose: () => void;
+  onExportWorld: (slotIndex?: number) => void;
+  onImportWorld: (slotIndex: number, world: TransferWorld) => Promise<boolean>;
+  linkedWorlds: TransferWorld[];
   onSaveToSlot: (slotIndex: number, name: string) => void;
   onLoadSlot: (slotIndex: number) => void;
   onRenameSlot: (slotIndex: number, name: string) => void;
@@ -42,7 +47,7 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
   slots,
   activeSlotIndex,
   currentState,
-  onClose,
+  onClose, onExportWorld, onImportWorld, linkedWorlds,
   onSaveToSlot,
   onLoadSlot,
   onRenameSlot,error,
@@ -55,6 +60,43 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
   ]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [fileWorlds, setFileWorlds] = useState<TransferWorld[]>([]);
+  const [worldIndex, setWorldIndex] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [transferMessage, setTransferMessage] = useState("");
+  const worlds = fileWorlds.length ? fileWorlds : linkedWorlds;
+  const selectedWorld = worlds[worldIndex];
+  const emptySlot = slots.findIndex(slot => slot === null);
+
+  async function readFile(file: File) {
+    setBusy(true);
+    setFileWorlds([]);
+    setWorldIndex(0);
+    setTransferMessage("");
+    try {
+      if (file.size > MAX_TRANSFER_BYTES) throw Error("This file exceeds 16 MiB.");
+      setFileWorlds(readWorldFile(await file.text()));
+    } catch (error) {
+      setTransferMessage(error instanceof Error ? error.message : "This backup could not be opened.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function importSelected() {
+    if (busy || !selectedWorld || emptySlot < 0) return;
+    setBusy(true);
+    setTransferMessage("");
+    try {
+      if (await onImportWorld(emptySlot, selectedWorld)) {
+        setFileWorlds(fileWorlds.filter((_, i) => i !== worldIndex));
+        setWorldIndex(0);
+        setTransferMessage(`Saved “${selectedWorld.name}” in Slot ${emptySlot + 1}.`);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -133,8 +175,37 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
         </div>
 
         {error&&<p role="alert" className="bg-amber-100 px-5 py-2 text-sm text-amber-950">{error}</p>}
-        {/* 3 Save Slots */}
         <div className="flex-1 space-y-3 overflow-y-auto p-5">
+          <section aria-label="World transfer" className="space-y-2 rounded-xl border border-stone-200 bg-white p-3 text-sm">
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => onExportWorld()} className="ui-btn">
+                <Download size={15} aria-hidden="true" /> Export current island
+              </button>
+              <label className="relative inline-flex min-h-9 items-center gap-2 rounded-md border border-stone-300 px-3 font-semibold focus-within:outline-2">
+                <Upload size={15} aria-hidden="true" /> Import JSON backup
+                <input type="file" accept=".json,application/json" disabled={busy} className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  aria-label="Import JSON backup" onChange={event => {
+                    const file = event.currentTarget.files?.[0];
+                    event.currentTarget.value = "";
+                    if (file) void readFile(file);
+                  }}/>
+              </label>
+            </div>
+            {selectedWorld && (
+              <div className="space-y-2">
+                {worlds.length > 1 && <label className="block">World to import
+                  <select className="ml-2 rounded border px-2 py-1" value={worldIndex} onChange={event => setWorldIndex(Number(event.target.value))}>
+                    {worlds.map((world, i) => <option key={i} value={i}>{world.name}</option>)}
+                  </select>
+                </label>}
+                <p>{selectedWorld.name} · {selectedWorld.state.elements.length.toLocaleString()} items · {modeBadge(selectedWorld.state.mode).label}</p>
+                {emptySlot < 0 ? <p>All slots are full. Export an existing slot before making room.</p> :
+                  <button type="button" disabled={busy} onClick={() => void importSelected()} className="ui-btn">Save to Slot {emptySlot + 1}</button>}
+              </div>
+            )}
+            {transferMessage && <p role="status">{transferMessage}</p>}
+          </section>
+        {/* 3 Save Slots */}
           {Array.from({ length: MAX_SAVE_SLOTS }, (_, idx) => {
             const slot = slots[idx];
             const isActive = activeSlotIndex === idx;
@@ -290,6 +361,8 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
                       <Save className="h-3.5 w-3.5" />
                       <span>Overwrite</span>
                     </button>
+                    <button type="button" onClick={() => onExportWorld(idx)} className="ui-btn"
+                      aria-label={`Export ${slot.name}`}><Download size={15} aria-hidden="true" /> Export</button>
                     <button
                       type="button"
                       onClick={() => onDeleteSlot(idx)}
