@@ -849,7 +849,6 @@ export class PixelWorldRenderer {
           vec2 pix = (vCell + 0.5) * 0.25;
           float m = islandMargin(pix);
 
-          float wave = sin(pix.x * 0.24 + uTime * 1.7) * 0.5 + cos(pix.y * 0.22 - uTime * 1.3) * 0.5;
           float shallows = clamp((m + 24.0) / 24.0, 0.0, 1.0);
 
           vec3 deepCol = vec3(0.12, 0.48, 0.78);
@@ -859,13 +858,6 @@ export class PixelWorldRenderer {
           // Crisp 0.25m voxel water checker micro-shimmer
           float voxCk = mod(vCell.x + vCell.y, 2.0);
           col *= mix(1.0, 0.968, voxCk);
-
-          // Quantized sunlit 0.25m wave sparkles
-          if (wave > 0.68) {
-            col += vec3(0.08, 0.11, 0.12);
-          } else if (wave < -0.55) {
-            col -= vec3(0.03, 0.05, 0.06);
-          }
 
           // Crisp 0.25m voxel seafoam ribbon lapping the 0.25m stepped beach
           float shoreBand = abs(m + 1.85 + sin(uTime * 2.1 + pix.x * 0.2 + pix.y * 0.17) * 0.55);
