@@ -128,3 +128,14 @@ test("Quick Drawer Manual mode preserves exact pinned slots and order across all
   single = toggleManualDrawerAction(single, "sim_speed");
   assert.deepEqual(single.manualIds, ["sim_speed"], "Must keep at least 1 pinned action");
 });
+
+test("Quick Sculpt (mode_sculpt) is available in the top-right drawer catalog and active when selected", () => {
+  assert.ok(ALL_QUICK_DRAWER_IDS.includes("mode_sculpt"));
+  const state = createInitialGameState("god");
+  const items = recommendQuickDrawerActions(state, makeCtx({ quickBuildMode: "sculpt" }), createEmptyQuickDrawerHabits(), 7);
+  const sculpt = items.find((i) => i.id === "mode_sculpt");
+  assert.ok(sculpt, "Quick Sculpt should appear in the 7-slot top-right drawer");
+  assert.equal(sculpt.active, true);
+  assert.equal(sculpt.label, "Quick Sculpt");
+});
+

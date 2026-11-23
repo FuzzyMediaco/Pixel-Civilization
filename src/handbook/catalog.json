@@ -25000,5 +25000,2198 @@
     },
     "image": "/handbook/catalog/seafood_pier.webp",
     "thumbnail": "/handbook/catalog/thumbs/seafood_pier.webp"
+  },
+  {
+    "id": "rowhouse_duplex",
+    "name": "Duplex Cottage",
+    "category": "housing",
+    "categoryName": "Housing",
+    "cost": 45,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "population": 16,
+      "power": -2,
+      "water": -2,
+      "waste": -2,
+      "income": 4
+    },
+    "description": "Cozy twin-porch side-by-side duplexes that pack double the families into a friendly street lot.",
+    "usage": "Cozy twin-porch side-by-side duplexes that pack double the families into a friendly street lot.",
+    "growth": "A pair of mirrored starter cottages expands with upper gables, shared chimneys, flower boxes and courtyard stairs.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Twin Cottage",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Porch Duplex",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Brick Semi-Detached",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Gabled Row Pair",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Garden Quadplex",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Terracotta Clapboard"
+      },
+      {
+        "index": 1,
+        "name": "Harbor Slate"
+      },
+      {
+        "index": 2,
+        "name": "Warm Brick"
+      },
+      {
+        "index": 3,
+        "name": "Sage Shingle"
+      }
+    ],
+    "partner": {
+      "id": "gardens",
+      "name": "Garden"
+    },
+    "image": "/handbook/catalog/rowhouse_duplex.webp",
+    "thumbnail": "/handbook/catalog/thumbs/rowhouse_duplex.webp"
+  },
+  {
+    "id": "courtyard_villa",
+    "name": "Courtyard Villa",
+    "category": "housing",
+    "categoryName": "Housing",
+    "cost": 340,
+    "stage": 8,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "population": 185,
+      "power": -5,
+      "water": -5,
+      "waste": -4,
+      "recreation": 14,
+      "income": 28
+    },
+    "description": "Sun-baked villa arranged around an open inner courtyard with tiled arcade walks, cypress trees and a fountain.",
+    "usage": "Sun-baked villa arranged around an open inner courtyard with tiled arcade walks, cypress trees and a fountain.",
+    "growth": "An L-shaped patio house wraps into a full cloistered courtyard estate crowned by pergolas and loggias.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Patio Casa",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Arcade Villa",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Fountain Courtyard",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Terraced Hacienda",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Palazzo Villa",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Tuscan Ochre"
+      },
+      {
+        "index": 1,
+        "name": "Aegean White"
+      },
+      {
+        "index": 2,
+        "name": "Moorish Sand"
+      },
+      {
+        "index": 3,
+        "name": "Coastal Cedar"
+      }
+    ],
+    "partner": {
+      "id": "bus_stops",
+      "name": "Bus Stop"
+    },
+    "image": "/handbook/catalog/courtyard_villa.webp",
+    "thumbnail": "/handbook/catalog/thumbs/courtyard_villa.webp"
+  },
+  {
+    "id": "mixed_use_midrise",
+    "name": "Mixed-Use Midrise",
+    "category": "housing",
+    "categoryName": "Housing",
+    "cost": 390,
+    "stage": 7,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "population": 240,
+      "jobs": 24,
+      "power": -7,
+      "water": -6,
+      "waste": -6,
+      "income": 34
+    },
+    "description": "Walkable neighborhood block combining glowing ground-floor café storefronts with terraced apartments above.",
+    "usage": "Walkable neighborhood block combining glowing ground-floor café storefronts with terraced apartments above.",
+    "growth": "A corner storefront adds stacked residential balconies, striped awnings, rooftop pergolas and landscaped setbacks.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Corner Shopfront",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Loft Block",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Arcade Midrise",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Terraced Quarter",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Avenue Promenade",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Red Brick"
+      },
+      {
+        "index": 1,
+        "name": "Parisian Limestone"
+      },
+      {
+        "index": 2,
+        "name": "Nordic Timber"
+      },
+      {
+        "index": 3,
+        "name": "Modern Slate"
+      }
+    ],
+    "partner": {
+      "id": "bus_stops",
+      "name": "Bus Stop"
+    },
+    "image": "/handbook/catalog/mixed_use_midrise.webp",
+    "thumbnail": "/handbook/catalog/thumbs/mixed_use_midrise.webp"
+  },
+  {
+    "id": "penthouse_tower",
+    "name": "Penthouse Tower",
+    "category": "housing",
+    "categoryName": "Housing",
+    "cost": 1150,
+    "stage": 15,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "population": 560,
+      "jobs": 18,
+      "power": -16,
+      "water": -14,
+      "waste": -12,
+      "recreation": 26,
+      "income": 96
+    },
+    "description": "Sculpted setback residential spire featuring glass curtain walls, planted sky terraces and a crown penthouse.",
+    "usage": "Sculpted setback residential spire featuring glass curtain walls, planted sky terraces and a crown penthouse.",
+    "growth": "A slender residential tower rises in dramatic setbacks with double-height sky gardens and a glowing lantern crown.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Terrace High-Rise",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Skyline Residence",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Setback Spire",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Crown Penthouse",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Celestial Residence",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Champagne Limestone"
+      },
+      {
+        "index": 1,
+        "name": "Ice Curtain Glass"
+      },
+      {
+        "index": 2,
+        "name": "Obsidian Brass"
+      },
+      {
+        "index": 3,
+        "name": "Emerald Eco-Spire"
+      }
+    ],
+    "partner": {
+      "id": "bus_stops",
+      "name": "Bus Stop"
+    },
+    "image": "/handbook/catalog/penthouse_tower.webp",
+    "thumbnail": "/handbook/catalog/thumbs/penthouse_tower.webp"
+  },
+  {
+    "id": "tram_station",
+    "name": "Streetcar Station",
+    "category": "roads_transit",
+    "categoryName": "Roads & Transit",
+    "cost": 290,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 12,
+      "power": -4,
+      "recreation": 16,
+      "income": 22
+    },
+    "description": "Arched iron-and-timber streetcar stop with overhead catenary wires and vintage electric trams serving neighborhoods.",
+    "usage": "Arched iron-and-timber streetcar stop with overhead catenary wires and vintage electric trams serving neighborhoods.",
+    "growth": "A modest platform shelter grows overhead catenary arches, twin boarding bays, clock gables and resting trams.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Tram Shelter",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Twin-Track Stop",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Canopy Station",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Junction Turnaround",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Streetcar Hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Heritage Crimson"
+      },
+      {
+        "index": 1,
+        "name": "San Francisco Teal"
+      },
+      {
+        "index": 2,
+        "name": "European Cream"
+      },
+      {
+        "index": 3,
+        "name": "Modern Silver"
+      }
+    ],
+    "partner": {
+      "id": "two_lane_roads",
+      "name": "Two Lane Road"
+    },
+    "image": "/handbook/catalog/tram_station.webp",
+    "thumbnail": "/handbook/catalog/thumbs/tram_station.webp"
+  },
+  {
+    "id": "harbor_tugboat",
+    "name": "Harbor Tugboat",
+    "category": "maritime",
+    "categoryName": "Maritime",
+    "cost": 240,
+    "stage": 5,
+    "domain": "water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 10,
+      "power": -2,
+      "fireRadius": 10,
+      "income": 28
+    },
+    "description": "Stout twin-screw harbor tug with rubber tire fenders, elevated wheelhouse and water-cannon fire monitor.",
+    "usage": "Stout twin-screw harbor tug with rubber tire fenders, elevated wheelhouse and water-cannon fire monitor.",
+    "growth": "A compact harbor push-boat upgrades with twin funnels, heavy towing winch, radar arch and fire-monitor nozzles.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Dock Launch",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Harbor Tug",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Salvage Tugboat",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Escort Fire-Tug",
+        "dimensions": [
+          1,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Ocean Towing Vessel",
+        "dimensions": [
+          2,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Port Red"
+      },
+      {
+        "index": 1,
+        "name": "Channel Navy"
+      },
+      {
+        "index": 2,
+        "name": "Safety Orange"
+      },
+      {
+        "index": 3,
+        "name": "North Sea Green"
+      }
+    ],
+    "partner": {
+      "id": "docks",
+      "name": "Dock"
+    },
+    "image": "/handbook/catalog/harbor_tugboat.webp",
+    "thumbnail": "/handbook/catalog/thumbs/harbor_tugboat.webp"
+  },
+  {
+    "id": "coastal_corvette",
+    "name": "Coastal Corvette",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 640,
+    "stage": 10,
+    "domain": "water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 28,
+      "power": -6,
+      "police": 18,
+      "policeRadius": 16,
+      "military": 68
+    },
+    "description": "Fast faceted-hull coastal defense corvette patrolling littoral waters with radar mast and aft helideck.",
+    "usage": "Fast faceted-hull coastal defense corvette patrolling littoral waters with radar mast and aft helideck.",
+    "growth": "A nimble patrol boat evolves into a faceted stealth corvette with forward deck gun, missile cells and aft helideck.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Fast Patrol Craft",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Littoral Corvette",
+        "dimensions": [
+          1,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Stealth Corvette",
+        "dimensions": [
+          1,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Guided Defense Ship",
+        "dimensions": [
+          2,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Fleet Command Corvette",
+        "dimensions": [
+          2,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Baltic Grey"
+      },
+      {
+        "index": 1,
+        "name": "Arctic White"
+      },
+      {
+        "index": 2,
+        "name": "Pacific Slate"
+      },
+      {
+        "index": 3,
+        "name": "Night Ops"
+      }
+    ],
+    "partner": {
+      "id": "docks",
+      "name": "Dock"
+    },
+    "image": "/handbook/catalog/coastal_corvette.webp",
+    "thumbnail": "/handbook/catalog/thumbs/coastal_corvette.webp"
+  },
+  {
+    "id": "shoreline_overlook",
+    "name": "Shoreline Overlook",
+    "category": "nature_terrain",
+    "categoryName": "Nature & Land",
+    "cost": 140,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "recreation": 44,
+      "income": 6
+    },
+    "description": "Scenic coastal promontory deck with timber railings, brass viewing telescope and wind-sculpted pines facing the sea.",
+    "usage": "Scenic coastal promontory deck with timber railings, brass viewing telescope and wind-sculpted pines facing the sea.",
+    "growth": "A quiet cliffside bench grows into a cantilevered timber viewing deck with stone retaining walls, scopes and lanterns.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Cliff Bench",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Timber Deck",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Scenic Overlook",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Promenade Belvedere",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Headland Point",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Pacific Cedar"
+      },
+      {
+        "index": 1,
+        "name": "Granite Bluff"
+      },
+      {
+        "index": 2,
+        "name": "Driftwood Coast"
+      },
+      {
+        "index": 3,
+        "name": "Mediterranean Stone"
+      }
+    ],
+    "partner": {
+      "id": "walking_paths",
+      "name": "Walking Path"
+    },
+    "image": "/handbook/catalog/shoreline_overlook.webp",
+    "thumbnail": "/handbook/catalog/thumbs/shoreline_overlook.webp"
+  },
+  {
+    "id": "tidal_turbine_array",
+    "name": "Tidal Turbine Array",
+    "category": "power_waste",
+    "categoryName": "Power & Waste",
+    "cost": 580,
+    "stage": 11,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 10,
+      "power": 96
+    },
+    "description": "Offshore marine-current pylons spinning twin tidal rotors beneath coastal currents for steady renewable power.",
+    "usage": "Offshore marine-current pylons spinning twin tidal rotors beneath coastal currents for steady renewable power.",
+    "growth": "A single submerged current rotor multiplies into a linked offshore row with service catwalks and navigation beacons.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Pilot Rotor",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Twin Tidal Pylons",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Current Array",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Marine Turbine Row",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Offshore Tidal Farm",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Marine White"
+      },
+      {
+        "index": 1,
+        "name": "Safety Yellow"
+      },
+      {
+        "index": 2,
+        "name": "Galvanized Steel"
+      },
+      {
+        "index": 3,
+        "name": "Ocean Teal"
+      }
+    ],
+    "partner": {
+      "id": "factories",
+      "name": "Factory"
+    },
+    "image": "/handbook/catalog/tidal_turbine_array.webp",
+    "thumbnail": "/handbook/catalog/thumbs/tidal_turbine_array.webp"
+  },
+  {
+    "id": "recycling_center",
+    "name": "Recycling Center",
+    "category": "power_waste",
+    "categoryName": "Power & Waste",
+    "cost": 320,
+    "stage": 6,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 24,
+      "power": -5,
+      "water": -3,
+      "waste": 78,
+      "income": 22
+    },
+    "description": "Clean materials-recovery facility with color-coded drop-off bays, sorting conveyors and baled scrap stacks.",
+    "usage": "Clean materials-recovery facility with color-coded drop-off bays, sorting conveyors and baled scrap stacks.",
+    "growth": "Neighborhood collection bins expand into a solar-roofed sorting hall with conveyor bridges and neat material bales.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Drop-Off Bins",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Sorting Shed",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Recovery Depot",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Optical MRF Plant",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Zero-Waste Hub",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Eco Green"
+      },
+      {
+        "index": 1,
+        "name": "Civic Steel"
+      },
+      {
+        "index": 2,
+        "name": "Solar Timber"
+      },
+      {
+        "index": 3,
+        "name": "Clean Concrete"
+      }
+    ],
+    "partner": {
+      "id": "trees",
+      "name": "Trees"
+    },
+    "image": "/handbook/catalog/recycling_center.webp",
+    "thumbnail": "/handbook/catalog/thumbs/recycling_center.webp"
+  },
+  {
+    "id": "compost_works",
+    "name": "Compost & Biogas Works",
+    "category": "power_waste",
+    "categoryName": "Power & Waste",
+    "cost": 390,
+    "stage": 8,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 16,
+      "power": 28,
+      "water": -2,
+      "waste": 66,
+      "food": 18
+    },
+    "description": "Turns organic city waste into rich garden compost and clean methane power inside domed anaerobic digesters.",
+    "usage": "Turns organic city waste into rich garden compost and clean methane power inside domed anaerobic digesters.",
+    "growth": "Open organic windrows add sealed biogas digester domes, moisture pipes, soil hoppers and a small generator shed.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Compost Yard",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Aerated Windrows",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Digester Dome",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Biogas Co-Gen",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Circular Bio-Works",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Timber Earth"
+      },
+      {
+        "index": 1,
+        "name": "Botanical Green"
+      },
+      {
+        "index": 2,
+        "name": "Copper Dome"
+      },
+      {
+        "index": 3,
+        "name": "Industrial White"
+      }
+    ],
+    "partner": {
+      "id": "trees",
+      "name": "Trees"
+    },
+    "image": "/handbook/catalog/compost_works.webp",
+    "thumbnail": "/handbook/catalog/thumbs/compost_works.webp"
+  },
+  {
+    "id": "spring_house",
+    "name": "Artisan Spring House",
+    "category": "water_util",
+    "categoryName": "Water",
+    "cost": 110,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "water": 38,
+      "recreation": 12
+    },
+    "description": "Stone-vaulted natural spring pavilion channeling clear hillside groundwater into a mossy catchment basin.",
+    "usage": "Stone-vaulted natural spring pavilion channeling clear hillside groundwater into a mossy catchment basin.",
+    "growth": "A humble stone spring basin acquires an arched masonry roof, copper spout, wooden trough and surrounding ferns.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Stone Spring",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Spring Pavilion",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Vaulted Cistern",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Mineral Pump House",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Spring Sanctuary",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Mossy Fieldstone"
+      },
+      {
+        "index": 1,
+        "name": "Alpine Timber"
+      },
+      {
+        "index": 2,
+        "name": "Roman Travertine"
+      },
+      {
+        "index": 3,
+        "name": "Cedar Slate"
+      }
+    ],
+    "partner": {
+      "id": "municipal_reservoir",
+      "name": "Water Reservoir"
+    },
+    "image": "/handbook/catalog/spring_house.webp",
+    "thumbnail": "/handbook/catalog/thumbs/spring_house.webp"
+  },
+  {
+    "id": "tidal_sluice",
+    "name": "Tidal Sluice Gate",
+    "category": "water_util",
+    "categoryName": "Water",
+    "cost": 440,
+    "stage": 9,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 14,
+      "power": 18,
+      "water": 68
+    },
+    "description": "Twin-towered stone and steel tidal gate regulating coastal canals, estuaries and freshwater basins.",
+    "usage": "Twin-towered stone and steel tidal gate regulating coastal canals, estuaries and freshwater basins.",
+    "growth": "A gated timber weir grows twin stone hoist towers, geared steel sluice leaves, a footbridge and lantern beacons.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Timber Weir",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Stone Sluice",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Winch Gatehouse",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Tidal Barrage",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Estuary Lock",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Granite Iron"
+      },
+      {
+        "index": 1,
+        "name": "Dutch Brick"
+      },
+      {
+        "index": 2,
+        "name": "Modern Concrete"
+      },
+      {
+        "index": 3,
+        "name": "Marine Steel"
+      }
+    ],
+    "partner": {
+      "id": "rivers",
+      "name": "River"
+    },
+    "image": "/handbook/catalog/tidal_sluice.webp",
+    "thumbnail": "/handbook/catalog/thumbs/tidal_sluice.webp"
+  },
+  {
+    "id": "tidal_pool_walk",
+    "name": "Tidal Pool Boardwalk",
+    "category": "nature_terrain",
+    "categoryName": "Nature & Land",
+    "cost": 165,
+    "stage": 4,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "water": 16,
+      "recreation": 56
+    },
+    "description": "Weathered cedar boardwalks winding across natural basalt tide pools brimming with turquoise water and coastal life.",
+    "usage": "Weathered cedar boardwalks winding across natural basalt tide pools brimming with turquoise water and coastal life.",
+    "growth": "Natural rocky tidal basins gain low cedar walkways, interpretive signs, sea-grass tufts and sunlit tide pools.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Rock Pools",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Cedar Footwalk",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Tide-Pool Loop",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Marine Reserve Walk",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Coastal Estuary Sanctuary",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Basalt Cedar"
+      },
+      {
+        "index": 1,
+        "name": "Limestone Reef"
+      },
+      {
+        "index": 2,
+        "name": "Sandstone Cove"
+      },
+      {
+        "index": 3,
+        "name": "Driftwood Marsh"
+      }
+    ],
+    "partner": {
+      "id": "beaches",
+      "name": "Beach"
+    },
+    "image": "/handbook/catalog/tidal_pool_walk.webp",
+    "thumbnail": "/handbook/catalog/thumbs/tidal_pool_walk.webp"
+  },
+  {
+    "id": "public_library",
+    "name": "Public Library",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 260,
+    "stage": 4,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 14,
+      "power": -4,
+      "water": -2,
+      "education": 60,
+      "recreation": 24
+    },
+    "description": "Welcoming civic library with grand stone entry steps, arched reading-room windows and a shaded book garden.",
+    "usage": "Welcoming civic library with grand stone entry steps, arched reading-room windows and a shaded book garden.",
+    "growth": "A quiet neighborhood reading room expands with stone portico columns, skylight reading wings and a sculpture court.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Reading Room",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Branch Library",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Carnegie Hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Central Library",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Athenaeum & Archives",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Beaux-Arts Stone"
+      },
+      {
+        "index": 1,
+        "name": "Warm Brick"
+      },
+      {
+        "index": 2,
+        "name": "Nordic Timber Glass"
+      },
+      {
+        "index": 3,
+        "name": "Modern Skylight"
+      }
+    ],
+    "partner": {
+      "id": "park",
+      "name": "Park"
+    },
+    "image": "/handbook/catalog/public_library.webp",
+    "thumbnail": "/handbook/catalog/thumbs/public_library.webp"
+  },
+  {
+    "id": "bell_tower_chapel",
+    "name": "Campanile Chapel",
+    "category": "faith",
+    "categoryName": "Faith",
+    "cost": 210,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "power": -2,
+      "water": -1,
+      "education": 10,
+      "recreation": 36
+    },
+    "description": "Intimate stone chapel paired with a slender freestanding campanile bell tower and bronze belfry.",
+    "usage": "Intimate stone chapel paired with a slender freestanding campanile bell tower and bronze belfry.",
+    "growth": "A stone chapel gains a tall separate bell tower with open arched belfry, swinging bronze bell and cypress avenue.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Wayside Chapel",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Belfry Chapel",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Campanile Parish",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Cloistered Campanile",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Hilltop Basilica Chapel",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Venetian Brick"
+      },
+      {
+        "index": 1,
+        "name": "Limestone Ochre"
+      },
+      {
+        "index": 2,
+        "name": "Whitewashed Island"
+      },
+      {
+        "index": 3,
+        "name": "Alpine Slate"
+      }
+    ],
+    "partner": {
+      "id": "graveyards",
+      "name": "Graveyard"
+    },
+    "image": "/handbook/catalog/bell_tower_chapel.webp",
+    "thumbnail": "/handbook/catalog/thumbs/bell_tower_chapel.webp"
+  },
+  {
+    "id": "stone_abbey",
+    "name": "Cloister Abbey",
+    "category": "faith",
+    "categoryName": "Faith",
+    "cost": 480,
+    "stage": 7,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 12,
+      "power": -3,
+      "water": -3,
+      "food": 14,
+      "education": 36,
+      "recreation": 70
+    },
+    "description": "Tranquil stone monastery wrapped around an arched cloister herb garden with vaulted nave and scriptorium.",
+    "usage": "Tranquil stone monastery wrapped around an arched cloister herb garden with vaulted nave and scriptorium.",
+    "growth": "A small stone priory grows into a full four-sided cloister framing a central herb garden and buttressed abbey nave.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Priory Cell",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Cloister Garth",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Scriptorium Abbey",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Vaulted Monastery",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Sanctuary Abbey",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Cotswold Limestone"
+      },
+      {
+        "index": 1,
+        "name": "Romanesque Sandstone"
+      },
+      {
+        "index": 2,
+        "name": "Highland Granite"
+      },
+      {
+        "index": 3,
+        "name": "Burgundy Tile"
+      }
+    ],
+    "partner": {
+      "id": "graveyards",
+      "name": "Graveyard"
+    },
+    "image": "/handbook/catalog/stone_abbey.webp",
+    "thumbnail": "/handbook/catalog/thumbs/stone_abbey.webp"
+  },
+  {
+    "id": "zen_shrine",
+    "name": "Zen Torii Shrine",
+    "category": "faith",
+    "categoryName": "Faith",
+    "cost": 310,
+    "stage": 5,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 12,
+      "recreation": 60
+    },
+    "description": "Vermilion torii gateway leading across raked white gravel, stone lanterns and a curved-eave woodland sanctuary.",
+    "usage": "Vermilion torii gateway leading across raked white gravel, stone lanterns and a curved-eave woodland sanctuary.",
+    "growth": "A lone vermilion torii expands with stone lanterns, raked zen gravel, a curved-roof hall and shimmering koi water.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Torii Gate",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Lantern Path",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Gravel Sanctuary",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Koi Garden Shrine",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Sacred Mountain Precinct",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Vermilion Cedar"
+      },
+      {
+        "index": 1,
+        "name": "Mossy Cypress"
+      },
+      {
+        "index": 2,
+        "name": "Autumn Maple"
+      },
+      {
+        "index": 3,
+        "name": "Snow Pine"
+      }
+    ],
+    "partner": {
+      "id": "graveyards",
+      "name": "Graveyard"
+    },
+    "image": "/handbook/catalog/zen_shrine.webp",
+    "thumbnail": "/handbook/catalog/thumbs/zen_shrine.webp"
+  },
+  {
+    "id": "meditation_pavilion",
+    "name": "Meditation Pavilion",
+    "category": "faith",
+    "categoryName": "Faith",
+    "cost": 460,
+    "stage": 9,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "education": 22,
+      "recreation": 78
+    },
+    "description": "Octagonal open-air timber sanctuary poised over a serene lotus reflection pool framed by slender bamboo.",
+    "usage": "Octagonal open-air timber sanctuary poised over a serene lotus reflection pool framed by slender bamboo.",
+    "growth": "A quiet timber deck over water develops sweeping octagonal eaves, stepping-stone bridges, lanterns and bamboo groves.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Tea Deck",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Lotus Pavilion",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Reflection Hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Bamboo Sanctuary",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Cloud Mirror Hall",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Dark Hinoki"
+      },
+      {
+        "index": 1,
+        "name": "Sandstone Gold"
+      },
+      {
+        "index": 2,
+        "name": "Jade Tile"
+      },
+      {
+        "index": 3,
+        "name": "Ivory Teak"
+      }
+    ],
+    "partner": {
+      "id": "graveyards",
+      "name": "Graveyard"
+    },
+    "image": "/handbook/catalog/meditation_pavilion.webp",
+    "thumbnail": "/handbook/catalog/thumbs/meditation_pavilion.webp"
+  },
+  {
+    "id": "colossus_lighthouse",
+    "name": "Grand Harbor Lighthouse",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 1850,
+    "stage": 12,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 16,
+      "power": -6,
+      "education": 40,
+      "recreation": 260,
+      "income": 125
+    },
+    "description": "Monumental tapered masonry lighthouse with spiral stone parapet, brass lantern room and rotating sea beacon.",
+    "usage": "Monumental tapered masonry lighthouse with spiral stone parapet, brass lantern room and rotating sea beacon.",
+    "growth": "A coastal beacon rises into a soaring tapered lighthouse with keeper's wings, gallery walk and rotating golden beam.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Beacon Cairn",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Stone Tower",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Fresnel Lighthouse",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Keeper's Citadel",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Pharos of the Isles",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Classic Red-Band"
+      },
+      {
+        "index": 1,
+        "name": "Alexandrian Limestone"
+      },
+      {
+        "index": 2,
+        "name": "Granite Copper"
+      },
+      {
+        "index": 3,
+        "name": "Emerald Sea-Stone"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/colossus_lighthouse.webp",
+    "thumbnail": "/handbook/catalog/thumbs/colossus_lighthouse.webp"
+  },
+  {
+    "id": "civic_observatory",
+    "name": "Civic Observatory",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 1450,
+    "stage": 11,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 24,
+      "power": -10,
+      "water": -4,
+      "education": 230,
+      "recreation": 185,
+      "income": 75
+    },
+    "description": "Hilltop astronomical dome with brushed copper shutter slit, brass refractor barrel and public star-gazing terrace.",
+    "usage": "Hilltop astronomical dome with brushed copper shutter slit, brass refractor barrel and public star-gazing terrace.",
+    "growth": "A single telescope cupola expands with flanked meridian wings, twin auxiliary domes and an illuminated sundial plaza.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Stargazer Dome",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Meridian House",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Civic Observatory",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Twin-Dome Institute",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Celestial Planetarium",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Patina Copper"
+      },
+      {
+        "index": 1,
+        "name": "Silver Aluminum"
+      },
+      {
+        "index": 2,
+        "name": "Observatory Brass"
+      },
+      {
+        "index": 3,
+        "name": "Marble White"
+      }
+    ],
+    "partner": {
+      "id": "italian_gardens",
+      "name": "Italian Garden"
+    },
+    "image": "/handbook/catalog/civic_observatory.webp",
+    "thumbnail": "/handbook/catalog/thumbs/civic_observatory.webp"
+  },
+  {
+    "id": "maritime_museum",
+    "name": "Maritime Museum",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 1350,
+    "stage": 10,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 28,
+      "power": -8,
+      "water": -4,
+      "education": 175,
+      "recreation": 215,
+      "income": 112
+    },
+    "description": "Vaulted glass-and-brick waterfront museum displaying a preserved wooden tall ship inside a flooded exhibition basin.",
+    "usage": "Vaulted glass-and-brick waterfront museum displaying a preserved wooden tall ship inside a flooded exhibition basin.",
+    "growth": "A dockside archive grows vaulted glass galleries beside a drydock exhibition slip cradling a masted historic vessel.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Harbor Archive",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Shipwright Hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Tall-Ship Basin",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Maritime Museum",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Oceanic Heritage Center",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Red Brick Quay"
+      },
+      {
+        "index": 1,
+        "name": "Glass Wave"
+      },
+      {
+        "index": 2,
+        "name": "Naval Limestone"
+      },
+      {
+        "index": 3,
+        "name": "Nordic Timber"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/maritime_museum.webp",
+    "thumbnail": "/handbook/catalog/thumbs/maritime_museum.webp"
+  },
+  {
+    "id": "boatyard_slipway",
+    "name": "Boatyard Slipway",
+    "category": "maritime",
+    "categoryName": "Maritime",
+    "cost": 680,
+    "stage": 8,
+    "domain": "coast_or_water",
+    "isStarter": false,
+    "stats": {
+      "jobs": 36,
+      "power": -8,
+      "water": -4,
+      "income": 88
+    },
+    "description": "Sloped stone marine railway descending into harbor water with straddle gantry crane, keel blocks and rigging loft.",
+    "usage": "Sloped stone marine railway descending into harbor water with straddle gantry crane, keel blocks and rigging loft.",
+    "growth": "A simple launch ramp adds twin iron rails, an overhead travel-lift crane, timber boat shed and refitting hull.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Timber Ways",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Marine Railway",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Boatyard Slipway",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Gantry Refit Yard",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Maritime Ways",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Working Rust"
+      },
+      {
+        "index": 1,
+        "name": "Harbor Blue"
+      },
+      {
+        "index": 2,
+        "name": "Weathered Timber"
+      },
+      {
+        "index": 3,
+        "name": "Steel Yellow"
+      }
+    ],
+    "partner": {
+      "id": "boats",
+      "name": "Boat"
+    },
+    "image": "/handbook/catalog/boatyard_slipway.webp",
+    "thumbnail": "/handbook/catalog/thumbs/boatyard_slipway.webp"
+  },
+  {
+    "id": "solar_spire_arcology",
+    "name": "Solar Spire Arcology",
+    "category": "wealth_projects",
+    "categoryName": "Wealth Projects",
+    "cost": 3600,
+    "stage": 19,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "population": 720,
+      "jobs": 185,
+      "power": 240,
+      "water": 90,
+      "education": 140,
+      "recreation": 260,
+      "income": 220
+    },
+    "description": "Self-sustaining helical glass-and-gold eco-arcology weaving hanging sky gardens around a solar collector spire.",
+    "usage": "Self-sustaining helical glass-and-gold eco-arcology weaving hanging sky gardens around a solar collector spire.",
+    "growth": "A tiered solar atrium spirals skyward with cantilevered forest terraces, wind-turbine portals and a blazing solar crown.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Helix Atrium",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Eco-Terrace Tower",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Solar Spire",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Sky-Garden Arcology",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Helios Crown Arcology",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Helios Gold"
+      },
+      {
+        "index": 1,
+        "name": "Verdant Glass"
+      },
+      {
+        "index": 2,
+        "name": "Alabaster Pearl"
+      },
+      {
+        "index": 3,
+        "name": "Cobalt Solar"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/solar_spire_arcology.webp",
+    "thumbnail": "/handbook/catalog/thumbs/solar_spire_arcology.webp"
   }
 ]

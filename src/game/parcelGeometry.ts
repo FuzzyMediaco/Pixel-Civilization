@@ -12,6 +12,8 @@ export interface ParcelAppearance {
   /** Local row-major tile materials, blank when the entire site uses default grass. */
   soils?: readonly Material[];
   lighting?: "auto" | "dark" | "lit";
+  /** True when placed in-world atop sculpted voxel terrain so duplicate ground slabs are omitted. */
+  worldSculpted?: boolean;
 }
 
 export function getParcelSoils(state: GameState, el: ParcelPose): Material[] | undefined {
@@ -60,13 +62,24 @@ const lane: Partial<Record<JoinKind, [number, number, string]>> = {
 const floraIds = new Set(["trees","pine_trees","redwood_trees","shrubs","plants","bushes","alligators","swamps","ponds","lakes"]);
 const waterIds = new Set(["canals","rivers","wide_rivers","water_tile","lakes","ponds","swamps"]);
 
+const coastalSlabIds = new Set(["beaches", "deserts", "beach_houses", "beach_umbrellas", "boardwalks", "sand"]);
+
 /** Modify only the part of a lot that actually touches the neighboring parcel. */
 export function applyParcelAppearance(c: Ctx, opts: ParcelAppearance, siteX=c.spanX, siteZ=c.spanZ) {
   const v = c.v;
   // The complete current model is centered and scaled uniformly onto its saved plot.
   // Map painted cells and neighbor offsets through the same transform as its mesh.
   const fit=Math.min(1,siteX/c.spanX,siteZ/c.spanZ);
-  if (opts.soils) {
+  if (opts.worldSculpted && (waterIds.has(c.id) || coastalSlabIds.has(c.id))) {
+    for (let z = -c.hz; z < c.hz; z++) {
+      for (let x = -c.hx; x < c.hx; x++) {
+        const key = packVoxKey(x, 0, z);
+        if (!v.v.has(key)) continue;
+        // Strip bare y=0 ground/water slab where no above-ground feature sits so real voxel terrain shows through
+        if (!v.v.has(packVoxKey(x, 1, z))) v.v.delete(key);
+      }
+    }
+  } else if (opts.soils) {
     for (let z=-c.hz; z<c.hz; z++) for (let x=-c.hx; x<c.hx; x++) {
       const tileX=Math.floor(siteX/2+(x+.5)*fit/16);
       const tileZ=Math.floor(siteZ/2+(z+.5)*fit/16);

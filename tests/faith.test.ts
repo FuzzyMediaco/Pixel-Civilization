@@ -81,7 +81,7 @@ test("eight faith services scale with level, attendance and population, and keep
         all.volunteerSupport < 0.22,
     );
   }
-  assert.equal(ELEMENTS.filter((e) => e.category === "faith").length, 8);
+  assert.equal(ELEMENTS.filter((e) => e.category === "faith").length, 12);
 });
 test("blessings affect actual food and street demand, expire in play time and survive saves", () => {
   const { s, t } = town();

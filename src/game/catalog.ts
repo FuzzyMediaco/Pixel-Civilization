@@ -3,6 +3,7 @@ import { EXPANSION_ELEMENTS } from "./expansionCatalog";
 import { WEALTH_PROJECTS } from "./wealthProjects";
 import { HISTORICAL_WONDERS } from "./historicalCatalog";
 import { NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS } from "./expansionSafetyMilitaryCommerce";
+import { BALANCED_EXPANSION_ELEMENTS } from "./expansionBalancedCatalog";
 import { getDesign, getLevelName } from "./designs/registry";
 import { ELEMENT_LEVEL_SPANS } from "./levelSpans";
 
@@ -2553,6 +2554,7 @@ export const ELEMENTS: CivElementDef[] = [
   ...EXPANSION_ELEMENTS,
   ...HISTORICAL_WONDERS,
   ...NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS,
+  ...BALANCED_EXPANSION_ELEMENTS,
 ];
 
 export const ELEMENT_BY_ID: Record<string, CivElementDef> = Object.fromEntries(

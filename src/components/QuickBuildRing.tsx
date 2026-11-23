@@ -1,8 +1,32 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  Columns3,
+  Droplet,
+  Droplets,
+  Eraser,
+  FoldVertical,
+  LandPlot,
+  Minus,
+  Mountain,
+  Paintbrush,
+  Slash,
+  Sliders,
+  Sparkles,
+  Spline,
+  Triangle,
+  Undo2,
+  Waves,
+  Waypoints,
+  X,
+} from "lucide-react";
 import { ELEMENT_BY_ID } from "../game/catalog";
-import { buildingCharges } from "../game/cityEconomy";
+import { buildingCharges, effective } from "../game/cityEconomy";
 import type { GameState } from "../game/simulation";
+import { requiredToolStage } from "../game/terrain";
+import { VOXEL_PITCH } from "../game/voxelTerrain";
 import type { SelectionRingProjection } from "../game/worldRenderer";
 import type {
   QuickBuildCategoryId,
@@ -16,9 +40,62 @@ import {
   type DecisionTreeParentId,
   type QuickBuildMode,
 } from "../game/quickBuildTree";
-import { getOrderedDecisionTreeParents } from "../game/quickMenuPrefs";
+import {
+  QUICK_SCULPT_TOOL_META,
+  getOrderedDecisionTreeParents,
+  resolveQuickSculptTools,
+  type QuickSculptPrefs,
+  type QuickSculptToolId,
+} from "../game/quickMenuPrefs";
 import { CATEGORY_LABELS, CategoryFavicon, DecisionParentFavicon } from "./CategoryFavicon";
 import { ElementFavicon } from "./ElementFavicon";
+
+export function SculptToolIcon({ id, size = 18 }: { id: QuickSculptToolId; size?: number }) {
+  switch (id) {
+    case "raise":
+      return <ArrowUp size={size} aria-hidden="true" />;
+    case "lower":
+      return <ArrowDown size={size} aria-hidden="true" />;
+    case "smooth":
+      return <Waves size={size} aria-hidden="true" />;
+    case "flatten":
+      return <Minus size={size} aria-hidden="true" />;
+    case "sharpen":
+      return <Triangle size={size} aria-hidden="true" />;
+    case "paint":
+      return <Paintbrush size={size} aria-hidden="true" />;
+    case "mountain":
+      return <Mountain size={size} aria-hidden="true" />;
+    case "valley":
+      return <FoldVertical size={size} aria-hidden="true" />;
+    case "canyon":
+      return <Slash size={size} aria-hidden="true" />;
+    case "peninsula":
+      return <LandPlot size={size} aria-hidden="true" />;
+    case "pond":
+      return <Droplet size={size} aria-hidden="true" />;
+    case "lake":
+      return <Droplets size={size} aria-hidden="true" />;
+    case "river":
+      return <Spline size={size} aria-hidden="true" />;
+    case "canal":
+      return <Columns3 size={size} aria-hidden="true" />;
+    case "bay":
+      return <Waves size={size} aria-hidden="true" />;
+    case "spring":
+      return <Sparkles size={size} aria-hidden="true" />;
+    case "bridge":
+      return <Waypoints size={size} aria-hidden="true" />;
+    case "erase":
+    default:
+      return <Eraser size={size} aria-hidden="true" />;
+  }
+}
+
+const SCULPT_META_BY_ID = Object.fromEntries(QUICK_SCULPT_TOOL_META.map((t) => [t.id, t])) as Record<
+  QuickSculptToolId,
+  (typeof QUICK_SCULPT_TOOL_META)[number]
+>;
 
 /**
  * Fast Builder Spiral Menu supporting three modes:
@@ -40,6 +117,12 @@ export function QuickBuildRing({
   treeSubId,
   treeElements,
   exactParentOrder,
+  quickSculptPrefs,
+  canUndoSculpt,
+  onPickSculptTool,
+  onCycleSculptRadius,
+  onUndoSculpt,
+  onCustomizeQuickSculpt,
   onSubscribeProjection,
   onPickCategory,
   onPickTreeParent,
@@ -59,6 +142,12 @@ export function QuickBuildRing({
   treeSubId: string | null;
   treeElements: DecisionTreeLeafElement[];
   exactParentOrder?: DecisionTreeParentId[];
+  quickSculptPrefs?: QuickSculptPrefs;
+  canUndoSculpt?: boolean;
+  onPickSculptTool?: (toolId: QuickSculptToolId) => void;
+  onCycleSculptRadius?: () => void;
+  onUndoSculpt?: () => void;
+  onCustomizeQuickSculpt?: () => void;
   onSubscribeProjection: (cb: (pos: SelectionRingProjection | null) => void) => () => void;
   onPickCategory: (cat: QuickBuildCategoryId) => void;
   onPickTreeParent: (parentId: DecisionTreeParentId) => void;
@@ -71,37 +160,43 @@ export function QuickBuildRing({
   const readyRef = useRef(false);
   const [hoveredTitle, setHoveredTitle] = useState<string | null>(null);
 
+  const isSculpt = mode === "sculpt";
   const isTree = mode === "tree";
   const isInstant = mode === "instant";
+  const sculptTools = isSculpt && quickSculptPrefs ? resolveQuickSculptTools(quickSculptPrefs) : [];
   const orderedParents = getOrderedDecisionTreeParents(exactParentOrder);
   const activeParent = isTree && treeParentId ? getDecisionTreeParent(treeParentId) : undefined;
   const activeSub = isTree && treeParentId && treeSubId ? getDecisionTreeSubcategory(treeParentId, treeSubId) : undefined;
 
-  const canStepBack = isInstant ? false : isTree ? treeParentId !== null : selectedCategory !== null;
+  const canStepBack = isSculpt || isInstant ? false : isTree ? treeParentId !== null : selectedCategory !== null;
 
-  const stageKey = isInstant
-    ? `${tileKey}:instant`
-    : isTree
-      ? treeSubId
-        ? `${tileKey}:tree:${treeParentId}:${treeSubId}`
-        : treeParentId
-          ? `${tileKey}:tree:${treeParentId}`
-          : `${tileKey}:tree:root`
-      : selectedCategory
-        ? `${tileKey}:cat:${selectedCategory}`
-        : `${tileKey}:root`;
+  const stageKey = isSculpt
+    ? `${tileKey}:sculpt`
+    : isInstant
+      ? `${tileKey}:instant`
+      : isTree
+        ? treeSubId
+          ? `${tileKey}:tree:${treeParentId}:${treeSubId}`
+          : treeParentId
+            ? `${tileKey}:tree:${treeParentId}`
+            : `${tileKey}:tree:root`
+        : selectedCategory
+          ? `${tileKey}:cat:${selectedCategory}`
+          : `${tileKey}:root`;
 
-  const count = isInstant
-    ? instantElements.length
-    : isTree
-      ? activeSub
-        ? treeElements.length
-        : activeParent
-          ? activeParent.subcategories.length
-          : orderedParents.length
-      : selectedCategory !== null
-        ? elements.length
-        : categories.length;
+  const count = isSculpt
+    ? sculptTools.length
+    : isInstant
+      ? instantElements.length
+      : isTree
+        ? activeSub
+          ? treeElements.length
+          : activeParent
+            ? activeParent.subcategories.length
+            : orderedParents.length
+        : selectedCategory !== null
+          ? elements.length
+          : categories.length;
 
   const charges = buildingCharges(state);
 
@@ -126,10 +221,10 @@ export function QuickBuildRing({
       }
       host.dataset.hidden = "false";
       host.style.transform = `translate3d(${proj.x}px, ${proj.y}px, 0)`;
-      // 7-node decision-tree rings get slightly more breathing room around the orbit
+      // 7+ node rings get slightly more breathing room around the orbit
       const orbitR = count >= 7
-        ? Math.max(86, Math.min(104, proj.radiusPx + 14))
-        : Math.max(76, Math.min(96, proj.radiusPx + 8));
+        ? Math.max(88, Math.min(108, proj.radiusPx + 16))
+        : Math.max(78, Math.min(98, proj.radiusPx + 10));
       host.style.setProperty("--ring-r", `${orbitR}px`);
       if (!readyRef.current) {
         readyRef.current = true;
@@ -151,26 +246,33 @@ export function QuickBuildRing({
   if (count === 0) return null;
 
   // Clean single-title caption (no extra helper text below)
-  const fallbackTitle = isInstant
+  const fallbackTitle = isSculpt
     ? null
-    : isTree
-      ? activeSub?.label ?? activeParent?.label ?? null
-      : selectedCategory
-        ? CATEGORY_LABELS[selectedCategory]
-        : null;
+    : isInstant
+      ? null
+      : isTree
+        ? activeSub?.label ?? activeParent?.label ?? null
+        : selectedCategory
+          ? CATEGORY_LABELS[selectedCategory]
+          : null;
   const displayTitle = hoveredTitle ?? fallbackTitle;
 
-  const ariaLabel = isInstant
-    ? "Quick Build elements"
-    : isTree
-      ? activeSub
-        ? `Exact Build ${activeSub.label}`
-        : activeParent
-          ? `Exact Build ${activeParent.label}`
-          : "Exact Build branches"
-      : selectedCategory
-        ? `Smart Build ${CATEGORY_LABELS[selectedCategory]}`
-        : "Smart Build categories";
+  const ariaLabel = isSculpt
+    ? "Quick Sculpt spiral tools"
+    : isInstant
+      ? "Quick Build elements"
+      : isTree
+        ? activeSub
+          ? `Exact Build ${activeSub.label}`
+          : activeParent
+            ? `Exact Build ${activeParent.label}`
+            : "Exact Build branches"
+        : selectedCategory
+          ? `Smart Build ${CATEGORY_LABELS[selectedCategory]}`
+          : "Smart Build categories";
+
+  const sculptDiam = (quickSculptPrefs?.voxelRadius ?? 3) * 2 + 1;
+  const sculptMeters = (sculptDiam * VOXEL_PITCH).toFixed(2);
 
   return (
     <div
@@ -203,7 +305,47 @@ export function QuickBuildRing({
 
       {/* Smooth nested polar spiral spokes */}
       <div key={stageKey} className="ui-ring-cluster">
-        {isInstant ? (
+        {isSculpt ? (
+          // Quick Sculpt (1-tap): customizable spiral of 0.25m voxel sculpt tools
+          sculptTools.map((toolId, idx) => {
+            const angDeg = Number((-90 + (idx / count) * 360).toFixed(2));
+            const meta = SCULPT_META_BY_ID[toolId];
+            const reqStage = requiredToolStage({ kind: toolId });
+            const locked =
+              (state.mode !== "god" || effective(state, "stageRules", 0) > 0) &&
+              state.highestStageReached < reqStage;
+            return (
+              <span
+                key={toolId}
+                className="ui-ring-spoke"
+                style={{ "--ang": `${angDeg}deg`, "--idx": idx } as React.CSSProperties}
+              >
+                <span className="ui-ring-arm">
+                  <span className="ui-ring-counter">
+                    <button
+                      type="button"
+                      className={"ui-ring-btn is-qb-node is-qs-node" + (locked ? " is-unaffordable" : "")}
+                      disabled={locked}
+                      aria-label={locked ? `${meta.label} (Stage ${reqStage})` : meta.label}
+                      title={locked ? `${meta.label} · Unlocks at Stage ${reqStage}` : meta.label}
+                      onMouseEnter={() => setHoveredTitle(meta.label)}
+                      onMouseLeave={() => setHoveredTitle(null)}
+                      onFocus={() => setHoveredTitle(meta.label)}
+                      onBlur={() => setHoveredTitle(null)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPickSculptTool?.(toolId);
+                      }}
+                    >
+                      <SculptToolIcon id={toolId} size={18} />
+                      <span className="ui-ring-qs-lbl">{meta.short}</span>
+                    </button>
+                  </span>
+                </span>
+              </span>
+            );
+          })
+        ) : isInstant ? (
           // Instant Smart Mode (2 taps): 6 super-adaptive placeable elements right away
           instantElements.map((item, idx) => {
             const angDeg = Number((-90 + (idx / count) * 360).toFixed(2));
@@ -422,8 +564,54 @@ export function QuickBuildRing({
         )}
       </div>
 
+      {/* Compact Quick Sculpt live brush-size / undo / tune dock */}
+      {isSculpt && (
+        <div className="ui-ring-sculpt-dock" role="group" aria-label="Quick Sculpt controls">
+          <button
+            type="button"
+            className="ui-ring-sculpt-pill"
+            title={`Cycle brush size (${sculptDiam} vox · ${sculptMeters}m)`}
+            aria-label={`Brush size ${sculptDiam} voxels (${sculptMeters} meters)`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onCycleSculptRadius?.();
+            }}
+          >
+            {sculptDiam}v · {sculptMeters}m
+          </button>
+          {canUndoSculpt && onUndoSculpt && (
+            <button
+              type="button"
+              className="ui-ring-sculpt-pill"
+              title="Undo last sculpt"
+              aria-label="Undo last sculpt"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUndoSculpt();
+              }}
+            >
+              <Undo2 size={12} aria-hidden="true" />
+            </button>
+          )}
+          {onCustomizeQuickSculpt && (
+            <button
+              type="button"
+              className="ui-ring-sculpt-pill"
+              title="Customize Quick Sculpt in Settings"
+              aria-label="Customize Quick Sculpt"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCustomizeQuickSculpt();
+              }}
+            >
+              <Sliders size={12} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Minimal single-line label only (no extra instructional subtitle) */}
-      {displayTitle && (
+      {displayTitle && !isSculpt && (
         <div className="ui-ring-qb-caption" aria-live="polite">
           <strong>{displayTitle}</strong>
         </div>

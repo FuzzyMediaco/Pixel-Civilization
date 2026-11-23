@@ -16,6 +16,8 @@ import {
   type QuickBuildMode,
 } from "./quickBuildTree";
 
+import type { Material } from "./terrain";
+
 export type QuickEditActionId =
   | "upgrade"
   | "delete"
@@ -30,6 +32,38 @@ export type QuickEditOrderMode = "fixed" | "adaptive";
 
 export type SmartBuildFocus = "balanced" | "needs" | "habits" | "local";
 
+export type QuickSculptTapBehavior = "stamp_and_brush" | "stamp_stay" | "arm_brush";
+
+export type QuickSculptToolId =
+  | "raise"
+  | "lower"
+  | "smooth"
+  | "flatten"
+  | "sharpen"
+  | "paint"
+  | "mountain"
+  | "valley"
+  | "canyon"
+  | "peninsula"
+  | "pond"
+  | "lake"
+  | "river"
+  | "canal"
+  | "bay"
+  | "spring"
+  | "bridge"
+  | "erase";
+
+export interface QuickSculptPrefs {
+  tools: QuickSculptToolId[];
+  voxelRadius: number;
+  strength: number;
+  paintMaterial: Material;
+  tapBehavior: QuickSculptTapBehavior;
+  orderMode: QuickEditOrderMode;
+  useCounts: Record<string, number>;
+}
+
 export interface QuickEditPrefs {
   orderMode: QuickEditOrderMode;
   buttonOrder: QuickEditActionId[];
@@ -39,6 +73,7 @@ export interface QuickEditPrefs {
 
 export interface QuickMenuPrefs {
   quickEdit: QuickEditPrefs;
+  quickSculpt: QuickSculptPrefs;
   smartFocus: SmartBuildFocus;
   openQuickEditAfterPlace: boolean;
   exactParentOrder: DecisionTreeParentId[];
@@ -80,9 +115,66 @@ export const QUICK_BUILD_MODE_META: {
     clicks: "4 clicks",
     shortDesc: "Non-adaptive 7 × 7 × 6 decision tree",
     detail:
-      "Never changes on you: all 270 elements organized into 7 top branches → 7 sub-branches → up to 6 elements so you always know exactly where everything lives.",
+      "Never changes on you: all 294 elements organized into 7 top branches → 7 sub-branches → up to 6 elements so you always know exactly where everything lives.",
+  },
+  {
+    id: "sculpt",
+    name: "Quick Sculpt",
+    clicks: "1 tap · 0.25m",
+    shortDesc: "Spiral of 1-tap 0.25m voxel sculpt tools",
+    detail:
+      "Tap anywhere on the island to pop open a spiral of your favorite 0.25m sculpt, landform, water, and paint tools for instant one-tap shaping.",
   },
 ];
+
+export const QUICK_SCULPT_TAP_BEHAVIOR_META: {
+  id: QuickSculptTapBehavior;
+  label: string;
+  hint: string;
+}[] = [
+  { id: "stamp_and_brush", label: "Stamp + Brush", hint: "Instantly sculpts 1 stamp at the tap spot and arms the brush to keep dragging." },
+  { id: "stamp_stay", label: "Rapid Stamp", hint: "Stamps immediately and keeps the spiral open for repeated taps." },
+  { id: "arm_brush", label: "Arm Brush", hint: "Selects the tool and closes the spiral so you can drag-sculpt freely." },
+];
+
+export const QUICK_SCULPT_TOOL_META: {
+  id: QuickSculptToolId;
+  label: string;
+  short: string;
+  group: "Sculpt" | "Landforms" | "Water" | "Crossings";
+}[] = [
+  { id: "raise", label: "Raise land", short: "Raise", group: "Sculpt" },
+  { id: "lower", label: "Lower land", short: "Lower", group: "Sculpt" },
+  { id: "smooth", label: "Smooth grade", short: "Smooth", group: "Sculpt" },
+  { id: "flatten", label: "Flatten", short: "Flatten", group: "Sculpt" },
+  { id: "sharpen", label: "Sharpen", short: "Sharpen", group: "Sculpt" },
+  { id: "paint", label: "Paint ground", short: "Paint", group: "Sculpt" },
+  { id: "mountain", label: "Mountain ridge", short: "Mountain", group: "Landforms" },
+  { id: "valley", label: "Carve valley", short: "Valley", group: "Landforms" },
+  { id: "canyon", label: "Cut canyon", short: "Canyon", group: "Landforms" },
+  { id: "peninsula", label: "Reclaim coast", short: "Coast", group: "Landforms" },
+  { id: "pond", label: "Dig pond", short: "Pond", group: "Water" },
+  { id: "lake", label: "Carve lake", short: "Lake", group: "Water" },
+  { id: "river", label: "Draw river", short: "River", group: "Water" },
+  { id: "canal", label: "Draw canal", short: "Canal", group: "Water" },
+  { id: "bay", label: "Open bay", short: "Bay", group: "Water" },
+  { id: "spring", label: "Tap spring", short: "Spring", group: "Water" },
+  { id: "bridge", label: "Span crossing", short: "Bridge", group: "Crossings" },
+  { id: "erase", label: "Remove works", short: "Erase", group: "Crossings" },
+];
+
+export const DEFAULT_QUICK_SCULPT_TOOLS: QuickSculptToolId[] = [
+  "raise",
+  "lower",
+  "smooth",
+  "pond",
+  "river",
+  "paint",
+];
+export const MAX_QUICK_SCULPT_SLOTS = 8;
+export const MIN_QUICK_SCULPT_SLOTS = 2;
+const VALID_SCULPT_TOOL_SET = new Set<QuickSculptToolId>(QUICK_SCULPT_TOOL_META.map((t) => t.id));
+const VALID_MATERIALS = new Set<Material>(["grass", "sand", "clay", "rock", "wetland", "snow"]);
 
 export const SMART_FOCUS_META: { id: SmartBuildFocus; label: string; hint: string }[] = [
   { id: "balanced", label: "Balanced", hint: "Blends city needs, nearby tiles, game stage, and your habits." },
@@ -112,6 +204,18 @@ export const DEFAULT_EXACT_PARENT_ORDER: DecisionTreeParentId[] = QUICK_BUILD_TR
 
 const QUICK_MENU_PREFS_KEY = "pixel_civ_quick_menu_prefs_v1";
 
+export function createDefaultQuickSculptPrefs(): QuickSculptPrefs {
+  return {
+    tools: [...DEFAULT_QUICK_SCULPT_TOOLS],
+    voxelRadius: 3,
+    strength: 1,
+    paintMaterial: "sand",
+    tapBehavior: "stamp_and_brush",
+    orderMode: "fixed",
+    useCounts: {},
+  };
+}
+
 export function createDefaultQuickMenuPrefs(): QuickMenuPrefs {
   return {
     quickEdit: {
@@ -120,6 +224,7 @@ export function createDefaultQuickMenuPrefs(): QuickMenuPrefs {
       hiddenButtons: [],
       clickCounts: {},
     },
+    quickSculpt: createDefaultQuickSculptPrefs(),
     smartFocus: "balanced",
     openQuickEditAfterPlace: true,
     exactParentOrder: [...DEFAULT_EXACT_PARENT_ORDER],
@@ -188,12 +293,60 @@ export function sanitizeQuickMenuPrefs(raw: Partial<QuickMenuPrefs> | null | und
   const openQuickEditAfterPlace =
     typeof raw.openQuickEditAfterPlace === "boolean" ? raw.openQuickEditAfterPlace : true;
 
+  // Sanitize Quick Sculpt prefs
+  const rawSculpt = raw.quickSculpt;
+  const sculptTools: QuickSculptToolId[] = [];
+  if (Array.isArray(rawSculpt?.tools)) {
+    for (const tid of rawSculpt.tools) {
+      if (
+        VALID_SCULPT_TOOL_SET.has(tid as QuickSculptToolId) &&
+        !sculptTools.includes(tid as QuickSculptToolId) &&
+        sculptTools.length < MAX_QUICK_SCULPT_SLOTS
+      ) {
+        sculptTools.push(tid as QuickSculptToolId);
+      }
+    }
+  }
+  const finalSculptTools = sculptTools.length >= MIN_QUICK_SCULPT_SLOTS ? sculptTools : [...DEFAULT_QUICK_SCULPT_TOOLS];
+  const voxelRadius =
+    typeof rawSculpt?.voxelRadius === "number" && Number.isFinite(rawSculpt.voxelRadius)
+      ? Math.max(0, Math.min(32, Math.round(rawSculpt.voxelRadius)))
+      : 3;
+  const strength =
+    typeof rawSculpt?.strength === "number" && Number.isFinite(rawSculpt.strength)
+      ? Math.max(0.25, Math.min(2, Math.round(rawSculpt.strength * 4) / 4))
+      : 1;
+  const paintMaterial: Material =
+    rawSculpt?.paintMaterial && VALID_MATERIALS.has(rawSculpt.paintMaterial) ? rawSculpt.paintMaterial : "sand";
+  const tapBehavior: QuickSculptTapBehavior =
+    rawSculpt?.tapBehavior === "stamp_stay" || rawSculpt?.tapBehavior === "arm_brush"
+      ? rawSculpt.tapBehavior
+      : "stamp_and_brush";
+  const sculptOrderMode: QuickEditOrderMode = rawSculpt?.orderMode === "adaptive" ? "adaptive" : "fixed";
+  const sculptUseCounts: Record<string, number> = {};
+  if (rawSculpt?.useCounts && typeof rawSculpt.useCounts === "object") {
+    for (const [k, v] of Object.entries(rawSculpt.useCounts)) {
+      if (typeof v === "number" && Number.isFinite(v) && v > 0) {
+        sculptUseCounts[k] = Math.floor(v);
+      }
+    }
+  }
+
   return {
     quickEdit: {
       orderMode,
       buttonOrder,
       hiddenButtons,
       clickCounts,
+    },
+    quickSculpt: {
+      tools: finalSculptTools,
+      voxelRadius,
+      strength,
+      paintMaterial,
+      tapBehavior,
+      orderMode: sculptOrderMode,
+      useCounts: sculptUseCounts,
     },
     smartFocus,
     openQuickEditAfterPlace,
@@ -329,3 +482,60 @@ export function getOrderedDecisionTreeParents(order?: DecisionTreeParentId[]): D
   }
   return result;
 }
+
+export function toggleQuickSculptTool(prefs: QuickMenuPrefs, id: QuickSculptToolId): QuickMenuPrefs {
+  if (!VALID_SCULPT_TOOL_SET.has(id)) return prefs;
+  const cur = prefs.quickSculpt.tools;
+  if (cur.includes(id)) {
+    if (cur.length <= MIN_QUICK_SCULPT_SLOTS) return prefs;
+    return {
+      ...prefs,
+      quickSculpt: { ...prefs.quickSculpt, tools: cur.filter((x) => x !== id) },
+    };
+  }
+  if (cur.length >= MAX_QUICK_SCULPT_SLOTS) return prefs;
+  return {
+    ...prefs,
+    quickSculpt: { ...prefs.quickSculpt, tools: [...cur, id] },
+  };
+}
+
+export function moveQuickSculptTool(prefs: QuickMenuPrefs, id: QuickSculptToolId, delta: -1 | 1): QuickMenuPrefs {
+  const list = [...prefs.quickSculpt.tools];
+  const idx = list.indexOf(id);
+  const nextIdx = idx + delta;
+  if (idx < 0 || nextIdx < 0 || nextIdx >= list.length) return prefs;
+  const [item] = list.splice(idx, 1);
+  list.splice(nextIdx, 0, item);
+  return {
+    ...prefs,
+    quickSculpt: { ...prefs.quickSculpt, tools: list },
+  };
+}
+
+export function recordQuickSculptUse(prefs: QuickMenuPrefs, id: QuickSculptToolId): QuickMenuPrefs {
+  return {
+    ...prefs,
+    quickSculpt: {
+      ...prefs.quickSculpt,
+      useCounts: {
+        ...prefs.quickSculpt.useCounts,
+        [id]: (prefs.quickSculpt.useCounts[id] ?? 0) + 1,
+      },
+    },
+  };
+}
+
+export function resolveQuickSculptTools(prefs: QuickSculptPrefs): QuickSculptToolId[] {
+  const list = prefs.tools.length >= MIN_QUICK_SCULPT_SLOTS ? [...prefs.tools] : [...DEFAULT_QUICK_SCULPT_TOOLS];
+  if (prefs.orderMode !== "adaptive") return list;
+  const idxMap = new Map<string, number>();
+  list.forEach((id, i) => idxMap.set(id, i));
+  return list.sort((a, b) => {
+    const ca = prefs.useCounts[a] ?? 0;
+    const cb = prefs.useCounts[b] ?? 0;
+    if (ca !== cb) return cb - ca;
+    return (idxMap.get(a) ?? 99) - (idxMap.get(b) ?? 99);
+  });
+}
+

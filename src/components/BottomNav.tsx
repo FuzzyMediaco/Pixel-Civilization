@@ -1,41 +1,71 @@
 import React from "react";
-import { Hammer, Landmark, Layers, MoreHorizontal, TrainFront } from "lucide-react";
+import { Building2, Hammer, Layers, MoreHorizontal, Mountain } from "lucide-react";
 
-export type NavSheet = "build" | "layers" | "city" | "transit" | "more";
-export const NAV_ITEMS: {id: NavSheet; label: string; key: string; Icon: typeof Hammer}[] = [
-  {id: "build", label: "Build", key: "B", Icon: Hammer},
-  {id: "layers", label: "Layers", key: "L", Icon: Layers},
-  {id: "city", label: "City", key: "C", Icon: Landmark},
-  {id: "transit", label: "Transit", key: "T", Icon: TrainFront},
-  {id: "more", label: "More", key: "M", Icon: MoreHorizontal},
+export type NavSheet = "build" | "layers" | "city" | "sculpt" | "more";
+
+const ITEMS: { id: NavSheet; label: string; Icon: typeof Hammer; key: string; compact?: boolean }[] = [
+  { id: "build", label: "Build", Icon: Hammer, key: "B" },
+  { id: "layers", label: "Layers", Icon: Layers, key: "L" },
+  { id: "city", label: "City", Icon: Building2, key: "C" },
+  { id: "sculpt", label: "Sculpt", Icon: Mountain, key: "S" },
+  { id: "more", label: "More", Icon: MoreHorizontal, key: "M", compact: true },
 ];
 
-/** The five homes. Every feature lives in exactly one of them. */
 export function BottomNav({
   active,
   onToggle,
   badges,
   visibleIds,
   highlightId,
+  hiddenForRing,
 }: {
   active: NavSheet | null;
   onToggle: (id: NavSheet) => void;
   badges?: Partial<Record<NavSheet, number>>;
-  /** Optional progressive reveal filter during interactive tutorials. */
+  /** When set (e.g. during an interactive tutorial or Idle/Manager mode), only these buttons are shown. */
   visibleIds?: NavSheet[];
-  /** Optional spotlighted menu tab during interactive tutorials. */
+  /** Optional button to softly pulse as the next interactive tutorial step. */
   highlightId?: NavSheet;
+  /** Coordinated hide during Quick Menu spiral choreography. */
+  hiddenForRing?: boolean;
 }) {
-  const items = visibleIds
-    ? NAV_ITEMS.filter((item) => visibleIds.includes(item.id))
-    : NAV_ITEMS;
-
-  return <nav className={"ui-nav" + (visibleIds ? " is-tutorial" : "")} aria-label="Main">
-    {items.map(({id, label, key, Icon}) => <button key={id} type="button" data-panel-toggle={id} aria-pressed={active === id}
-      className={highlightId === id ? "is-tut-spotlight" : undefined}
-      aria-controls={"sheet-" + id} aria-keyshortcuts={key} title={label + " (" + key + ")"} onClick={() => onToggle(id)}>
-      <Icon size={18} aria-hidden="true"/><span>{label}</span>
-      {badges?.[id] ? <span className="ui-nav-badge" aria-label={badges[id] + " issues"}>{badges[id]}</span> : null}
-    </button>)}
-  </nav>;
+  const shown = visibleIds ? ITEMS.filter((item) => visibleIds.includes(item.id)) : ITEMS;
+  return (
+    <nav
+      className={
+        "ui-nav" +
+        (visibleIds && shown.length < ITEMS.length ? " is-tutorial" : "") +
+        (hiddenForRing ? " is-chrome-hidden" : "")
+      }
+      aria-label="Main navigation"
+      aria-hidden={hiddenForRing || undefined}
+      // @ts-expect-error inert prevents tabbing/clicking while smoothly faded away for spiral ring
+      inert={hiddenForRing ? "" : undefined}
+    >
+      {shown.map(({ id, label, Icon, key, compact }) => {
+        const badge = badges?.[id] ?? 0;
+        const on = active === id;
+        const hi = highlightId === id && !on;
+        return (
+          <button
+            key={id}
+            type="button"
+            className={(compact ? "ui-nav-more" : "") + (hi ? " is-tut-spotlight" : "")}
+            aria-pressed={on}
+            aria-label={label + (badge ? ", " + badge + " alerts" : "") + " (" + key + ")"}
+            title={label + " (" + key + ")"}
+            onClick={() => onToggle(id)}
+          >
+            <Icon size={compact ? 19 : 18} aria-hidden="true" />
+            {!compact && <span>{label}</span>}
+            {badge > 0 && (
+              <span className="ui-nav-badge" aria-hidden="true">
+                {badge > 9 ? "9+" : badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </nav>
+  );
 }

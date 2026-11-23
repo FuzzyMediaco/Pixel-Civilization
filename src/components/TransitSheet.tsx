@@ -7,22 +7,7 @@ import { RAIL_SITES } from "./InspectorSheet";
 import { MobilityPanel } from "./MobilityPanel";
 import { BottomSheet, ListRow, type SheetHeight } from "./ui";
 
-/** Lines, vehicles, harbor and rail yards. Rail Operations opens from here (or from a depot's inspector). */
-export function TransitSheet({
-  state,
-  mutate,
-  selected,
-  onFocus,
-  onPickDestination,
-  onFollow,
-  following,
-  focusLine,
-  onGrid,
-  onRailOps,
-  height,
-  onHeight,
-  onClose,
-}: {
+export interface TransitContentProps {
   state: GameState;
   mutate: (fn: (s: GameState) => void) => void;
   selected?: PlacedElement;
@@ -33,22 +18,55 @@ export function TransitSheet({
   focusLine?: string;
   onGrid: (x: number, z: number, line: string) => void;
   onRailOps: (id: string) => void;
-  height: SheetHeight;
-  onHeight: (h: SheetHeight) => void;
-  onClose: () => void;
-}) {
+}
+
+/**
+ * Transit view rendered inside City → Transit (single sheet, single scroll owner).
+ * Leads with active services, transit share/congestion health, Rail Ops yards, and MobilityPanel.
+ */
+export function TransitContent({
+  state,
+  mutate,
+  selected,
+  onFocus,
+  onPickDestination,
+  onFollow,
+  following,
+  focusLine,
+  onGrid,
+  onRailOps,
+}: TransitContentProps) {
   const yards = state.elements.filter((e) => RAIL_SITES.includes(e.defId) && e.defId !== "train_stops");
-  const count = new Set(state.mobility?.lines.map(lineKey)).size;
+  const lines = state.mobility?.lines ?? [];
+  const lineCount = new Set(lines.map(lineKey)).size;
+  const share = Math.round(state.metrics.transitShare ?? 0);
+  const congestion = Math.round(state.metrics.congestion ?? 0);
+  const obstructed = lines.filter((l) => l.status !== "running").length;
+
   return (
-    <BottomSheet
-      id="sheet-transit"
-      title="Transit"
-      subtitle={count + (count === 1 ? " line · " : " lines · ") + (state.metrics.transitShare ?? 0) + "% transit"}
-      height={height}
-      onHeightChange={onHeight}
-      onClose={onClose}
-      closeLabel="Close Transit"
-    >
+    <div className="ui-city-section">
+      <div className="ui-kpi-strip" role="group" aria-label="Transit summary">
+        <div className="ui-kpi-card">
+          <span className="ui-kpi-label">Active lines</span>
+          <strong className="ui-kpi-val">{lineCount}</strong>
+          <small className={"ui-kpi-sub" + (obstructed > 0 ? " is-bad" : "")}>
+            {obstructed > 0 ? `${obstructed} needs attention` : lineCount > 0 ? "All running" : "Add a depot or dock"}
+          </small>
+        </div>
+        <div className="ui-kpi-card">
+          <span className="ui-kpi-label">Transit share</span>
+          <strong className="ui-kpi-val">{share}%</strong>
+          <small className="ui-kpi-sub">of commutes</small>
+        </div>
+        <div className="ui-kpi-card">
+          <span className="ui-kpi-label">Road load</span>
+          <strong className={"ui-kpi-val" + (congestion > 100 ? " is-bad" : congestion > 75 ? " is-warn" : "")}>
+            {congestion}%
+          </strong>
+          <small className="ui-kpi-sub">{congestion > 100 ? "Congested" : "Flowing"}</small>
+        </div>
+      </div>
+
       {yards.length > 0 && (
         <div className="ui-list" style={{ marginBottom: 6 }}>
           {yards.slice(0, 3).map((y) => (
@@ -63,6 +81,7 @@ export function TransitSheet({
           ))}
         </div>
       )}
+
       <MobilityPanel
         state={state}
         mutate={mutate}
@@ -75,6 +94,33 @@ export function TransitSheet({
         onGrid={onGrid}
         onRailOps={onRailOps}
       />
+    </div>
+  );
+}
+
+/** Backwards-compatible standalone wrapper if needed. */
+export function TransitSheet({
+  height,
+  onHeight,
+  onClose,
+  ...props
+}: TransitContentProps & {
+  height: SheetHeight;
+  onHeight: (h: SheetHeight) => void;
+  onClose: () => void;
+}) {
+  const count = new Set(props.state.mobility?.lines.map(lineKey)).size;
+  return (
+    <BottomSheet
+      id="sheet-transit"
+      title="Transit"
+      subtitle={count + (count === 1 ? " line · " : " lines · ") + (props.state.metrics.transitShare ?? 0) + "% transit"}
+      height={height}
+      onHeightChange={onHeight}
+      onClose={onClose}
+      closeLabel="Close Transit"
+    >
+      <TransitContent {...props} />
     </BottomSheet>
   );
 }

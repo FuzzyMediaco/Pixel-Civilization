@@ -13,6 +13,7 @@ import {
   Hammer,
   ListChecks,
   Moon,
+  Mountain,
   Pause,
   Play,
   RefreshCw,
@@ -68,6 +69,8 @@ export function DrawerActionIcon({ id, speed = 1, size = 14 }: { id: QuickDrawer
       return <Zap size={size} aria-hidden="true" />;
     case "mode_exact":
       return <GitBranch size={size} aria-hidden="true" />;
+    case "mode_sculpt":
+      return <Mountain size={size} aria-hidden="true" />;
     case "sim_speed":
       return speed === 0 ? (
         <Pause size={size} aria-hidden="true" />
@@ -139,6 +142,7 @@ export function Hud({
   onToggleQuickDrawer,
   onPickDrawerItem,
   onCustomizeQuickDrawer,
+  hiddenForRing,
 }: {
   state: GameState;
   speed: number;
@@ -151,6 +155,7 @@ export function Hud({
   onToggleQuickDrawer: () => void;
   onPickDrawerItem: (item: QuickDrawerItem) => void;
   onCustomizeQuickDrawer?: () => void;
+  hiddenForRing?: boolean;
 }) {
   const m = state.metrics;
   const limit = growthLimit(state);
@@ -160,7 +165,13 @@ export function Hud({
   const happyTone = state.happiness < 55 ? " is-bad" : state.happiness < 70 ? " is-warn" : "";
 
   return (
-    <header className="ui-hud" aria-label="City status">
+    <header
+      className={"ui-hud" + (hiddenForRing ? " is-chrome-hidden" : "")}
+      aria-label="City status"
+      aria-hidden={hiddenForRing || undefined}
+      // @ts-expect-error inert prevents focus/hit-test during coordinated ring fade-out
+      inert={hiddenForRing ? "" : undefined}
+    >
       <div className="ui-hud-stats">
         <button
           type="button"

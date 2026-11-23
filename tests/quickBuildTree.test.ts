@@ -8,14 +8,20 @@ import {
   getDecisionTreeLeafElements,
 } from "../src/game/quickBuildTree";
 import {
+  MAX_QUICK_SCULPT_SLOTS,
+  MIN_QUICK_SCULPT_SLOTS,
   createDefaultQuickMenuPrefs,
   getOrderedDecisionTreeParents,
   moveExactParent,
   moveQuickEditButton,
+  moveQuickSculptTool,
   recordQuickEditClick,
+  recordQuickSculptUse,
   resolveQuickEditActions,
+  resolveQuickSculptTools,
   sanitizeQuickMenuPrefs,
   toggleQuickEditButton,
+  toggleQuickSculptTool,
 } from "../src/game/quickMenuPrefs";
 import { GRID_MAX, GRID_MIN, createInitialGameState, getTileTerrainKind } from "../src/game/simulation";
 
@@ -61,9 +67,9 @@ test("Exact Build leaf evaluation accurately reflects land vs water placeability
   }
   assert.ok(landPt && waterPt, "Initial island should have both land and deep water tiles");
 
-  // Starter homes on land in God Mode: all 5 placeable and free
+  // Starter homes on land in God Mode: all 6 placeable and free
   const homes = getDecisionTreeLeafElements(godState, "homes_retail", "hr_starter_homes", landPt[0], landPt[1]);
-  assert.equal(homes.length, 5);
+  assert.equal(homes.length, 6);
   assert.ok(homes.every((h) => h.canPlace && h.canAfford && h.cost === 0));
 
   // Same land-only homes on deep open water: marked unplaceable
@@ -72,7 +78,7 @@ test("Exact Build leaf evaluation accurately reflects land vs water placeability
 
   // Warships on open water in God Mode: placeable
   const warshipsOnWater = getDecisionTreeLeafElements(godState, "roads_harbor", "tr_warships", waterPt[0], waterPt[1]);
-  assert.equal(warshipsOnWater.length, 5);
+  assert.equal(warshipsOnWater.length, 6);
   assert.ok(warshipsOnWater.some((w) => w.canPlace));
 
   // Stage-1 Real mode locks late-stage skyscrapers while keeping starter houses unlocked
@@ -146,3 +152,34 @@ test("Exact Build branch reordering preserves all 7 branches without breaking tr
   assert.equal(recovered.exactParentOrder.length, 7);
   assert.equal(recovered.exactParentOrder[0], "police_military");
 });
+
+test("Quick Sculpt customization enforces slot bounds, supports reordering, and adapts to clicks", () => {
+  let prefs = createDefaultQuickMenuPrefs();
+  assert.equal(prefs.quickSculpt.tools.length, 6);
+
+  // Add up to MAX_QUICK_SCULPT_SLOTS (8)
+  prefs = toggleQuickSculptTool(prefs, "mountain");
+  prefs = toggleQuickSculptTool(prefs, "lake");
+  assert.equal(prefs.quickSculpt.tools.length, MAX_QUICK_SCULPT_SLOTS);
+  // Adding a 9th is safely ignored
+  prefs = toggleQuickSculptTool(prefs, "canyon");
+  assert.equal(prefs.quickSculpt.tools.length, MAX_QUICK_SCULPT_SLOTS);
+
+  // Move 'mountain' up one slot
+  const idxBefore = prefs.quickSculpt.tools.indexOf("mountain");
+  prefs = moveQuickSculptTool(prefs, "mountain", -1);
+  assert.equal(prefs.quickSculpt.tools.indexOf("mountain"), idxBefore - 1);
+
+  // Adaptive mode bubbles most-used sculpt tool to slot 0
+  prefs = { ...prefs, quickSculpt: { ...prefs.quickSculpt, orderMode: "adaptive" } };
+  for (let i = 0; i < 4; i++) prefs = recordQuickSculptUse(prefs, "lake");
+  const resolved = resolveQuickSculptTools(prefs.quickSculpt);
+  assert.equal(resolved[0], "lake");
+
+  // Minimum slot guard preserves at least MIN_QUICK_SCULPT_SLOTS tools
+  for (const id of [...prefs.quickSculpt.tools]) {
+    prefs = toggleQuickSculptTool(prefs, id);
+  }
+  assert.equal(prefs.quickSculpt.tools.length, MIN_QUICK_SCULPT_SLOTS);
+});
+

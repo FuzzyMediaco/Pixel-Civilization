@@ -1,13 +1,13 @@
 /**
- * 7 × 7 × (4–6) Decision Tree for the Quick-Build Spiral Menu.
+ * 7 × 7 × 6 Decision Tree for the Exact Build Spiral Menu (294 elements total).
  *
- * Partitions every single catalog element (~270 elements) into:
- *   7 Parent Categories  →  7 Subcategories each (49 leaves)  →  4–6 Placeable Elements each
+ * Partitions every single catalog element (294 elements) evenly into:
+ *   7 Parent Categories  →  7 Subcategories each (49 leaves)  →  6 Placeable Elements each
  *
  * Allows any element in the entire game to be placed on any tile in 4 taps:
  *   1. Tap empty tile  →  7 Parent Categories spiral out
  *   2. Tap parent      →  7 Subcategories spiral out
- *   3. Tap subcategory →  4–6 Elements spiral out
+ *   3. Tap subcategory →  6 Elements spiral out
  *   4. Tap element     →  Element builds immediately, then the standard SelectionRing opens
  */
 import {
@@ -23,7 +23,7 @@ import {
   type GameState,
 } from "./simulation";
 
-export type QuickBuildMode = "adaptive" | "instant" | "tree";
+export type QuickBuildMode = "adaptive" | "instant" | "tree" | "sculpt";
 
 const QUICK_BUILD_MODE_KEY = "pixel_civ_quick_build_mode_v1";
 
@@ -31,7 +31,7 @@ export function loadQuickBuildMode(): QuickBuildMode {
   try {
     if (typeof localStorage === "undefined") return "adaptive";
     const raw = localStorage.getItem(QUICK_BUILD_MODE_KEY);
-    if (raw === "tree" || raw === "instant") return raw;
+    if (raw === "tree" || raw === "instant" || raw === "sculpt") return raw;
     return "adaptive";
   } catch {
     return "adaptive";
@@ -90,19 +90,19 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
         id: "hr_starter_homes",
         label: "Houses & Cottages",
         iconDefId: "cottages",
-        elementIds: ["house", "tiny_homes", "trailer_home", "cottages", "medium_sized_homes"],
+        elementIds: ["house", "tiny_homes", "trailer_home", "cottages", "rowhouse_duplex", "medium_sized_homes"],
       },
       {
         id: "hr_villas",
         label: "Townhomes & Villas",
         iconDefId: "villas",
-        elementIds: ["townhomes", "large_homes", "beach_houses", "villas", "mansions"],
+        elementIds: ["townhomes", "large_homes", "beach_houses", "villas", "courtyard_villa", "mansions"],
       },
       {
         id: "hr_towers",
         label: "Apartments & Towers",
         iconDefId: "skyscrapers",
-        elementIds: ["apartments", "apartment_buildings", "condos", "skyscrapers"],
+        elementIds: ["apartments", "apartment_buildings", "mixed_use_midrise", "condos", "penthouse_tower", "skyscrapers"],
       },
       {
         id: "hr_dining",
@@ -183,9 +183,9 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
       },
       {
         id: "tr_rail",
-        label: "Rail & Taxi",
+        label: "Rail, Tram & Taxi",
         iconDefId: "train_depots",
-        elementIds: ["train_tracks", "train_stops", "train_depots", "taxi_ranks", "taxi_depots"],
+        elementIds: ["train_tracks", "train_stops", "tram_station", "train_depots", "taxi_ranks", "taxi_depots"],
       },
       {
         id: "tr_ports",
@@ -202,15 +202,15 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
       },
       {
         id: "tr_boats",
-        label: "Boats & Patrol",
+        label: "Boats, Tugs & Patrol",
         iconDefId: "sail_boats",
-        elementIds: ["boats", "sail_boats", "speed_boats", "naval_patrol_cutter", "naval_hospital_ship"],
+        elementIds: ["boats", "sail_boats", "speed_boats", "harbor_tugboat", "naval_patrol_cutter", "naval_hospital_ship"],
       },
       {
         id: "tr_warships",
         label: "Naval Warships",
         iconDefId: "aircraft_carriers",
-        elementIds: ["naval_vessels", "submarines", "aircraft_carriers", "naval_frigate_ship", "naval_minesweeper"],
+        elementIds: ["naval_vessels", "coastal_corvette", "submarines", "aircraft_carriers", "naval_frigate_ship", "naval_minesweeper"],
       },
     ],
   },
@@ -257,9 +257,9 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
       },
       {
         id: "fn_landforms",
-        label: "Hills, Canyons & Wilds",
+        label: "Hills, Canyons & Overlooks",
         iconDefId: "mountains",
-        elementIds: ["hills", "mountains", "canyons", "deserts", "alligators"],
+        elementIds: ["hills", "mountains", "canyons", "deserts", "shoreline_overlook", "alligators"],
       },
     ],
   },
@@ -270,9 +270,9 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
     subcategories: [
       {
         id: "pw_clean_power",
-        label: "Solar & Wind Power",
+        label: "Solar, Wind & Tidal",
         iconDefId: "wind_turbines",
-        elementIds: ["solar_panels", "solar_farms", "windmills", "wind_turbines", "wind_farms"],
+        elementIds: ["solar_panels", "solar_farms", "windmills", "wind_turbines", "wind_farms", "tidal_turbine_array"],
       },
       {
         id: "pw_heavy_power",
@@ -289,16 +289,24 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
       },
       {
         id: "pw_waste_factory",
-        label: "Factories & Waste",
+        label: "Factories & Recycling",
         iconDefId: "factories",
-        elementIds: ["factories", "landfill", "trash_compacting_plants", "trash_burning_plants"],
+        elementIds: [
+          "factories",
+          "landfill",
+          "recycling_center",
+          "compost_works",
+          "trash_compacting_plants",
+          "trash_burning_plants",
+        ],
       },
       {
         id: "pw_water_supply",
-        label: "Wells, Towers & Pumps",
+        label: "Springs, Towers & Pumps",
         iconDefId: "water_towers",
         elementIds: [
           "wells",
+          "spring_house",
           "water_towers",
           "water_pumping_station",
           "water_treatment_plant",
@@ -307,15 +315,15 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
       },
       {
         id: "pw_waterworks",
-        label: "Canals & Reservoirs",
+        label: "Canals, Sluices & Basins",
         iconDefId: "aqueduct",
-        elementIds: ["water_places", "canals", "municipal_reservoir", "aqueduct", "water_tile"],
+        elementIds: ["water_places", "canals", "tidal_sluice", "municipal_reservoir", "aqueduct", "water_tile"],
       },
       {
         id: "pw_waterways",
-        label: "Rivers, Lakes & Swamps",
+        label: "Rivers, Lakes & Tide Pools",
         iconDefId: "rivers",
-        elementIds: ["ponds", "rivers", "wide_rivers", "lakes", "swamps"],
+        elementIds: ["ponds", "rivers", "wide_rivers", "lakes", "swamps", "tidal_pool_walk"],
       },
       {
         id: "pw_finance_tech",
@@ -332,9 +340,9 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
     subcategories: [
       {
         id: "cf_schools_early",
-        label: "Primary Schools",
+        label: "Primary Schools & Library",
         iconDefId: "school",
-        elementIds: ["school", "preschool", "country_schoolhouse", "elementary_school", "middle_school"],
+        elementIds: ["school", "preschool", "country_schoolhouse", "elementary_school", "middle_school", "public_library"],
       },
       {
         id: "cf_colleges",
@@ -376,15 +384,15 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
       },
       {
         id: "cf_churches",
-        label: "Churches & Chapels",
+        label: "Churches, Chapels & Abbeys",
         iconDefId: "churches",
-        elementIds: ["churches", "christian_churches", "monasteries", "graveyards"],
+        elementIds: ["churches", "christian_churches", "bell_tower_chapel", "monasteries", "stone_abbey", "graveyards"],
       },
       {
         id: "cf_sanctuaries",
         label: "Global Sanctuaries",
         iconDefId: "lds_temples",
-        elementIds: ["mosques", "synagogues", "temples", "lds_temples"],
+        elementIds: ["mosques", "synagogues", "temples", "zen_shrine", "meditation_pavilion", "lds_temples"],
       },
     ],
   },
@@ -494,13 +502,13 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
         id: "lm_heritage",
         label: "World Heritage",
         iconDefId: "eiffel_tower",
-        elementIds: ["great_wall", "angkor_wat", "machu_picchu", "eiffel_tower", "the_london_eye"],
+        elementIds: ["great_wall", "angkor_wat", "machu_picchu", "colossus_lighthouse", "eiffel_tower", "the_london_eye"],
       },
       {
         id: "lm_monuments",
         label: "Capitol & Monuments",
         iconDefId: "white_house",
-        elementIds: ["large_landmarks", "washington_monument", "white_house", "smithsonian"],
+        elementIds: ["large_landmarks", "washington_monument", "white_house", "smithsonian", "civic_observatory", "maritime_museum"],
       },
       {
         id: "lm_trade_works",
@@ -530,9 +538,9 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
       },
       {
         id: "lm_transit_mega",
-        label: "Mega Transit & Air",
+        label: "Mega Transit & Slipways",
         iconDefId: "spaceport",
-        elementIds: ["regional_airport", "canal_boat_lift", "flying_car_depot", "teleportation_depot", "spaceport"],
+        elementIds: ["regional_airport", "canal_boat_lift", "boatyard_slipway", "flying_car_depot", "teleportation_depot", "spaceport"],
       },
       {
         id: "lm_arcologies",
@@ -544,6 +552,7 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
           "rainwater_cathedral",
           "skybridge_university",
           "ocean_habitat_ring",
+          "solar_spire_arcology",
         ],
       },
     ],

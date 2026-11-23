@@ -1,9 +1,10 @@
 import { economyOf, transfer, type SiteAccount } from "./cityEconomy";
 import { ELEMENT_BY_ID } from "./catalog";
 import { ensureInfrastructure, markInfrastructureChanged, type TerrainCell, type Crossing, type Conduit, type StreetControl } from "./terrain";
+import type { VoxelTilePatch } from "./voxelTerrain";
 import { recomputeConnectivityAndMetrics, type GameState, type PlacedElement } from "./simulation";
 
-type GroundLayers = {cells:TerrainCell; spans:Crossing; conduits:Conduit; streets:StreetControl};
+type GroundLayers = {cells:TerrainCell; voxels:VoxelTilePatch; spans:Crossing; conduits:Conduit; streets:StreetControl};
 type GroundKey = keyof GroundLayers;
 interface GroundEdit {key:string; layer:GroundKey; before?:GroundLayers[GroundKey]; after?:GroundLayers[GroundKey]}
 interface SiteEdit {id:string; before?:PlacedElement; after?:PlacedElement; previousAccount?:SiteAccount; workAfter?:number}
@@ -15,7 +16,7 @@ export interface BuildingEdit {
   routes:string;
   refund:number;
 }
-const layers:GroundKey[]=["cells","spans","conduits","streets"];
+const layers:GroundKey[]=["cells","voxels","spans","conduits","streets"];
 const authored = ["defId","gx","gz","spanX","spanZ","rotation","level","variant","edgeOverrides","exteriorLighting",
   "overWater","waterUnderlay","sculptsTerrain","roadAxis","crossingAxis","pedestrianDeck","awaitingStreet"] as const;
 
@@ -26,7 +27,7 @@ function footprint(e:PlacedElement, keys:Set<string>) {
   for(let x=e.gx;x<e.gx+e.spanX;x++) for(let z=e.gz;z<e.gz+e.spanZ;z++) keys.add(x+","+z);
 }
 function groundAt(state:GameState,layer:GroundKey,key:string) {
-  return state.infrastructure?.[layer][key];
+  return state.infrastructure?.[layer]?.[key];
 }
 function physicalValue(value:GroundLayers[GroundKey] | undefined) {
   if(value && "requestedAt" in value) {
@@ -142,7 +143,8 @@ export function undoBuildingEdit(state:GameState): {ok:boolean; reason?:string; 
   if(edit.ground.length) {
     const inf=ensureInfrastructure(state);
     for(const g of edit.ground) {
-      const records:Record<string,GroundLayers[GroundKey]>=inf[g.layer];
+      if(g.layer==="voxels" && !inf.voxels) inf.voxels={};
+      const records:Record<string,GroundLayers[GroundKey]>=inf[g.layer]!;
       if(g.before===undefined) delete records[g.key];
       else records[g.key]=structuredClone(g.before);
     }

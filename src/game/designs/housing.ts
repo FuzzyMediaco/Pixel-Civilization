@@ -2098,11 +2098,12 @@ function stiltHouse(c: Ctx, x0: number, z0: number, x1: number, z1: number, fy: 
   const fh = 5;
   const wallTop = fy + 1 + floors * fh;
   const cx = Math.floor((x0 + x1) / 2);
+  const postBase = c.worldSculpted ? -2 : 1;
   // stilts
   for (let x = x0; x < x1; x += 4) {
-    for (const z of [z0, z1 - 1]) v.box(x, 1, z, x + 1, fy, z + 1, st === 3 ? "woodDark" : "wood");
+    for (const z of [z0, z1 - 1]) v.box(x, postBase, z, x + 1, fy, z + 1, st === 3 ? "woodDark" : "wood");
   }
-  for (const z of [z0, z1 - 1]) v.box(x1 - 1, 1, z, x1, fy, z + 1, st === 3 ? "woodDark" : "wood");
+  for (const z of [z0, z1 - 1]) v.box(x1 - 1, postBase, z, x1, fy, z + 1, st === 3 ? "woodDark" : "wood");
   // platform & deck
   const dz1 = deck ? z1 + 4 : z1 + 1;
   const dx1 = deck ? x1 + 3 : x1;
@@ -2110,7 +2111,7 @@ function stiltHouse(c: Ctx, x0: number, z0: number, x1: number, z1: number, fy: 
   if (deck) {
     for (let x = x0 - 2; x < dx1; x++) v.put(x, fy + 1, dz1 - 1, (x & 1) ? (st === 2 ? "glass" : "white") : (st === 2 ? "glass" : "woodLight"), st === 2 ? 0.1 : 0);
     for (let z = z0; z < dz1; z++) v.put(dx1 - 1, fy + 1, z, (z & 1) ? "white" : "woodLight");
-    for (const [px, pz] of [[x0 - 2, dz1 - 1], [dx1 - 1, dz1 - 1]]) v.box(px, 1, pz, px + 1, fy, pz + 1, "wood");
+    for (const [px, pz] of [[x0 - 2, dz1 - 1], [dx1 - 1, dz1 - 1]]) v.box(px, postBase, pz, px + 1, fy, pz + 1, "wood");
   }
   // stairs down to the sand on the front-left
   for (let k = 0; k < fy - 1; k++) v.box(x0 - (deck ? 2 : 0) + 1 + 0, fy - 1 - k, dz1 + k, x0 - (deck ? 2 : 0) + 3, fy - k, dz1 + k + 1, "woodLight");
@@ -2172,15 +2173,18 @@ function stiltHouse(c: Ctx, x0: number, z0: number, x1: number, z1: number, fy: 
 function buildBeachHouse(c: Ctx): void {
   const { v, lv, hx, hz } = c;
   const s = c.variant;
-  lot(c, "sand");
-  speckle(c, "sandDark", 0.1);
+  const postBase = c.worldSculpted ? -2 : 0;
   const big = hz > 8;
-  // Natural wet tide flat at the front edge of the dune (no painted fake ocean slab)
+  // Natural wet tide flat at the front edge of the dune (Atlas diorama only — in-world sits directly on sculpted shoreline)
   const shore = big ? 2 : hz - 3;
-  if (lv >= 3 || big) {
-    v.box(-hx, 0, shore, hx, 1, hz, "sandDark");
-    for (let x = -hx; x < hx; x += 2) {
-      if ((x * 7) % 3 === 0) v.put(x, 0, shore + 1, "sand");
+  if (!c.worldSculpted) {
+    lot(c, "sand");
+    speckle(c, "sandDark", 0.1);
+    if (lv >= 3 || big) {
+      v.box(-hx, 0, shore, hx, 1, hz, "sandDark");
+      for (let x = -hx; x < hx; x += 2) {
+        if ((x * 7) % 3 === 0) v.put(x, 0, shore + 1, "sand");
+      }
     }
   }
   const w = big || hx > 8 ? 16 : 11;
@@ -2213,7 +2217,13 @@ function buildBeachHouse(c: Ctx): void {
     // boardwalk over the dunes to the beach apron, hammock between palms
     const bx = x0 + 1;
     v.box(bx, 1, z1 + 4, bx + 3, 2, hz, "woodLight");
-    for (let z = z1 + 4; z < hz; z += 3) v.box(bx, 1, z, bx + 3, 2, z + 1, "wood");
+    for (let z = z1 + 4; z < hz; z += 3) {
+      v.box(bx, 1, z, bx + 3, 2, z + 1, "wood");
+      if (c.worldSculpted) {
+        v.box(bx, postBase, z, bx + 1, 1, z + 1, "woodDark");
+        v.box(bx + 2, postBase, z, bx + 3, 1, z + 1, "woodDark");
+      }
+    }
     for (let z = z1 + 5; z < shore - 1; z += 2) v.put(bx + 4, 1, z, "#c7c48a");
     const p1 = hx - 3;
     tree(v, p1, 1, z0 + 1, "palm", 1.3, 1);
@@ -2225,8 +2235,8 @@ function buildBeachHouse(c: Ctx): void {
     const dx = 4;
     v.box(dx, 1, shore - 2, dx + 4, 2, hz - 1, "wood");
     for (let z = shore; z < hz; z += 4) {
-      v.box(dx - 1, 0, z, dx, 3, z + 1, "woodDark");
-      v.box(dx + 4, 0, z, dx + 5, 3, z + 1, "woodDark");
+      v.box(dx - 1, postBase, z, dx, 3, z + 1, "woodDark");
+      v.box(dx + 4, postBase, z, dx + 5, 3, z + 1, "woodDark");
     }
     // sailboat resting on beach cradle beside the jetty
     const sx = dx + 8;
@@ -2257,7 +2267,7 @@ function buildBeachHouse(c: Ctx): void {
     if (big) {
       const gx = hx - 8;
       const gz = shore - 4;
-      for (const [ddx, ddz] of [[0, 0], [3, 0], [0, 3], [3, 3]]) v.box(gx + ddx, 1, gz + ddz, gx + ddx + 1, 6, gz + ddz + 1, "white");
+      for (const [ddx, ddz] of [[0, 0], [3, 0], [0, 3], [3, 3]]) v.box(gx + ddx, postBase, gz + ddz, gx + ddx + 1, 6, gz + ddz + 1, "white");
       v.box(gx - 1, 6, gz - 1, gx + 5, 7, gz + 5, "white");
       v.box(gx, 7, gz, gx + 4, 10, gz + 4, "red");
       v.box(gx - 1, 10, gz - 1, gx + 5, 11, gz + 5, "white");

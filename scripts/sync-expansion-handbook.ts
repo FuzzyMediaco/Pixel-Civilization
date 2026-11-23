@@ -17,6 +17,7 @@ import {
 } from "../src/game/catalog";
 import { DESIGNS } from "../src/game/designs/registry";
 import { NEW_EXPANSION_BY_ID, NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS } from "../src/game/expansionSafetyMilitaryCommerce";
+import { BALANCED_EXPANSION_BY_ID, BALANCED_EXPANSION_ELEMENTS } from "../src/game/expansionBalancedCatalog";
 import { getGuidePartner } from "../src/game/connectionPreview";
 import { getGuideUsage } from "../src/game/guideUsage";
 import { buildDesignVoxels } from "../src/game/voxelArchitect";
@@ -198,9 +199,16 @@ const sTop = Math.round(top * sheetScale);
 const sCell = Math.round(cell * sheetScale);
 const sGap = Math.round(gap * sheetScale);
 
+const TARGET_ELEMENTS = [
+  ...BALANCED_EXPANSION_ELEMENTS,
+  ELEMENT_BY_ID["spaceport"],
+].filter(Boolean);
+
 let rendered = 0;
-for (const def of NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS) {
-  designStyles[def.id] = [...def.styleNames];
+for (const def of TARGET_ELEMENTS) {
+  if ("styleNames" in def && Array.isArray((def as any).styleNames)) {
+    designStyles[def.id] = [...(def as any).styleNames];
+  }
 
   const maxLv = getMaxElementLevel(def.id);
   const modelRows = Array.from({ length: 4 }, (_, style) =>
@@ -246,7 +254,7 @@ for (const def of NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS) {
 // Rebuild catalog.json in exact ELEMENTS order, preserving every existing entry verbatim
 const finalCatalog = ELEMENTS.map((def) => {
   const prev = existingById.get(def.id);
-  if (prev && !NEW_EXPANSION_BY_ID[def.id]) return prev;
+  if (prev && !NEW_EXPANSION_BY_ID[def.id] && !BALANCED_EXPANSION_BY_ID[def.id]) return prev;
   const design = DESIGNS[def.id];
   const max = getMaxElementLevel(def.id);
   const partnerId = getGuidePartner(def.id);

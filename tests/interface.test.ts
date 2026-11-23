@@ -23,4 +23,13 @@ test("engineering forms expose the measurements and actions that apply to the ch
   assert.match(panel({kind:"canyon",height:3}),/aria-label="Cut depth \(m\)"[^>]+value="6"/);
   assert.match(panel({kind:"river",flow:4}),/aria-label="Source flow"[^>]+value="4"/);
   assert.match(panel({kind:"river",flow:4}),/aria-label="Brush width"/);
+  assert.match(bridge,/class="ui-works-panel"/);
+  assert.doesNotMatch(bridge,/\bfixed\b/);
+
+  const raise = panel({kind:"raise", precision:"voxel", voxelRadius:3});
+  assert.match(raise, /0\.25m vox/);
+  assert.match(raise, /aria-label="Brush width"/);
+  assert.doesNotMatch(raise, /4m Tile/);
+  assert.doesNotMatch(raise, /Single tile/);
 });
+

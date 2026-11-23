@@ -43,6 +43,8 @@ import { relatedLessons } from "../handbook/relatedLessons";
 import { AtlasModel } from "./AtlasModel";
 import type { BuildCategory } from "./BuildSheet";
 import { CategoryFavicon } from "./CategoryFavicon";
+import { ElementFavicon } from "./ElementFavicon";
+import { BALANCED_EXPANSION_BY_ID, BALANCED_EXPANSION_ELEMENTS } from "../game/expansionBalancedCatalog";
 
 export type AtlasTab = "atlas" | "chapters" | "islands";
 
@@ -108,9 +110,58 @@ const DOMAINS: Record<string, string> = {
   any: "Any",
 };
 
+const CATEGORY_NAME_BY_ID = new Map<string, string>(
+  catalog.map((entry) => [entry.category, entry.categoryName]),
+);
+const EXISTING_CATALOG_IDS = new Set(catalog.map((entry) => entry.id));
+
+type CatalogEntry = (typeof catalog)[number];
+
+const EXPANSION_CATALOG_ENTRIES: CatalogEntry[] = BALANCED_EXPANSION_ELEMENTS.filter(
+  (el) => !EXISTING_CATALOG_IDS.has(el.id),
+).map((el) => {
+  const stats: Record<string, number> = {};
+  if (el.popBase) stats.population = el.popBase;
+  if (el.jobs) stats.jobs = el.jobs;
+  if (el.power) stats.power = el.power;
+  if (el.water) stats.water = el.water;
+  if (el.waste) stats.waste = el.waste;
+  if (el.food) stats.food = el.food;
+  if (el.education) stats.education = el.education;
+  if (el.recreation) stats.recreation = el.recreation;
+  if (el.government) stats.government = el.government;
+  if (el.police) stats.police = el.police;
+  if (el.policeRadius) stats.policeRadius = el.policeRadius;
+  if (el.fireRadius) stats.fireRadius = el.fireRadius;
+  if (el.military) stats.military = el.military;
+  if (el.income) stats.income = el.income;
+
+  const sample = catalog[0];
+  return {
+    ...sample,
+    id: el.id,
+    name: el.name,
+    category: el.category,
+    categoryName: CATEGORY_NAME_BY_ID.get(el.category) ?? el.category,
+    stage: el.stage,
+    cost: el.cost,
+    domain: el.domain,
+    isStarter: el.stage <= 1,
+    maxLevel: 5,
+    description: el.description,
+    usage: el.description,
+    growth: el.growth,
+    stats,
+    image: "/handbook/catalog/" + el.id + ".webp",
+    thumbnail: "/handbook/catalog/thumbs/" + el.id + ".webp",
+  } as CatalogEntry;
+});
+
+const ALL_CATALOG: CatalogEntry[] = [...catalog, ...EXPANSION_CATALOG_ENTRIES];
+
 const CATEGORY_OPTIONS: { id: BuildCategory; name: string }[] = Array.from(
   new Map(
-    catalog.map((entry) => [entry.categoryName, { id: entry.category as BuildCategory, name: entry.categoryName }]),
+    ALL_CATALOG.map((entry) => [entry.categoryName, { id: entry.category as BuildCategory, name: entry.categoryName }]),
   ).values(),
 );
 const asset = (path: string) => "./" + path.replace(/^\//, "");
@@ -174,7 +225,10 @@ export function UnifiedAtlas({
   );
   const [strategyOpen, setStrategyOpen] = useState(false);
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const globalSearchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setPlaybookMode(currentMode);
@@ -237,17 +291,67 @@ export function UnifiedAtlas({
   const categoryFilter = route.category ?? "";
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return catalog.filter((entry) => {
+    return ALL_CATALOG.filter((entry) => {
       if (categoryFilter && entry.categoryName !== categoryFilter) return false;
       if (!q) return true;
-      return (entry.name + " " + entry.categoryName + " " + entry.usage + " " + entry.description)
+      return (entry.name + " " + entry.id + " " + entry.categoryName + " " + entry.usage + " " + entry.description)
         .toLowerCase()
         .includes(q);
     });
   }, [query, categoryFilter]);
 
+  const globalMatches = useMemo(() => {
+    const raw = globalSearch.trim().toLowerCase();
+    if (!raw) return null;
+    const tokens = raw.split(/\s+/).filter(Boolean);
+    const matchesAll = (haystack: string) => {
+      const low = haystack.toLowerCase();
+      return tokens.every((t) => low.includes(t));
+    };
+
+    const lessons: { chapterId: string; chapterLabel: string; lessonId: string; title: string; snippet: string }[] = [];
+    for (const ch of GUIDE_CHAPTERS) {
+      const brief = getModeChapterBrief(ch.id, playbookMode);
+      const briefText = brief ? `${brief.goal} ${brief.tip} ${brief.watchOut}` : "";
+      for (const l of ch.lessons) {
+        const hay = `${ch.label} ${ch.title} ${ch.intro} ${l.title} ${l.steps.join(" ")} ${briefText}`;
+        if (matchesAll(hay)) {
+          const hitStep = l.steps.find((s) => tokens.some((t) => s.toLowerCase().includes(t))) ?? l.steps[0] ?? ch.intro;
+          lessons.push({
+            chapterId: ch.id,
+            chapterLabel: ch.label,
+            lessonId: l.id,
+            title: l.title,
+            snippet: hitStep,
+          });
+        }
+      }
+    }
+
+    const elements = ALL_CATALOG
+      .filter((entry) =>
+        matchesAll(`${entry.name} ${entry.id} ${entry.categoryName} ${entry.usage} ${entry.description} ${entry.growth}`),
+      )
+      .slice(0, 10);
+
+    const islands = WORLD_LESSONS.filter((w) =>
+      matchesAll(`${w.title} ${w.summary ?? ""} ${w.steps.join(" ")}`),
+    ).slice(0, 6);
+
+    return {
+      lessons: lessons.slice(0, 8),
+      totalLessons: lessons.length,
+      elements,
+      totalElements: ALL_CATALOG.filter((entry) =>
+        matchesAll(`${entry.name} ${entry.id} ${entry.categoryName} ${entry.usage} ${entry.description} ${entry.growth}`),
+      ).length,
+      islands,
+      total: lessons.length + islands.length + elements.length,
+    };
+  }, [globalSearch, playbookMode]);
+
   const selectedEntry = useMemo(
-    () => (route.elementId ? catalog.find((row) => row.id === route.elementId) : undefined),
+    () => (route.elementId ? ALL_CATALOG.find((row) => row.id === route.elementId) : undefined),
     [route.elementId],
   );
   const selectedDef = selectedEntry ? ELEMENT_BY_ID[selectedEntry.id] : undefined;
@@ -257,7 +361,9 @@ export function UnifiedAtlas({
   const playableLevel = selectedEntry ? Math.min(level, getMaxElementLevel(selectedEntry.id)) : 1;
   const variantZero = clampInt(route.variant, 1, 4, 1) - 1;
   const styleNames = selectedEntry
-    ? designStyles[selectedEntry.id as keyof typeof designStyles] ?? ["Style A", "Style B", "Style C", "Style D"]
+    ? designStyles[selectedEntry.id as keyof typeof designStyles] ??
+      BALANCED_EXPANSION_BY_ID[selectedEntry.id]?.styleNames ??
+      ["Style A", "Style B", "Style C", "Style D"]
     : ["Style A", "Style B", "Style C", "Style D"];
   const partnerDef = selectedEntry ? ELEMENT_BY_ID[getGuidePartner(selectedEntry.id)] : undefined;
   const joins = useMemo(() => {
@@ -308,11 +414,13 @@ export function UnifiedAtlas({
     return lv > getMaxElementLevel(selectedDef.id) ? selectedDesign.levels[lv - 1] : getElementLevelName(selectedDef, lv);
   };
 
+  const showGlobalResults = Boolean(globalMatches && (searchFocused || globalSearch.trim().length > 0));
+
   return (
     <div ref={bodyRef} className="pc-atlas-root is-compact">
       <header className="pc-atlas-topbar">
         <div className="pc-atlas-brand" title="Atlas & Handbook">
-          <BookOpen size={16} aria-hidden="true" />
+          <BookOpen size={15} aria-hidden="true" />
           <span>Handbook</span>
         </div>
         <nav className="pc-atlas-tabs" aria-label="Handbook sections">
@@ -321,7 +429,7 @@ export function UnifiedAtlas({
             aria-pressed={route.tab === "chapters"}
             onClick={() => updateRoute({ tab: "chapters" }, true)}
           >
-            <BookOpen size={14} aria-hidden="true" />
+            <BookOpen size={13} aria-hidden="true" />
             <span>Playbook</span>
           </button>
           <button
@@ -329,7 +437,7 @@ export function UnifiedAtlas({
             aria-pressed={route.tab === "atlas"}
             onClick={() => updateRoute({ tab: "atlas", elementId: route.tab === "atlas" ? undefined : route.elementId }, true)}
           >
-            <Compass size={14} aria-hidden="true" />
+            <Compass size={13} aria-hidden="true" />
             <span>Atlas</span>
           </button>
           <button
@@ -337,13 +445,13 @@ export function UnifiedAtlas({
             aria-pressed={route.tab === "islands"}
             onClick={() => updateRoute({ tab: "islands" }, true)}
           >
-            <MapIcon size={14} aria-hidden="true" />
+            <MapIcon size={13} aria-hidden="true" />
             <span>Islands</span>
           </button>
         </nav>
         {embedded && onClose ? (
           <button type="button" className="pc-atlas-close" aria-label="Close Handbook" title="Close" onClick={onClose}>
-            <X size={17} aria-hidden="true" />
+            <X size={16} aria-hidden="true" />
           </button>
         ) : (
           <a className="pc-atlas-close-link" href="./index.html" aria-label="Back to Island">
@@ -351,6 +459,171 @@ export function UnifiedAtlas({
           </a>
         )}
       </header>
+
+      {/* Global Handbook Search (Playbook lessons, Atlas elements & Islands) */}
+      <div className="pc-hb-search-wrap">
+        <label className="pc-hb-search-bar">
+          <Search size={14} aria-hidden="true" />
+          <input
+            ref={globalSearchRef}
+            type="search"
+            aria-label="Search Handbook"
+            placeholder="Search Playbook, elements, controls, or islands…"
+            value={globalSearch}
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setTimeout(() => setSearchFocused(false), 160)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape" && globalSearch) {
+                e.stopPropagation();
+                setGlobalSearch("");
+                globalSearchRef.current?.blur();
+              }
+            }}
+            onChange={(e) => setGlobalSearch(e.target.value)}
+          />
+          {globalSearch && (
+            <button
+              type="button"
+              className="ui-mini-icon-btn"
+              aria-label="Clear handbook search"
+              onClick={() => {
+                setGlobalSearch("");
+                globalSearchRef.current?.focus();
+              }}
+            >
+              <X size={13} aria-hidden="true" />
+            </button>
+          )}
+        </label>
+
+        {showGlobalResults && globalMatches && (
+          <div className="pc-hb-search-results" role="region" aria-label="Handbook search results">
+            {globalMatches.lessons.length === 0 &&
+            globalMatches.elements.length === 0 &&
+            globalMatches.islands.length === 0 ? (
+              <p className="pc-hb-search-empty">No matching lessons, elements, or islands for “{globalSearch.trim()}”.</p>
+            ) : (
+              <>
+                {globalMatches.lessons.length > 0 && (
+                  <div className="pc-hb-search-group">
+                    <span className="pc-hb-search-group-head">
+                      Playbook lessons ({globalMatches.totalLessons})
+                    </span>
+                    <div className="pc-hb-search-list">
+                      {globalMatches.lessons.map((hit) => (
+                        <button
+                          key={`${hit.chapterId}:${hit.lessonId}`}
+                          type="button"
+                          className="pc-hb-search-item"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            updateRoute({ tab: "chapters", section: hit.chapterId, lesson: hit.lessonId }, true);
+                            setGlobalSearch("");
+                            setSearchFocused(false);
+                          }}
+                        >
+                          <BookOpen size={13} aria-hidden="true" />
+                          <span>
+                            <strong>{hit.title}</strong>
+                            <small>{hit.chapterLabel} · {hit.snippet}</small>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {globalMatches.elements.length > 0 && (
+                  <div className="pc-hb-search-group">
+                    <div className="pc-hb-search-group-row">
+                      <span className="pc-hb-search-group-head">
+                        Atlas elements ({globalMatches.totalElements})
+                      </span>
+                      {globalMatches.totalElements > globalMatches.elements.length && (
+                        <button
+                          type="button"
+                          className="pc-hb-search-more"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            const q = globalSearch.trim();
+                            updateRoute({ tab: "atlas", elementId: undefined, query: q, category: "" }, true);
+                            setGlobalSearch("");
+                            setSearchFocused(false);
+                          }}
+                        >
+                          View all {globalMatches.totalElements} in Atlas →
+                        </button>
+                      )}
+                    </div>
+                    <div className="pc-hb-search-el-grid">
+                      {globalMatches.elements.map((entry) => (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          className="pc-hb-search-el"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            updateRoute(
+                              {
+                                tab: "atlas",
+                                elementId: entry.id,
+                                level: Math.min(3, entry.maxLevel),
+                                variant: 1,
+                              },
+                              true,
+                            );
+                            setGlobalSearch("");
+                            setSearchFocused(false);
+                          }}
+                        >
+                          {ELEMENT_BY_ID[entry.id] ? (
+                            <ElementFavicon def={ELEMENT_BY_ID[entry.id]} />
+                          ) : (
+                            <img src={asset(entry.thumbnail)} alt="" loading="lazy" />
+                          )}
+                          <span>
+                            <strong>{entry.name}</strong>
+                            <small>{entry.categoryName}</small>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {globalMatches.islands.length > 0 && (
+                  <div className="pc-hb-search-group">
+                    <span className="pc-hb-search-group-head">
+                      Playable islands ({globalMatches.islands.length})
+                    </span>
+                    <div className="pc-hb-search-list">
+                      {globalMatches.islands.map((w) => (
+                        <button
+                          key={w.id}
+                          type="button"
+                          className="pc-hb-search-item"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            updateRoute({ tab: "islands" }, true);
+                            setGlobalSearch("");
+                            setSearchFocused(false);
+                          }}
+                        >
+                          <MapIcon size={13} aria-hidden="true" />
+                          <span>
+                            <strong>{w.title}</strong>
+                            {w.summary && <small>{w.summary}</small>}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="pc-atlas-main">
         {route.tab === "atlas" && selectedEntry && selectedDef && selectedDesign ? (
@@ -585,7 +858,7 @@ export function UnifiedAtlas({
                 />
               </label>
               <span className="pc-atlas-count" aria-live="polite">
-                {categoryFilter || "All"} · {results.length}/{catalog.length}
+                {categoryFilter || "All"} · {results.length}/{ALL_CATALOG.length}
               </span>
             </div>
 
@@ -645,7 +918,11 @@ export function UnifiedAtlas({
                       )
                     }
                   >
-                    <img src={asset(entry.thumbnail)} alt="" loading="lazy" />
+                    {ELEMENT_BY_ID[entry.id] ? (
+                      <ElementFavicon def={ELEMENT_BY_ID[entry.id]} />
+                    ) : (
+                      <img src={asset(entry.thumbnail)} alt="" loading="lazy" />
+                    )}
                     <strong>{entry.name}</strong>
                     <span className="pc-atlas-tile-meta">
                       {entry.cost ? money(entry.cost) : "Free"} · {entry.isStarter ? "Start" : "S" + entry.stage}
@@ -812,7 +1089,7 @@ export function UnifiedAtlas({
                     {activeLesson.designs && activeLesson.designs.length > 0 && (
                       <div className="pc-atlas-lesson-designs" aria-label="Elements featured in this lesson">
                         {activeLesson.designs.map((id) => {
-                          const item = catalog.find((row) => row.id === id);
+                          const item = ALL_CATALOG.find((row) => row.id === id);
                           if (!item) return null;
                           return (
                             <button
@@ -830,7 +1107,11 @@ export function UnifiedAtlas({
                                 )
                               }
                             >
-                              <img src={asset(item.thumbnail)} alt="" loading="lazy" />
+                              {ELEMENT_BY_ID[item.id] ? (
+                                <ElementFavicon def={ELEMENT_BY_ID[item.id]} />
+                              ) : (
+                                <img src={asset(item.thumbnail)} alt="" loading="lazy" />
+                              )}
                               <span>
                                 <strong>{item.name}</strong>
                                 <small>Lv 1–{item.maxLevel} · 3D →</small>

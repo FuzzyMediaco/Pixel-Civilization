@@ -32,8 +32,10 @@ import {
   worldToGrid,
 } from "./simulation";
 import { TempleLights } from "./faithVisuals";
-import { EngineeringView, maskOceanFragment } from "./engineeringView";
+import { EngineeringView, VOXEL_EARTH, VOXEL_EARTH_SIDE, maskOceanFragment } from "./engineeringView";
 import { elevationFromMargin, getTerrainCell, planInfrastructureStroke, registerRoadDemand, roadPortOpen, roadTravelOpen, surfaceTravelHeight, tileKey, type InfrastructureTool, type GridPoint } from "./terrain";
+import { VOXELS_PER_TILE, VOXEL_PITCH, effectiveVoxelRadius, isVoxelSculptTool, sampleTerrainAt, worldToVoxel } from "./voxelTerrain";
+import { detectCoastRotation, getTerrainInteractionProfile, stripsFlatGroundSlabInWorld } from "./terrainInteraction";
 import { networkRoadProfile } from "./designs/networks";
 import { planFirstStreetFacing } from "./streetFacing";
 import { encodeRoadSitePort } from "./roadTopology";
@@ -309,6 +311,7 @@ export class PixelWorldRenderer {
   private templeLights = new TempleLights();
   private engineering = new EngineeringView(true);
   private worksTool:InfrastructureTool|null=null;
+  private hoverVoxel:[number,number]|null=null;
   private worksStroke:GridPoint[]=[];
   private worksAnchor:GridPoint|null=null;
   private islandGroup = new THREE.Group();
@@ -587,87 +590,235 @@ export class PixelWorldRenderer {
   }
 
   private buildIslandAndOcean(): void {
-    this.renderedGeography=this.gameState.terrainVersion??1;
-    const size=GRID_SIZE*TILE_SIZE,segs=GRID_SIZE;
-    const geo = new THREE.PlaneGeometry(size, size, segs, segs);
-    geo.rotateX(-Math.PI / 2);
+    this.renderedGeography = this.gameState.terrainVersion ?? 1;
+    const size = GRID_SIZE * TILE_SIZE;
+    const version = this.renderedGeography;
 
-    const pos = geo.attributes.position as THREE.BufferAttribute;
-    const colors = new Float32Array(pos.count * 3);
-    const cTmp = new THREE.Color();
+    // Native 0.25m voxel base island mesh:
+    // - Interior flat grass plateaus emit merged quads shaded with exact 0.25m voxel micro-checker
+    // - Every coastline, beach, cove, sandbar & shallow terrace is subdivided to true 0.25m voxel columns
+    //   and 2D greedy-meshed with real vertical 0.25m step skirts (zero 4m grid, zero blurry 4m vertices!)
+    const posArr: number[] = [];
+    const normArr: number[] = [];
+    const colArr: number[] = [];
 
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const z = pos.getZ(i);
-      const margin=islandMarginAtWorld(x,z,this.renderedGeography);
-      const y=elevationFromMargin(margin);
-      pos.setY(i, y);
+    const topColors = [
+      new THREE.Color(0x000000),
+      new THREE.Color(VOXEL_EARTH.grass),
+      new THREE.Color(VOXEL_EARTH.sand),
+      new THREE.Color(0xd2b882), // wet shoreline sand
+      new THREE.Color(0xb49668), // shallow submerged seabed
+    ];
+    const sideColors = [
+      new THREE.Color(0x000000),
+      new THREE.Color(VOXEL_EARTH_SIDE.grass),
+      new THREE.Color(VOXEL_EARTH_SIDE.sand),
+      new THREE.Color(0xa98d62),
+      new THREE.Color(0x9c8259),
+    ];
 
-      // Crisp pixel-checkerboard grass & warm beach sand colors
-      const gx = Math.floor(x / (TILE_SIZE * 0.5));
-      const gz = Math.floor(z / (TILE_SIZE * 0.5));
-      const checker = (gx + gz) & 1;
+    const pushQuad = (
+      ax: number, ay: number, az: number,
+      bx: number, by: number, bz: number,
+      cx: number, cy: number, cz: number,
+      dx: number, dy: number, dz: number,
+      nx: number, ny: number, nz: number,
+      c: THREE.Color,
+    ) => {
+      posArr.push(
+        ax, ay, az, bx, by, bz, cx, cy, cz,
+        ax, ay, az, cx, cy, cz, dx, dy, dz,
+      );
+      normArr.push(
+        nx, ny, nz, nx, ny, nz, nx, ny, nz,
+        nx, ny, nz, nx, ny, nz, nx, ny, nz,
+      );
+      const r = c.r, g = c.g, b = c.b;
+      colArr.push(
+        r, g, b, r, g, b, r, g, b,
+        r, g, b, r, g, b, r, g, b,
+      );
+    };
 
-      if (margin >= 2.2) {
-        cTmp.setHex(checker ? 0x83c85f : 0x79be56);
-      } else if (margin >= -2.5) {
-        cTmp.setHex(checker ? 0xedd69f : 0xe2c78c);
-      } else {
-        cTmp.setHex(0xc8b282);
+    const PAD = VOXELS_PER_TILE + 2; // 18x18 padded column grid for seamless cross-chunk skirts
+    const yGrid = new Float32Array(PAD * PAD);
+    const bGrid = new Uint8Array(PAD * PAD);
+    const visited = new Uint8Array(VOXELS_PER_TILE * VOXELS_PER_TILE);
+    const grassTop = topColors[1];
+
+    for (let gz = -GRID_HALF; gz < GRID_HALF; gz++) {
+      const z0 = gz * TILE_SIZE;
+      const z1 = z0 + TILE_SIZE;
+      const zMid = z0 + TILE_SIZE * 0.5;
+      for (let gx = -GRID_HALF; gx < GRID_HALF; gx++) {
+        const x0 = gx * TILE_SIZE;
+        const x1 = x0 + TILE_SIZE;
+        const xMid = x0 + TILE_SIZE * 0.5;
+
+        const m00 = islandMarginAtWorld(x0, z0, version);
+        const m10 = islandMarginAtWorld(x1, z0, version);
+        const m01 = islandMarginAtWorld(x0, z1, version);
+        const m11 = islandMarginAtWorld(x1, z1, version);
+        const mc = islandMarginAtWorld(xMid, zMid, version);
+        const mMin = Math.min(m00, m10, m01, m11, mc);
+        const mMax = Math.max(m00, m10, m01, m11, mc);
+
+        // Deep seabed under opaque ocean: skip geometry
+        if (mMax < -7.5) continue;
+
+        // Flat interior grass plateau: 1 quad rendered with exact 0.25m voxel checker in fragment shader
+        if (mMin >= 3.2) {
+          pushQuad(x0, 0, z0, x0, 0, z1, x1, 0, z1, x1, 0, z0, 0, 1, 0, grassTop);
+          continue;
+        }
+
+        // Coastal / shoreline / beach / terrace transition: true 0.25m voxel columns
+        for (let pz = 0; pz < PAD; pz++) {
+          const wz = z0 + (pz - 0.5) * VOXEL_PITCH;
+          const rowOff = pz * PAD;
+          for (let px = 0; px < PAD; px++) {
+            const wx = x0 + (px - 0.5) * VOXEL_PITCH;
+            const m = islandMarginAtWorld(wx, wz, version);
+            const y = elevationFromMargin(m);
+            const idx = rowOff + px;
+            yGrid[idx] = y;
+            if (y < -2.25) {
+              bGrid[idx] = 0;
+            } else if (m >= 2.2) {
+              bGrid[idx] = 1;
+            } else if (m >= 1.2 && y > -0.34) {
+              bGrid[idx] = 2;
+            } else if (y >= -0.62) {
+              bGrid[idx] = 3;
+            } else {
+              bGrid[idx] = 4;
+            }
+          }
+        }
+
+        // 2D greedy meshing of 0.25m voxel top faces
+        visited.fill(0);
+        for (let lz = 0; lz < VOXELS_PER_TILE; lz++) {
+          for (let lx = 0; lx < VOXELS_PER_TILE; lx++) {
+            const vIdx = lz * VOXELS_PER_TILE + lx;
+            if (visited[vIdx]) continue;
+            const pIdx = (lz + 1) * PAD + (lx + 1);
+            const bucket = bGrid[pIdx];
+            if (bucket === 0) {
+              visited[vIdx] = 1;
+              continue;
+            }
+            const y = yGrid[pIdx];
+
+            let w = 1;
+            while (lx + w < VOXELS_PER_TILE) {
+              const nV = lz * VOXELS_PER_TILE + (lx + w);
+              const nP = (lz + 1) * PAD + (lx + w + 1);
+              if (visited[nV] || bGrid[nP] !== bucket || yGrid[nP] !== y) break;
+              w++;
+            }
+
+            let h = 1;
+            outerH: while (lz + h < VOXELS_PER_TILE) {
+              for (let dx = 0; dx < w; dx++) {
+                const nV = (lz + h) * VOXELS_PER_TILE + (lx + dx);
+                const nP = (lz + h + 1) * PAD + (lx + dx + 1);
+                if (visited[nV] || bGrid[nP] !== bucket || yGrid[nP] !== y) break outerH;
+              }
+              h++;
+            }
+
+            for (let dz = 0; dz < h; dz++) {
+              for (let dx = 0; dx < w; dx++) {
+                visited[(lz + dz) * VOXELS_PER_TILE + (lx + dx)] = 1;
+              }
+            }
+
+            const qx0 = x0 + lx * VOXEL_PITCH;
+            const qz0 = z0 + lz * VOXEL_PITCH;
+            const qx1 = qx0 + w * VOXEL_PITCH;
+            const qz1 = qz0 + h * VOXEL_PITCH;
+            pushQuad(qx0, y, qz0, qx0, y, qz1, qx1, y, qz1, qx1, y, qz0, 0, 1, 0, topColors[bucket]);
+          }
+        }
+
+        // Exposed vertical 0.25m step skirts along every elevation drop
+        for (let lz = 0; lz < VOXELS_PER_TILE; lz++) {
+          const vz0 = z0 + lz * VOXEL_PITCH;
+          const vz1 = vz0 + VOXEL_PITCH;
+          const pRow = (lz + 1) * PAD;
+          for (let lx = 0; lx < VOXELS_PER_TILE; lx++) {
+            const pIdx = pRow + (lx + 1);
+            const bucket = bGrid[pIdx];
+            if (bucket === 0) continue;
+            const y = yGrid[pIdx];
+            const vx0 = x0 + lx * VOXEL_PITCH;
+            const vx1 = vx0 + VOXEL_PITCH;
+            const sc = sideColors[bucket];
+
+            const nN = yGrid[pIdx - PAD];
+            if (nN < y - 0.005) {
+              pushQuad(vx0, nN, vz0, vx0, y, vz0, vx1, y, vz0, vx1, nN, vz0, 0, 0, -1, sc);
+            }
+            const nS = yGrid[pIdx + PAD];
+            if (nS < y - 0.005) {
+              pushQuad(vx1, nS, vz1, vx1, y, vz1, vx0, y, vz1, vx0, nS, vz1, 0, 0, 1, sc);
+            }
+            const nW = yGrid[pIdx - 1];
+            if (nW < y - 0.005) {
+              pushQuad(vx0, nW, vz1, vx0, y, vz1, vx0, y, vz0, vx0, nW, vz0, -1, 0, 0, sc);
+            }
+            const nE = yGrid[pIdx + 1];
+            if (nE < y - 0.005) {
+              pushQuad(vx1, nE, vz0, vx1, y, vz0, vx1, y, vz1, vx1, nE, vz1, 1, 0, 0, sc);
+            }
+          }
+        }
       }
-      colors[i * 3] = cTmp.r;
-      colors[i * 3 + 1] = cTmp.g;
-      colors[i * 3 + 2] = cTmp.b;
     }
 
-    // Deep seabed is hidden by opaque water. Omit its triangles on both GPU tiers.
-    const faces:number[]=[];
-    for(let iz=0;iz<segs;iz++)for(let ix=0;ix<segs;ix++){
-      const a=ix+iz*(segs+1),b=a+segs+1;
-      if(pos.getY(a)<-2&&pos.getY(a+1)<-2&&pos.getY(b)<-2&&pos.getY(b+1)<-2)continue;
-      faces.push(a,b,a+1,b,b+1,a+1);
-    }
-    geo.setIndex(faces);
-    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-    geo.computeVertexNormals();
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(posArr, 3));
+    geo.setAttribute("normal", new THREE.Float32BufferAttribute(normArr, 3));
+    geo.setAttribute("color", new THREE.Float32BufferAttribute(colArr, 3));
+    geo.computeBoundingSphere();
 
     const landMat = new THREE.MeshStandardMaterial({
       vertexColors: true,
-      roughness: 0.88,
-      metalness: 0.02,
-      flatShading: true, // Extra crisp pixel-terraced coastal steps!
+      roughness: 0.87,
+      metalness: 0.0,
+      flatShading: true,
     });
 
-    this.engineering.patchLand(landMat);
+    this.engineering.patchLand(landMat, true);
     const landMesh = new THREE.Mesh(geo, landMat);
     landMesh.receiveShadow = !this.isSoftwareGl;
     this.islandGroup.add(landMesh);
 
-    // Subtle build-grid lines across the flat plateau so tile alignment is effortless
-    const gridHelper = new THREE.GridHelper(size, GRID_SIZE, 0xffffff, 0xffffff);
-    gridHelper.position.y = 0.018;
-    const gMat = gridHelper.material as THREE.Material;
-    gMat.transparent = true;
-    gMat.opacity = 0.09;
-    gMat.depthWrite = false;
-    this.islandGroup.add(gridHelper);
-
-    // Sunlit pixel-quantized turquoise ocean plane with lapping white foam
-    // A cached shoreline map makes foam around all islands independent of screen pixel count.
-    const coast=new Uint8Array(GRID_SIZE*GRID_SIZE);
-    for(let z=0;z<GRID_SIZE;z++)for(let x=0;x<GRID_SIZE;x++){
-      const margin=islandMarginAtWorld((x-GRID_HALF+.5)*TILE_SIZE,(z-GRID_HALF+.5)*TILE_SIZE,this.renderedGeography);
-      coast[z*GRID_SIZE+x]=Math.round(THREE.MathUtils.clamp((margin+36)/48,0,1)*255);
+    // High-resolution shoreline distance map (768x768 = 1m/texel, quantized to 0.25m voxels in ocean shader)
+    const coastRes = GRID_SIZE * 4;
+    const coast = new Uint8Array(coastRes * coastRes);
+    const worldMin = -GRID_HALF * TILE_SIZE;
+    const stepM = size / coastRes;
+    for (let z = 0; z < coastRes; z++) {
+      const wz = worldMin + (z + 0.5) * stepM;
+      for (let x = 0; x < coastRes; x++) {
+        const wx = worldMin + (x + 0.5) * stepM;
+        const margin = islandMarginAtWorld(wx, wz, version);
+        coast[z * coastRes + x] = Math.round(THREE.MathUtils.clamp((margin + 36) / 48, 0, 1) * 255);
+      }
     }
-    this.naturalCoastline=coast;this.coastalStamp="";
-    this.coastlineTexture=new THREE.DataTexture(coast,GRID_SIZE,GRID_SIZE,THREE.RedFormat);
-    this.coastlineTexture.minFilter=this.coastlineTexture.magFilter=THREE.LinearFilter;
-    this.coastlineTexture.needsUpdate=true;
-    const oceanGeo = new THREE.PlaneGeometry(size*4,size*4,1,1);
+    this.naturalCoastline = coast;
+    this.coastalStamp = "";
+    this.coastlineTexture = new THREE.DataTexture(coast, coastRes, coastRes, THREE.RedFormat);
+    this.coastlineTexture.minFilter = this.coastlineTexture.magFilter = THREE.LinearFilter;
+    this.coastlineTexture.needsUpdate = true;
+
+    const oceanGeo = new THREE.PlaneGeometry(size * 4, size * 4, 1, 1);
     oceanGeo.rotateX(-Math.PI / 2);
 
     const oceanMat = new THREE.ShaderMaterial({
-      uniforms: {...this.oceanUniforms,uCoast:{value:this.coastlineTexture}, uWorksMask:{value:this.engineering.mask}},
+      uniforms: { ...this.oceanUniforms, uCoast: { value: this.coastlineTexture }, uWorksMask: { value: this.engineering.mask } },
       transparent: true,
       vertexShader: `
         varying vec3 vWorldPos;
@@ -693,35 +844,40 @@ export class PixelWorldRenderer {
         void main() {
           vec2 vWorksXZ=vWorldPos.xz;
           ${maskOceanFragment}
-          // Pixelate ocean coordinates to 0.66m voxel cells!
-          vec2 pix = floor(vWorldPos.xz / 0.666) * 0.666;
+          // Native 0.25m voxel ocean lattice!
+          vec2 vCell = floor(vWorldPos.xz / 0.25);
+          vec2 pix = (vCell + 0.5) * 0.25;
           float m = islandMargin(pix);
 
-          float wave = sin(pix.x * 0.22 + uTime * 1.7) * 0.5 + cos(pix.y * 0.20 - uTime * 1.3) * 0.5;
-          float shallows = clamp((m + 26.0) / 26.0, 0.0, 1.0);
+          float wave = sin(pix.x * 0.24 + uTime * 1.7) * 0.5 + cos(pix.y * 0.22 - uTime * 1.3) * 0.5;
+          float shallows = clamp((m + 24.0) / 24.0, 0.0, 1.0);
 
           vec3 deepCol = vec3(0.12, 0.48, 0.78);
           vec3 shallowCol = vec3(0.24, 0.75, 0.88);
           vec3 col = mix(deepCol, shallowCol, shallows);
 
-          // Quantized sunlit wave sparkles
+          // Crisp 0.25m voxel water checker micro-shimmer
+          float voxCk = mod(vCell.x + vCell.y, 2.0);
+          col *= mix(1.0, 0.968, voxCk);
+
+          // Quantized sunlit 0.25m wave sparkles
           if (wave > 0.68) {
             col += vec3(0.08, 0.11, 0.12);
           } else if (wave < -0.55) {
             col -= vec3(0.03, 0.05, 0.06);
           }
 
-          // Crisp pixel seafoam ribbon lapping the sandy coast
-          float shoreBand = abs(m + 2.2 + sin(uTime * 2.1 + pix.x * 0.18 + pix.y * 0.15) * 0.9);
-          if (shoreBand < 1.15) {
-            col = vec3(0.95, 0.99, 1.0);
+          // Crisp 0.25m voxel seafoam ribbon lapping the 0.25m stepped beach
+          float shoreBand = abs(m + 1.85 + sin(uTime * 2.1 + pix.x * 0.2 + pix.y * 0.17) * 0.55);
+          if (shoreBand < 0.72) {
+            col = vec3(0.94, 0.99, 1.0);
           }
 
           float distFade = clamp(length(vWorldPos.xz) / 620.0, 0.0, 1.0);
           col = mix(col, vec3(0.80, 0.93, 1.0), distFade * 0.75);
 
           vec3 moonlit = col * vec3(0.22, 0.34, 0.48);
-          gl_FragColor = vec4(mix(moonlit, col, uDaylight), 0.92);
+          gl_FragColor = vec4(mix(moonlit, col, uDaylight), 0.91);
         }
       `,
     });
@@ -1125,7 +1281,20 @@ export class PixelWorldRenderer {
       const soils = def.domain === "land" ? getParcelSoils(state, pose) : undefined;
       const lighting = el.exteriorLighting ?? "auto";
       const corridor=corridorArt(el,occupancy);
-      const renderKey = `${JSON.stringify(corridor)??""}|${terrainOverbuilt?"coexist":""}|${worksSpan?.run??""}|${el.defId}|L${el.level}|V${el.variant}|${localSpanX}x${localSpanZ}|R${el.rotation}|C${connMask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}`;
+      let hasFootprintVoxelOrCoast = false;
+      if (el.sculptsTerrain || stripsFlatGroundSlabInWorld(el.defId)) {
+        for (let dx = 0; dx < el.spanX && !hasFootprintVoxelOrCoast; dx++) {
+          for (let dz = 0; dz < el.spanZ; dz++) {
+            const k = tileKey(el.gx + dx, el.gz + dz);
+            if (state.infrastructure?.voxels?.[k] || (!el.sculptsTerrain && getTerrainCell(state, el.gx + dx, el.gz + dz).kind === "coast")) {
+              hasFootprintVoxelOrCoast = true;
+              break;
+            }
+          }
+        }
+      }
+      const worldSculpted = Boolean((el.sculptsTerrain || stripsFlatGroundSlabInWorld(el.defId)) && hasFootprintVoxelOrCoast);
+      const renderKey = `${JSON.stringify(corridor)??""}|${terrainOverbuilt?"coexist":""}|${worldSculpted?"ws":""}|${worksSpan?.run??""}|${el.defId}|L${el.level}|V${el.variant}|${localSpanX}x${localSpanZ}|R${el.rotation}|C${connMask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}`;
 
       let entry = this.placedEntries.get(el.id);
       const [wx, wz] = gridToWorldCenter(el.gx, el.gz, el.spanX, el.spanZ);
@@ -1153,7 +1322,7 @@ export class PixelWorldRenderer {
           localSpanX,
           localSpanZ,
           connMask,
-          { edges, soils, lighting, corridor },
+          { edges, soils, lighting, corridor, worldSculpted },
         );
         const group = buildPlacedGroupFromAsset(asset, false);
         group.position.set(wx, baseY, wz);
@@ -1244,13 +1413,22 @@ export class PixelWorldRenderer {
   }
 
   private getGroundElevationForElement(def: CivElementDef, wx: number, wz: number): number {
-    const [gx,gz]=worldToGrid(wx,wz),cell=this.gameState.infrastructure?.cells[tileKey(gx,gz)];
-    if(cell){
-      if(def.domain==="water"||def.isWaterFeature)return cell.depth?cell.waterLevel+.015:cell.elevation+.015;
-      return (cell.depth?cell.waterLevel:cell.elevation)+.025-VOXEL_SIZE;
+    const [gx, gz] = worldToGrid(wx, wz);
+    const hasVoxel = Boolean(this.gameState.infrastructure?.voxels?.[tileKey(gx, gz)]);
+    if (hasVoxel) {
+      const sample = sampleTerrainAt(this.gameState, wx, wz);
+      if (def.domain === "water" || def.isWaterFeature) {
+        return sample.depth > 0.02 ? sample.waterLevel + 0.015 : sample.elevation + 0.015;
+      }
+      return (sample.depth > 0.02 ? sample.waterLevel : sample.elevation) + 0.025 - VOXEL_SIZE;
+    }
+    const cell = this.gameState.infrastructure?.cells[tileKey(gx, gz)];
+    if (cell) {
+      if (def.domain === "water" || def.isWaterFeature) return cell.depth ? cell.waterLevel + 0.015 : cell.elevation + 0.015;
+      return (cell.depth ? cell.waterLevel : cell.elevation) + 0.025 - VOXEL_SIZE;
     }
     if (def.domain === "water") return -0.58;
-    const m = islandMarginAtWorld(wx,wz,this.gameState.terrainVersion);
+    const m = islandMarginAtWorld(wx, wz, this.gameState.terrainVersion);
     // The top of a lot's ground voxel meets the island surface. A small clearance prevents z-fighting.
     if (m >= 2.0) return 0.025 - VOXEL_SIZE;
     if (def.archetype === "bridge_span" || def.archetype === "bridge_suspension" || def.archetype === "dock_pier") {
@@ -1707,11 +1885,20 @@ export class PixelWorldRenderer {
     if(this.worksTool && this.hoverGrid){
       this.updateCurbPreviews();
       this.cursorOutline.visible=false;if(this.ghostGroup)this.ghostGroup.visible=false;
-      const [gx,gz]=this.hoverGrid,p={gx,gz};
+      const [gx,gz]=this.hoverGrid;
+      const voxelTool = isVoxelSculptTool(this.worksTool);
+      const p: GridPoint = voxelTool && this.hoverVoxel
+        ? { gx, gz, vx: this.hoverVoxel[0], vz: this.hoverVoxel[1] }
+        : { gx, gz };
       const points=this.worksStroke.length?[...this.worksStroke,p]:this.worksAnchor?[this.worksAnchor,p]:[p];
       const plan=planInfrastructureStroke(this.gameState,this.worksTool,points);
-      this.engineering.showPreview(this.gameState,plan,this.worksTool);
-      this.callbacks.onHoverInfo?.({gx,gz,valid:plan.valid,reason:plan.reason||plan.points.length+" tiles · $"+plan.cost+(plan.affected.length?" · "+plan.affected.length+" affected":"")});return;
+      this.engineering.showPreview(this.gameState,plan,this.worksTool,points);
+      const vr = voxelTool ? effectiveVoxelRadius(this.worksTool) : 0;
+      const sizeSummary = voxelTool
+        ? (vr === 0 ? "1 vox (0.25m)" : `${vr * 2 + 1} vox (${((vr * 2 + 1) * VOXEL_PITCH).toFixed(2)}m)`)
+        : plan.points.length + " span";
+      const costSummary = plan.cost > 0 ? " · $" + plan.cost : " · Free";
+      this.callbacks.onHoverInfo?.({gx,gz,valid:plan.valid,reason:plan.reason||sizeSummary+costSummary+(plan.affected.length?" · "+plan.affected.length+" affected":"")});return;
     }
     this.engineering.showPreview(this.gameState,null);
     if (!this.hoverGrid || this.brush.kind === "none") {
@@ -1752,6 +1939,10 @@ export class PixelWorldRenderer {
       if (def) {
         placement = planConstruction(this.gameState, def, gx, gz, level, rotation,this.brush.faceManually);
         ({ def, level, spanX, spanZ, rotation } = placement);
+        const profile = getTerrainInteractionProfile(def.id);
+        if (profile?.orientToWater && !this.brush.faceManually) {
+          rotation = detectCoastRotation(this.gameState, gx, gz, spanX, spanZ, rotation).rotation;
+        }
       }
     }
 
@@ -3496,20 +3687,30 @@ export class PixelWorldRenderer {
 
     this.raycaster.setFromCamera(this.pointerNdc, this.camera);
     const hit = new THREE.Vector3();
-    if (!this.raycaster.ray.intersectPlane(this.groundPlane, hit)) return null;
-    if(this.gameState.infrastructure?.revision){
-      // Approximate the first ray/surface intersection, including raised and submerged land.
+    if (!this.raycaster.ray.intersectPlane(this.groundPlane, hit)) {
+      this.hoverVoxel = null;
+      return null;
+    }
+    const fineVoxelAim = Boolean(this.worksTool && isVoxelSculptTool(this.worksTool));
+    if(this.gameState.infrastructure?.revision || fineVoxelAim){
+      // Raymarch the 0.25m voxel surface (including natural stepped coastlines, raised hills, and submerged beds).
       const ray=this.raycaster.ray;const topHit=new THREE.Vector3();
-      if(ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),-28),topHit)&&ray.direction.y<-.01){
-        for(let d=0;d<Math.min(550,(topHit.y+12)/-ray.direction.y);d+=.65){
+      const ceilingY = this.gameState.infrastructure?.revision ? 28 : 4;
+      if(ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),-ceilingY),topHit)&&ray.direction.y<-.01){
+        const step = fineVoxelAim ? 0.25 : 0.55;
+        for(let d=0;d<Math.min(550,(topHit.y+12)/-ray.direction.y);d+=step){
           const x=topHit.x+ray.direction.x*d,z=topHit.z+ray.direction.z*d;
-          const ground=getTerrainCell(this.gameState,Math.floor(x/4),Math.floor(z/4));
+          const ground=sampleTerrainAt(this.gameState,x,z);
           if(topHit.y+ray.direction.y*d<=Math.max(ground.elevation,ground.depth?ground.waterLevel:-Infinity)){hit.set(x,ground.elevation,z);break;}
         }
       }
     }
     const [gx, gz] = worldToGrid(hit.x, hit.z);
-    if (gx < GRID_MIN || gx > GRID_MAX || gz < GRID_MIN || gz > GRID_MAX) return null;
+    if (gx < GRID_MIN || gx > GRID_MAX || gz < GRID_MIN || gz > GRID_MAX) {
+      this.hoverVoxel = null;
+      return null;
+    }
+    this.hoverVoxel = worldToVoxel(hit.x, hit.z);
     return [gx, gz];
   }
 
@@ -3640,7 +3841,11 @@ export class PixelWorldRenderer {
     }
 
     if (e.button === 0 && this.worksTool && g) {
-      this.worksStroke = this.worksAnchor ? [this.worksAnchor, { gx: g[0], gz: g[1] }] : [{ gx: g[0], gz: g[1] }];
+      const pt: GridPoint =
+        isVoxelSculptTool(this.worksTool) && this.hoverVoxel
+          ? { gx: g[0], gz: g[1], vx: this.hoverVoxel[0], vz: this.hoverVoxel[1] }
+          : { gx: g[0], gz: g[1] };
+      this.worksStroke = this.worksAnchor ? [this.worksAnchor, pt] : [pt];
       this.updateHoverOverlay();
       return;
     }
@@ -3744,8 +3949,14 @@ export class PixelWorldRenderer {
       return;
     }
 
+    const prevVoxel = this.hoverVoxel;
     const g = this.computePointerGrid(e.clientX, e.clientY);
-    if (!this.hoverGrid || !g || this.hoverGrid[0] !== g[0] || this.hoverGrid[1] !== g[1]) {
+    const voxelChanged =
+      Boolean(this.worksTool && isVoxelSculptTool(this.worksTool)) &&
+      ((!prevVoxel && Boolean(this.hoverVoxel)) ||
+        (Boolean(prevVoxel) && !this.hoverVoxel) ||
+        (prevVoxel && this.hoverVoxel && (prevVoxel[0] !== this.hoverVoxel[0] || prevVoxel[1] !== this.hoverVoxel[1])));
+    if (!this.hoverGrid || !g || this.hoverGrid[0] !== g[0] || this.hoverGrid[1] !== g[1] || voxelChanged) {
       this.hoverGrid = g;
       this.updateHoverOverlay();
     }
@@ -3817,7 +4028,13 @@ export class PixelWorldRenderer {
 
     if (this.worksTool && this.worksStroke.length && this.pointerButton === 0) {
       const previous = this.worksStroke.at(-1)!;
-      if (g && (g[0] !== previous.gx || g[1] !== previous.gz)) {
+      if (isVoxelSculptTool(this.worksTool) && g && this.hoverVoxel) {
+        const [vx, vz] = this.hoverVoxel;
+        if (vx !== previous.vx || vz !== previous.vz) {
+          this.worksStroke.push({ gx: g[0], gz: g[1], vx, vz });
+          this.updateHoverOverlay();
+        }
+      } else if (g && (g[0] !== previous.gx || g[1] !== previous.gz)) {
         this.worksStroke.push({ gx: g[0], gz: g[1] });
         this.updateHoverOverlay();
       }

@@ -297,16 +297,18 @@ export function umbrellas(c: Ctx): void {
 // Pocket cove, rocky tidal shore, palm cay and surf break.
 export function beaches(c: Ctx): void {
   const { v, lv, hx, hz, variant: s } = c;
-  ground(c, s === 1 ? "#c4b9a1" : "sand", "sandDark");
   const shore = (x: number) =>
     Math.round(hz * 0.13 + Math.sin((x / hx) * (s === 0 ? 2.6 : 4) + s) * hz * 0.18);
-  for (let x = -hx; x < hx; x++)
-    for (let z = shore(x); z < hz; z++) {
-      const d = z - shore(x);
-      const isBreaker = s === 3 && d > 2 && (d + Math.floor(x / 6)) % 6 === 0;
-      v.put(x, 0, z, d === 0 || isBreaker ? "foam" : d < 3 ? "#a2d9cf" : d < 6 ? "#64babf" : "#438fae", 0.09);
-      if (isBreaker) v.put(x, 1, z, "foam");
-    }
+  if (!c.worldSculpted) {
+    ground(c, s === 1 ? "#c4b9a1" : "sand", "sandDark");
+    for (let x = -hx; x < hx; x++)
+      for (let z = shore(x); z < hz; z++) {
+        const d = z - shore(x);
+        const isBreaker = s === 3 && d > 2 && (d + Math.floor(x / 6)) % 6 === 0;
+        v.put(x, 0, z, d === 0 || isBreaker ? "foam" : d < 3 ? "#a2d9cf" : d < 6 ? "#64babf" : "#438fae", 0.09);
+        if (isBreaker) v.put(x, 1, z, "foam");
+      }
+  }
   if (s === 0 || s === 1) {
     for (let i = 0; i < lv + 1; i++) {
       const x = -hx + 2 + i * 2,

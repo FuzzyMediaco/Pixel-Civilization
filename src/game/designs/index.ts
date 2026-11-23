@@ -21,3 +21,4 @@ import "./historical";
 import "./projectsFuture";
 import "./safetyMilitaryExpansion";
 import "./commerceExpansion";
+import "./balancedExpansion";

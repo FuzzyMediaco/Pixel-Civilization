@@ -255,11 +255,10 @@ function rainvault(c: Ctx) {
   if (lv === 5) c.blink(0, r + lv + 6, 0, "cyan");
 }
 function spaceport(c: Ctx) {
-  foundation(c);
   const { v, hx, hz, lv } = c,
     r = Math.min(hx, hz) - 5;
-  v.cylinderY(0, 0, 1, 2, r, "slate");
-  ring(v, 0, 0, 2, 3, r, r - 1, "hazard");
+  v.cylinderY(0, 0, 0, 1, r, "slate");
+  ring(v, 0, 0, 1, 2, r, r - 1, "hazard");
   const x = -Math.round(r * 0.65),
     h = 7 + lv * 3;
   for (const dx of [-1, 1]) v.box(x + dx, 1, -1, x + dx + 1, h, 1, "steel");

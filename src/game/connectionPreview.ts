@@ -75,6 +75,21 @@ meets("army_garrison army_signal_corps army_logistics_depot army_airborne_school
 meets("coast_rescue_station harbor_patrol_pier naval_shipyard_base naval_coast_guard_base naval_destroyer_dock naval_carrier_berth naval_amphibious_dock marine_amphib_base seafood_pier","boats");
 meets("naval_patrol_cutter naval_frigate_ship naval_minesweeper naval_hospital_ship","docks");
 meets("artisan_bakery coffee_roastery retro_diner hardware_store indie_bookstore flower_shop neighborhood_pharmacy cinema_theater bowling_alley retro_arcade auto_dealership furniture_showroom boutique_hotel art_gallery jazz_club coworking_loft tech_startup_hub department_store night_market","shops");
+meets("rowhouse_duplex","gardens");
+meets("courtyard_villa mixed_use_midrise penthouse_tower","bus_stops");
+meets("tram_station","two_lane_roads");
+meets("harbor_tugboat coastal_corvette","docks");
+meets("boatyard_slipway colossus_lighthouse maritime_museum","boats");
+meets("shoreline_overlook","walking_paths");
+meets("tidal_pool_walk","beaches");
+meets("tidal_turbine_array","factories");
+meets("recycling_center compost_works","trees");
+meets("spring_house","municipal_reservoir");
+meets("tidal_sluice","rivers");
+meets("public_library","park");
+meets("bell_tower_chapel stone_abbey zen_shrine meditation_pavilion","graveyards");
+meets("civic_observatory","italian_gardens");
+meets("solar_spire_arcology","paths");
 function model(id:string,level:number,rotation:number): PlacedElement {
   const [w,h]=getStandardFootprintForLevel(ELEMENT_BY_ID[id],level);
   return {id:id+"-guide",defId:id,gx:0,gz:0,rotation,level,spanX:rotation%2?h:w,spanZ:rotation%2?w:h,

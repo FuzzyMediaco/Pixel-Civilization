@@ -9,6 +9,16 @@ import type { GameState, PlacedElement } from "./simulation";
 import { TILE_SIZE, VOXEL_SIZE } from "./voxelCore";
 import { networkRoadProfile } from "./designs/networks";
 import { buildOccupancyMap, getNetworkConnMask } from "./simulation";
+import {
+  cloneVoxelPatch,
+  computeVoxelStrokeEdits,
+  fillTileVoxelsFromCell,
+  isVoxelSculptTool,
+  syncVoxelPatchWaterFromCell,
+  writeVoxelEditsToState,
+  type VoxelTilePatch,
+} from "./voxelTerrain";
+import { applyElementTerrainInteraction } from "./terrainInteraction";
 
 export const SEA = -0.62;
 export const DIRECTIONS = [
@@ -40,6 +50,9 @@ export interface TerrainCell {
 export interface GridPoint {
   gx: number;
   gz: number;
+  /** Optional 0.25m voxel column coordinates (16 per 4m tile) for sub-tile precision sculpting. */
+  vx?: number;
+  vz?: number;
 }
 export type SpanMode = "foot" | "road" | "rail" | "highway" | "freeway";
 export type SpanShape = "arch" | "truss" | "suspension" | "lift" | "beam";
@@ -80,6 +93,8 @@ export interface Infrastructure {
   revision: number;
   stamp?: string;
   cells: Record<string, TerrainCell>;
+  /** Sparse 16x16 (0.25m pitch) per-tile voxel column overrides. Optional for legacy save compatibility. */
+  voxels?: Record<string, VoxelTilePatch>;
   spans: Record<string, Crossing>;
   conduits: Record<string, Conduit>;
   streets: Record<string, StreetControl>;
@@ -94,13 +109,17 @@ export interface InfrastructureTool {
     | "raise"
     | "lower"
     | "smooth"
+    | "flatten"
+    | "sharpen"
     | "paint"
     | "pond"
+    | "lake"
     | "river"
     | "canal"
     | "bay"
     | "peninsula"
     | "spring"
+    | "valley"
     | "canyon"
     | "mountain"
     | "aqueduct"
@@ -109,6 +128,14 @@ export interface InfrastructureTool {
     | "interchange"
     | "erase";
   radius?: number;
+  /** Precision mode: "voxel" enables 0.25m sub-tile sculpting (0 = exact 1-voxel column). */
+  precision?: "voxel" | "tile";
+  /** Radius in 0.25m voxel columns (0 = single 0.25m column). */
+  voxelRadius?: number;
+  /** Brush strength / falloff intensity multiplier (0.25..2.0). */
+  strength?: number;
+  /** Optional explicit elevation target for Flatten tool. */
+  targetElevation?: number;
   depth?: number;
   height?: number;
   material?: Material;
@@ -131,6 +158,7 @@ export interface InfrastructureTool {
 interface Change {
   key: string;
   cell?: TerrainCell;
+  voxel?: VoxelTilePatch;
   span?: Crossing;
   conduit?: Conduit;
   street?: StreetControl;
@@ -230,7 +258,7 @@ export function elevationFromMargin(margin: number): number {
     ? 0
     : margin >= -7
       ? Math.round(((-(2 - margin) / 9) * 1.45) / 0.25) * 0.25
-      : -1.45 - Math.round(Math.min(1, (-7 - margin) / 26) * 12) * 0.45;
+      : Math.round((-1.5 - Math.min(1, (-7 - margin) / 26) * 5.25) / 0.25) * 0.25;
 }
 export function naturalElevation(x: number, z: number, terrainVersion = 1) {
   return elevationFromMargin(islandMargin(x, z, terrainVersion));
@@ -270,13 +298,17 @@ export const TOOL_STAGES: Record<InfrastructureTool["kind"], number> = {
   raise: 4,
   lower: 4,
   smooth: 4,
+  flatten: 4,
+  sharpen: 4,
   paint: 1,
   pond: 2,
+  lake: 4,
   river: 2,
   canal: 6,
   bay: 9,
   peninsula: 9,
   spring: 12,
+  valley: 6,
   canyon: 12,
   mountain: 12,
   aqueduct: 6,
@@ -294,7 +326,7 @@ export function requiredToolStage(tool: InfrastructureTool): number {
         ? 9
         : 0,
     (isTerrain(tool) && (tool.radius ?? 0) > 1) ||
-      (["pond", "river", "canal", "bay"].includes(tool.kind) && (tool.depth ?? 0) > 2)
+      (["pond", "lake", "river", "canal", "bay"].includes(tool.kind) && (tool.depth ?? 0) > 2)
       ? 9
       : 0,
   );
@@ -454,11 +486,17 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
   }
   const radius = isTerrain(tool) && tool.kind !== "lock" && tool.kind !== "dam" ? clip(tool.radius ?? 0, 0, 3) : 0,
     seen = new Map<string, GridPoint>();
-  for (const { gx, gz } of points)
+  for (const pt of points)
     for (let dz = -radius; dz <= radius; dz++)
       for (let dx = -radius; dx <= radius; dx++)
-        if (dx * dx + dz * dz <= (radius + 0.33) ** 2)
-          seen.set(tileKey(gx + dx, gz + dz), { gx: gx + dx, gz: gz + dz });
+        if (dx * dx + dz * dz <= (radius + 0.33) ** 2) {
+          const k = tileKey(pt.gx + dx, pt.gz + dz);
+          if (dx === 0 && dz === 0 && typeof pt.vx === "number" && typeof pt.vz === "number") {
+            seen.set(k, { gx: pt.gx, gz: pt.gz, vx: pt.vx, vz: pt.vz });
+          } else if (!seen.has(k)) {
+            seen.set(k, { gx: pt.gx + dx, gz: pt.gz + dz });
+          }
+        }
   points = [...seen.values()];
   const affected = new Set<string>();
   const wideId=tool.kind==="bridge" && (tool.mode==="highway"||tool.mode==="freeway")?(tool.mode==="highway"?"highways":"freeways"):undefined;
@@ -522,7 +560,7 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
       isTerrain(tool) &&
       def?.isRoadNetwork &&
       !span &&
-      !["paint", "raise", "smooth"].includes(tool.kind) &&
+      !["paint", "raise", "smooth", "flatten", "sharpen"].includes(tool.kind) &&
       !["bridge_span", "bridge_suspension", "road_overpass"].includes(def.archetype)
     ) {
       return fail("Raise the road onto a bridge before cutting water underneath it.");
@@ -585,11 +623,17 @@ export function editedCell(state: GameState, p: GridPoint, tool: InfrastructureT
       tool.kind === "peninsula"
         ? Math.max(0.25, cell.elevation + amount)
         : clip(cell.elevation + (tool.kind === "mountain" ? 2 : 1) * amount, -12, 24);
-  else if (tool.kind === "lower" || tool.kind === "canyon")
+  else if (tool.kind === "lower" || tool.kind === "canyon" || tool.kind === "valley")
     cell.elevation = Math.max(-12, cell.elevation - amount * (tool.kind === "canyon" ? 2 : 1));
   else if (tool.kind === "smooth") {
     const near = DIRECTIONS.map(([dx, dz]) => getTerrainCell(state, p.gx + dx, p.gz + dz).elevation);
     cell.elevation = round((cell.elevation + near.reduce((a, b) => a + b, 0)) / 5);
+  } else if (tool.kind === "flatten") {
+    cell.elevation = round(tool.targetElevation ?? cell.elevation);
+  } else if (tool.kind === "sharpen") {
+    const near = DIRECTIONS.map(([dx, dz]) => getTerrainCell(state, p.gx + dx, p.gz + dz).elevation);
+    const avg = near.reduce((a, b) => a + b, 0) / near.length;
+    cell.elevation = round(clip(cell.elevation + (cell.elevation - avg) * 0.75, -12, 24));
   } else {
     cell.waterLevel =
       tool.waterLevel ??
@@ -599,7 +643,7 @@ export function editedCell(state: GameState, p: GridPoint, tool: InfrastructureT
     cell.form =
       tool.kind === "bay"
         ? "bay"
-        : tool.kind === "pond"
+        : tool.kind === "pond" || tool.kind === "lake"
           ? "lake"
           : tool.kind === "spring"
             ? "spring"
@@ -610,7 +654,7 @@ export function editedCell(state: GameState, p: GridPoint, tool: InfrastructureT
     cell.material = tool.kind === "canal" ? "clay" : "sand";
   }
   if (
-    tool.kind === "lower" &&
+    (tool.kind === "lower" || tool.kind === "valley") &&
     cell.water === "dry" &&
     cell.elevation < SEA &&
     DIRECTIONS.some(([dx, dz]) => getTerrainCell(state, p.gx + dx, p.gz + dz).water === "salt")
@@ -618,7 +662,7 @@ export function editedCell(state: GameState, p: GridPoint, tool: InfrastructureT
     cell.water = "salt";
     cell.waterLevel = SEA;
   }
-  if (tool.kind === "lower" || tool.kind === "canyon") cell.excavated = true;
+  if (tool.kind === "lower" || tool.kind === "canyon" || tool.kind === "valley") cell.excavated = true;
   if (tool.kind === "canyon") {
     cell.form = "canyon";
     cell.water = "dry";
@@ -667,10 +711,11 @@ export function bridgeGrade(state: GameState, points: GridPoint[], rise: number)
 function capture(i: Infrastructure, key: string): Change {
   return {
     key,
-    cell: i.cells[key],
+    cell: i.cells[key] && { ...i.cells[key] },
+    voxel: cloneVoxelPatch(i.voxels?.[key]),
     span: i.spans[key] && { ...i.spans[key] },
-    conduit: i.conduits[key],
-    street: i.streets[key],
+    conduit: i.conduits[key] && { ...i.conduits[key] },
+    street: i.streets[key] && { ...i.streets[key] },
   };
 }
 function restore(i: Infrastructure, c: Change) {
@@ -682,6 +727,12 @@ function restore(i: Infrastructure, c: Change) {
   ] as const)
     if (value) table[c.key] = value as never;
     else delete table[c.key];
+  if (c.voxel) {
+    i.voxels ??= {};
+    i.voxels[c.key] = cloneVoxelPatch(c.voxel)!;
+  } else if (i.voxels) {
+    delete i.voxels[c.key];
+  }
 }
 function networkPiece(id: string, p: GridPoint, uid: string): PlacedElement {
   return {
@@ -765,6 +816,8 @@ function fillExcavations(state: GameState, before: Map<string, Change>) {
         water: depth ? "fresh" : "dry",
         kind: depth > 0.65 ? "water" : depth ? "coast" : "land",
       };
+      const [gx, gz] = k.split(",").map(Number);
+      syncVoxelPatchWaterFromCell(state, gx, gz, i.cells[k]);
     }
   }
 }
@@ -847,6 +900,8 @@ function accountCoastalWater(state: GameState, before: Map<string, Change>) {
         freeLevel,
         kind: depth > 0.65 ? "water" : depth > 0 ? "coast" : "land",
       };
+      const [gx, gz] = k.split(",").map(Number);
+      syncVoxelPatchWaterFromCell(state, gx, gz, i.cells[k]);
     }
   }
 }
@@ -914,12 +969,50 @@ export function applyInfrastructureStroke(
     upstream = Math.min(baseline, upstream - 0.025);
     gradient.set(tileKey(p.gx, p.gz), { dir: DIRECTIONS.findIndex(([x, z]) => dx === x && dz === z), level: upstream });
   }
+  const useSubVoxelBrush =
+    isVoxelSculptTool(tool) &&
+    (tool.precision === "voxel" ||
+      typeof tool.voxelRadius === "number" ||
+      input.some((pt) => typeof pt.vx === "number" && typeof pt.vz === "number") ||
+      tool.kind === "flatten" ||
+      tool.kind === "sharpen" ||
+      tool.kind === "valley" ||
+      tool.kind === "lake");
+
+  if (useSubVoxelBrush) {
+    const stroke = computeVoxelStrokeEdits(state, tool, input);
+    for (const tk of stroke.touchedTiles) {
+      before.set(tk, capture(i, tk));
+    }
+    const baseMeta: Partial<Pick<TerrainCell, "form" | "source" | "flowDir" | "excavated">> = {};
+    if (tool.kind === "lower" || tool.kind === "canyon" || tool.kind === "valley") baseMeta.excavated = true;
+    if (tool.kind === "spring") baseMeta.source = tool.flow ?? 12;
+    else if (tool.kind === "river") baseMeta.source = tool.flow ?? 4;
+    writeVoxelEditsToState(state, stroke.edits.values(), (tk) => {
+      const seg = gradient.get(tk);
+      if (seg && seg.dir >= 0) return { ...baseMeta, flowDir: seg.dir };
+      return baseMeta;
+    });
+    accountCoastalWater(state, before);
+    transfer(state, "treasury", "outside", plan.cost, "Public works");
+    changed(i);
+    i.undo.push({
+      before: [...before.values()],
+      after: [...before.keys()].map((k) => capture(i, k)),
+      removed,
+      added,
+      cost: plan.cost,
+    });
+    if (i.undo.length > 20) i.undo.shift();
+    return plan;
+  }
+
   points.forEach((p, j) => {
     const k = tileKey(p.gx, p.gz);
     before.set(k, capture(i, k));
     if (isTerrain(tool)) {
       let localTool = tool;
-      if (sculptLine.length && ["mountain", "canyon", "raise", "lower", "smooth"].includes(tool.kind)) {
+      if (sculptLine.length && ["mountain", "canyon", "valley", "raise", "lower", "smooth"].includes(tool.kind)) {
         const distance = Math.min(...sculptLine.map((q) => Math.hypot(p.gx - q.gx, p.gz - q.gz)));
         const strength = Math.max(0.12, 1 - (distance / (tool.radius! + 0.35)) ** 1.25);
         localTool = { ...tool, height: Math.max(0.25, (tool.height ?? 0.75) * strength) };
@@ -953,7 +1046,10 @@ export function applyInfrastructureStroke(
         }
       }
       const layer = tool.eraseLayer ?? (s ? "deck" : i.conduits[k] ? "aqueduct" : "terrain");
-      if (layer === "terrain") delete i.cells[k];
+      if (layer === "terrain") {
+        delete i.cells[k];
+        if (i.voxels) delete i.voxels[k];
+      }
       if (layer === "deck") delete i.spans[k];
       if (layer === "aqueduct") delete i.conduits[k];
       if (layer === "street") delete i.streets[k];
@@ -1062,7 +1158,13 @@ export function applyInfrastructureStroke(
     };
     if(i.spans[k].tier!>1)road.level=Math.min(getMaxElementLevel(id),i.spans[k].tier!);
   });
-  for (const [k, c] of newCells) i.cells[k] = c;
+  for (const [k, c] of newCells) {
+    i.cells[k] = c;
+    if (tool.kind !== "lock" && tool.kind !== "dam") {
+      const [gx, gz] = k.split(",").map(Number);
+      fillTileVoxelsFromCell(state, gx, gz, c);
+    }
+  }
   if (newCells.size || tool.kind === "erase") accountCoastalWater(state, before);
   transfer(state, "treasury", "outside", plan.cost, "Public works");
   changed(i);
@@ -1781,37 +1883,11 @@ export function advanceReservoirs(state: GameState, dt: number) {
     }
 }
 export function applyLandformPlacement(state: GameState, e: PlacedElement) {
-  const kinds: Record<string, InfrastructureTool["kind"]> = {
-    beaches: "paint",
-    deserts: "paint",
-    mountains: "mountain",
-    hills: "raise",
-    canyons: "canyon",
-    rivers: "river",
-    wide_rivers: "river",
-    lakes: "pond",
-    ponds: "pond",
-    canals: "canal",
-    water_tile: "pond",
-    swamps: "pond",
-  };
-  const kind = kinds[e.defId];
-  if (!kind) return;
-  e.sculptsTerrain = true;
-  const i = ensureInfrastructure(state),
-    before = new Map<string, Change>();
-  for (let x = e.gx; x < e.gx + e.spanX; x++)
-    for (let z = e.gz; z < e.gz + e.spanZ; z++) {
-      const k = tileKey(x, z);
-      const tool: InfrastructureTool = {
-        kind,
-        material: e.defId === "swamps" ? "wetland" : "sand",
-        height: 0.8 * e.level,
-        depth: e.defId === "wide_rivers" ? 2.8 : e.defId === "lakes" ? 2.2 : 1.1,
-      };
-      before.set(k, capture(i, k));
-      i.cells[k] = editedCell(state, { gx: x, gz: z }, tool);
-    }
+  const plan = applyElementTerrainInteraction(state, e);
+  if (!plan || plan.edits.size === 0) return;
+  const i = ensureInfrastructure(state);
+  const before = new Map<string, Change>();
+  for (const k of plan.touchedTiles) before.set(k, capture(i, k));
   accountCoastalWater(state, before);
   changed(i);
 }

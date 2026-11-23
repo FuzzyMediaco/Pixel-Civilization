@@ -399,8 +399,14 @@ function eye(c: Ctx): void {
 
 function pyramids(c: Ctx): void {
   const { v, hx, hz, lv, variant } = c;
-  lot(c, "sand");
-  speckle(c, "sandDark", 0.07);
+  for (let z = -hz; z < hz; z++) {
+    for (let x = -hx; x < hx; x++) {
+      const u = (x + 0.5) / hx, w = (z + 0.5) / hz;
+      if (u * u + w * w <= 0.92 + 0.06 * Math.sin(x * 0.4 + z * 0.3)) {
+        v.put(x, 0, z, (x * 5 + z * 3) % 7 === 0 ? "sandDark" : "sand");
+      }
+    }
+  }
   const stone = c.vpick(["limestone", "#dfb878", "#ecce9a", "#d6ad79"]);
   const seam = c.vpick(["sand", "#c49a62", "limestone", "#bd9267"]);
   const pyramid = (cx: number, cz: number, r: number, tall: number) => {

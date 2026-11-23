@@ -2,6 +2,7 @@ import { CAMPUS_FARM_ART } from "./campusFarmArt";
 import { WEALTH_PROJECTS } from "./wealthProjects";
 import { HISTORICAL_WONDERS } from "./historicalCatalog";
 import { NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS } from "./expansionSafetyMilitaryCommerce";
+import { BALANCED_EXPANSION_ELEMENTS } from "./expansionBalancedCatalog";
 export type Footprint = [number, number];
 export type LevelSpanTuple = [Footprint, Footprint, Footprint, Footprint, Footprint];
 
@@ -13,6 +14,7 @@ export const ELEMENT_LEVEL_SPANS: Record<string, LevelSpanTuple> = {
   ...Object.fromEntries(WEALTH_PROJECTS.map(p => [p.id, p.footprints])),
   ...Object.fromEntries(HISTORICAL_WONDERS.map(p => [p.id, p.footprints])),
   ...Object.fromEntries(NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS.map(p => [p.id, p.footprints])),
+  ...Object.fromEntries(BALANCED_EXPANSION_ELEMENTS.map(p => [p.id, p.footprints])),
 
   ferry_landings: [[1,1],[1,1],[1,2],[2,2],[2,3]],
   taxi_ranks: fixed(1, 1),

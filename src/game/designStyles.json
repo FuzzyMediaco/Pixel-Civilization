@@ -1618,5 +1618,149 @@
     "Nautical Blue",
     "Red Cannery",
     "Coastal White"
+  ],
+  "rowhouse_duplex": [
+    "Terracotta Clapboard",
+    "Harbor Slate",
+    "Warm Brick",
+    "Sage Shingle"
+  ],
+  "courtyard_villa": [
+    "Tuscan Ochre",
+    "Aegean White",
+    "Moorish Sand",
+    "Coastal Cedar"
+  ],
+  "mixed_use_midrise": [
+    "Red Brick",
+    "Parisian Limestone",
+    "Nordic Timber",
+    "Modern Slate"
+  ],
+  "penthouse_tower": [
+    "Champagne Limestone",
+    "Ice Curtain Glass",
+    "Obsidian Brass",
+    "Emerald Eco-Spire"
+  ],
+  "tram_station": [
+    "Heritage Crimson",
+    "San Francisco Teal",
+    "European Cream",
+    "Modern Silver"
+  ],
+  "harbor_tugboat": [
+    "Port Red",
+    "Channel Navy",
+    "Safety Orange",
+    "North Sea Green"
+  ],
+  "coastal_corvette": [
+    "Baltic Grey",
+    "Arctic White",
+    "Pacific Slate",
+    "Night Ops"
+  ],
+  "shoreline_overlook": [
+    "Pacific Cedar",
+    "Granite Bluff",
+    "Driftwood Coast",
+    "Mediterranean Stone"
+  ],
+  "tidal_turbine_array": [
+    "Marine White",
+    "Safety Yellow",
+    "Galvanized Steel",
+    "Ocean Teal"
+  ],
+  "recycling_center": [
+    "Eco Green",
+    "Civic Steel",
+    "Solar Timber",
+    "Clean Concrete"
+  ],
+  "compost_works": [
+    "Timber Earth",
+    "Botanical Green",
+    "Copper Dome",
+    "Industrial White"
+  ],
+  "spring_house": [
+    "Mossy Fieldstone",
+    "Alpine Timber",
+    "Roman Travertine",
+    "Cedar Slate"
+  ],
+  "tidal_sluice": [
+    "Granite Iron",
+    "Dutch Brick",
+    "Modern Concrete",
+    "Marine Steel"
+  ],
+  "tidal_pool_walk": [
+    "Basalt Cedar",
+    "Limestone Reef",
+    "Sandstone Cove",
+    "Driftwood Marsh"
+  ],
+  "public_library": [
+    "Beaux-Arts Stone",
+    "Warm Brick",
+    "Nordic Timber Glass",
+    "Modern Skylight"
+  ],
+  "bell_tower_chapel": [
+    "Venetian Brick",
+    "Limestone Ochre",
+    "Whitewashed Island",
+    "Alpine Slate"
+  ],
+  "stone_abbey": [
+    "Cotswold Limestone",
+    "Romanesque Sandstone",
+    "Highland Granite",
+    "Burgundy Tile"
+  ],
+  "zen_shrine": [
+    "Vermilion Cedar",
+    "Mossy Cypress",
+    "Autumn Maple",
+    "Snow Pine"
+  ],
+  "meditation_pavilion": [
+    "Dark Hinoki",
+    "Sandstone Gold",
+    "Jade Tile",
+    "Ivory Teak"
+  ],
+  "colossus_lighthouse": [
+    "Classic Red-Band",
+    "Alexandrian Limestone",
+    "Granite Copper",
+    "Emerald Sea-Stone"
+  ],
+  "civic_observatory": [
+    "Patina Copper",
+    "Silver Aluminum",
+    "Observatory Brass",
+    "Marble White"
+  ],
+  "maritime_museum": [
+    "Red Brick Quay",
+    "Glass Wave",
+    "Naval Limestone",
+    "Nordic Timber"
+  ],
+  "boatyard_slipway": [
+    "Working Rust",
+    "Harbor Blue",
+    "Weathered Timber",
+    "Steel Yellow"
+  ],
+  "solar_spire_arcology": [
+    "Helios Gold",
+    "Verdant Glass",
+    "Alabaster Pearl",
+    "Cobalt Solar"
   ]
 }

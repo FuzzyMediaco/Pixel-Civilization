@@ -1,5 +1,5 @@
 import "./ui.css";
-export { BottomSheet, type SheetHeight } from "./BottomSheet";
+export { AnimatedSheetHost, BottomSheet, type SheetHeight } from "./BottomSheet";
 export { Button, IconButton } from "./Button";
 export { Chip, ChipRow, Tag } from "./Chip";
 export { InspectorCard } from "./InspectorCard";

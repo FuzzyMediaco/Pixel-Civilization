@@ -20,6 +20,7 @@ export type QuickDrawerActionId =
   | "mode_smart"
   | "mode_quick"
   | "mode_exact"
+  | "mode_sculpt"
   | "sim_speed"
   | "undo"
   | "city_issues"
@@ -92,13 +93,14 @@ export interface QuickDrawerContext {
 const DRAWER_HABITS_KEY = "pixel_civ_quick_drawer_habits_v1";
 const DRAWER_PREFS_KEY = "pixel_civ_quick_drawer_prefs_v1";
 
-export const MAX_MANUAL_DRAWER_SLOTS = 6;
+export const MAX_MANUAL_DRAWER_SLOTS = 7;
 
 export const DEFAULT_MANUAL_DRAWER_IDS: QuickDrawerActionId[] = [
   "bulk_select",
   "mode_smart",
   "mode_quick",
   "mode_exact",
+  "mode_sculpt",
   "sim_speed",
   "undo",
 ];
@@ -109,6 +111,7 @@ export const QUICK_DRAWER_CATALOG_META: QuickDrawerCatalogMeta[] = [
   { id: "mode_smart", label: "Smart Build", desc: "3-click adaptive categories → elements", group: "Quick Menus", modeNote: "Manual build modes" },
   { id: "mode_quick", label: "Quick Build", desc: "2-click instant adaptive elements", group: "Quick Menus", modeNote: "Manual build modes" },
   { id: "mode_exact", label: "Exact Build", desc: "4-click fixed 7×7×6 decision tree", group: "Quick Menus", modeNote: "Manual build modes" },
+  { id: "mode_sculpt", label: "Quick Sculpt", desc: "1-tap 0.25m voxel sculpt spiral menu", group: "Quick Menus", modeNote: "Manual build modes" },
   { id: "quick_edit_order", label: "QE Order", desc: "Toggle Quick Edit fixed vs adaptive order", group: "Quick Menus" },
   { id: "after_place_qe", label: "Auto Quick Edit", desc: "Open Quick Edit right after placing", group: "Quick Menus" },
   { id: "build_focus", label: "Build Focus", desc: "Cycle Balanced / Needs / Habits / Nearby", group: "Quick Menus" },
@@ -352,6 +355,19 @@ export function buildQuickDrawerItem(
           : "Exact Build is available in God, Real & Survival modes",
         active: ctx.canManualEdit && ctx.quickBuildMode === "tree",
         tone: ctx.canManualEdit && ctx.quickBuildMode === "tree" ? "accent" : undefined,
+        stayOpen: true,
+        disabled: !ctx.canManualEdit,
+        score,
+      };
+    case "mode_sculpt":
+      return {
+        id,
+        label: "Quick Sculpt",
+        title: ctx.canManualEdit
+          ? "1-tap 0.25m voxel sculpt spiral menu"
+          : "Quick Sculpt is available in God, Real & Survival modes",
+        active: ctx.canManualEdit && ctx.quickBuildMode === "sculpt",
+        tone: ctx.canManualEdit && ctx.quickBuildMode === "sculpt" ? "accent" : undefined,
         stayOpen: true,
         disabled: !ctx.canManualEdit,
         score,
@@ -611,11 +627,12 @@ export function recommendQuickDrawerActions(
     push("bulk_select", (ctx.bulkSelectMode ? 120 : defaultAnchor(96)) + (state.elements.length >= 6 ? 8 : 0));
   }
 
-  // 2–4. The 3 Fast Builder Quick Menus (Defaults #2, #3, #4 in manual-edit modes)
+  // 2–5. The 4 Fast Quick Menus (Smart, Quick, Exact, Quick Sculpt)
   if (ctx.canManualEdit) {
     push("mode_smart", defaultAnchor(92) + (ctx.quickBuildMode === "adaptive" ? 4 : 0));
     push("mode_quick", defaultAnchor(90) + (ctx.quickBuildMode === "instant" ? 4 : 0));
     push("mode_exact", defaultAnchor(88) + (ctx.quickBuildMode === "tree" ? 4 : 0));
+    push("mode_sculpt", defaultAnchor(84) + (ctx.quickBuildMode === "sculpt" ? 12 : 0));
   }
 
   // 5. Simulation Speed (always available in every mode)

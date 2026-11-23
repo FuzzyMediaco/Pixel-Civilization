@@ -91,7 +91,7 @@ test("PixBuilder enforceModeBalance respects God vs Real vs Survival limits and 
 
 test("Mode-specialized Playbook covers all 5 game modes and preserves new chapters", () => {
   assert.equal(PLAYBOOK_MODES.length, 5);
-  assert.equal(EXTRA_PLAYBOOK_CHAPTERS.length, 3);
+  assert.equal(EXTRA_PLAYBOOK_CHAPTERS.length, 4);
   for (const m of PLAYBOOK_MODES) {
     const brief = getModeChapterBrief("safety_military", m.id);
     assert.ok(brief.goal.length > 10 && brief.checklist.length >= 2);

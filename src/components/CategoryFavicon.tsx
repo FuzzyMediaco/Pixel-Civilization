@@ -18,7 +18,6 @@ export const CATEGORY_LABELS: Record<BuildCategory, string> = {
   nature_terrain: "Nature",
   landmarks: "Landmarks",
   wealth_projects: "Wealth",
-  works: "Land & Water",
   all: "All",
   starter: "Starter",
 };
@@ -200,17 +199,18 @@ export function CategoryFavicon({
         </svg>
       );
 
-    case "works":
+    case "starter":
       return (
         <svg {...common}>
-          {/* Sculpted terrain & canal */}
-          <polygon points="3,17 9,7 14,13 17,9.5 21,17" fill="#7c9c64" stroke="#365432" strokeWidth="1.2" strokeLinejoin="round" />
-          <path d="M3,19.5 Q8,17.2 12,19.5 Q16,21.8 21,19.5" stroke="#3aa4d8" strokeWidth="2" strokeLinecap="round" />
+          {/* Village starter sprout on foundation stone */}
+          <rect x="4" y="16.2" width="16" height="4.2" rx="1.2" fill="#c7b28a" stroke="#786342" strokeWidth="1.1" />
+          <path d="M12,16.2 L12,9.5" stroke="#2c7a4b" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M12,11.5 C8.5,11.5 6.2,9.2 6.5,5.8 C9.8,5.6 12,7.8 12,11.5 Z" fill="#4cb56a" stroke="#1e6243" strokeWidth="1.05" strokeLinejoin="round" />
+          <path d="M12,10.2 C15.4,10.2 17.6,8 17.4,4.8 C14.2,4.7 12,6.8 12,10.2 Z" fill="#6bd17e" stroke="#1e6243" strokeWidth="1.05" strokeLinejoin="round" />
         </svg>
       );
 
     case "suggested":
-    case "starter":
       return (
         <svg {...common}>
           {/* Compass starburst */}

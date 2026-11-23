@@ -371,12 +371,9 @@ function pvUnit(c: Ctx, x0: number, x1: number, zFront: number, kind: number): v
 function buildSolarPanels(c: Ctx): void {
   const { v, lv, hx, hz } = c;
   const k = c.variant % 4;
-  const ground = ["grass2", "asphalt", "path2", "soil"][k];
-  lot(c, ground);
-  if (k === 0) speckle(c, "grass3", 0.1);
-  if (k === 2) speckle(c, "stone", 0.12);
-  if (k === 3) {
-    speckle(c, "grass2", 0.25);
+  // Ground solar arrays directly onto terrain (compact pad under inverter shed only).
+  if (lv >= 2) {
+    v.box(-hx + 1, 0, -hz + 1, -hx + (lv >= 4 ? 11 : 9), 1, -hz + 8, k === 1 ? "asphalt" : "concrete2");
   }
 
   // Lv2+: a little shed whose roof is covered in panels
@@ -907,8 +904,7 @@ function turbineAt(c: Ctx, x: number, z: number, H: number, R: number, k: number
 function buildWindTurbine(c: Ctx): void {
   const { v, lv } = c;
   const k = c.variant % 4;
-  lot(c, ["grass", "grass2", "sand", "grass"][k]);
-  speckle(c, ["grass3", "grass3", "sandDark", "grass3"][k], 0.12);
+  // Wind turbine sits directly on terrain via its compact concrete tower footing (no full-parcel slab).
   const H = byLvl(lv, [22, 32, 46, 62, 80]);
   const R = byLvl(lv, [9, 13, 18, 23, 28]);
   const x = 0;

@@ -1,80 +1,71 @@
-import React, { useMemo } from "react";
-import { Lock, Search, X } from "lucide-react";
-import { type CivElementDef, ELEMENTS, type ElementCategory } from "../game/catalog";
-import { elementLevelStats } from "../game/cityDynamics";
-import { buildingCharges } from "../game/cityEconomy";
-import { alertIssues, type IssueFix, suppliesNeed } from "../game/cityIssues";
-import { type GameState, buildingLockReason } from "../game/simulation";
-import type { BuildBrush } from "../game/worldRenderer";
+import React, { useMemo, useRef } from "react";
+import { Search, X } from "lucide-react";
+import {
+  CATEGORY_META,
+  type CivElementDef,
+  type ElementCategory,
+  ELEMENTS,
+} from "../game/catalog";
+import { buildingCharges, unlockWealth } from "../game/cityEconomy";
+import { type IssueFix, suppliesNeed } from "../game/cityIssues";
 import { isCustomElementId } from "../game/customElements";
+import { buildingLockReason, type GameState } from "../game/simulation";
 import { CategoryFavicon } from "./CategoryFavicon";
 import { ElementFavicon } from "./ElementFavicon";
 import { BottomSheet, type SheetHeight } from "./ui";
 
-export type BuildCategory = "suggested" | "custom" | "all" | "works" | ElementCategory;
+export type BuildCategory = "suggested" | "all" | "custom" | ElementCategory;
 
-/** Short, plain names for the build categories. */
-export const BUILD_CHIPS: { id: BuildCategory; label: string }[] = [
-  { id: "suggested", label: "Suggested" },
-  { id: "custom", label: "Pix Custom" },
-  { id: "housing", label: "Homes" },
-  { id: "roads_transit", label: "Roads & transit" },
-  { id: "commerce", label: "Shops & work" },
-  { id: "agriculture", label: "Food" },
-  { id: "power_waste", label: "Power & waste" },
-  { id: "water_util", label: "Water" },
-  { id: "civic_parks", label: "Civic & parks" },
-  { id: "police_military", label: "Safety" },
-  { id: "faith", label: "Faith" },
-  { id: "maritime", label: "Harbor" },
-  { id: "nature_terrain", label: "Nature" },
-  { id: "landmarks", label: "Landmarks" },
-  { id: "wealth_projects", label: "Wealth" },
-  { id: "works", label: "Land & water" },
-  { id: "all", label: "All" },
+export interface BuildSheetBrush {
+  kind: string;
+  defId?: string;
+}
+
+const STAT_LINE = (d: CivElementDef) => {
+  if (d.popBase) return "+" + d.popBase + " homes";
+  if (d.power && d.power > 0) return "+" + d.power + " power";
+  if (d.water && d.water > 0) return "+" + d.water + " water";
+  if (d.food && d.food > 0) return "+" + d.food + " food";
+  if (d.waste && d.waste > 0) return "+" + d.waste + " waste";
+  if (d.fireRadius) return "Fire r" + d.fireRadius;
+  if (d.policeRadius) return "Police r" + d.policeRadius;
+  if (d.education) return "+" + d.education + " school";
+  if (d.recreation) return "+" + d.recreation + " park";
+  if (d.jobs) return "+" + d.jobs + " jobs";
+  if (d.isRoadNetwork) return "Road";
+  if (d.isRailNetwork) return "Rail";
+  return "";
+};
+
+const SUGGESTED_IDS = [
+  "roads",
+  "house",
+  "cottages",
+  "rowhouse_duplex",
+  "farms",
+  "wells",
+  "windmills",
+  "grocery_store",
+  "school",
+  "fire_department",
+  "police_precinct",
+  "park",
+  "shops",
+  "water_towers",
 ];
 
-const n = (x: number) => Math.round(x).toLocaleString();
-/** What a building gives, in words. */
-export function effectSummary(def: CivElementDef, level = 1): string {
-  const v = elementLevelStats(def, level);
-  if (v.population) return `+${n(v.population)} pop`;
-  if (v.jobs) return `+${n(v.jobs)} jobs`;
-  if (v.power) return `+${n(v.power)} pwr`;
-  if (v.water) return `+${n(v.water)} wtr`;
-  if (v.waste) return `+${n(v.waste)} wst`;
-  if (v.food) return `+${n(v.food)} food`;
-  if (v.education) return `+${n(v.education)} edu`;
-  if (v.recreation) return `+${n(v.recreation)} park`;
-  if (v.government) return `+${n(v.government)} civic`;
-  if (v.policeRadius) return `Police · ${n(v.policeRadius)}t`;
-  if (v.fireRadius) return `Fire · ${n(v.fireRadius)}t`;
-  if (v.military) return `+${n(v.military)} def`;
-  if (v.income) return `+$${n(v.income)}`;
-  if (def.isRoadNetwork) return "Road";
-  if (def.isRailNetwork) return "Track";
-  if (def.isWaterFeature) return "Waterway";
-  return "Scenery";
-}
+const CAT_LABELS: Record<string, string> = {
+  suggested: "Suggested",
+  all: "All Elements",
+  custom: "Custom",
+  ...Object.fromEntries(CATEGORY_META.map((c) => [c.id, c.label])),
+};
 
-export function lockLabel(def: CivElementDef, lock: string) {
-  return lock.startsWith("Staff") ? "Office" : def.wealthThreshold ? lock.replace("Reach ", "") : "Stg " + def.stage;
-}
-
-function suggested(state: GameState): CivElementDef[] {
-  const open = ELEMENTS.filter((d) => !buildingLockReason(d, state));
-  const picks: CivElementDef[] = [];
-  const add = (d?: CivElementDef) => {
-    if (d && !picks.includes(d)) picks.push(d);
-  };
-  for (const issue of alertIssues(state)) {
-    const need = issue.fix?.need;
-    if (need) open.filter((d) => suppliesNeed(d, need)).sort((a, b) => a.cost - b.cost).slice(0, 3).forEach(add);
-  }
-  ELEMENTS.filter((d) => isCustomElementId(d.id)).slice(0, 4).forEach(add);
-  ELEMENTS.filter((d) => d.isStarter).forEach(add);
-  return picks.slice(0, 15);
-}
+const COMPACT_MONEY = (v: number) =>
+  new Intl.NumberFormat("en", {
+    notation: Math.abs(v) >= 100000 ? "compact" : "standard",
+    maximumFractionDigits: Math.abs(v) >= 100000 ? 1 : 0,
+  }).format(Math.floor(v));
 
 export function BuildSheet({
   state,
@@ -86,13 +77,12 @@ export function BuildSheet({
   fix,
   onClearFix,
   onPick,
-  works,
   height,
   onHeight,
   onClose,
 }: {
   state: GameState;
-  brush: BuildBrush;
+  brush: BuildSheetBrush;
   cat: BuildCategory;
   onCat: (c: BuildCategory) => void;
   query: string;
@@ -100,64 +90,102 @@ export function BuildSheet({
   fix?: IssueFix;
   onClearFix: () => void;
   onPick: (defId: string) => void;
-  works: React.ReactNode;
   height: SheetHeight;
   onHeight: (h: SheetHeight) => void;
   onClose: () => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const god = state.mode === "god";
   const charges = buildingCharges(state);
-  const customCount = ELEMENTS.filter((el) => isCustomElementId(el.id)).length;
+  const wealth = unlockWealth(state);
+  const searching = query.trim().length > 0;
+  const activeCat: BuildCategory = fix?.category ?? cat;
+
+  const isUnlocked = (d: CivElementDef) => god || !buildingLockReason(d, state);
+
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list: CivElementDef[];
-    if (q)
-      list = ELEMENTS.filter(
-        (el) =>
-          el.name.toLowerCase().includes(q) ||
-          el.description.toLowerCase().includes(q) ||
-          el.category.toLowerCase().includes(q) ||
-          (q.includes("feed") && (el.food ?? 0) > 0) ||
-          ((q.includes("span") || q.includes("bridge")) && el.archetype.startsWith("bridge")),
+    let list = ELEMENTS.filter((d) => isUnlocked(d));
+    if (fix?.need) {
+      const picked = list.filter((d) => suppliesNeed(d, fix.need!));
+      if (picked.length) return picked;
+    }
+    if (q) {
+      return list.filter(
+        (d) =>
+          d.name.toLowerCase().includes(q) ||
+          d.id.toLowerCase().includes(q) ||
+          d.description.toLowerCase().includes(q) ||
+          d.category.includes(q),
       );
-    else if (fix) list = ELEMENTS.filter((el) => (fix.need ? suppliesNeed(el, fix.need) : el.category === fix.category));
-    else if (cat === "suggested") return suggested(state);
-    else if (cat === "custom") list = ELEMENTS.filter((el) => isCustomElementId(el.id));
-    else if (cat === "all") list = ELEMENTS;
-    else list = ELEMENTS.filter((el) => el.category === cat);
-    return [...list].sort((a, b) => {
-      const ua = buildingLockReason(a, state) ? 1 : 0,
-        ub = buildingLockReason(b, state) ? 1 : 0;
-      return ua - ub || a.stage - b.stage || a.cost - b.cost;
-    });
-  }, [cat, query, fix, state, customCount]);
+    }
+    if (activeCat === "custom") return list.filter((d) => isCustomElementId(d.id));
+    if (activeCat === "suggested") {
+      const byId = new Map(list.map((d) => [d.id, d]));
+      const top = SUGGESTED_IDS.map((id) => byId.get(id)).filter((d): d is CivElementDef => !!d);
+      return top.length ? top : list.slice(0, 12);
+    }
+    if (activeCat === "starter") list = list.filter((d) => d.isStarter);
+    else if (activeCat !== "all") list = list.filter((d) => d.category === activeCat);
+    return list;
+  }, [state, god, wealth, query, activeCat, fix]);
 
-  const showWorks = cat === "works" && !query && !fix;
-  const visibleChips = BUILD_CHIPS.filter((c) => c.id !== "custom" || customCount > 0);
-  const activeCatLabel = fix ? fix.label : query ? `"${query}"` : (BUILD_CHIPS.find((c) => c.id === cat)?.label ?? "Build");
+  const lockedCount = useMemo(() => {
+    if (god || activeCat === "suggested" || activeCat === "custom" || searching) return 0;
+    return ELEMENTS.filter(
+      (d) =>
+        (activeCat === "all" || (activeCat === "starter" ? d.isStarter : d.category === activeCat)) &&
+        !isUnlocked(d),
+    ).length;
+  }, [god, activeCat, searching, state, wealth]);
+
+  const activeTitle = fix ? fix.label : searching ? `Search · ${items.length}` : CAT_LABELS[activeCat] ?? "Build";
+  const budgetLabel = charges ? `$${COMPACT_MONEY(state.money)}` : "Free";
+
+  const hasCustom = useMemo(() => ELEMENTS.some((d) => isCustomElementId(d.id)), [ELEMENTS.length]);
+
+  const cats: { id: BuildCategory; label: string }[] = [
+    { id: "suggested", label: "Suggested" },
+    { id: "all", label: "All elements" },
+    ...(hasCustom ? [{ id: "custom" as BuildCategory, label: "Custom" }] : []),
+    ...CATEGORY_META.map((c) => ({ id: c.id as BuildCategory, label: c.label })),
+  ];
 
   return (
     <BottomSheet
       id="sheet-build"
-      title={activeCatLabel}
-      subtitle={charges ? "$" + Math.floor(state.money).toLocaleString() : "Free"}
+      title={activeTitle}
+      subtitle={budgetLabel}
       height={height}
       onHeightChange={onHeight}
       onClose={onClose}
       closeLabel="Close Build"
       dock={
-        <div className="ui-sheet-dock">
+        <div className="ui-sheet-dock is-tight">
           <div className="ui-build-toolbar">
             <label className="ui-search is-compact">
-              <Search size={14} aria-hidden="true" />
+              <Search size={13} aria-hidden="true" />
               <input
+                ref={inputRef}
                 type="search"
-                aria-label="Find a building"
-                placeholder={`Search ${ELEMENTS.length}…`}
                 value={query}
-                onChange={(e) => onQuery(e.target.value)}
+                onChange={(e) => {
+                  onClearFix();
+                  onQuery(e.target.value);
+                }}
+                placeholder={`Search ${activeTitle.toLowerCase()}…`}
+                aria-label="Search buildable items"
               />
               {query && (
-                <button type="button" className="ui-mini-icon-btn" aria-label="Clear search" onClick={() => onQuery("")}>
+                <button
+                  type="button"
+                  className="ui-mini-icon-btn"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    onQuery("");
+                    inputRef.current?.focus();
+                  }}
+                >
                   <X size={13} />
                 </button>
               )}
@@ -165,96 +193,86 @@ export function BuildSheet({
             {fix && (
               <button
                 type="button"
-                className="ui-chip is-compact"
-                aria-pressed={true}
-                onClick={onClearFix}
+                className="ui-sheet-icon-btn"
                 title="Clear filter"
+                aria-label="Clear fix filter"
+                onClick={onClearFix}
               >
-                <X size={12} />
-                <span>{fix.label}</span>
+                <X size={14} />
               </button>
             )}
           </div>
-          <div className="ui-icon-strip" role="group" aria-label="Building categories">
-            {visibleChips.map((c) => {
-              const active = !fix && !query && cat === c.id;
+          {!searching && (
+            <div className="ui-icon-strip is-compact" role="group" aria-label="Build categories">
+              {cats.map((c) => {
+                const on = activeCat === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={"ui-cat-icon-btn" + (on ? " is-active" : "")}
+                    aria-pressed={on}
+                    aria-label={c.label}
+                    title={c.label}
+                    onClick={() => {
+                      onClearFix();
+                      onCat(c.id);
+                    }}
+                  >
+                    <CategoryFavicon category={c.id} size={17} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      }
+    >
+      {items.length === 0 ? (
+        <div className="ui-empty">
+          Nothing unlocked matches {query ? `“${query}”` : "this category"} yet.
+        </div>
+      ) : (
+        <>
+          <div className="ui-cards is-compact" role="list" aria-label="Items">
+            {items.map((d) => {
+              const cost = charges ? d.cost : 0;
+              const poor = charges && state.money < cost;
+              const stat = STAT_LINE(d);
+              const selected = brush.kind === "place" && brush.defId === d.id;
               return (
                 <button
-                  key={c.id}
+                  key={d.id}
                   type="button"
-                  className={"ui-cat-icon-btn" + (active ? " is-active" : "")}
-                  aria-pressed={active}
-                  aria-label={c.id === "custom" ? `Pix Custom (${customCount})` : c.label}
-                  title={c.id === "custom" ? `Pix Custom (${customCount})` : c.label}
-                  onClick={() => {
-                    onClearFix();
-                    onQuery("");
-                    onCat(c.id);
-                  }}
+                  role="listitem"
+                  className="ui-card is-compact"
+                  aria-pressed={selected}
+                  disabled={poor}
+                  aria-label={
+                    d.name +
+                    (stat ? ", " + stat : "") +
+                    ", " +
+                    (charges ? "$" + cost.toLocaleString() : "Free") +
+                    (poor ? ", not enough funds" : "")
+                  }
+                  onClick={() => onPick(d.id)}
                 >
-                  <CategoryFavicon category={c.id} size={19} />
+                  <ElementFavicon def={d} />
+                  <b>{d.name}</b>
+                  {stat && <small>{stat}</small>}
+                  <span className={"ui-cost" + (poor ? " is-bad" : "")}>
+                    {charges ? "$" + cost.toLocaleString() : "Free"}
+                  </span>
                 </button>
               );
             })}
           </div>
-        </div>
-      }
-    >
-      {showWorks ? (
-        <div className="desk-works">{works}</div>
-      ) : items.length === 0 ? (
-        <p className="ui-empty">No buildings match “{query}”.</p>
-      ) : (
-        <div className="ui-cards">
-          {items.map((def) => {
-            const lock = buildingLockReason(def, state);
-            const selected = brush.kind === "place" && brush.defId === def.id;
-            const afford = !charges || state.money >= def.cost;
-            return (
-              <button
-                key={def.id}
-                type="button"
-                className="ui-card"
-                disabled={!!lock}
-                aria-pressed={selected}
-                title={lock ?? `${def.name} — ${def.description}`}
-                onClick={() => onPick(def.id)}
-                aria-label={
-                  def.name +
-                  ", " +
-                  effectSummary(def) +
-                  (lock ? ", locked: " + lock : charges ? ", costs $" + def.cost.toLocaleString() : "")
-                }
-              >
-                {isCustomElementId(def.id) ? (
-                  <ElementFavicon def={def} className="ui-card-custom-icon" />
-                ) : (
-                  <img
-                    src={"./handbook/catalog/thumbs/" + def.id + ".webp"}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    width={42}
-                    height={42}
-                  />
-                )}
-                <b>{def.name}</b>
-                <small>
-                  {lock ? (
-                    <>
-                      <Lock size={10} aria-hidden="true" /> {lockLabel(def, lock)}
-                    </>
-                  ) : (
-                    effectSummary(def)
-                  )}
-                </small>
-                <span className={"ui-cost" + (afford ? "" : " is-bad")}>
-                  {charges ? "$" + def.cost.toLocaleString() : "Free"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+          {lockedCount > 0 && (
+            <p className="ui-muted" style={{ marginTop: 8, textAlign: "center" }}>
+              {lockedCount} more unlock at higher stages or city wealth.
+            </p>
+          )}
+        </>
       )}
     </BottomSheet>
   );

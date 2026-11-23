@@ -274,14 +274,13 @@ function spaceport(c: Ctx) {
   const { v, lv, hx, hz } = c,
     p = pal(c),
     k = c.variant;
-  lot(c, k === 2 ? "grass2" : p.ground);
-  if (k === 2) speckle(c, "grass3", 0.1);
+  // No full-parcel platform slab: each spaceport zone sits directly on terrain with its own functional apron/footing.
   const H = lv5(c, [14, 22, 30, 40, 54]),
     r = lv5(c, [1.6, 2, 2.5, 3, 4]);
   const rx = R(-hx * 0.25),
     rz = R(-hz * 0.25);
   const padR = lv5(c, [7, 8, 9, 11, 13]);
-  // pad + flame trench toward +z
+  // Functional circular launch pad + flame trench toward +z
   disc(v, rx, rz, 0, 1, padR, (dx, dz) => (Math.abs(Math.sqrt(dx * dx + dz * dz) - padR + 1) < 0.7 ? "hazard" : "concrete"));
   disc(v, rx, rz, 1, 2, padR - 3, () => "concreteDark");
   v.box(rx - 2, 0, rz, rx + 2, 2, Math.min(hz - 1, rz + padR + 4), "charcoal");
@@ -294,12 +293,13 @@ function spaceport(c: Ctx) {
   c.smoke(rx, 2, rz + padR, "steam");
   c.smoke(rx - 2, 2, rz + 2, "steam");
   if (lv >= 3) c.smoke(rx + 2, 2, rz + 3, "steam");
-  // gantry / launch tower
+  // gantry / launch tower grounded directly on concrete footing
   const gw = lv >= 4 ? 5 : 4,
     gx = rx - F(gw / 2),
     gz = R(rz - r) - gw - 2,
     gH = top + 2;
   const gcol = [p.metal, "white", p.metal, "iron"][k];
+  v.box(gx - 1, 0, gz - 1, gx + gw + 1, 1, gz + gw + 1, "concreteDark");
   lattice(v, gx, gz, gw, 1, gH, gcol, k === 3 ? "brass" : gcol);
   v.box(gx - 1, gH, gz - 1, gx + gw + 1, gH + 1, gz + gw + 1, gcol);
   v.box(gx + F(gw / 2), gH + 1, gz + F(gw / 2), gx + F(gw / 2) + 1, gH + 6, gz + F(gw / 2) + 1, "steelDark");
@@ -317,21 +317,24 @@ function spaceport(c: Ctx) {
     // catch-tower chopsticks
     for (const dx of [-4, 3]) v.box(rx + dx, top - 6, gz + gw, rx + dx + 1, top - 5, R(rz + r) + 2, "steelDark");
   }
-  // fuel spheres
+  // fuel spheres on compact concrete footings
   const tanks = lv5(c, [1, 2, 2, 3, 4]);
   for (let i = 0; i < tanks; i++) {
     const tx = R(hx * 0.2) + i * 7 - (lv >= 4 ? 6 : 0),
       tz = R(-hz * 0.62) + (i % 2) * 2;
+    v.box(tx - 2, 0, tz - 2, tx + 2, 1, tz + 2, "concrete");
     for (const [dx, dz] of [[-2, -2], [1, -2], [-2, 1], [1, 1]]) v.box(tx + dx, 1, tz + dz, tx + dx + 1, 4, tz + dz + 1, "steelDark");
     v.sphere(tx, 6, tz, 3, 3, 3, i % 2 ? (k === 3 ? "copper" : "white") : k === 3 ? "brass" : k === 0 ? "cream" : "silver");
     line(v, tx, 2, tz, rx + 3, 2, rz, "steelDark");
   }
-  // blockhouse → mission control
+  // blockhouse → mission control with tight local apron + access walk
   const mw = lv5(c, [8, 10, 12, 14, 18]),
     md = lv5(c, [6, 7, 9, 10, 12]),
     mh = lv5(c, [4, 5, 7, 8, 10]);
   const mx = hx - mw - 2,
     mz = hz - md - 3;
+  v.box(mx - 1, 0, mz - 1, mx + mw + 1, 1, mz + md + 2, p.pave);
+  v.box(mx + 1, 0, mz + md + 2, mx + 4, 1, hz, "path2");
   if (k === 1) {
     v.box(mx, 1, mz, mx + mw, mh + 1, mz + md, "white");
     v.box(mx + 1, 2, mz + md - 1, mx + mw - 1, mh, mz + md, "glass", 0.4);
@@ -364,11 +367,12 @@ function spaceport(c: Ctx) {
     c.addRotor({ vox: dish, pivot: [dx + 0.5, dy + 2, dz + 0.5], axis: "y", speed: 0.4 });
   }
   if (lv >= 3) {
-    // vehicle assembly building with a giant flag stripe
+    // vehicle assembly building with tight slab + crawler track directly on ground
     const ah = lv5(c, [0, 0, 14, 20, 26]),
       aw = lv5(c, [0, 0, 9, 11, 13]),
       ax = mx - aw - 3 + (lv === 3 ? 2 : 0),
       az = R(-hz * 0.7);
+    v.box(ax - 1, 0, az - 1, ax + aw + 1, 1, az + 11, "concrete");
     v.hollowBox(ax, 1, az, ax + aw, ah, az + 10, k === 1 ? "white" : k === 3 ? "slateLight" : "concrete", k === 3 ? "brass" : "steelLight");
     v.box(ax + 2, 1, az + 9, ax + aw - 2, ah - 3, az + 10, "steelDark");
     v.box(ax + aw - 3, ah - 8, az + 10, ax + aw - 1, ah - 2, az + 11, k === 0 ? "red" : k === 1 ? "teal" : k === 2 ? "#2f6b4f" : "brass");
@@ -377,14 +381,15 @@ function spaceport(c: Ctx) {
     v.box(ax + 2, 0, az + 10, ax + aw - 2, 1, Math.min(hz - 1, rz + 2), "#9f9584");
   }
   if (lv >= 4) {
-    // lightning towers
+    // lightning towers grounded directly
     for (const [lx, lz] of [[rx - padR + 1, rz + padR - 2], [rx + padR - 1, rz - padR + 2]]) {
-      v.box(lx, 1, lz, lx + 1, top + 6, lz + 1, "steelDark");
+      v.box(lx, 0, lz, lx + 1, top + 6, lz + 1, "steelDark");
       c.blink(lx, top + 6, lz, "red");
     }
-    // passenger terminal with glass front
+    // passenger terminal with tight local curb
     const tx0 = -hx + 2,
       tz0 = hz - 9;
+    v.box(tx0 - 1, 0, tz0 - 1, tx0 + 15, 1, hz, p.pave);
     v.box(tx0, 1, tz0, tx0 + 14, 6, hz - 2, k === 3 ? "slateLight" : p.wall);
     v.box(tx0 + 1, 2, hz - 3, tx0 + 13, 5, hz - 2, "glass", 0.5);
     v.box(tx0 - 1, 6, tz0 - 1, tx0 + 15, 7, hz - 1, p.trim);
@@ -400,11 +405,13 @@ function spaceport(c: Ctx) {
     v.cone(lx, 16, 18, lz, 2, 1, "charcoal");
     for (const [dx, dz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) line(v, lx + dx, 5, lz + dz, lx + dx * 4, 1, lz + dz * 4, "steelDark");
     c.smoke(lx, 2, lz, "steam");
-    // the orbital gateway arch
+    // the orbital gateway arch with grounded stone piers & walkway (no raised platform slab)
     const gy = 12;
     v.ringZ(0, gy, hz - 4, hz - 2, 10, 8, k === 3 ? "brass" : k === 1 ? "white" : p.wall2);
     v.ringZ(0, gy, hz - 3, hz - 2, 8, 7.4, p.glow, 1.2);
-    v.box(-12, 1, hz - 5, 12, 2, hz - 1, p.pave);
+    v.box(-10, 0, hz - 5, -7, 1, hz - 1, "concreteDark");
+    v.box(7, 0, hz - 5, 10, 1, hz - 1, "concreteDark");
+    v.box(-3, 0, hz - 6, 3, 1, hz, p.pave);
     c.blink(0, gy + 10, hz - 3, "red");
   }
   if (k === 2) for (let i = 0; i < lv + 2; i++) tree(v, -hx + 2 + ((i * 5) % (hx - 4)), 1, hz - 2 - (i % 2) * 3, "pine", 1.1 + (i % 3) * 0.2);

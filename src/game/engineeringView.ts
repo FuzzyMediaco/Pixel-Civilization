@@ -19,9 +19,16 @@ import {
   type WorksPreview,
   type Material,
 } from "./terrain";
+import {
+  VOXELS_PER_TILE,
+  VOXEL_PITCH,
+  computeVoxelStrokeEdits,
+  isVoxelSculptTool,
+  sampleVoxelColumn,
+} from "./voxelTerrain";
 import {buildOccupancyMap, getNetworkConnMask, type GameState} from "./simulation";
 
-const earth: Record<Material, number> = {
+export const VOXEL_EARTH: Record<Material, number> = {
   grass: 0x81b561,
   sand: 0xe1cb91,
   rock: 0x908781,
@@ -29,6 +36,25 @@ const earth: Record<Material, number> = {
   wetland: 0x6e8d68,
   snow: 0xe2ece8,
 };
+export const VOXEL_EARTH_ALT: Record<Material, number> = {
+  grass: 0x77ad58,
+  sand: 0xd9c084,
+  rock: 0x847b75,
+  clay: 0x966e54,
+  wetland: 0x63825d,
+  snow: 0xd8e4e0,
+};
+export const VOXEL_EARTH_SIDE: Record<Material, number> = {
+  grass: 0x8d6e54,
+  sand: 0xc2a874,
+  rock: 0x6f6863,
+  clay: 0x7d5a44,
+  wetland: 0x556c50,
+  snow: 0xc4d0d0,
+};
+const earth = VOXEL_EARTH;
+const earthAlt = VOXEL_EARTH_ALT;
+const earthSide = VOXEL_EARTH_SIDE;
 const corners = [
   [0, 0, 0],
   [1, 0, 0],
@@ -81,11 +107,25 @@ export class EngineeringView {
   readonly preview = new THREE.Group();
   readonly mask: THREE.DataTexture;
   private pixels = new Uint8Array(GRID_SIZE * GRID_SIZE * 4);
-  private material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.87, side: THREE.DoubleSide });
+  private material = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.87,
+    metalness: 0.0,
+    flatShading: true,
+    side: THREE.DoubleSide,
+  });
+  private voxelWaterMat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.24,
+    metalness: 0.06,
+    transparent: true,
+    opacity: 0.78,
+    side: THREE.DoubleSide,
+  });
   private previewMat = new THREE.MeshBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: 0.52,
+    opacity: 0.56,
     depthWrite: false,
     side: THREE.DoubleSide,
   });
@@ -101,21 +141,26 @@ export class EngineeringView {
     this.mask.minFilter = THREE.NearestFilter;
     this.mask.needsUpdate = true;
   }
-  patchLand(mat: THREE.MeshStandardMaterial) {
+  patchLand(mat: THREE.MeshStandardMaterial, voxelChecker = true) {
     mat.onBeforeCompile = (s) => {
       s.uniforms.uWorksMask = { value: this.mask };
       s.vertexShader =
-        "varying vec2 vWorksXZ;\n" +
+        "varying vec2 vWorksXZ;\nvarying float vVoxelTop;\n" +
         s.vertexShader.replace(
           "#include <begin_vertex>",
-          "#include <begin_vertex>\nvWorksXZ=(modelMatrix*vec4(position,1.)).xz;",
+          "#include <begin_vertex>\nvWorksXZ=(modelMatrix*vec4(position,1.)).xz;\nvVoxelTop=normal.y;",
         );
+      const checkerSnippet = voxelChecker
+        ? `\nif(vVoxelTop>0.5){\n vec2 vc=floor(vWorksXZ/0.25);\n float ck=mod(vc.x+vc.y,2.0);\n if(ck>0.5) diffuseColor.rgb*=vec3(0.935,0.955,0.925);\n}`
+        : "";
       s.fragmentShader =
-        "varying vec2 vWorksXZ; uniform sampler2D uWorksMask;\n" +
-        s.fragmentShader.replace(
-          "#include <clipping_planes_fragment>",
-          "#include <clipping_planes_fragment>\n" + maskTerrainFragment,
-        );
+        "varying vec2 vWorksXZ;\nvarying float vVoxelTop;\nuniform sampler2D uWorksMask;\n" +
+        s.fragmentShader
+          .replace(
+            "#include <clipping_planes_fragment>",
+            "#include <clipping_planes_fragment>\n" + maskTerrainFragment,
+          )
+          .replace("#include <color_fragment>", "#include <color_fragment>" + checkerSnippet);
     };
   }
   private clear(g: THREE.Group) {
@@ -132,6 +177,8 @@ export class EngineeringView {
       (infra?.stamp ?? infra?.revision ?? 0) +
       "|" +
       Object.keys(infra?.cells ?? {}).length +
+      "|" +
+      Object.keys(infra?.voxels ?? {}).length +
       "|" +
       state.elements.map((e) => [e.id, e.gx, e.gz, e.level, e.disrepair, e.onFire].join("/")).join(";") +
       "|" +
@@ -161,15 +208,200 @@ export class EngineeringView {
       return;
     }
     const solid = new Blocks();
+    const voxelWater = new Blocks();
     const hydro = hydraulics(state);
+    const voxelPatches = infra.voxels ?? {};
     for (const [k, cell] of Object.entries(infra.cells)) {
       const [gx, gz] = k.split(",").map(Number),
         x = gx * 4,
         z = gz * 4;
       const maskPixel = cellIndex(gx, gz) * 4;
-      const tidal = this.drawOceanWithWaves && sharesOceanSurface(cell);
+      const patch = voxelPatches[k];
+      const hasVoxels = Boolean(patch && Object.keys(patch.cols).length > 0);
+      const tidal = !hasVoxels && this.drawOceanWithWaves && sharesOceanSurface(cell);
       this.pixels[maskPixel] = 255; // Edited ground gets its own geometry.
-      this.pixels[maskPixel + 1] = tidal ? 0 : 255; // Fresh or dry edits hide the ocean underneath.
+      this.pixels[maskPixel + 1] = tidal ? 0 : 255;
+
+      if (hasVoxels) {
+        // True 16x16 (0.25m) voxel-column meshing with culled vertical skirts and seamless ocean integration
+        const baseVx = gx * VOXELS_PER_TILE;
+        const baseVz = gz * VOXELS_PER_TILE;
+        const samples = new Array(VOXELS_PER_TILE * VOXELS_PER_TILE);
+        let needsOceanMask = !this.drawOceanWithWaves;
+        for (let lz = 0; lz < VOXELS_PER_TILE; lz++) {
+          for (let lx = 0; lx < VOXELS_PER_TILE; lx++) {
+            const s = sampleVoxelColumn(state, baseVx + lx, baseVz + lz);
+            samples[lz * VOXELS_PER_TILE + lx] = s;
+            // Only mask the live animated ocean where dry excavated land (e.g. deep canyon)
+            // or depressed freshwater dips below sea level; saltwater shores let the live 0.25m ocean show natively.
+            if (
+              (s.water === "dry" && s.elevation < -0.64) ||
+              (s.water === "fresh" && s.waterLevel < -0.64)
+            ) {
+              needsOceanMask = true;
+            }
+          }
+        }
+        this.pixels[maskPixel + 1] = needsOceanMask ? 255 : 0;
+
+        const sampleRel = (lx: number, lz: number) => {
+          if (lx >= 0 && lx < VOXELS_PER_TILE && lz >= 0 && lz < VOXELS_PER_TILE) {
+            return samples[lz * VOXELS_PER_TILE + lx];
+          }
+          return sampleVoxelColumn(state, baseVx + lx, baseVz + lz);
+        };
+        for (let lz = 0; lz < VOXELS_PER_TILE; lz++) {
+          for (let lx = 0; lx < VOXELS_PER_TILE; lx++) {
+            const s = samples[lz * VOXELS_PER_TILE + lx];
+            const vx0 = x + lx * VOXEL_PITCH;
+            const vz0 = z + lz * VOXEL_PITCH;
+            const vx1 = vx0 + VOXEL_PITCH;
+            const vz1 = vz0 + VOXEL_PITCH;
+            const y = s.elevation;
+            const mat: Material = s.material;
+            const checker = (baseVx + lx + baseVz + lz) & 1;
+            const skipDeepSeabed = !needsOceanMask && s.water === "salt" && y < -2.25;
+            if (!skipDeepSeabed) {
+              let topCol = checker ? earthAlt[mat] : earth[mat];
+              if (s.wet && mat === "sand") {
+                topCol = s.depth > 0.02 ? (checker ? 0xad8f62 : 0xb49668) : checker ? 0xcab079 : 0xd2b882;
+              } else if (mat === "rock" && y > 6.8) {
+                topCol = checker ? 0xd8e4e0 : 0xe4eeea;
+              }
+              // Top face
+              solid.face([vx0, y, vz0], [vx0, y, vz1], [vx1, y, vz1], [vx1, y, vz0], topCol);
+
+              // Exposed cliff/terrace vertical skirts where neighbor column is lower
+              const sideCol = s.wet && mat === "sand" ? 0xa98d62 : earthSide[mat];
+              const nN = sampleRel(lx, lz - 1).elevation;
+              if (nN < y - 0.005) {
+                solid.face([vx0, nN, vz0], [vx0, y, vz0], [vx1, y, vz0], [vx1, nN, vz0], sideCol);
+              }
+              const nS = sampleRel(lx, lz + 1).elevation;
+              if (nS < y - 0.005) {
+                solid.face([vx1, nS, vz1], [vx1, y, vz1], [vx0, y, vz1], [vx0, nS, vz1], sideCol);
+              }
+              const nW = sampleRel(lx - 1, lz).elevation;
+              if (nW < y - 0.005) {
+                solid.face([vx0, nW, vz1], [vx0, y, vz1], [vx0, y, vz0], [vx0, nW, vz0], sideCol);
+              }
+              const nE = sampleRel(lx + 1, lz).elevation;
+              if (nE < y - 0.005) {
+                solid.face([vx1, nE, vz0], [vx1, y, vz0], [vx1, y, vz1], [vx1, nE, vz1], sideCol);
+              }
+            }
+
+            // Voxel water top surface for freshwater, canals, elevated pools, or masked basins
+            // (open tidal saltwater at SEA uses the live animated 0.25m ocean shader seamlessly)
+            const usesLiveOcean = !needsOceanMask && s.water === "salt" && Math.abs(s.waterLevel - -0.62) < 0.035;
+            if (s.depth > 0.02 && !usesLiveOcean) {
+              const wl = s.waterLevel;
+              const isFoam = s.depth < 0.085 && (s.water === "salt" || (checker === 0 && s.depth < 0.065));
+              const wCol = isFoam
+                ? 0xaee6f0
+                : s.water === "salt"
+                  ? s.depth > 1.35
+                    ? 0x1f7ac7
+                    : s.depth > 0.55
+                      ? 0x2ca2d4
+                      : 0x3dbfe0
+                  : s.depth > 1.0
+                    ? 0x3a99b8
+                    : 0x57c0d2;
+              voxelWater.face([vx0, wl, vz0], [vx0, wl, vz1], [vx1, wl, vz1], [vx1, wl, vz0], wCol);
+            }
+          }
+        }
+        // Preserve animated stream markers and dam/lock 3D works on voxel channels
+        if (cell.depth > 0) {
+          if (hydro.channels.has(k) && cell.flowDir !== undefined) {
+            const [dx, dz] = DIRECTIONS[cell.flowDir];
+            this.currentPoints.push({
+              x: x + 2 - dx * 0.9 + dz * 0.34,
+              y: cell.waterLevel + 0.035,
+              z: z + 2 - dz * 0.9 + dx * 0.34,
+              dx,
+              dz,
+              phase: (gx * 7 + gz * 5) * 0.14,
+            });
+          }
+          if (cell.gateKind) {
+            const axis = cell.flowDir === 1 || cell.flowDir === 3;
+            for (const offset of [-1, 1]) {
+              solid.box(
+                x + (axis ? 0.85 : 2 + offset * 1.6),
+                cell.waterLevel - 0.3,
+                z + (axis ? 2 + offset * 1.6 : 0.85),
+                axis ? 2.3 : 0.4,
+                1.3,
+                axis ? 0.4 : 2.3,
+                0x807b69,
+              );
+            }
+            if (cell.gateKind === "dam") {
+              const [dx, dz] = DIRECTIONS[cell.flowDir ?? 2];
+              const upstream = getTerrainCell(state, gx - dx, gz - dz);
+              const h = Math.max(0.8, cell.gateHead ?? 1),
+                crest = cell.waterLevel + h + 0.24;
+              const along = (a: number, y: number, b: number, len: number, high: number, w: number, col: number) =>
+                solid.box(x + 2 + (axis ? a : b), y, z + 2 + (axis ? b : a), axis ? len : w, high, axis ? w : len, col);
+              for (const side of [-1, 1]) {
+                const b = side * 1.48;
+                along(-0.58, cell.elevation, b - 0.34, 1.16, crest - cell.elevation + 0.06, 0.68, 0x918e7e);
+                along(-0.68, crest, b - 0.43, 1.36, 0.24, 0.86, 0xaaa38f);
+                along(-0.24, crest + 0.22, b - 0.17, 0.49, 0.45, 0.34, 0x637879);
+              }
+              along(-0.22, crest, -1.94, 0.44, 0.22, 3.88, 0x8b7960);
+              for (const b of [-1.75, -1, -0.22, 0.55, 1.35, 1.8])
+                along(-0.18, crest + 0.22, b, 0.065, 0.35, 0.065, 0x596461);
+              along(-0.18, crest + 0.54, -1.8, 0.07, 0.07, 3.64, 0x697772);
+              if (cell.gate === "closed") {
+                along(-0.16, cell.elevation, -1.2, 0.32, Math.max(0.3, crest - cell.elevation - 0.28), 2.4, 0x657b7a);
+                for (let gy = cell.elevation + 0.32; gy < crest - 0.4; gy += 0.45)
+                  along(-0.22, gy, -1.2, 0.44, 0.07, 2.4, 0xaab4a3);
+                if (upstream.waterLevel > cell.waterLevel + 0.25) {
+                  const sign = dx || dz;
+                  for (const off of [-0.77, 0.59]) {
+                    for (let j = 0; j < 5; j++)
+                      along(
+                        sign * (0.23 + j * 0.1),
+                        cell.waterLevel + 0.03 + (4 - j) * 0.13,
+                        off,
+                        0.23,
+                        0.2,
+                        0.33,
+                        j % 2 ? 0x8ed2cc : 0xb7e6da,
+                      );
+                  }
+                }
+              }
+            } else if (cell.gate === "closed") {
+              solid.box(
+                x + (axis ? 1.9 : 0.2),
+                cell.waterLevel - 0.45,
+                z + (axis ? 0.2 : 1.9),
+                axis ? 0.25 : 3.6,
+                0.95,
+                axis ? 3.6 : 0.25,
+                0x704e35,
+              );
+            } else {
+              for (const off of [0.35, 3.25])
+                solid.box(
+                  x + (axis ? 1 : off),
+                  cell.waterLevel - 0.25,
+                  z + (axis ? off : 1),
+                  axis ? 1.9 : 0.22,
+                  0.7,
+                  axis ? 0.22 : 1.9,
+                  0x947444,
+                );
+            }
+          }
+        }
+        continue;
+      }
+
       // Each edited cell owns its ground. Untouched coast retains the original island mesh.
       const dry = !cell.depth,
         base = cell.elevation;
@@ -915,6 +1147,7 @@ export class EngineeringView {
       this.group.add(this.streamMarks);
     }
     if (solid.positions.length) this.group.add(solid.mesh(this.material));
+    if (voxelWater.positions.length) this.group.add(voxelWater.mesh(this.voxelWaterMat));
   }
   animate(state: GameState) {
     for (const [k, m] of this.weights) {
@@ -939,11 +1172,45 @@ export class EngineeringView {
       (m.material as THREE.MeshBasicMaterial).color.setHex(roadTravelOpen(state, x, z, 0, 1) ? 0x57e784 : 0xff5242);
     }
   }
-  showPreview(state: GameState, plan: WorksPreview | null, tool?: InfrastructureTool) {
+  showPreview(
+    state: GameState,
+    plan: WorksPreview | null,
+    tool?: InfrastructureTool,
+    rawPoints?: { gx: number; gz: number; vx?: number; vz?: number }[],
+  ) {
     this.clear(this.preview);
     if (!plan) return;
     const blocks = new Blocks();
     const col = plan.valid ? 0xf6ce70 : 0xf07962;
+
+    // Pure 0.25m voxel brush preview for all sculpt, shape, and water tools (no 4m tile box!)
+    if (tool && isVoxelSculptTool(tool)) {
+      const pts = (rawPoints && rawPoints.length ? rawPoints : plan.points).slice(-12);
+      if (pts.length) {
+        const stroke = computeVoxelStrokeEdits(state, tool, pts);
+        const capCol = plan.valid ? 0x38bdf8 : 0xf07962;
+        const rimCol = plan.valid ? 0xf8e187 : 0xf87171;
+        const total = stroke.edits.size;
+        const stride = total > 420 ? Math.ceil(total / 420) : 1;
+        let idx = 0;
+        for (const edit of stroke.edits.values()) {
+          if (stride > 1 && idx++ % stride !== 0) continue;
+          const wx = edit.vx * VOXEL_PITCH;
+          const wz = edit.vz * VOXEL_PITCH;
+          const cur = sampleVoxelColumn(state, edit.vx, edit.vz);
+          const curTop = Math.max(cur.elevation, cur.depth > 0 ? cur.waterLevel : -Infinity);
+          const nextTop = Math.max(edit.col.y, edit.col.w && edit.col.w !== "dry" ? (edit.col.wl ?? -0.62) : -Infinity);
+          const y = Math.max(curTop, nextTop) + 0.05;
+          blocks.box(wx + 0.015, y, wz + 0.015, VOXEL_PITCH - 0.03, 0.04, VOXEL_PITCH - 0.03, capCol);
+          if (total <= 180 && Math.abs(nextTop - curTop) >= 0.24) {
+            blocks.box(wx + 0.08, Math.min(curTop, nextTop), wz + 0.08, 0.09, Math.abs(nextTop - curTop), 0.09, rimCol);
+          }
+        }
+      }
+      if (blocks.positions.length) this.preview.add(blocks.mesh(this.previewMat));
+      return;
+    }
+
     const ports = new Set(plan.points.map((p) => tileKey(p.gx, p.gz)));
     const first = plan.points[0],
       last = plan.points.at(-1);
@@ -991,20 +1258,9 @@ export class EngineeringView {
         if (horizontal)
           blocks.face([x, start, z + a], [x + 4, end, z + a], [x + 4, end, z + b], [x, start, z + b], col);
         else blocks.face([x + a, start, z], [x + b, start, z], [x + b, end, z + 4], [x + a, end, z + 4], col);
-      } else if (tool && ["raise", "mountain", "peninsula", "lower", "canyon", "smooth"].includes(tool.kind)) {
-        const next = editedCell(state, p, tool);
-        const h = next.elevation + 0.12;
-        if (Math.abs(h - y) > 0.14) {
-          blocks.box(x + 0.2, h, z + 0.2, 3.6, 0.055, 3.6, col);
-          for (const [dx, dz] of [
-            [0.22, 0.22],
-            [3.72, 3.72],
-          ])
-            blocks.box(x + dx, Math.min(y, h), z + dz, 0.075, Math.abs(h - y), 0.075, col);
-        }
       }
     }
-    this.preview.add(blocks.mesh(this.previewMat));
+    if (blocks.positions.length) this.preview.add(blocks.mesh(this.previewMat));
   }
   dispose() {
     if (this.streamMarks) {
@@ -1015,6 +1271,7 @@ export class EngineeringView {
     this.clear(this.group);
     this.clear(this.preview);
     this.material.dispose();
+    this.voxelWaterMat.dispose();
     this.previewMat.dispose();
     this.mask.dispose();
   }

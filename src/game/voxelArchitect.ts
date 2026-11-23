@@ -57,6 +57,7 @@ export function buildDesignVoxels(
   const [designX, designZ] = design.footprints[Math.max(0,Math.min(lv - 1,design.footprints.length-1))];
   const c = makeCtx(def.id, lv, variant, designX, designZ, connMask);
   c.parcelEdges = appearance.edges;
+  c.worldSculpted = appearance.worldSculpted;
   try {
     design.build(c);
     if(VEHICLE_ROADS.has(def.id))paintRoadStage(c);

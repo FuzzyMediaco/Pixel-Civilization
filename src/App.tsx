@@ -5,16 +5,17 @@ import { dispatchVessel, previewWaterPassage } from "./game/mobility";
 import { buildingCharges, transfer } from "./game/cityEconomy";
 import "./islandDesk.css";
 import { Connections, GodControls } from "./components/IslandControls";
-import { InfrastructurePanel, worksToolLabel } from "./components/InfrastructurePanel";
+import { InfrastructurePanel, defaultSculptTool, worksToolLabel } from "./components/InfrastructurePanel";
 import { CityEconomyPanel } from "./components/CityEconomyPanel";
-import { applyInfrastructureStroke, applyLandformPlacement, planInfrastructureStroke, type GridPoint, type InfrastructureTool } from "./game/terrain";
+import { applyInfrastructureStroke, applyLandformPlacement, planInfrastructureStroke, undoInfrastructure, type GridPoint, type InfrastructureTool } from "./game/terrain";
+import { VOXELS_PER_TILE, VOXEL_PITCH, effectiveVoxelRadius, isVoxelSculptTool } from "./game/voxelTerrain";
 import { visitPracticeRailway } from "./game/practiceRailway";
 import { ExampleIslands, WorldGuide } from "./components/ExampleIslands";
 import { EXAMPLE_WORLDS, createExampleWorld, type ExampleMode, type ExampleWorldId } from "./game/exampleWorlds";
 import { loadModeState, persistMode, resumeIsland } from "./game/activeIsland";
 import { createCanalDistrict } from "./game/canalDistrict";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertOctagon, Check, Layers, Minus, Plus, RotateCcw, RotateCw, ShieldAlert, Trash2, X } from "lucide-react";
+import { AlertOctagon, ArrowDown, ArrowUp, Check, ChevronLeft, Layers, Minus, Plus, RotateCcw, RotateCw, ShieldAlert, Trash2, Undo2, Waves, X } from "lucide-react";
 import { settleStreetFacing } from "./game/streetFacing";
 import { GameDialog } from "./components/GameDialog";
 import { SaveSlotsModal } from "./components/SaveSlotsModal";
@@ -29,12 +30,12 @@ import { GuideModal, type GuideModalState } from "./components/GuideModal";
 import { InspectorSheet } from "./components/InspectorSheet";
 import { LayersSheet, LAYERS } from "./components/LayersSheet";
 import { CitySheet, type CityTab } from "./components/CitySheet";
-import { TransitSheet } from "./components/TransitSheet";
+import { SettingsSheet } from "./components/SettingsSheet";
 import { MoreSheet, type CursorBehavior, type MorePage } from "./components/MoreSheet";
 import { IdleModeBanner, ManagerDecisionCard } from "./components/ManagerDecisionCard";
 import { PixBuilderModal, type PixTab } from "./components/PixBuilderModal";
 import { TutorialOverlay } from "./components/TutorialOverlay";
-import { Button, ConfirmDialog, IconButton, Toasts, type SheetHeight, type UiToast } from "./components/ui";
+import { AnimatedSheetHost, BottomSheet, Button, ConfirmDialog, IconButton, Toasts, type SheetHeight, type UiToast } from "./components/ui";
 import { alertIssues, type IssueFix } from "./game/cityIssues";
 import {
   analyzeTileContext,
@@ -58,8 +59,10 @@ import {
 import {
   loadQuickMenuPrefs,
   recordQuickEditClick,
+  recordQuickSculptUse,
   saveQuickMenuPrefs,
   type QuickMenuPrefs,
+  type QuickSculptToolId,
   type SmartBuildFocus,
 } from "./game/quickMenuPrefs";
 import {
@@ -164,7 +167,7 @@ function pickAdjacentNetworkVariant(elements: PlacedElement[], gx: number, gz: n
   return 0;
 }
 
-const DEFAULT_HEIGHT: Record<NavSheet, SheetHeight> = {build: "peek", layers: "peek", city: "peek", transit: "peek", more: "peek"};
+const DEFAULT_HEIGHT: Record<NavSheet, SheetHeight> = {build: "peek", layers: "peek", city: "peek", sculpt: "peek", more: "peek"};
 const idleBrush = (b: BuildBrush): BuildBrush => ({...b, kind: "none", defId: undefined, movingElementId: undefined});
 
 export const App: React.FC = () => {
@@ -289,6 +292,7 @@ export const App: React.FC = () => {
     saveQuickDrawerPrefs(next);
   }, []);
   const [focusQuickDrawerConfig, setFocusQuickDrawerConfig] = useState(0);
+  const [focusQuickSculptConfig, setFocusQuickSculptConfig] = useState(0);
   const trackDrawerAction = useCallback((actionId: QuickDrawerActionId, weight = 1) => {
     setQuickDrawerHabits((prev) => {
       const next = recordQuickDrawerAction(prev, actionId, weight);
@@ -467,8 +471,10 @@ export const App: React.FC = () => {
   }, [clearTutorialTimer, showToast]);
 
   /** Open a home (or close it if it is already open). Every sheet replaces whatever was open. */
-  const openSheet=useCallback((id:NavSheet|null,toggle=false)=>{
-    setPendingWorks(null);setWorksTool(null);setDispatchTarget(undefined);
+  const openSheet=useCallback((id:NavSheet|null,toggle=false,preserveSelection=false)=>{
+    setPendingWorks(null);
+    if (id !== "sculpt") setWorksTool(null);
+    setDispatchTarget(undefined);
     setPendingRoadStroke(null);
     setBulkSelectMode(false);
     setQuickBuild(null);
@@ -480,18 +486,18 @@ export const App: React.FC = () => {
     const current = sheetRef.current;
     const next = toggle && current === id ? null : id;
     if (next && next !== current) setSheetHeight(DEFAULT_HEIGHT[next]);
-    if (next) setSelectedIds(ids => next === "transit" ? ids : []);
+    if (next && !preserveSelection) setSelectedIds([]);
     setSheetState(next);
     if (id !== "more") setMorePage(null);
     if (next === "build") notifyTutorial("open_build");
     else if (next === "layers") notifyTutorial("open_layers");
     else if (next === "city") notifyTutorial("open_city");
-    else if (next === "transit") notifyTutorial("open_transit");
     else if (next === "more") notifyTutorial("open_more");
   },[notifyTutorial]);
-  const openWorks=useCallback(()=>{setBuildFix(undefined);setBuildQuery("");setBuildCat("works");openSheet("build");},[openSheet]);
-  const openTransit=useCallback(()=>openSheet("transit"),[openSheet]);
-  const openCity=useCallback((tab:CityTab)=>{setCityTab(tab);openSheet("city");},[openSheet]);
+  const openWorks=useCallback(()=>{openSheet("sculpt");},[openSheet]);
+  const openSettings=useCallback(()=>{openSheet("more");setMorePage("settings");},[openSheet]);
+  const openTransit=useCallback(()=>{setCityTab("transit");openSheet("city",false,true);notifyTutorial("open_transit");},[openSheet,notifyTutorial]);
+  const openCity=useCallback((tab:CityTab)=>{setCityTab(tab);openSheet("city",false,tab==="transit");if(tab==="transit")notifyTutorial("open_transit");},[openSheet,notifyTutorial]);
   const openFix=useCallback((fix:IssueFix)=>{setBuildQuery("");setBuildFix(fix);openSheet("build");},[openSheet]);
   const showLayer=useCallback((layer:HeatmapKind)=>{setActiveHeatmap(layer);openSheet("layers");setSheetHeight("peek");},[openSheet]);
   const openMore=useCallback((page:MorePage)=>{openSheet("more");setMorePage(page);},[openSheet]);
@@ -683,6 +689,10 @@ export const App: React.FC = () => {
 
     const cur = stateRef.current;
     if (cur.gameOver || cur.mode === "idle" || cur.mode === "manager") return;
+    if (quickBuildModeRef.current === "sculpt") {
+      setQuickBuild({ gx, gz, category: null, treeParentId: null, treeSubId: null });
+      return;
+    }
     if (quickBuildModeRef.current === "tree") {
       setQuickBuild({ gx, gz, category: null, treeParentId: null, treeSubId: null });
       return;
@@ -1263,10 +1273,13 @@ export const App: React.FC = () => {
         setDeletedAnchor(null);
         setSelectionUndo(null);
       } else if(typing) return;
-      else if(e.repeat && ["KeyB","KeyL","KeyC","KeyT","KeyM","KeyH","KeyV","KeyR"].includes(e.code)) return;
-      else if (["KeyB","KeyL","KeyC","KeyT","KeyM","KeyH"].includes(e.code)) {
-        const keys:Record<string,NavSheet>={KeyB:"build",KeyL:"layers",KeyH:"layers",KeyC:"city",KeyT:"transit",KeyM:"more"};
+      else if(e.repeat && ["KeyB","KeyL","KeyC","KeyS","KeyT","KeyM","KeyH","KeyV","KeyR"].includes(e.code)) return;
+      else if (["KeyB","KeyL","KeyC","KeyS","KeyM","KeyH"].includes(e.code)) {
+        const keys:Record<string,NavSheet>={KeyB:"build",KeyL:"layers",KeyH:"layers",KeyC:"city",KeyS:"sculpt",KeyM:"more"};
         openSheet(keys[e.code],true);
+      } else if (e.code === "KeyT") {
+        if (sheetRef.current === "city" && cityTab === "transit") openSheet(null);
+        else openTransit();
       } else if (e.code==="KeyV") {
         openSheet("more");setMorePage("view");
       } else if (e.key === "=" || e.key === "+") {
@@ -1843,13 +1856,11 @@ export const App: React.FC = () => {
         (!placing && (selectedIds.length > 1 || (selected && selectedDef) || deletedAnchor))),
   );
   const showInspector=!!(selected&&selectedDef&&inspectorDetailOpen&&!sheet&&!placing&&!bulkSelectMode&&!guideModal&&!pixModal.open);
-  const inFocusMenu = Boolean(
-    showQuickBuildRing ||
-      showSelectionRing ||
-      showInspector ||
+  const ringOpen = Boolean(showQuickBuildRing || showSelectionRing);
+  const hardHideChrome = Boolean(
+    showInspector ||
       bulkSelectMode ||
       pendingRoadStroke ||
-      sheet ||
       placing ||
       railSite ||
       examplesOpen ||
@@ -1859,9 +1870,10 @@ export const App: React.FC = () => {
       confirmResetOpen ||
       gameState.gameOver,
   );
-  const hideChrome = inFocusMenu;
+  const inFocusMenu = Boolean(ringOpen || hardHideChrome);
+  const hideChrome = hardHideChrome;
   const issues=alertIssues(gameState);
-  const showAlert=!hideChrome&&issues.length>0;
+  const showAlert=!hideChrome&&!ringOpen&&!sheet&&issues.length>0;
   const gameToasts:UiToast[]=gameState.toasts.map(t=>({id:t.id,title:t.title,subtitle:t.subtitle,tone:t.kind==="stage"?"gold":t.kind==="raid"||t.kind==="alert"?"alert":"normal"}));
   const layerName=LAYERS.find(l=>l.id===activeHeatmap)?.label;
   const hoverBad=brush.kind!=="none"&&hoverInfo&&!hoverInfo.valid?hoverInfo.reason:undefined;
@@ -1935,7 +1947,7 @@ export const App: React.FC = () => {
           canUndo: Boolean(gameState.constructionHistory?.length),
         },
         quickDrawerHabits,
-        6,
+        7,
         quickDrawerPrefs,
       ),
     [
@@ -1971,6 +1983,9 @@ export const App: React.FC = () => {
           break;
         case "mode_exact":
           handleChangeQuickBuildMode("tree");
+          break;
+        case "mode_sculpt":
+          handleChangeQuickBuildMode("sculpt");
           break;
         case "sim_speed": {
           const nextSpd = simSpeed === 0 ? 1 : simSpeed === 1 ? 2 : simSpeed === 2 ? 4 : 0;
@@ -2059,7 +2074,7 @@ export const App: React.FC = () => {
           openMore("mode");
           break;
         case "settings":
-          openMore("settings");
+          openSettings();
           break;
       }
       if (!item.stayOpen) {
@@ -2076,6 +2091,7 @@ export const App: React.FC = () => {
       handleUndoBuilding,
       openCity,
       openMore,
+      openSettings,
       openWorks,
       setSimSpeed,
       simSpeed,
@@ -2085,22 +2101,29 @@ export const App: React.FC = () => {
   );
   const currentStageMeta = STAGES[Math.max(0, Math.min(STAGES.length - 1, gameState.currentStage - 1))];
   const autoVisibleNav: NavSheet[] | undefined = activeTutorialStep?.visibleNav
-    ?? (gameState.mode === "idle" || gameState.mode === "manager" ? ["layers", "city", "transit", "more"] : undefined);
+    ?? (gameState.mode === "idle" || gameState.mode === "manager" ? ["layers", "city", "more"] : undefined);
+
+  const activeSheetKey = showInspector && selected && selectedDef
+    ? `inspector:${selected.id}`
+    : sheet
+      ? `sheet:${sheet}${sheet === "more" && morePage === "settings" ? ":settings" : ""}`
+      : null;
 
   return (
-    <main className={"island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]"+(showAlert?" has-alert":"")+(inFocusMenu?" has-focus-menu":"")}>
+    <main className={"island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]"+(showAlert?" has-alert":"")+(inFocusMenu?" has-focus-menu":"")+(ringOpen?" is-ring-open":"")}>
       <canvas ref={canvasRef} className="block h-full w-full cursor-crosshair touch-none" aria-label="Pixel Civilization 3D Voxel Island"/>
 
       {showHud && (
         <Hud
           state={gameState}
           speed={simSpeed}
+          hiddenForRing={ringOpen}
           onStat={(s) => {
             setQuickDrawerOpen(false);
             onHudStat(s);
           }}
           onOpenPix={() => openPixStudio()}
-          quickDrawerOpen={quickDrawerOpen}
+          quickDrawerOpen={quickDrawerOpen && !ringOpen}
           quickDrawerManual={quickDrawerPrefs.mode === "manual"}
           bulkSelectActive={bulkSelectMode}
           drawerItems={quickDrawerItems}
@@ -2112,12 +2135,12 @@ export const App: React.FC = () => {
           onCustomizeQuickDrawer={() => {
             setQuickDrawerOpen(false);
             setFocusQuickDrawerConfig((c) => c + 1);
-            openMore("settings");
+            openSettings();
             setSheetHeight("half");
           }}
         />
       )}
-      {!hideChrome && gameState.mode === "idle" && (
+      {!hideChrome && !ringOpen && gameState.mode === "idle" && (
         <IdleModeBanner
           stage={gameState.currentStage}
           stageName={currentStageMeta.name}
@@ -2126,7 +2149,7 @@ export const App: React.FC = () => {
           onTogglePause={() => setIdlePaused((p) => !p)}
         />
       )}
-      {!hideChrome && gameState.mode === "manager" && managerDecision && (
+      {!hideChrome && !ringOpen && gameState.mode === "manager" && managerDecision && (
         <ManagerDecisionCard
           decision={managerDecision}
           lastAction={autoLastAction}
@@ -2140,24 +2163,24 @@ export const App: React.FC = () => {
           stepIndex={tutorialState.stepIndex}
           totalSteps={TUTORIAL_FLOWS[tutorialState.mode].length}
           completedStep={tutorialState.completed}
-          belowHud={showHud}
+          belowHud={showHud && !ringOpen}
           onNext={advanceTutorial}
           onExit={() => stopTutorial(false)}
         />
       )}
       {showAlert&&<AlertPill issues={issues} onOpen={()=>openCity("issues")}/>}
       {saveError&&<p className="storage-notice" role="alert">This island could not be saved in browser storage. Keep the game open while you free space.</p>}
-      {!hideChrome && gameState.activeAttack&&<div className="ui-banner" role="alert">
+      {!hideChrome && !ringOpen && gameState.activeAttack&&<div className="ui-banner" role="alert">
         <ShieldAlert size={18} aria-hidden="true"/>
         <span style={{flex:1}}>{gameState.activeAttack.units.length} enemies · {gameState.activeAttack.defenders.length} defenders
           {gameState.activeAttack.defenders.length?"":" · no defenders!"} · lost {gameState.activeAttack.buildingsDestroyed}</span>
         {gameState.mode==="god"&&<Button small label="Stop" onClick={handleClearAttack}/>}
       </div>}
-      {!hideChrome && <Toasts items={[...uiToasts,...gameToasts]} onDismiss={dismissToast}/>}
+      {!hideChrome && !ringOpen && <Toasts items={[...uiToasts,...gameToasts]} onDismiss={dismissToast}/>}
 
-      {!hideChrome && activeExample && !sheet && !showInspector && !placing &&
+      {!hideChrome && !ringOpen && activeExample && !sheet && !showInspector && !placing &&
         <WorldGuide key={activeExample.id} world={activeExample} selected={gameState.exampleViewpoint} onVisit={visitViewpoint} onBrowse={openExamples} onRailYard={openRailYard}/>}
-      {!hideChrome && activeHeatmap!=="none"&&!sheet&&!placing&&!showInspector&&!activeExample&&<div className="ui-layer-chip">
+      {!hideChrome && !ringOpen && activeHeatmap!=="none"&&!sheet&&!placing&&!showInspector&&!activeExample&&<div className="ui-layer-chip">
         <button type="button" onClick={()=>openSheet("layers")} aria-label={"Layer: "+layerName+". Open Layers"}><Layers size={16} aria-hidden="true"/>{layerName}</button>
         <IconButton variant="quiet" aria-label="Clear layer" icon={<X size={16}/>} onClick={()=>setActiveHeatmap("none")}/>
       </div>}
@@ -2189,10 +2212,57 @@ export const App: React.FC = () => {
       {movingEl&&<PlacementBar label="Moving" def={ELEMENT_BY_ID[movingEl.defId]} title={"Moving "+ELEMENT_BY_ID[movingEl.defId].name} subtitle="Tap a free spot on the map" hint={hoverBad} hintBad={!!hoverBad}>
         <Button label="Cancel" onClick={()=>setBrush(idleBrush)}/>
       </PlacementBar>}
-      {worksTool&&!pendingWorks&&<PlacementBar label="Land and water" title={worksToolLabel(worksTool.kind)} subtitle={worksTool.kind==="bridge"?"Drag 2+ tiles across water, then tap ✓ to confirm":"Drag on the map · 2-finger or Space+drag to move camera"}>
-        <Button small label="Options" onClick={openWorks}/>
-        <IconButton variant="primary" aria-label="Done with land and water tool" icon={<Check size={20}/>} onClick={()=>setWorksTool(null)}/>
-      </PlacementBar>}
+      {worksTool&&!pendingWorks&&sheet!=="sculpt"&&(()=>{
+        const isVoxelBrush = isVoxelSculptTool(worksTool);
+        const radius = isVoxelBrush ? effectiveVoxelRadius(worksTool) : 0;
+        const diam = radius * 2 + 1;
+        const meters = (diam * VOXEL_PITCH).toFixed(2);
+        const stepRadius = (dir: -1 | 1) => {
+          const steps = [0, 1, 2, 3, 4, 6, 8, 12, 16, 24, 32];
+          const curIdx = steps.findIndex((s) => s >= radius);
+          const idx = curIdx === -1 ? steps.length - 1 : curIdx;
+          const next = steps[Math.max(0, Math.min(steps.length - 1, idx + dir))];
+          setWorksTool((t) => (t ? { ...t, precision: "voxel", voxelRadius: next } : t));
+        };
+        const isTerrainFlip = worksTool.kind === "raise" || worksTool.kind === "lower" || worksTool.kind === "smooth";
+        return (
+          <PlacementBar
+            label="Sculpt"
+            title={worksToolLabel(worksTool.kind)}
+            subtitle={
+              worksTool.kind === "bridge"
+                ? "Drag 2+ tiles across water, then tap ✓ to confirm"
+                : isVoxelBrush
+                  ? `${diam} vox (${meters}m) · Drag to sculpt · 2-finger pan/zoom`
+                  : "Drag on the map · 2-finger or Space+drag to move camera"
+            }
+          >
+            {isTerrainFlip && (
+              <span className="ui-sculpt-quick" role="group" aria-label="Quick sculpt mode">
+                <IconButton variant={worksTool.kind === "raise" ? "primary" : "quiet"} aria-label="Raise land" icon={<ArrowUp size={15} />} onClick={() => setWorksTool((t) => (t ? { ...t, kind: "raise", precision: "voxel" } : t))} />
+                <IconButton variant={worksTool.kind === "lower" ? "primary" : "quiet"} aria-label="Lower land" icon={<ArrowDown size={15} />} onClick={() => setWorksTool((t) => (t ? { ...t, kind: "lower", precision: "voxel" } : t))} />
+                <IconButton variant={worksTool.kind === "smooth" ? "primary" : "quiet"} aria-label="Smooth grade" icon={<Waves size={15} />} onClick={() => setWorksTool((t) => (t ? { ...t, kind: "smooth", precision: "voxel" } : t))} />
+              </span>
+            )}
+            {isVoxelBrush && (
+              <span className="ui-level" role="group" aria-label="Brush voxel size">
+                <IconButton variant="quiet" aria-label="Smaller brush" icon={<Minus size={15} />} disabled={radius <= 0} onClick={() => stepRadius(-1)} />
+                <span>{diam}v</span>
+                <IconButton variant="quiet" aria-label="Larger brush" icon={<Plus size={15} />} disabled={radius >= 32} onClick={() => stepRadius(1)} />
+              </span>
+            )}
+            <IconButton
+              variant="quiet"
+              aria-label="Undo last sculpt"
+              icon={<Undo2 size={16} />}
+              disabled={!gameState.infrastructure?.undo.length}
+              onClick={() => editCity((d) => { undoInfrastructure(d); })}
+            />
+            <Button small label="Tools" onClick={openWorks} />
+            <IconButton variant="primary" aria-label="Done sculpting" icon={<Check size={20} />} onClick={() => setWorksTool(null)} />
+          </PlacementBar>
+        );
+      })()}
       {pendingWorks&&worksPreview&&isBridgeConfirm&&(
         <p className={"ui-placebar-hint" + (worksPreview.valid ? "" : " is-bad")} role={worksPreview.valid ? "status" : "alert"}>
           {worksPreview.valid
@@ -2282,6 +2352,57 @@ export const App: React.FC = () => {
           treeSubId={quickBuild.treeSubId}
           treeElements={quickTreeElements}
           exactParentOrder={quickMenuPrefs.exactParentOrder}
+          quickSculptPrefs={quickMenuPrefs.quickSculpt}
+          canUndoSculpt={Boolean(gameState.infrastructure?.undo.length)}
+          onPickSculptTool={(toolId: QuickSculptToolId) => {
+            const qs = quickMenuPrefsRef.current.quickSculpt;
+            const base = defaultSculptTool(toolId);
+            const configured: InfrastructureTool = isVoxelSculptTool(base)
+              ? {
+                  ...base,
+                  precision: "voxel",
+                  voxelRadius: qs.voxelRadius,
+                  strength: qs.strength,
+                  ...(toolId === "paint" || toolId === "peninsula" ? { material: qs.paintMaterial } : {}),
+                }
+              : base;
+            const nextPrefs = recordQuickSculptUse(quickMenuPrefsRef.current, toolId);
+            handleChangeQuickMenuPrefs(nextPrefs);
+            if (toolId === "bridge" || qs.tapBehavior === "arm_brush") {
+              setWorksTool(configured);
+              setQuickBuild(null);
+              return;
+            }
+            const vx = quickBuild.gx * VOXELS_PER_TILE + 8;
+            const vz = quickBuild.gz * VOXELS_PER_TILE + 8;
+            editCity((st) => {
+              const res = applyInfrastructureStroke(st, configured, [{ gx: quickBuild.gx, gz: quickBuild.gz, vx, vz }]);
+              if (!res.valid && res.reason) {
+                pushToast(st, "alert", "Quick Sculpt", res.reason);
+              }
+            });
+            if (qs.tapBehavior === "stamp_and_brush") {
+              setWorksTool(configured);
+              setQuickBuild(null);
+            }
+          }}
+          onCycleSculptRadius={() => {
+            const presets = [0, 1, 3, 6, 12];
+            const cur = quickMenuPrefsRef.current.quickSculpt.voxelRadius;
+            const idx = presets.findIndex((r) => r > cur);
+            const nextRadius = idx === -1 ? presets[0] : presets[idx];
+            handleChangeQuickMenuPrefs({
+              ...quickMenuPrefsRef.current,
+              quickSculpt: { ...quickMenuPrefsRef.current.quickSculpt, voxelRadius: nextRadius },
+            });
+          }}
+          onUndoSculpt={() => editCity((d) => { undoInfrastructure(d); })}
+          onCustomizeQuickSculpt={() => {
+            setQuickBuild(null);
+            setFocusQuickSculptConfig((c) => c + 1);
+            openSettings();
+            setSheetHeight("half");
+          }}
           onSubscribeProjection={subscribeRingProjection}
           onPickCategory={(cat) =>
             setQuickBuild({ gx: quickBuild.gx, gz: quickBuild.gz, category: cat, treeParentId: null, treeSubId: null })
@@ -2366,60 +2487,101 @@ export const App: React.FC = () => {
         />
       )}
 
-      {showInspector&&selected&&selectedDef&&<InspectorSheet key={selected.id} state={gameState} el={selected} def={selectedDef}
-        height={inspectorHeight} onHeight={setInspectorHeight} onClose={()=>setInspectorDetailOpen(false)}
-        onUpgrade={()=>gameState.mode==="god"?handleGodMutateSelected(selected.id,{level:selected.level+1}):handleUpgradeSelected(selected.id)}
-        onLevelDown={()=>handleGodMutateSelected(selected.id,{level:Math.max(1,selected.level-1)})}
-        onMove={()=>{setInspectorDetailOpen(false);setBrush(b=>({...b,kind:"move",movingElementId:selected.id,defId:undefined}));}}
-        onRotate={()=>rotateSelected(selected.id)} onVariant={()=>handleGodMutateSelected(selected.id,{variant:(selected.variant+1)%4})}
-        onMaintain={()=>handleMaintainSelected(selected.id)} onDemolish={()=>demolish([selected.id])}
-        onRailOps={()=>setRailSite(selected.id)}
-        onFieldGuide={()=>setGuideModal({kind:"field_guide",elementId:selectedDef.id,level:selected.level,variant:selected.variant+1})}
-        onFix={openFix} onShowLayer={showLayer}
-        links={<Connections s={gameState} el={selected} change={editCity} go={t=>t==="transit"?openTransit():t==="works"?(setInspectPoint({gx:selected.gx,gz:selected.gz}),openWorks()):undefined}/>}
-        info={<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel="site" compactSite/>}/>}
-
-      {sheet==="build"&&<BuildSheet {...sheetProps} state={gameState} brush={brush} cat={buildCat} onCat={setBuildCat} query={buildQuery} onQuery={setBuildQuery}
-        fix={buildFix} onClearFix={()=>setBuildFix(undefined)} onPick={id=>handleSelectBrushDef(id)} works={worksPanel}/>}
-      {sheet==="layers"&&<LayersSheet {...sheetProps} state={gameState} active={activeHeatmap} onSelect={l=>{setActiveHeatmap(l);if(l==="power")trackDrawerAction("heatmap_power",0.5);else if(l==="water")trackDrawerAction("heatmap_water",0.5);else if(l==="police")trackDrawerAction("heatmap_safety",0.5);else if(l==="traffic")trackDrawerAction("heatmap_traffic",0.5);if(l!=="none")notifyTutorial("pick_layer");}} onFix={openFix}/>}
-      {sheet==="city"&&<CitySheet {...sheetProps} state={gameState} tab={cityTab} onTab={setCityTab} mutate={editCity} selected={selected} onFocus={focusSite}
-        onFix={openFix} onShowLayer={showLayer} onShowPanel={showPanel} onMaintainAll={()=>{trackDrawerAction("repair_all",0.5);handleMaintainAll();}}/>}
-      {sheet==="transit"&&<TransitSheet {...sheetProps} state={gameState} mutate={editCity} selected={selected} onFocus={focusSite}
-        onPickDestination={id=>{setDispatchTarget(id);setSheetState(null);}} onFollow={id=>rendererRef.current?.followService(id)} following={followedService}
-        focusLine={returnLine} onGrid={(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openWorks();}}
-        onRailOps={id=>setRailSite(id)}/>}
-      {sheet==="more"&&<MoreSheet {...sheetProps} onUndo={()=>{trackDrawerAction("undo",0.5);handleUndoBuilding();}} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
-        onSaves={()=>{trackDrawerAction("save_slots",0.5);setSavesModalOpen(true);}} onExamples={openExamples}
-        onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"chapters"}});}}
-        onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
-        onChangeMode={m=>{trackDrawerAction("game_mode",0.5);stopTutorial(false);if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={()=>{stopTutorial(false);copyIsland();}}
-        onReset={()=>setConfirmResetOpen(true)} cursorBehavior={cursorBehavior} onCursorBehavior={handleChangeCursorBehavior}
-        selectionFilter={selectionFilter} onSelectionFilter={setSelectionFilter}
-        quickBuildMode={quickBuildMode} onQuickBuildMode={(m)=>{trackDrawerAction(m==="adaptive"?"mode_smart":m==="instant"?"mode_quick":"mode_exact",0.5);handleChangeQuickBuildMode(m);}}
-        quickMenuPrefs={quickMenuPrefs} onQuickMenuPrefs={handleChangeQuickMenuPrefs}
-        quickDrawerPrefs={quickDrawerPrefs} onQuickDrawerPrefs={handleChangeQuickDrawerPrefs}
-        focusQuickDrawerConfig={focusQuickDrawerConfig}
-        learnedBuildsCount={Object.values(buildHabits.elementCounts).reduce((a, b) => a + b, 0) + quickDrawerHabits.totalUses}
-        onResetBuildHabits={handleResetBuildHabits}
-        simSpeed={simSpeed} onSimSpeed={(v)=>{trackDrawerAction("sim_speed",0.5);setSimSpeed(v);}}
-        tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onStopTutorial={()=>stopTutorial(false)}
-        view={<ViewEnvPanel activeTab={viewEnvTab} state={gameState} cameraMode={cameraMode} autoSpin={autoSpin} attackSeverity={attackSeverity}
-          onChangeTab={setViewEnvTab} onChangeCameraMode={m=>{setCameraMode(m);rendererRef.current?.setCameraMode(m);}}
-          onSpinLeft={()=>rendererRef.current?.rotateCameraBy(-Math.PI/4)} onSpinRight={()=>rendererRef.current?.rotateCameraBy(Math.PI/4)}
-          onToggleAutoSpin={()=>{trackDrawerAction("camera_orbit",0.5);setAutoSpin(s=>!s);}} onZoomIn={()=>rendererRef.current?.zoomBy(0.76)} onZoomOut={()=>rendererRef.current?.zoomBy(1.3)}
-          onRecentre={()=>{trackDrawerAction("camera_recenter",0.5);rendererRef.current?.recentreCamera();}} onSetTimeOfDay={handleSetTimeOfDay} onToggleTimeLocked={handleToggleTimeLocked}
-          onSetWeather={handleSetWeather} onToggleWeatherLocked={handleToggleWeatherLocked} onSetWeatherIntensity={handleSetWeatherIntensity}
-          onSetWindSpeed={handleSetWindSpeed} onTriggerLightning={handleTriggerLightning} onChangeAttackSeverity={setAttackSeverity}
-          onLaunchAttack={handleLaunchAttack} onClearAttack={handleClearAttack} onToggleGodCrime={handleToggleGodCrime} onTriggerCrime={handleTriggerCrime}
-          onClose={()=>setMorePage(null)}/>}
-        godTools={gameState.mode==="god"&&<GodControls s={gameState} el={selected} change={editCity}
-          onStep={()=>{setSimSpeed(0);commitState(s=>{stepSimulation(s,1,true);recomputeConnectivityAndMetrics(s);});rendererRef.current?.advanceStreetTraffic(1);}}
-          onSave={()=>{if(snapshot(stateRef.current))showToast({id:"snap",title:"Snapshot saved",subtitle:"Restore it from God tools at any time."});}}
-          canRestore={hasSnapshot} onRestore={()=>{try{const raw=localStorage.getItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{showToast({id:"snap",title:"Unable to restore snapshot",subtitle:"The saved data could not be opened.",tone:"alert"});}}}
-          onDistrict={()=>{const current=stateRef.current;const district=createCanalDistrict();if(saveActiveMode(current)&&snapshot(current.exampleWorldId?loadModeState("god"):current)){activateSandbox(district);openTransit();setSheetHeight("peek");rendererRef.current?.focusGrid(0,-1,74);}}}/>}/>}
+      <AnimatedSheetHost activeKey={activeSheetKey}>
+        {showInspector&&selected&&selectedDef ? (
+          <InspectorSheet key={selected.id} state={gameState} el={selected} def={selectedDef}
+            height={inspectorHeight} onHeight={setInspectorHeight} onClose={()=>setInspectorDetailOpen(false)}
+            onUpgrade={()=>gameState.mode==="god"?handleGodMutateSelected(selected.id,{level:selected.level+1}):handleUpgradeSelected(selected.id)}
+            onLevelDown={()=>handleGodMutateSelected(selected.id,{level:Math.max(1,selected.level-1)})}
+            onMove={()=>{setInspectorDetailOpen(false);setBrush(b=>({...b,kind:"move",movingElementId:selected.id,defId:undefined}));}}
+            onRotate={()=>rotateSelected(selected.id)} onVariant={()=>handleGodMutateSelected(selected.id,{variant:(selected.variant+1)%4})}
+            onMaintain={()=>handleMaintainSelected(selected.id)} onDemolish={()=>demolish([selected.id])}
+            onRailOps={()=>setRailSite(selected.id)}
+            onFieldGuide={()=>setGuideModal({kind:"field_guide",elementId:selectedDef.id,level:selected.level,variant:selected.variant+1})}
+            onFix={openFix} onShowLayer={showLayer}
+            links={<Connections s={gameState} el={selected} change={editCity} go={t=>t==="transit"?openTransit():t==="works"?(setInspectPoint({gx:selected.gx,gz:selected.gz}),openWorks()):undefined}/>}
+            info={<CityEconomyPanel state={gameState} mutate={editCity} selected={selected} onFocus={focusSite} initialPanel="site" compactSite/>}/>
+        ) : sheet==="build" ? (
+          <BuildSheet {...sheetProps} state={gameState} brush={brush} cat={buildCat} onCat={setBuildCat} query={buildQuery} onQuery={setBuildQuery}
+            fix={buildFix} onClearFix={()=>setBuildFix(undefined)} onPick={id=>handleSelectBrushDef(id)}/>
+        ) : sheet==="layers" ? (
+          <LayersSheet {...sheetProps} state={gameState} active={activeHeatmap} onSelect={l=>{setActiveHeatmap(l);if(l==="power")trackDrawerAction("heatmap_power",0.5);else if(l==="water")trackDrawerAction("heatmap_water",0.5);else if(l==="police")trackDrawerAction("heatmap_safety",0.5);else if(l==="traffic")trackDrawerAction("heatmap_traffic",0.5);if(l!=="none")notifyTutorial("pick_layer");}} onFix={openFix}/>
+        ) : sheet==="city" ? (
+          <CitySheet {...sheetProps} state={gameState} tab={cityTab} onTab={t=>{setCityTab(t);if(t==="transit")notifyTutorial("open_transit");}} mutate={editCity} selected={selected} onFocus={focusSite}
+            onFix={openFix} onShowLayer={showLayer} onShowPanel={showPanel} onMaintainAll={()=>{trackDrawerAction("repair_all",0.5);handleMaintainAll();}}
+            transitProps={{
+              onPickDestination:id=>{setDispatchTarget(id);setSheetState(null);},
+              onFollow:id=>rendererRef.current?.followService(id),
+              following:followedService,
+              focusLine:returnLine,
+              onGrid:(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openWorks();},
+              onRailOps:id=>setRailSite(id),
+            }}/>
+        ) : sheet==="sculpt" ? (
+          <BottomSheet
+            id="sheet-sculpt"
+            title="Sculpt"
+            subtitle={
+              worksTool && isVoxelSculptTool(worksTool)
+                ? `${worksToolLabel(worksTool.kind)} · ${effectiveVoxelRadius(worksTool) * 2 + 1} vox (${((effectiveVoxelRadius(worksTool) * 2 + 1) * VOXEL_PITCH).toFixed(2)}m)`
+                : "0.25m voxel terrain"
+            }
+            height={sheetHeight}
+            onHeightChange={setSheetHeight}
+            onClose={() => openSheet(null)}
+            closeLabel="Close Sculpt"
+          >
+            <div className="ui-works-embedded">{worksPanel}</div>
+          </BottomSheet>
+        ) : sheet==="more" && morePage==="settings" ? (
+          <SettingsSheet {...sheetProps} state={gameState}
+            headerLead={
+              <IconButton
+                variant="quiet"
+                aria-label="Back to More"
+                icon={<ChevronLeft size={18} />}
+                onClick={() => setMorePage(null)}
+              />
+            }
+            onUndo={()=>{trackDrawerAction("undo",0.5);handleUndoBuilding();}}
+            cursorBehavior={cursorBehavior} onCursorBehavior={handleChangeCursorBehavior}
+            selectionFilter={selectionFilter} onSelectionFilter={setSelectionFilter}
+            quickBuildMode={quickBuildMode} onQuickBuildMode={(m)=>{trackDrawerAction(m==="adaptive"?"mode_smart":m==="instant"?"mode_quick":m==="sculpt"?"mode_sculpt":"mode_exact",0.5);handleChangeQuickBuildMode(m);}}
+            quickMenuPrefs={quickMenuPrefs} onQuickMenuPrefs={handleChangeQuickMenuPrefs}
+            quickDrawerPrefs={quickDrawerPrefs} onQuickDrawerPrefs={handleChangeQuickDrawerPrefs}
+            focusQuickDrawerConfig={focusQuickDrawerConfig}
+            focusQuickSculptConfig={focusQuickSculptConfig}
+            learnedBuildsCount={Object.values(buildHabits.elementCounts).reduce((a, b) => a + b, 0) + quickDrawerHabits.totalUses}
+            onResetBuildHabits={handleResetBuildHabits}
+            simSpeed={simSpeed} onSimSpeed={(v)=>{trackDrawerAction("sim_speed",0.5);setSimSpeed(v);}}
+            tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onStopTutorial={()=>stopTutorial(false)}/>
+        ) : sheet==="more" ? (
+          <MoreSheet {...sheetProps} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
+            onSaves={()=>{trackDrawerAction("save_slots",0.5);setSavesModalOpen(true);}} onExamples={openExamples}
+            onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"chapters"}});}}
+            onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
+            onChangeMode={m=>{trackDrawerAction("game_mode",0.5);stopTutorial(false);if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={()=>{stopTutorial(false);copyIsland();}}
+            onReset={()=>setConfirmResetOpen(true)}
+            tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial}
+            view={<ViewEnvPanel activeTab={viewEnvTab} state={gameState} cameraMode={cameraMode} autoSpin={autoSpin} attackSeverity={attackSeverity}
+              onChangeTab={setViewEnvTab} onChangeCameraMode={m=>{setCameraMode(m);rendererRef.current?.setCameraMode(m);}}
+              onSpinLeft={()=>rendererRef.current?.rotateCameraBy(-Math.PI/4)} onSpinRight={()=>rendererRef.current?.rotateCameraBy(Math.PI/4)}
+              onToggleAutoSpin={()=>{trackDrawerAction("camera_orbit",0.5);setAutoSpin(s=>!s);}} onZoomIn={()=>rendererRef.current?.zoomBy(0.76)} onZoomOut={()=>rendererRef.current?.zoomBy(1.3)}
+              onRecentre={()=>{trackDrawerAction("camera_recenter",0.5);rendererRef.current?.recentreCamera();}} onSetTimeOfDay={handleSetTimeOfDay} onToggleTimeLocked={handleToggleTimeLocked}
+              onSetWeather={handleSetWeather} onToggleWeatherLocked={handleToggleWeatherLocked} onSetWeatherIntensity={handleSetWeatherIntensity}
+              onSetWindSpeed={handleSetWindSpeed} onTriggerLightning={handleTriggerLightning} onChangeAttackSeverity={setAttackSeverity}
+              onLaunchAttack={handleLaunchAttack} onClearAttack={handleClearAttack} onToggleGodCrime={handleToggleGodCrime} onTriggerCrime={handleTriggerCrime}
+              onClose={()=>setMorePage(null)}/>}
+            godTools={gameState.mode==="god"&&<GodControls s={gameState} el={selected} change={editCity}
+              onStep={()=>{setSimSpeed(0);commitState(s=>{stepSimulation(s,1,true);recomputeConnectivityAndMetrics(s);});rendererRef.current?.advanceStreetTraffic(1);}}
+              onSave={()=>{if(snapshot(stateRef.current))showToast({id:"snap",title:"Snapshot saved",subtitle:"Restore it from God tools at any time."});}}
+              canRestore={hasSnapshot} onRestore={()=>{try{const raw=localStorage.getItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{showToast({id:"snap",title:"Unable to restore snapshot",subtitle:"The saved data could not be opened.",tone:"alert"});}}}
+              onDistrict={()=>{const current=stateRef.current;const district=createCanalDistrict();if(saveActiveMode(current)&&snapshot(current.exampleWorldId?loadModeState("god"):current)){activateSandbox(district);openTransit();setSheetHeight("peek");rendererRef.current?.focusGrid(0,-1,74);}}}/>}/>
+        ) : null}
+      </AnimatedSheetHost>
 
       {!hideChrome && <BottomNav active={sheet} onToggle={id=>openSheet(id,true)} badges={{city:issues.length}}
-        visibleIds={autoVisibleNav} highlightId={activeTutorialStep?.highlightNav}/>}
+        visibleIds={autoVisibleNav} highlightId={activeTutorialStep?.highlightNav} hiddenForRing={ringOpen}/>}
 
       {railSite && gameState.elements.some(e=>e.id===railSite) && <RailOperations state={gameState} selected={gameState.elements.find(e=>e.id===railSite)!} change={editCity}
         onClose={()=>setRailSite(undefined)} onFocus={e=>{setRailSite(undefined);setSheetState(null);focusSite(e.id);}}
