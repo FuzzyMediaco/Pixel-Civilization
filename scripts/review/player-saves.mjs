@@ -112,6 +112,7 @@ async function device() {
           .evaluate((el) => getComputedStyle(el).backgroundColor),
         "rgb(255, 252, 243)",
       );
+      assert.ok(await p.getByRole("button",{name:"Create account & sync",exact:true}).evaluate(el => el.getBoundingClientRect().height >= 44));
       if (process.env.PLAYER_TEST_MOBILE_IMAGE)
         await p.screenshot({ path: process.env.PLAYER_TEST_MOBILE_IMAGE });
     }
