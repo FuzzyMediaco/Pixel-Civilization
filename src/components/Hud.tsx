@@ -169,8 +169,7 @@ export function Hud({
       className={"ui-hud" + (hiddenForRing ? " is-chrome-hidden" : "")}
       aria-label="City status"
       aria-hidden={hiddenForRing || undefined}
-      // @ts-expect-error inert prevents focus/hit-test during coordinated ring fade-out
-      inert={hiddenForRing ? "" : undefined}
+      inert={hiddenForRing}
     >
       <div className="ui-hud-stats">
         <button

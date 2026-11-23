@@ -2492,7 +2492,7 @@ export const App: React.FC = () => {
         />
       )}
 
-      <AnimatedSheetHost activeKey={activeSheetKey}>
+      <AnimatedSheetHost activeKey={activeSheetKey} navigationPanel={showInspector ? undefined : sheet ?? undefined}>
         {showInspector&&selected&&selectedDef ? (
           <InspectorSheet key={selected.id} state={gameState} el={selected} def={selectedDef}
             height={inspectorHeight} onHeight={setInspectorHeight} onClose={()=>setInspectorDetailOpen(false)}

@@ -13,6 +13,7 @@ export function usePWAInstall() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const isStandalone =
+      window.navigator.userAgent.includes("PixelCivilizationOffline") ||
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
     setIsInstalled(isStandalone);

@@ -15,9 +15,11 @@ function prefersReducedMotion(): boolean {
  */
 export function AnimatedSheetHost({
   activeKey,
+  navigationPanel,
   children,
 }: {
   activeKey: string | null;
+  navigationPanel?: string;
   children: React.ReactNode;
 }) {
   const [renderedKey, setRenderedKey] = useState<string | null>(activeKey);
@@ -33,8 +35,14 @@ export function AnimatedSheetHost({
     }
 
     if (activeKey) {
-      if (!renderedKey && typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
-        openerRef.current = document.activeElement;
+      const focused = document.activeElement;
+      const toggle = navigationPanel
+        ? document.querySelector<HTMLButtonElement>(`button[data-panel-toggle="${navigationPanel}"]`)
+        : null;
+      if (toggle && (renderedKey || focused === document.body || focused?.closest("[data-panel-toggle]"))) {
+        openerRef.current = toggle;
+      } else if (!renderedKey && focused instanceof HTMLElement) {
+        openerRef.current = focused;
       }
       setRenderedKey(activeKey);
       setRenderedNode(children);
@@ -66,7 +74,7 @@ export function AnimatedSheetHost({
         timerRef.current = null;
       }
     };
-  }, [activeKey]);
+  }, [activeKey, navigationPanel]);
 
   // Keep live children props fresh whenever activeKey is present
   useEffect(() => {
@@ -82,8 +90,7 @@ export function AnimatedSheetHost({
       className={"ui-sheet-stage" + (exiting ? " is-exiting" : "")}
       data-exiting={exiting ? "true" : "false"}
       aria-hidden={exiting || undefined}
-      // @ts-expect-error inert is standard HTML5 and prevents tab/hit-test on exiting sheet
-      inert={exiting ? "" : undefined}
+      inert={exiting}
     >
       {renderedNode}
     </div>

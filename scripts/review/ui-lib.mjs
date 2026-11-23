@@ -19,7 +19,7 @@ export async function open(browser, ctxOpts, hash = "") {
   const page = await ctx.newPage();
   page.on("pageerror", (e) => console.log("[pageerror]", e.message));
   await page.goto(`http://localhost:${PORT}/${hash}`);
-  await page.locator('nav[aria-label="Main"]').waitFor();
+  await page.getByRole("navigation", {name:"Main navigation"}).waitFor();
   await page.waitForFunction(() => !!window.__pixelWorld?.gameState);
   return { ctx, page };
 }

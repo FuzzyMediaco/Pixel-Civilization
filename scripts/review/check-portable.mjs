@@ -48,8 +48,8 @@ try {
   await page.locator("#historical-plaza").getByRole("link",{name:"Visit this viewpoint"}).click();
   await page.waitForFunction(()=>window.__pixelWorld?.gameState.exampleWorldId==="meridian-fair" && window.__pixelWorld.gameState.exampleViewpoint===0);
   await page.locator('[data-panel-toggle="build"]').click();
-  await page.getByRole("searchbox",{name:"Find a building"}).fill("Machu");
-  await page.getByRole("button",{name:/Machu Picchu/}).waitFor();
+  await page.getByRole("searchbox",{name:"Search buildable items"}).fill("Machu");
+  await page.getByRole("listitem",{name:/Machu Picchu/}).waitFor();
   await font();
   await page.goto(pathToFileURL(path.join(root,"Design atlas.html")).href);
   await page.locator("#art").evaluate(async img=>{await img.decode(); if(!img.naturalWidth) throw Error("Empty atlas");});
