@@ -1,3 +1,4 @@
+import {openDeviceSaves} from "../game/deviceSaves";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { UnifiedAtlas, type UnifiedAtlasRoute } from "../components/UnifiedAtlas";
@@ -81,6 +82,6 @@ export function HandbookView({ embedded = false, initialRoute, onClose, onPlayWo
 }
 
 const standaloneMount = typeof document !== "undefined" ? document.getElementById("handbook") : null;
-if (standaloneMount) {
+if (standaloneMount) void openDeviceSaves().then(()=>{
   createRoot(standaloneMount).render(<HandbookView />);
-}
+});

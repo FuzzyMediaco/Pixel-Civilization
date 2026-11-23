@@ -36,7 +36,7 @@ import { GameDialog } from "./GameDialog";
 
 export type PixTab = "element" | "world" | "advise";
 
-type ModelProvider = "gemini" | "claude" | "chatgpt" | "grok";
+type ModelProvider = "server" | "claude" | "chatgpt" | "grok";
 
 interface PixAdviceAction {
   label: string;
@@ -55,7 +55,7 @@ interface PixAdviceResponse {
 }
 
 const PROVIDERS: { id: ModelProvider; name: string; badge: string; connected: boolean }[] = [
-  { id: "gemini", name: "Gemini 4 Hydrogen", badge: "Connected", connected: true },
+  { id: "server", name: "Pix AI", badge: "Connected", connected: true },
   { id: "claude", name: "Claude", badge: "External slot", connected: false },
   { id: "chatgpt", name: "ChatGPT", badge: "External slot", connected: false },
   { id: "grok", name: "Grok", badge: "External slot", connected: false },
@@ -107,7 +107,8 @@ export function PixBuilderModal({
 }) {
   const canPlace = state.mode !== "idle" && state.mode !== "manager";
   const [tab, setTab] = useState<PixTab>(canPlace ? initialTab : "advise");
-  const [provider, setProvider] = useState<ModelProvider>("gemini");
+  const [provider, setProvider] = useState<ModelProvider>("server");
+  const [modelLabel, setModelLabel] = useState("Pix AI");
   const [serverConfigured, setServerConfigured] = useState<boolean | null>(null);
 
   // Create Element tab state (defaults to Level 5 flagship first; confirms -> auto-generates Lv 1-4)
@@ -145,6 +146,7 @@ export function PixBuilderModal({
       .then((d) => {
         if (active && d && typeof d.configured === "boolean") {
           setServerConfigured(d.configured);
+          if (typeof d.modelLabel === "string" && d.modelLabel.trim()) setModelLabel(d.modelLabel);
         }
       })
       .catch(() => {
@@ -171,7 +173,7 @@ export function PixBuilderModal({
 
   const requestElement = async (promptText: string, isRefinement: boolean) => {
     if (!activeProvider.connected) {
-      setElError(`${activeProvider.name} is not connected here. Switch the model selector to Gemini 4 Hydrogen to run Pix live.`);
+      setElError(`${activeProvider.name} is not connected here. Switch the model selector to ${modelLabel} to run Pix live.`);
       return;
     }
     const clean = promptText.trim();
@@ -272,7 +274,7 @@ export function PixBuilderModal({
 
   const requestWorldPlan = async (promptText: string) => {
     if (!activeProvider.connected) {
-      setWorldError(`${activeProvider.name} is not connected here. Switch to Gemini 4 Hydrogen to build with Pix.`);
+      setWorldError(`${activeProvider.name} is not connected here. Switch to ${modelLabel} to build with Pix.`);
       return;
     }
     const clean = promptText.trim();
@@ -312,7 +314,7 @@ export function PixBuilderModal({
 
   const requestAdvice = async (questionText: string) => {
     if (!activeProvider.connected) {
-      setAdvError(`${activeProvider.name} is not connected here. Switch to Gemini 4 Hydrogen for live advice.`);
+      setAdvError(`${activeProvider.name} is not connected here. Switch to ${modelLabel} for live advice.`);
       return;
     }
     const asked = questionText.trim() || "Analyze my island right now and tell me the best next moves.";
@@ -427,15 +429,15 @@ export function PixBuilderModal({
               aria-pressed={provider === p.id}
               onClick={() => setProvider(p.id)}
             >
-              <b>{p.name}</b>
-              <small>{p.connected ? (serverConfigured === false ? "Key missing" : p.badge) : p.badge}</small>
+              <b>{p.connected ? modelLabel : p.name}</b>
+              <small>{p.connected && serverConfigured === false ? "Unavailable" : p.badge}</small>
             </button>
           ))}
         </div>
 
         {!activeProvider.connected && (
           <div className="pix-notice">
-            {activeProvider.name} is listed as a multi-model selector slot. Select <strong>Gemini 4 Hydrogen</strong> above to run live Pix generations right now.
+            {activeProvider.name} is listed as a multi-model selector slot. Select <strong>{modelLabel}</strong> above to run live Pix generations right now.
           </div>
         )}
 

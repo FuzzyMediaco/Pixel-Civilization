@@ -1,3 +1,4 @@
+import { readPlayerItem, writePlayerItem } from "./deviceSaves";
 /**
  * Unified Quick Menus configuration & safe customization engine:
  *  - Quick Edit: Always-on radial spiral menu around any selected element.
@@ -357,7 +358,7 @@ export function sanitizeQuickMenuPrefs(raw: Partial<QuickMenuPrefs> | null | und
 export function loadQuickMenuPrefs(): QuickMenuPrefs {
   try {
     if (typeof localStorage === "undefined") return createDefaultQuickMenuPrefs();
-    const raw = localStorage.getItem(QUICK_MENU_PREFS_KEY);
+    const raw = readPlayerItem(QUICK_MENU_PREFS_KEY);
     if (!raw) return createDefaultQuickMenuPrefs();
     return sanitizeQuickMenuPrefs(JSON.parse(raw) as Partial<QuickMenuPrefs>);
   } catch {
@@ -368,7 +369,7 @@ export function loadQuickMenuPrefs(): QuickMenuPrefs {
 export function saveQuickMenuPrefs(prefs: QuickMenuPrefs): void {
   try {
     if (typeof localStorage === "undefined") return;
-    localStorage.setItem(QUICK_MENU_PREFS_KEY, JSON.stringify(sanitizeQuickMenuPrefs(prefs)));
+    writePlayerItem(QUICK_MENU_PREFS_KEY, JSON.stringify(sanitizeQuickMenuPrefs(prefs)));
   } catch {
     // Ignore private-mode / quota errors
   }

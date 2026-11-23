@@ -1,3 +1,4 @@
+import { readPlayerItem, writePlayerItem } from "./deviceSaves";
 /**
  * 7 × 7 × 6 Decision Tree for the Exact Build Spiral Menu (294 elements total).
  *
@@ -30,7 +31,7 @@ const QUICK_BUILD_MODE_KEY = "pixel_civ_quick_build_mode_v1";
 export function loadQuickBuildMode(): QuickBuildMode {
   try {
     if (typeof localStorage === "undefined") return "adaptive";
-    const raw = localStorage.getItem(QUICK_BUILD_MODE_KEY);
+    const raw = readPlayerItem(QUICK_BUILD_MODE_KEY);
     if (raw === "tree" || raw === "instant" || raw === "sculpt") return raw;
     return "adaptive";
   } catch {
@@ -41,7 +42,7 @@ export function loadQuickBuildMode(): QuickBuildMode {
 export function saveQuickBuildMode(mode: QuickBuildMode): void {
   try {
     if (typeof localStorage === "undefined") return;
-    localStorage.setItem(QUICK_BUILD_MODE_KEY, mode);
+    writePlayerItem(QUICK_BUILD_MODE_KEY, mode);
   } catch {
     // Ignore private-mode storage errors
   }

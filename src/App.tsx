@@ -1,3 +1,4 @@
+import { readPlayerItem, writePlayerItem, deviceIssue, onDeviceChange, flushDevice } from "./game/deviceSaves";
 import { RailOperations } from "./components/RailOperations";
 import { rememberBuildingEdit, undoBuildingEdit } from "./game/constructionHistory";
 import { dispatchFire } from "./game/projectOperations";
@@ -182,6 +183,8 @@ export const App: React.FC = () => {
   const [railSite,setRailSite] = useState<string>();
   const [saveError,setSaveError]=useState(false);
   const [slotError,setSlotError]=useState("");
+  const [deviceNotice,setDeviceNotice]=useState(deviceIssue);
+  useEffect(()=>onDeviceChange(()=>setDeviceNotice(deviceIssue())),[]);
   const saveModeState=useCallback((s:GameState)=>{const ok=persistMode(s);setSaveError(!ok);return ok;},[]);
   const captureView = useCallback((state: GameState) => {
     const view = rendererRef.current?.getCameraView();
@@ -332,7 +335,7 @@ export const App: React.FC = () => {
   tutorialStateRef.current = tutorialState;
   const tutorialTimerRef = useRef<number | null>(null);
   const [placeStats,setPlaceStats]=useState<{defId:string;count:number;spent:number}>();
-  const [hintsLeft,setHintsLeft]=useState(()=>{try{return Number(localStorage.getItem("pixel_civ_place_hints")??3);}catch{return 3;}});
+  const [hintsLeft,setHintsLeft]=useState(()=>{try{return Number(readPlayerItem("pixel_civ_place_hints")??3);}catch{return 3;}});
 
   const [followedService, setFollowedService] = useState<string>();
   const [returnLine,setReturnLine]=useState<string>();
@@ -350,7 +353,7 @@ export const App: React.FC = () => {
   const bulkSelectModeRef = useRef(false);
   bulkSelectModeRef.current = bulkSelectMode;
   const [bulkFilter, setBulkFilter] = useState<BulkSelectFilter>("all");
-  const [hasSnapshot,setHasSnapshot]=useState(()=>{try{return !!localStorage.getItem("pixel_civ_lab_snapshot");}catch{return false;}});
+  const [hasSnapshot,setHasSnapshot]=useState(()=>{try{return !!readPlayerItem("pixel_civ_lab_snapshot");}catch{return false;}});
   const [cameraMode, setCameraMode] = useState<CameraMode>("pan");
   const [autoSpin, setAutoSpin] = useState(false);
   const restoreIslandView = useCallback((state: GameState) => {
@@ -1114,7 +1117,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (brush.kind !== "place") return;
     setPlaceStats(prev => prev?.defId === brush.defId ? prev : undefined);
-    return () => setHintsLeft(h => {const n = Math.max(0, h - 1); try {localStorage.setItem("pixel_civ_place_hints", String(n));} catch {/* private mode */} return n;});
+    return () => setHintsLeft(h => {const n = Math.max(0, h - 1); try {writePlayerItem("pixel_civ_place_hints", String(n));} catch {/* private mode */} return n;});
   }, [brush.kind, brush.defId]);
 
   // Simulation loop (250ms tick, pauses active Survival timers when tab is hidden)
@@ -1123,6 +1126,7 @@ export const App: React.FC = () => {
     const flush=()=>saveActiveMode(stateRef.current);
     const visibility=()=>{if(document.hidden)flush();};
     window.addEventListener("pagehide",flush);
+    window.addEventListener("pixel-save-before-switch",flush);
     document.addEventListener("visibilitychange",visibility);
     const timer = window.setInterval(() => {
       const now = performance.now();
@@ -1155,7 +1159,7 @@ export const App: React.FC = () => {
       }
     }, 250);
 
-    return () => {window.clearInterval(timer);window.removeEventListener("pagehide",flush);document.removeEventListener("visibilitychange",visibility);};
+    return () => {window.clearInterval(timer);window.removeEventListener("pagehide",flush);window.removeEventListener("pixel-save-before-switch",flush);document.removeEventListener("visibilitychange",visibility);};
   }, []);
 
   // Algorithmic Idle Mode & Manager Mode growth loop
@@ -1497,10 +1501,11 @@ export const App: React.FC = () => {
     if (summary) setAutoLastAction(summary);
   };
 
-  const handleSaveToSlot = (slotIndex: number, name: string) => {
+  const handleSaveToSlot = async (slotIndex: number, name: string) => {
     captureView(stateRef.current);
     let updated:typeof saveSlots;
     try{updated=saveCivilizationToSlot(slotIndex,name,stateRef.current);setSlotError("");}catch{setSlotError("The slot could not be saved. Free browser storage and try again.");return;}
+    try { await flushDevice(); } catch { setSlotError("The slot could not be saved to this device."); return; }
     setSaveSlots(updated);
     setActiveSlotIndex(slotIndex);
     const savedName = updated[slotIndex]?.name ?? `Civilization ${slotIndex + 1}`;
@@ -1644,7 +1649,7 @@ export const App: React.FC = () => {
   };
   const focusSite=(id:string)=>{setSelectedIds([id]);rendererRef.current?.focusElement(id);};
   const snapshot=(s:GameState)=>{
-    try{localStorage.setItem("pixel_civ_lab_snapshot",JSON.stringify({...s,toasts:[]}));setHasSnapshot(true);return true;}
+    try{writePlayerItem("pixel_civ_lab_snapshot",JSON.stringify({...s,toasts:[]}));setHasSnapshot(true);return true;}
     catch{showToast({id:"snap",title:"Snapshot could not be saved",subtitle:"Free a save slot or browser storage, then try again.",tone:"alert"});return false;}
   };
   const activateSandbox=(s:GameState)=>{
@@ -2169,7 +2174,7 @@ export const App: React.FC = () => {
         />
       )}
       {showAlert&&<AlertPill issues={issues} onOpen={()=>openCity("issues")}/>}
-      {saveError&&<p className="storage-notice" role="alert">This island could not be saved in browser storage. Keep the game open while you free space.</p>}
+      {(saveError || deviceNotice)&&<p className="storage-notice" role="alert">{deviceNotice || "This island could not be saved. Keep the game open while you free device storage."}</p>}
       {!hideChrome && !ringOpen && gameState.activeAttack&&<div className="ui-banner" role="alert">
         <ShieldAlert size={18} aria-hidden="true"/>
         <span style={{flex:1}}>{gameState.activeAttack.units.length} enemies · {gameState.activeAttack.defenders.length} defenders
@@ -2556,7 +2561,7 @@ export const App: React.FC = () => {
             simSpeed={simSpeed} onSimSpeed={(v)=>{trackDrawerAction("sim_speed",0.5);setSimSpeed(v);}}
             tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onStopTutorial={()=>stopTutorial(false)}/>
         ) : sheet==="more" ? (
-          <MoreSheet {...sheetProps} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
+          <MoreSheet {...sheetProps} saveNow={()=>saveActiveMode(stateRef.current)} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
             onSaves={()=>{trackDrawerAction("save_slots",0.5);setSavesModalOpen(true);}} onExamples={openExamples}
             onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"chapters"}});}}
             onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
@@ -2575,7 +2580,7 @@ export const App: React.FC = () => {
             godTools={gameState.mode==="god"&&<GodControls s={gameState} el={selected} change={editCity}
               onStep={()=>{setSimSpeed(0);commitState(s=>{stepSimulation(s,1,true);recomputeConnectivityAndMetrics(s);});rendererRef.current?.advanceStreetTraffic(1);}}
               onSave={()=>{if(snapshot(stateRef.current))showToast({id:"snap",title:"Snapshot saved",subtitle:"Restore it from God tools at any time."});}}
-              canRestore={hasSnapshot} onRestore={()=>{try{const raw=localStorage.getItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{showToast({id:"snap",title:"Unable to restore snapshot",subtitle:"The saved data could not be opened.",tone:"alert"});}}}
+              canRestore={hasSnapshot} onRestore={()=>{try{const raw=readPlayerItem("pixel_civ_lab_snapshot");if(raw)activateSandbox(cloneGameStateSnapshot(JSON.parse(raw)));}catch{showToast({id:"snap",title:"Unable to restore snapshot",subtitle:"The saved data could not be opened.",tone:"alert"});}}}
               onDistrict={()=>{const current=stateRef.current;const district=createCanalDistrict();if(saveActiveMode(current)&&snapshot(current.exampleWorldId?loadModeState("god"):current)){activateSandbox(district);openTransit();setSheetHeight("peek");rendererRef.current?.focusGrid(0,-1,74);}}}/>}/>
         ) : null}
       </AnimatedSheetHost>

@@ -1,3 +1,4 @@
+import { readPlayerItem, writePlayerItem } from "./deviceSaves";
 import {
   type CivElementDef,
   type ElementCategory,
@@ -989,7 +990,7 @@ export function removeCustomElement(id: string): void {
 export function saveCustomElementsToStorage(): void {
   try {
     if (typeof window === "undefined" || !window.localStorage) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(listCustomElements()));
+    writePlayerItem(STORAGE_KEY, JSON.stringify(listCustomElements()));
   } catch {
     // Ignore storage errors
   }
@@ -1004,7 +1005,7 @@ export function hydrateCustomElements(): CustomElementSpec[] {
   hydrated = true;
   try {
     if (typeof window === "undefined" || !window.localStorage) return [];
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = readPlayerItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];

@@ -1,74 +1,58 @@
-const CACHE_NAME = "pixel-civ-v1";
-const SHELL_ASSETS = [
-  "/",
-  "/site.webmanifest",
-  "/favicon.ico",
-  "/favicon-32.png",
-  "/pwa-192x192.png",
-  "/pwa-512x512.png",
-  "/apple-touch-icon.png",
+const CACHE_NAME = "pixel-civ-shell-dev";
+const PAGES = new Map([
+  ["/", "/"], ["/index.html", "/"],
+  ["/field-guide", "/field-guide.html"], ["/field-guide.html", "/field-guide.html"],
+  ["/handbook", "/handbook.html"], ["/handbook.html", "/handbook.html"],
+  ["/gallery", "/gallery.html"], ["/gallery.html", "/gallery.html"],
+  ["/downloads", "/downloads.html"], ["/downloads.html", "/downloads.html"],
+]);
+const SHELL = [
+  ...new Set(PAGES.values()), "/site.webmanifest", "/favicon.ico",
+  "/pwa-192x192.png", "/pwa-512x512.png", "/apple-touch-icon.png",
+  /* compiled files */
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
-      .catch(() => undefined)
-      .then(() => self.skipWaiting()),
-  );
+self.addEventListener("install", event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(SHELL.map(path => new Request(path, {cache: "reload"})));
+    await self.skipWaiting();
+  })());
 });
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))),
-      )
-      .then(() => self.clients.claim()),
-  );
+self.addEventListener("activate", event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key =>
+      key !== CACHE_NAME && (key.startsWith("pixel-civ-shell-") || key === "pixel-civ-v1")
+    ).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
-
-self.addEventListener("fetch", (event) => {
+self.addEventListener("fetch", event => {
   const { request } = event;
-  if (request.method !== "GET") return;
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/api/")) return;
-
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined);
-          }
-          return res;
-        })
-        .catch(() => caches.match(request).then((hit) => hit || caches.match("/"))),
-    );
+  if (request.method !== "GET" || url.origin !== self.location.origin) return;
+  if (request.mode === "navigate" && PAGES.has(url.pathname)) {
+    event.respondWith((async () => {
+      try { return await fetch(request); }
+      catch {
+        const cache = await caches.open(CACHE_NAME);
+        const page = await cache.match(PAGES.get(url.pathname));
+        // Navigation responds with the body directly, even when the hosted .html URL redirected.
+        return page ? new Response(page.body, { headers: page.headers }) : Response.error();
+      }
+    })());
     return;
   }
-
-  if (
-    url.pathname.startsWith("/handbook/") ||
-    url.pathname.startsWith("/assets/") ||
-    /\.(?:png|webp|jpg|ico|svg|woff2?)$/i.test(url.pathname)
-  ) {
-    event.respondWith(
-      caches.match(request).then(
-        (cached) =>
-          cached ||
-          fetch(request).then((res) => {
-            if (res.ok) {
-              const copy = res.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => undefined);
-            }
-            return res;
-          }),
-      ),
-    );
-  }
+  if (!url.pathname.startsWith("/handbook/") && !url.pathname.startsWith("/assets/")) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const hit = await cache.match(request);
+    if (hit) return hit;
+    const response = await fetch(request);
+    if (response.ok) {
+      try { await cache.put(request, response.clone()); } catch { /* Device storage can be full. */ }
+    }
+    return response;
+  })());
 });

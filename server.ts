@@ -86,6 +86,7 @@ export async function startServer(customPort?: number) {
   const useViteDev = !isProd || !hasDist;
 
   const httpServer = http.createServer();
+  let localAccounts: ReturnType<typeof import("./src/server/localAccounts.mjs").createLocalAccounts> | undefined;
 
   type ConnectMiddleware = (req: IncomingMessage, res: ServerResponse, next: () => void) => void;
   let viteClose: (() => Promise<void>) | null = null;
@@ -131,6 +132,18 @@ export async function startServer(customPort?: number) {
     if (urlPath.startsWith("/api/pix/")) {
       const { handlePixApi } = await import("./src/server/pixApi.ts");
       if (await handlePixApi(req, res, urlPath)) return;
+    }
+
+    if (urlPath.startsWith("/api/account/")) {
+      try {
+        const { createLocalAccounts } = await import("./src/server/localAccounts.mjs");
+        localAccounts ??= createLocalAccounts(process.env.PIXEL_ACCOUNT_DB_PATH ?? path.join(__dirname, "data", "accounts.sqlite"));
+        await localAccounts.handle(req, res);
+      } catch {
+        if (!res.headersSent) res.writeHead(503, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+        res.end(JSON.stringify({ error: "Account storage is unavailable.", code: "storage_unavailable" }));
+      }
+      return;
     }
 
     if (viteMiddlewarePromise) {
@@ -191,6 +204,7 @@ export async function startServer(customPort?: number) {
     // Upgraded sockets must close before the shared HTTP server can drain.
     if (viteClose) await viteClose().catch(() => {});
     await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+    localAccounts?.close();
   };
 
   const handleSignal = () => {

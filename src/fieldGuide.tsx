@@ -1,3 +1,4 @@
+import {openDeviceSaves} from "./game/deviceSaves";
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { UnifiedAtlas, type UnifiedAtlasRoute } from "./components/UnifiedAtlas";
@@ -68,6 +69,6 @@ export function FieldGuideView({
 }
 
 const standaloneGuide = typeof document !== "undefined" ? document.getElementById("guide") : null;
-if (standaloneGuide) {
+if (standaloneGuide) void openDeviceSaves().then(()=>{
   createRoot(standaloneGuide).render(<FieldGuideView />);
-}
+});
