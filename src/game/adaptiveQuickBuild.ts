@@ -1,3 +1,4 @@
+import { readPlayerItem, writePlayerItem } from "./deviceSaves";
 /**
  * Adaptive & Context-Aware Quick-Build Recommendation Engine.
  *
@@ -126,7 +127,7 @@ export function createEmptyBuildHabits(): PlayerBuildHabits {
 export function loadBuildHabits(): PlayerBuildHabits {
   try {
     if (typeof localStorage === "undefined") return createEmptyBuildHabits();
-    const raw = localStorage.getItem(HABITS_STORAGE_KEY);
+    const raw = readPlayerItem(HABITS_STORAGE_KEY);
     if (!raw) return createEmptyBuildHabits();
     const parsed = JSON.parse(raw) as Partial<PlayerBuildHabits>;
     return {
@@ -144,7 +145,7 @@ export function loadBuildHabits(): PlayerBuildHabits {
 export function saveBuildHabits(habits: PlayerBuildHabits): void {
   try {
     if (typeof localStorage === "undefined") return;
-    localStorage.setItem(HABITS_STORAGE_KEY, JSON.stringify(habits));
+    writePlayerItem(HABITS_STORAGE_KEY, JSON.stringify(habits));
   } catch {
     // Ignore private-mode / quota errors
   }

@@ -1,3 +1,4 @@
+import { readPlayerItem, writePlayerItems } from "./deviceSaves";
 import type { GameMode } from "./catalog";
 import { createInitialGameState, recomputeConnectivityAndMetrics, type GameState } from "./simulation";
 import { EXAMPLE_WORLDS, createExampleWorld, type ExampleWorldId } from "./exampleWorlds";
@@ -10,7 +11,7 @@ const saveName = (mode: GameMode, exampleId?: ExampleWorldId) => exampleId
 
 export function loadModeState(mode: GameMode, exampleId?: ExampleWorldId): GameState {
   try {
-    const raw = localStorage.getItem(SAVE_PREFIX + saveName(mode, exampleId));
+    const raw = readPlayerItem(SAVE_PREFIX + saveName(mode, exampleId));
     if (raw) {
       const parsed = JSON.parse(raw) as GameState;
       if (parsed && Array.isArray(parsed.elements) && parsed.mode === mode && parsed.exampleWorldId === exampleId) {
@@ -48,7 +49,7 @@ export function loadModeState(mode: GameMode, exampleId?: ExampleWorldId): GameS
 
 export function resumeIsland(hash = ""): GameState {
   let last = "god";
-  try { last = localStorage.getItem("pixel_civ_last_mode") ?? last; } catch { /* A private session can still play. */ }
+  try { last = readPlayerItem("pixel_civ_last_mode") ?? last; } catch { /* A private session can still play. */ }
   const route = new URLSearchParams(hash.replace(/^#/, ""));
   const requested = exampleById(route.get("world") ?? "");
   if (requested) {
@@ -62,7 +63,7 @@ export function resumeIsland(hash = ""): GameState {
     }
     let origin = last;
     if (last.startsWith("example-")) {
-      try { origin = localStorage.getItem("pixel_civ_example_origin") ?? "god"; } catch { origin = "god"; }
+      try { origin = readPlayerItem("pixel_civ_example_origin") ?? "god"; } catch { origin = "god"; }
     }
     city.exampleReturnMode =
       origin === "real" || origin === "survival" || origin === "idle" || origin === "manager" ? origin : "god";
@@ -83,9 +84,10 @@ export function persistMode(state: GameState): boolean {
       toasts: [],
     };
     const key = saveName(state.mode, state.exampleWorldId);
-    localStorage.setItem(SAVE_PREFIX + key, JSON.stringify(slim));
-    if (state.exampleWorldId) localStorage.setItem("pixel_civ_example_origin", state.exampleReturnMode ?? "god");
-    localStorage.setItem("pixel_civ_last_mode",key);
+    const items: [string, string][] = [[SAVE_PREFIX + key, JSON.stringify(slim)]];
+    if (state.exampleWorldId) items.push(["pixel_civ_example_origin", state.exampleReturnMode ?? "god"]);
+    items.push(["pixel_civ_last_mode", key]);
+    writePlayerItems(items);
     return true;
   } catch {
     return false;

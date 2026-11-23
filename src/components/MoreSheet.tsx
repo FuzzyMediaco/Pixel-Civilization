@@ -1,8 +1,12 @@
 import React from "react";
+import { PlayerAccount } from "./PlayerAccount";
+import { currentPlayer } from "../game/deviceSaves";
 import {
   BookOpen,
+  UserRound,
   ChevronLeft,
   Cloud,
+  Download,
   FlaskConical,
   Gamepad2,
   GraduationCap,
@@ -19,7 +23,7 @@ import { PWAInstallRow } from "./PWAInstallRow";
 import { BottomSheet, Button, type SheetHeight } from "./ui";
 
 export type CursorBehavior = "auto" | "select" | "place";
-export type MorePage = "view" | "mode" | "god" | "settings" | null;
+export type MorePage = "view" | "mode" | "god" | "settings" | "account" | null;
 
 const MODES: { id: GameMode; title: string; desc: string }[] = [
   { id: "god", title: "God", desc: "Sandbox: free building, terrain sculpting, weather & clock." },
@@ -33,9 +37,11 @@ const TITLES: Record<Exclude<MorePage, null>, string> = {
   mode: "Game Mode",
   god: "God Tools",
   settings: "Settings",
+  account: "Account",
 };
 
 export function MoreSheet({
+  saveNow,
   state,
   page,
   onPage,
@@ -55,6 +61,7 @@ export function MoreSheet({
   tutorialMode,
   onStartTutorial,
 }: {
+  saveNow: () => boolean;
   state: GameState;
   page: MorePage;
   onPage: (p: MorePage) => void;
@@ -103,6 +110,9 @@ export function MoreSheet({
       {!page && (
         <div className="ui-more-wrap">
           <div className="ui-more-grid" role="group" aria-label="More actions">
+            <button type="button" className="ui-more-tile" onClick={()=>{onPage("account");onHeight("full");}} title={currentPlayer()?.email ?? "Create an account or sign in"}>
+              <UserRound size={18} aria-hidden="true"/><span>Account</span>
+            </button>
             <button type="button" className="ui-more-tile" onClick={() => onPage("settings")} title="Settings, Quick Menus & controls">
               <Settings size={18} aria-hidden="true" />
               <span>Settings</span>
@@ -134,6 +144,10 @@ export function MoreSheet({
               <BookOpen size={18} aria-hidden="true" />
               <span>Handbook</span>
             </button>
+            <a className="ui-more-tile" style={{ textDecoration: "none" }} href={location.protocol === "file:" ? "https://pixelcivilization.app/downloads.html" : "./downloads.html"}>
+              <Download size={18} aria-hidden="true" />
+              <span>Downloads</span>
+            </a>
             {state.mode === "god" && (
               <button type="button" className="ui-more-tile" onClick={() => onPage("god")} title="God tools: clock, snapshots & crime">
                 <FlaskConical size={18} aria-hidden="true" />
@@ -149,6 +163,7 @@ export function MoreSheet({
         </div>
       )}
 
+      {page === "account" && <PlayerAccount saveNow={saveNow}/>}
       {page === "view" && (
         <>
           {state.mode !== "god" && (

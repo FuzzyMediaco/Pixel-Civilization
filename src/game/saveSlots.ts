@@ -1,3 +1,4 @@
+import { readPlayerItem, slotKey, writePlayerItem } from "./deviceSaves";
 import { type GameMode, STAGES } from "./catalog";
 import { type GameState, recomputeConnectivityAndMetrics } from "./simulation";
 
@@ -25,12 +26,11 @@ export function createEmptySlots(): (CivilizationSaveSlot | null)[] {
 export function loadSaveSlots(): (CivilizationSaveSlot | null)[] {
   const result = createEmptySlots();
   try {
-    const raw = localStorage.getItem(SLOTS_STORAGE_KEY);
-    if (!raw) return result;
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return result;
+    const legacy = readPlayerItem(SLOTS_STORAGE_KEY);
+    const previous = legacy ? JSON.parse(legacy) : [];
     for (let i = 0; i < MAX_SAVE_SLOTS; i++) {
-      const item = parsed[i] as CivilizationSaveSlot | null | undefined;
+      const raw = readPlayerItem(slotKey(i));
+      const item: CivilizationSaveSlot | null = raw === null ? previous?.[i] : JSON.parse(raw);
       if (item && item.state && Array.isArray(item.state.elements)) {
         result[i] = {
           ...item,
@@ -44,9 +44,7 @@ export function loadSaveSlots(): (CivilizationSaveSlot | null)[] {
   return result;
 }
 
-function persistSlots(slots: (CivilizationSaveSlot | null)[]): void {
-  localStorage.setItem(SLOTS_STORAGE_KEY, JSON.stringify(slots));
-}
+
 
 export function cloneGameStateSnapshot(state: GameState): GameState {
   const cloned = JSON.parse(JSON.stringify({ ...state, toasts: [] })) as GameState;
@@ -97,7 +95,7 @@ export function saveCivilizationToSlot(
     state: snapshot,
   };
 
-  persistSlots(slots);
+  writePlayerItem(slotKey(idx), JSON.stringify(slots[idx]));
   return slots;
 }
 
@@ -109,7 +107,7 @@ export function renameCivilizationSlot(
   const slot = slots[slotIndex];
   if (slot && newName.trim()) {
     slot.name = newName.trim();
-    persistSlots(slots);
+    writePlayerItem(slotKey(slotIndex), JSON.stringify(slots[slotIndex]));
   }
   return slots;
 }
@@ -118,7 +116,7 @@ export function deleteCivilizationSlot(slotIndex: number): (CivilizationSaveSlot
   const slots = loadSaveSlots();
   if (slotIndex >= 0 && slotIndex < MAX_SAVE_SLOTS) {
     slots[slotIndex] = null;
-    persistSlots(slots);
+    writePlayerItem(slotKey(slotIndex), JSON.stringify(slots[slotIndex]));
   }
   return slots;
 }

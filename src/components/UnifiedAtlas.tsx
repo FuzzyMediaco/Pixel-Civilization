@@ -1,3 +1,4 @@
+import { readPlayerItem, writePlayerItem } from "../game/deviceSaves";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
@@ -207,7 +208,7 @@ export function UnifiedAtlas({
   const [playbookMode, setPlaybookMode] = useState<GameMode>(currentMode);
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>(() => {
     try {
-      const raw = typeof window !== "undefined" ? window.localStorage.getItem(CHECKLIST_STORAGE_KEY) : null;
+      const raw = typeof window !== "undefined" ? readPlayerItem(CHECKLIST_STORAGE_KEY) : null;
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -257,7 +258,7 @@ export function UnifiedAtlas({
     setCheckedItems((prev) => {
       const next = { ...prev, [key]: !prev[key] };
       try {
-        window.localStorage.setItem(CHECKLIST_STORAGE_KEY, JSON.stringify(next));
+        writePlayerItem(CHECKLIST_STORAGE_KEY, JSON.stringify(next));
       } catch {
         // ignore storage limits
       }

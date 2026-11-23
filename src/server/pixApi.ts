@@ -356,6 +356,7 @@ export async function handlePixApi(req: IncomingMessage, res: ServerResponse, ur
     sendJson(res, 200, {
       ok: true,
       connectedModel: MODEL_ID,
+      modelLabel: "Gemini 4 Hydrogen",
       configured: Boolean(process.env.GEMINI_API_KEY?.trim()),
     });
     return true;

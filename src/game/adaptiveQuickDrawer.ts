@@ -1,3 +1,4 @@
+import { readPlayerItem, writePlayerItem } from "./deviceSaves";
 /**
  * Adaptive & Manual Top-Right Quick Drawer + Simplified Feature/Settings Catalog.
  *
@@ -176,7 +177,7 @@ export function sanitizeQuickDrawerPrefs(raw: Partial<QuickDrawerPrefs> | null |
 export function loadQuickDrawerPrefs(): QuickDrawerPrefs {
   try {
     if (typeof localStorage === "undefined") return createDefaultQuickDrawerPrefs();
-    const raw = localStorage.getItem(DRAWER_PREFS_KEY);
+    const raw = readPlayerItem(DRAWER_PREFS_KEY);
     if (!raw) return createDefaultQuickDrawerPrefs();
     return sanitizeQuickDrawerPrefs(JSON.parse(raw) as Partial<QuickDrawerPrefs>);
   } catch {
@@ -187,7 +188,7 @@ export function loadQuickDrawerPrefs(): QuickDrawerPrefs {
 export function saveQuickDrawerPrefs(prefs: QuickDrawerPrefs): void {
   try {
     if (typeof localStorage === "undefined") return;
-    localStorage.setItem(DRAWER_PREFS_KEY, JSON.stringify(sanitizeQuickDrawerPrefs(prefs)));
+    writePlayerItem(DRAWER_PREFS_KEY, JSON.stringify(sanitizeQuickDrawerPrefs(prefs)));
   } catch {
     // Ignore storage errors
   }
@@ -238,7 +239,7 @@ export function createEmptyQuickDrawerHabits(): QuickDrawerHabits {
 export function loadQuickDrawerHabits(): QuickDrawerHabits {
   try {
     if (typeof localStorage === "undefined") return createEmptyQuickDrawerHabits();
-    const raw = localStorage.getItem(DRAWER_HABITS_KEY);
+    const raw = readPlayerItem(DRAWER_HABITS_KEY);
     if (!raw) return createEmptyQuickDrawerHabits();
     const parsed = JSON.parse(raw) as Partial<QuickDrawerHabits>;
     const actionCounts: Record<string, number> = {};
@@ -263,7 +264,7 @@ export function loadQuickDrawerHabits(): QuickDrawerHabits {
 export function saveQuickDrawerHabits(habits: QuickDrawerHabits): void {
   try {
     if (typeof localStorage === "undefined") return;
-    localStorage.setItem(DRAWER_HABITS_KEY, JSON.stringify(habits));
+    writePlayerItem(DRAWER_HABITS_KEY, JSON.stringify(habits));
   } catch {
     // Ignore storage errors
   }

@@ -4165,3 +4165,31 @@ button.ui-row:hover { border-color: var(--ui-green); }
 
 
 
+
+.player-account {
+  box-sizing: border-box;
+  display: grid;
+  min-width: 0;
+  gap: .8rem;
+  padding: clamp(14px, 3vw, 22px);
+  background: #fffcf3;
+  color: #253c35;
+  border: 1px solid #a9b19d;
+  border-radius: 16px;
+  box-shadow: 0 3px 12px rgba(32, 51, 42, .13);
+  overflow-wrap: anywhere;
+}
+.player-account > *, .player-auth > * {min-width: 0}
+.player-account button {min-height: 44px;white-space: normal}
+.player-account .player-checkbox {min-height: 44px}
+.player-account .player-checkbox input {flex: 0 0 auto;margin-top: .25rem}
+.player-progress {max-width: min(86vw, 300px);margin: auto;border: 1px solid #a9b19d;border-radius: 12px;background: #fffcf3;color: #253c35;padding: 1rem 1.25rem;font: inherit}
+.player-progress::backdrop {background: rgba(36, 50, 42, .28)}
+.player-account h3,.player-account p {margin:0}
+.player-auth {display:grid;gap:.65rem}
+.player-auth label {display:grid;gap:.2rem;font-weight:650}
+.player-auth input:not([type=checkbox]) {box-sizing:border-box;width:100%;min-height:44px;border:1px solid var(--ui-line,#c5cabb);border-radius:8px;background:#fffef8;padding:.5rem;color:#243b35;font:inherit}
+.player-auth .player-checkbox {display:flex;align-items:flex-start;gap:.5rem;font-weight:400}
+.player-buttons {display:flex;gap:.4rem;flex-wrap:wrap}
+.player-buttons button[aria-pressed=true] {background:var(--ui-green,#365d4c);color:white}
+.player-conflict {display:grid;gap:.4rem;padding:.65rem;border:1px solid #b8bdaa;border-radius:8px}
