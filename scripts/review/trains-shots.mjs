@@ -83,8 +83,9 @@ async function play(width, height) {
     // Leave the final live frame on screen while the UI is inspected on software-rendered hosts.
     await page.evaluate(() => { window.__pixelWorld.scheduleNextFrame = () => {}; });
     if (!phone) await capturePassingTrains(page);
-    await activate(page.locator('[data-panel-toggle="transit"]'));
-    await activate(page.getByRole("button", { name: /Rail Operations.*Train Depot/i }).first());
+    await activate(page.locator('[data-panel-toggle="city"]'));
+    await activate(page.getByRole("tab", {name:"Transit"}));
+    await activate(page.getByRole("button", { name: /Rail Ops.*Train Depot/i }).first());
     const dialog = page.getByRole("dialog", { name: "Rail Operations" });
     const button = name => dialog.getByRole("button", { name, exact: true });
     const tabs = dialog.getByRole("navigation", { name: "Rail Operations sections" });

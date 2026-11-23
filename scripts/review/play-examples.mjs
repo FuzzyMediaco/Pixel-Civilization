@@ -34,8 +34,10 @@ async function play(id, phone) {
       return {mode:s.mode,elapsed:s.activePlaySec,population:s.population,treasury:Math.round(s.money),limiter:s.metrics.populationLimiter?.limitingNeed,sites:s.elements.length,lines:s.mobility?.lines.length??0};
     });
     const first=await sample();
-    const speed=page.getByRole("button",{name:/Change speed/});
-    for(let i=0;i<4 && !(await speed.getAttribute("aria-label")).includes("4×");i++) await speed.click();
+    await page.locator('[data-panel-toggle="more"]').click();
+    await page.getByRole("button",{name:"Settings",exact:true}).click();
+    await page.getByRole("group",{name:"Simulation speed"}).getByRole("button",{name:"4×"}).click();
+    await page.locator('[data-panel-toggle="more"]').click();
     const guide=page.locator(".world-guide-toggle");
     if(await guide.getAttribute("aria-expanded")!=="true") await guide.click();
     const views=page.locator(".world-guide select");
@@ -46,6 +48,13 @@ async function play(id, phone) {
     await page.getByRole("tab",{name:"Money"}).click();
     await page.getByRole("slider",{name:"Tax rate"}).press("ArrowRight");
     await page.getByRole("button",{name:"Close City"}).click();
+    await page.waitForFunction(()=>document.activeElement?.getAttribute("data-panel-toggle")==="city");
+    await page.keyboard.press("l");
+    const closeLayers=page.getByRole("button",{name:"Close Layers"});
+    await closeLayers.focus();
+    await page.keyboard.press("Escape");
+    await closeLayers.waitFor({state:"hidden"});
+    assert.equal(await page.evaluate(()=>document.activeElement?.getAttribute("data-panel-toggle")),"layers");
     await page.waitForFunction(({start,seconds})=>window.__pixelWorld.gameState.activePlaySec-start>=seconds,{start:first.elapsed,seconds},{timeout:Math.max(240000,seconds*3000)});
     const remaining=seconds*1000-(Date.now()-start);
     if(remaining>0) await page.waitForTimeout(remaining);

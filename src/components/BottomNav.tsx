@@ -39,8 +39,7 @@ export function BottomNav({
       }
       aria-label="Main navigation"
       aria-hidden={hiddenForRing || undefined}
-      // @ts-expect-error inert prevents tabbing/clicking while smoothly faded away for spiral ring
-      inert={hiddenForRing ? "" : undefined}
+      inert={hiddenForRing}
     >
       {shown.map(({ id, label, Icon, key, compact }) => {
         const badge = badges?.[id] ?? 0;
@@ -50,6 +49,7 @@ export function BottomNav({
           <button
             key={id}
             type="button"
+            data-panel-toggle={id}
             className={(compact ? "ui-nav-more" : "") + (hi ? " is-tut-spotlight" : "")}
             aria-pressed={on}
             aria-label={label + (badge ? ", " + badge + " alerts" : "") + " (" + key + ")"}

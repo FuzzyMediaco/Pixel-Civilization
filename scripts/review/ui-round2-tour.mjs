@@ -70,7 +70,7 @@ const tap = (page, sel) => page.locator(sel).first().click();
   const { ctx, page } = await open(true);
   await shot(page, "idle");
   await tap(page, '[data-panel-toggle="build"]'); await shot(page, "build");
-  await tap(page, '.ui-chip:has-text("Homes")'); await shot(page, "build-homes");
+  await page.getByRole("button", {name:"Housing", exact:true}).click(); await shot(page, "build-homes");
   await tap(page, '.ui-card:not([disabled])');
   await page.mouse.move(viewport.width / 2, viewport.height / 2 - 60); await shot(page, "placing");
   await page.keyboard.press("Escape");
@@ -86,11 +86,11 @@ const tap = (page, sel) => page.locator(sel).first().click();
     await page.keyboard.press("Escape");
   } else report.push("## inspector: no building found");
   await page.keyboard.press("Escape");
-  await tap(page, '.ui-stat:nth-child(2)'); await shot(page, "why-unhappy");
-  await tap(page, '[data-panel-toggle="layers"]'); await tap(page, '.ui-chip:has-text("Power")'); await shot(page, "layers");
+  await page.getByRole("button", {name:/^Happiness .*show why/i}).click(); await shot(page, "why-unhappy");
+  await tap(page, '[data-panel-toggle="layers"]'); await page.getByRole("button", {name:"Power", exact:true}).click(); await shot(page, "layers");
   await tap(page, '[data-panel-toggle="city"]'); await tap(page, '[role=tab]:has-text("Money")'); await shot(page, "city-money");
   await tap(page, '[data-panel-toggle="more"]'); await shot(page, "more");
-  await tap(page, '.ui-row:has-text("Settings")'); await shot(page, "more-settings");
+  await page.getByRole("button", {name:"Settings", exact:true}).click(); await shot(page, "more-settings");
   await ctx.close();
 }
 // God-mode example island with trains
@@ -99,10 +99,10 @@ const tap = (page, sel) => page.locator(sel).first().click();
   await shot(page, "guide");
   await tap(page, ".world-guide-toggle"); await shot(page, "guide-open");
   await tap(page, ".world-guide-toggle");
-  await tap(page, '[data-panel-toggle="transit"]'); await shot(page, "transit");
-  await tap(page, '[data-panel-toggle="more"]'); await tap(page, '.ui-row:has-text("View")'); await shot(page, "more-view");
-  await tap(page, '[data-panel-toggle="build"]'); await tap(page, '.ui-chip:has-text("Land & water")'); await shot(page, "build-works");
-  await tap(page, '.ui-chip:has-text("Roads")'); await tap(page, '.ui-card:not([disabled])'); await page.mouse.move(viewport.width / 2, viewport.height / 2); await shot(page, "placing-road");
+  await tap(page, '[data-panel-toggle="city"]'); await page.getByRole("tab", {name:"Transit"}).click(); await shot(page, "transit");
+  await tap(page, '[data-panel-toggle="more"]'); await page.getByRole("button", {name:"View", exact:true}).click(); await shot(page, "more-view");
+  await tap(page, '[data-panel-toggle="sculpt"]'); await shot(page, "build-works");
+  await tap(page, '[data-panel-toggle="build"]'); await page.getByRole("button", {name:"Roads & Transit", exact:true}).click(); await tap(page, '.ui-card:not([disabled])'); await page.mouse.move(viewport.width / 2, viewport.height / 2); await shot(page, "placing-road");
   await ctx.close();
 }
 fs.writeFileSync(`${outDir}/${device}-audit.txt`, report.join("\n"));

@@ -12,8 +12,11 @@ try {
   for (const section of ["idle", "build", "layers", "city", "transit", "more"]) {
     if (!section.includes(filter)) continue;
     if (section !== "idle") {
-      await page.locator(`button[data-panel-toggle="${section}"]`).click();
-      await page.locator("#sheet-" + section).waitFor();
+      const sheet = section === "transit" ? "city" : section;
+      const toggle = page.locator(`button[data-panel-toggle="${sheet}"]`);
+      if (await toggle.getAttribute("aria-pressed") !== "true") await toggle.click();
+      await page.locator("#sheet-" + sheet).waitFor();
+      if (section === "transit") await page.getByRole("tab", {name:"Transit"}).click();
     }
     await page.screenshot({path: path.join(OUT, device + "-" + section + ".png")});
     results[section] = {controls: await inventory(page), panels: await panels(page)};

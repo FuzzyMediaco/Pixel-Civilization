@@ -2,6 +2,8 @@
 
 The public game is at [pixelcivilization.app](https://pixelcivilization.app/). Install the [Android or Windows edition](https://pixelcivilization.app/downloads.html) for a complete local copy of the game, its artwork, and the handbook.
 
+![Meridian Fair in the live browser game, an offline house restored after restarting Android, and the signup screen](images/offline-editions.jpg)
+
 ## Bring an existing island across
 
 1. Open the browser or installed copy where you last played. For an island built on the [original Cloudflare address](https://pixel-civilization.fuzzymedia.workers.dev/), start there in the same browser.
@@ -22,6 +24,8 @@ Guests can continue without an account. Browser guest saves belong to the browse
 | Installation and updates | The installers embed the web game. They check the published edition when online and download changed files into separate storage. Only a complete, hash-verified edition is selected on the next launch. Player saves live outside those replaceable files. |
 | Browser offline play | The service worker previously cached the front page without its required code on a first visit. A production-build test loaded an island, went offline, reloaded the website and restored the player's island. |
 | Navigation and display | Checked the in-game Downloads and Account controls, email/password flow, narrow-screen download layout, handbook and atlas. The account panel has its own solid backdrop so text stays readable over buildings. |
+| Public release | Confirmed an existing guest island could move from the original Cloudflare address to a fresh phone-sized browser on the new domain. Verified the two public GitHub downloads against their signed-off builds. Found and corrected Cloudflare's HTML analytics injection on native update requests, then verified every published game file against its update checksum. |
+| Gameplay spot checks | Placed a house, used Undo to remove it, switched through all five modes, turned on the Copper Gorge water overlay, and opened Pelican Reach's two-line transit dashboard. These checks surfaced a keyboard focus issue when closing or switching panels. |
 | Simulation and build | The automated suite covers game modes, rendering data, terrain, water, roads, transit, economy, schools, examples and persistence. Type checking, production bundling and the production dependency advisory check are part of the release audit. The browser still downloads a sizeable 3D engine and art library. |
 
 ## Publishing future builds
