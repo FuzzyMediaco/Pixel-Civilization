@@ -96,7 +96,7 @@ namespace PixelCivilization {
             }
         }
         private static void Atomic(string target,byte[] bytes) {
-            string temp=target+"."+Guid.NewGuid().ToString("N")+".tmp";
+            string temp=Path.Combine(Path.GetDirectoryName(target),Guid.NewGuid().ToString("N")+".tmp");
             try {
                 using(var f=new FileStream(temp,FileMode.CreateNew,FileAccess.Write,FileShare.None)){f.Write(bytes,0,bytes.Length);f.Flush(true);}
                 if(File.Exists(target))File.Replace(temp,target,null); else File.Move(temp,target);

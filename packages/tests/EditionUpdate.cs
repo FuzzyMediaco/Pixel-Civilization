@@ -32,7 +32,13 @@ namespace PixelCivilization {
         }
         static int Main(){
             string root=Path.Combine(Path.GetTempPath(),"PixelUpdateTest-"+Guid.NewGuid().ToString("N"));
-            try{Verify(root).GetAwaiter().GetResult();Console.WriteLine("Offline install, corrupt download, atomic upgrade, restart, downgrade and fallback passed.");return 0;}
+            try{
+                Verify(root).GetAwaiter().GetResult();
+                // The final content hashes fit under MAX_PATH here, but appending a GUID to each hash does not.
+                string deepProfile=Path.Combine(root,new string('p',Math.Max(1,150-root.Length-1)));
+                Verify(deepProfile).GetAwaiter().GetResult();
+                Console.WriteLine("Offline install, corrupt download, atomic upgrade, restart, downgrade and fallback passed in ordinary and long profiles.");return 0;
+            }
             finally{if(Directory.Exists(root))Directory.Delete(root,true);}
         }
     }
