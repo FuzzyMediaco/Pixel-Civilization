@@ -36,7 +36,7 @@ export function frontageWidth(id: string) {
   return roadWidth(id) === 3
     ? "Three-tile right of way"
     : roadWidth(id) === 2
-      ? "Two-tile right of way"
+      ? "Eight-unit right of way · two equal shoulders"
       : "One-tile street";
 }
 export function roadStageName(id: string, level: number) {

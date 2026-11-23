@@ -14,24 +14,39 @@ export function chooseRoadAxis(gx: number, gz: number, rot: number, occ: Readonl
     z = score("z");
   return x === z ? (rot % 2 ? "x" : "z") : x > z ? "x" : "z";
 }
-export function corridorOffsets(id: string) {
-  return roadWidth(id) === 3 ? [-1, 0, 1] : roadWidth(id) === 2 ? [0, 1] : [0];
+/** Bounds in tile coordinates, centered on the routing tile for every road class. */
+export function roadBounds(site: RoadSite & Partial<Pick<PlacedElement, "spanX" | "spanZ">>) {
+  const { gx, gz, roadAxis } = site;
+  if (!roadAxis) return { minX: gx, minZ: gz, maxX: gx + (site.spanX ?? 1), maxZ: gz + (site.spanZ ?? 1) };
+  const shoulder = (roadWidth(site.defId) - 1) / 2;
+  const x = roadAxis === "z" ? shoulder : 0, z = roadAxis === "x" ? shoulder : 0;
+  return { minX: gx - x, minZ: gz - z, maxX: gx + 1 + x, maxZ: gz + 1 + z };
 }
+
 export function roadReservation(site: RoadSite): [number, number][] {
-  return (site.roadAxis ? corridorOffsets(site.defId) : [0]).map((d) => [
-    site.gx + (site.roadAxis === "z" ? d : 0),
-    site.gz + (site.roadAxis === "x" ? d : 0),
-  ]);
+  const { minX, minZ, maxX, maxZ } = roadBounds(site);
+  const tiles: [number, number][] = [];
+  for (let x = Math.floor(minX); x < maxX; x++) {
+    for (let z = Math.floor(minZ); z < maxZ; z++) tiles.push([x, z]);
+  }
+  return tiles;
 }
-export function shoulderAt(x: number, z: number, occ: ReadonlyMap<string, PlacedElement>) {
-  for (const [dx, dz] of [
-    [0, -1],
-    [1, 0],
-    [0, 1],
-    [-1, 0],
-  ]) {
-    const e = occ.get(key(x + dx, z + dz));
-    if (e?.roadAxis && roadReservation(e).some(([a, b]) => a === x && b === z)) return e;
+
+const directions = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
+const intersects = (a: ReturnType<typeof roadBounds>, b: ReturnType<typeof roadBounds>) =>
+  a.minX < b.maxX && b.minX < a.maxX && a.minZ < b.maxZ && b.minZ < a.maxZ;
+
+export function shoulderAt(x: number, z: number, occ: ReadonlyMap<string, PlacedElement>, sample?: [number, number]) {
+  for (const [dx, dz] of directions) {
+    const road = occ.get(key(x + dx, z + dz));
+    if (!road?.roadAxis) continue;
+    const bounds = roadBounds(road);
+    if (sample) {
+      const [sx, sz] = sample;
+      if (sx >= bounds.minX && sx < bounds.maxX && sz >= bounds.minZ && sz < bounds.maxZ) return road;
+    } else if (intersects(bounds, { minX: x, minZ: z, maxX: x + 1, maxZ: z + 1 })) {
+      return road;
+    }
   }
 }
 function parallelFeeder(x: number, z: number, axis: RoadAxis, occ: ReadonlyMap<string, PlacedElement>) {
@@ -49,36 +64,49 @@ export function corridorConflict(
   id: string,
   roadAxis: RoadAxis | undefined,
   occ: ReadonlyMap<string, PlacedElement>,
-  dry: (x: number, z: number) => boolean,
+  dry: (x: number, z: number, bounds: ReturnType<typeof roadBounds>) => boolean,
 ): string | undefined {
-  const cells = roadAxis
-    ? roadReservation({ gx, gz, defId: id, roadAxis })
-    : Array.from({ length: w * h }, (_, k) => [gx + (k % w), gz + Math.floor(k / w)]);
-  for (const [x, z] of cells) {
-    if (roadAxis && (x < GRID_MIN || z < GRID_MIN || x > GRID_MAX || z > GRID_MAX || !dry(x, z)))
-      return "The full carriageway needs dry ground. Extend the bank or build a crossing.";
-    if (roadAxis && (x !== gx || z !== gz)) {
-      const e = occ.get(key(x, z));
-      if (
-        e &&
-        !e.sculptsTerrain &&
-        (!VEHICLE_ROADS.has(e.defId) || e.roadAxis === roadAxis || (!e.roadAxis && parallelFeeder(x, z, roadAxis, occ)))
-      )
-        return "The carriageway shoulder would occupy an existing site. Clear the right of way.";
+  const bounds = roadBounds({ gx, gz, spanX: w, spanZ: h, defId: id, roadAxis });
+  const seen = new Set<string>();
+  const checkNeighbor = (other: PlacedElement | undefined) => {
+    if (!other || seen.has(other.id)) return;
+    seen.add(other.id);
+    // Core tile occupancy is handled by the caller. Only test pairs with a shoulder.
+    if (other.gx === gx && other.gz === gz || !roadAxis && !other.roadAxis) return;
+    if (!intersects(bounds, roadBounds(other))) return;
+    if (other.sculptsTerrain) return;
+
+    const bothRoads = VEHICLE_ROADS.has(id) && VEHICLE_ROADS.has(other.defId);
+    if (bothRoads) {
+      if (roadAxis && other.roadAxis && roadAxis !== other.roadAxis) return;
+      if (roadAxis && !other.roadAxis && !parallelFeeder(other.gx, other.gz, roadAxis, occ)) return;
+      if (!roadAxis && other.roadAxis && !parallelFeeder(gx, gz, other.roadAxis, occ)) return;
     }
-    for (const [dx, dz] of [
-      [0, -1],
-      [1, 0],
-      [0, 1],
-      [-1, 0],
-    ]) {
-      const e = occ.get(key(x + dx, z + dz));
-      if (!e?.roadAxis || !roadReservation(e).some(([a, b]) => a === x && b === z)) continue;
-      if (!VEHICLE_ROADS.has(id) || roadAxis === e.roadAxis || (!roadAxis && parallelFeeder(x, z, e.roadAxis, occ)))
-        return "This land is reserved for the adjacent carriageway.";
+    return "A carriageway shoulder overlaps an existing site. Clear the right of way.";
+  };
+  const tiles = roadAxis ? roadReservation({ gx, gz, defId: id, roadAxis })
+    : Array.from({ length: w * h }, (_, n) => [gx + n % w, gz + Math.floor(n / w)]);
+  for (const [x, z] of tiles) {
+    if (roadAxis && (x < GRID_MIN || z < GRID_MIN || x > GRID_MAX || z > GRID_MAX || !dry(x, z, bounds)))
+      return "The full carriageway needs dry ground. Extend the bank or build a crossing.";
+    const direct = checkNeighbor(occ.get(key(x, z)));
+    if (direct) return direct;
+    for (const [dx, dz] of directions) {
+      const neighbor = occ.get(key(x + dx, z + dz));
+      if (!neighbor?.roadAxis) continue;
+      const conflict = checkNeighbor(neighbor);
+      if (conflict) return conflict;
     }
   }
 }
+
+/** Use the outgoing heading at turns and the incoming heading at a stroke's end. */
+export function strokeRoadAxis(points: readonly { gx: number; gz: number }[], index: number): RoadAxis | undefined {
+  const point = points[index], neighbor = points[index + 1] ?? points[index - 1];
+  if (!neighbor) return undefined;
+  return Math.abs(point.gx - neighbor.gx) >= Math.abs(point.gz - neighbor.gz) ? "x" : "z";
+}
+
 export interface CorridorArt {
   axis: RoadAxis;
   width: number;
@@ -102,11 +130,11 @@ export function corridorArt(site: RoadSite, occ: ReadonlyMap<string, PlacedEleme
     plus: Math.min(width, adjacent(1)),
   };
 }
+export const CARRIAGEWAY_TAPER_START = 0.75;
+
 /** World-local transverse transformation. Shared edge values narrow a divided road cleanly into its approach. */
 export function corridorTransform(art: CorridorArt, along: number, across: number) {
   const edge = along < 0 ? art.minus : art.plus;
-  const t = Math.min(1, Math.max(0, (Math.abs(along) - 0.75) / 1.25));
-  const stretch = (w: number) => (w === 3 ? 2.85 : w === 2 ? 1.85 : 1);
-  const center = (w: number) => (w === 2 ? 1.8 : 0);
-  return across * (stretch(art.width) * (1 - t) + stretch(edge) * t) + center(art.width) * (1 - t) + center(edge) * t;
+  const t = Math.min(1, Math.max(0, (Math.abs(along) - CARRIAGEWAY_TAPER_START) / (2 - CARRIAGEWAY_TAPER_START)));
+  return across * (art.width * (1 - t) + edge * t);
 }

@@ -6,6 +6,7 @@ import "../src/game/designs/index";
 import { ELEMENT_BY_ID, getMaxElementLevel } from "../src/game/catalog";
 import {
   widenLegacyRoad,
+  migrateCenteredHighways,
   placedUpgradeCost,
   createInitialGameState,
   planConstruction,
@@ -16,7 +17,7 @@ import {
   type GameState,
   type PlacedElement,
 } from "../src/game/simulation";
-import { roadReservation, corridorArt, corridorTransform } from "../src/game/roadCorridors";
+import { roadReservation, roadBounds, corridorArt, corridorTransform, shoulderAt } from "../src/game/roadCorridors";
 import { VEHICLE_ROADS, standardRoadLanes } from "../src/game/roadStandards";
 import { RAIL_BRIDGES, railClearHeight, railSpanAllows, type RailBridgeKind } from "../src/game/bridgeWorks";
 import {
@@ -24,6 +25,7 @@ import {
   buildWaterNavigation,
   surfaceTravelHeight,
   roadPortOpen,
+  planInfrastructureStroke,
 } from "../src/game/terrain";
 import { roadCapacity } from "../src/game/cityDynamics";
 import { getTravelNetwork } from "../src/game/travelNetwork";
@@ -87,15 +89,26 @@ test("new carriageways reserve their full measured width and taper into a shared
       other = add(s, id, 1, 0, 1);
     add(s, id, -1, 0, 1);
     assert.equal(e.roadAxis, "x");
-    assert.equal(roadReservation(e).length, width);
+    assert.equal(roadReservation(e).length, 3);
+    assert.deepEqual(roadBounds(e), { minX: 0, maxX: 1, minZ: (1-width)/2, maxZ: (1+width)/2 });
+    assert.equal(planConstruction(s, ELEMENT_BY_ID.house, 0, -1, 1, 0).valid, false);
     assert.equal(planConstruction(s, ELEMENT_BY_ID.house, 0, 1, 1, 0).valid, false);
     const occ = buildOccupancyMap(s.elements),
       art = corridorArt(e, occ)!;
     const g = getOrBuildElementAsset(id, 1, 0, 1, 1, 10, { corridor: art }).baseGeo.boundingBox!;
-    assert.ok(g.max.z - g.min.z > (width - 1) * 4);
+    assert.equal(g.min.z, -width * 2);
+    assert.equal(g.max.z, width * 2);
     add(s, "roads", 2, 0);
     const taper = corridorArt(other, buildOccupancyMap(s.elements))!;
     assert.equal(corridorTransform(taper, 2, 0.65), 0.65);
+    const mesh = getOrBuildElementAsset(id, 1, 0, 1, 1, 10, { corridor: taper }).baseGeo;
+    const positions = mesh.getAttribute("position");
+    const at = (x: number) => Array.from({ length: positions.count }, (_, index) => index)
+      .filter(index => positions.getX(index) === x)
+      .map(index => positions.getZ(index));
+    assert.equal(Math.max(...at(0.75)), width * 2);
+    assert.equal(Math.max(...at(2)), 2);
+    assert.equal(Math.min(...at(2)), -2);
     const old = JSON.parse(JSON.stringify(s)) as GameState;
     old.elements.forEach((e) => delete e.roadAxis);
     assert.ok(planConstruction(old, ELEMENT_BY_ID.house, 0, 1, 1, 0).valid);
@@ -104,6 +117,61 @@ test("new carriageways reserve their full measured width and taper into a shared
   add(blocked, "house", 0, 1);
   assert.equal(planConstruction(blocked, ELEMENT_BY_ID.highways, 0, 0, 1, 1).valid, false);
 });
+test("centered highway shoulders share adjacent tiles without overlapping and match neighboring road widths", () => {
+  const s = createInitialGameState("god");
+  const highway = add(s, "highways", 0, 0, 1);
+  const parallel = add(s, "highways", 0, 2, 1);
+  assert.equal(highway.roadAxis, "x");
+  assert.equal(parallel.roadAxis, "x");
+  assert.equal(roadBounds(highway).maxZ, roadBounds(parallel).minZ);
+  const occ = buildOccupancyMap(s.elements);
+  assert.equal(shoulderAt(0, 1, occ, [0.5, 1.25])?.id, highway.id);
+  assert.equal(shoulderAt(0, 1, occ, [0.5, 1.75])?.id, parallel.id);
+
+  add(s, "freeways", 1, 0, 1);
+  add(s, "roads", -1, 0);
+  const updated = buildOccupancyMap(s.elements);
+  const a = corridorArt(highway, updated)!;
+  const b = corridorArt(updated.get("1,0")!, updated)!;
+  for (const side of [-2, 0, 2]) {
+    assert.equal(corridorTransform(a, 2, side), corridorTransform(b, -2, side));
+    assert.equal(corridorTransform(a, -2, side), side);
+  }
+  const vertical = createInitialGameState("god");
+  const v = add(vertical, "highways", 0, 0, 0);
+  assert.deepEqual(roadBounds(v), { minX: -0.5, maxX: 1.5, minZ: 0, maxZ: 1 });
+  const mesh = getOrBuildElementAsset(v.defId, 1, 0, 1, 1, 5, { corridor: corridorArt(v, buildOccupancyMap(vertical.elements)) }).baseGeo.boundingBox!;
+  assert.equal(mesh.min.x, -4);
+  assert.equal(mesh.max.x, 4);
+});
+
+test("legacy saves retain occupied parcels and center highways that have clearance", () => {
+  const s = createInitialGameState("god");
+  const blocked = add(s,"highways",0,0,1);
+  const clear = add(s,"highways",3,0,1);
+  // The old offset reserved the positive side; a north-side building used to fit.
+  const home = { ...blocked, id:"old-house", defId:"house", gz:-1, roadAxis:undefined };
+  s.elements.push(home);
+  delete s.centeredHighways;
+  migrateCenteredHighways(s);
+  assert.equal(blocked.roadAxis, undefined);
+  assert.equal(clear.roadAxis, "x");
+  assert.deepEqual(s.elements.map(el=>[el.id,el.gx,el.gz]), [
+    [blocked.id,0,0],[clear.id,3,0],[home.id,0,-1],
+  ]);
+  assert.equal(s.centeredHighways,true);
+});
+
+test("voxel sculpting respects the exact half-tile highway shoulder", () => {
+  const s = createInitialGameState("god");
+  add(s,"highways",0,0,1);
+  const tool = { kind:"lower", precision:"voxel", voxelRadius:0, height:1 } as const;
+  assert.equal(planInfrastructureStroke(s, tool,[{ gx:0,gz:1,vx:4,vz:20 }]).valid,false);
+  assert.equal(planInfrastructureStroke(s, tool,[{ gx:0,gz:1,vx:4,vz:29 }]).valid,true);
+  assert.equal(planInfrastructureStroke(s, tool,[{ gx:0,gz:-1,vx:4,vz:-4 }]).valid,false);
+  assert.equal(planInfrastructureStroke(s, tool,[{ gx:0,gz:-1,vx:4,vz:-13 }]).valid,true);
+});
+
 test("a legacy freeway widens in place once the shoulders are clear", () => {
   const s = createInitialGameState("god"),
     e = add(s, "freeways", 0, 0, 1);

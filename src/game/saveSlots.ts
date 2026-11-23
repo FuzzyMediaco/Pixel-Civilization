@@ -1,7 +1,7 @@
 import { readPlayerItem, slotKey, writePlayerItem, insertPlayerSlot } from "./deviceSaves";
 import { listCustomElements, type CustomElementSpec } from "./customElements";
 import { type GameMode, STAGES } from "./catalog";
-import { type GameState, recomputeConnectivityAndMetrics } from "./simulation";
+import { type GameState, migrateCenteredHighways, recomputeConnectivityAndMetrics } from "./simulation";
 
 export const MAX_SAVE_SLOTS = 3;
 const SLOTS_STORAGE_KEY = "pixel_civ_saved_slots_v1";
@@ -67,6 +67,7 @@ export function cloneGameStateSnapshot(state: GameState): GameState {
   }
   if (!Array.isArray(cloned.crimeIncidents)) cloned.crimeIncidents = [];
   if (cloned.activeAttack === undefined) cloned.activeAttack = null;
+  migrateCenteredHighways(cloned);
   recomputeConnectivityAndMetrics(cloned);
   return cloned;
 }

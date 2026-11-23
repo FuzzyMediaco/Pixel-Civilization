@@ -826,8 +826,8 @@ export class EngineeringView {
     for (const [k, s] of Object.entries(infra.spans)) {
       if (s.run.startsWith("junction-")) continue;
       const [gx, gz] = k.split(",").map(Number),
-        cx = gx * 4 + 2+(s.corridorWidth===2&&s.axis==="z"?1.8:0),
-        cz = gz * 4 + 2+(s.corridorWidth===2&&s.axis==="x"?1.8:0);
+        cx = gx * 4 + 2,
+        cz = gz * 4 + 2;
       const g = s.shape === "lift" && !s.end ? new Blocks() : solid;
       const counter = new Blocks();
       const archTier=s.tier??1;
@@ -856,9 +856,9 @@ export class EngineeringView {
           : s.mode === "rail"
             ? 2.45
             : s.mode === "freeway"
-              ? (s.corridorWidth===3?10.8:3.9)
+              ? (s.corridorWidth===3?12:3.9)
               : s.mode === "highway"
-                ? (s.corridorWidth===2?7.0:3.5)
+                ? (s.corridorWidth===2?8:3.5)
                 : 2.8;
       const [lo, hi] = runs.get(s.run) ?? [0, 0],
         coordinate = s.axis === "x" ? gx : gz;
@@ -1249,9 +1249,9 @@ export class EngineeringView {
             : tool?.mode === "rail"
               ? 2.45
               : tool?.mode === "highway"
-                ? 3.5
+                ? 8
                 : tool?.mode === "freeway"
-                  ? 3.9
+                  ? 12
                   : 2.8;
         const a = 2 - width / 2,
           b = 2 + width / 2;

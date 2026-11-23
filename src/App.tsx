@@ -1,3 +1,4 @@
+import { strokeRoadAxis } from "./game/roadCorridors";
 import { downloadWorld, importWorldIntoSlot, readLinkedWorld, type TransferWorld } from "./game/worldTransfer";
 import { autosync } from "./game/accountSync";
 import { readPlayerItem, writePlayerItem, deviceIssue, onDeviceChange, flushDevice } from "./game/deviceSaves";
@@ -871,8 +872,8 @@ export const App: React.FC = () => {
     let autoBridgeName: string | null = null;
 
     commitBuildingEdit(`Place ${stroke.points.length} ${brushDef.name}`, (draft) => {
-      for (const pt of stroke.points) {
-        const plan = planConstruction(draft, brushDef, pt.gx, pt.gz, curBrush.level, curBrush.rotation, curBrush.faceManually);
+      for (const [index, pt] of stroke.points.entries()) {
+        const plan = planConstruction(draft, brushDef, pt.gx, pt.gz, curBrush.level, curBrush.rotation, curBrush.faceManually, strokeRoadAxis(stroke.points,index));
         if (!plan.valid) continue;
         const { def, level: placeLevel, spanX, spanZ, rotation, overWater, replaceId } = plan;
         const chosenVariant =
@@ -1831,11 +1832,12 @@ export const App: React.FC = () => {
     };
     let validCount = 0;
     let totalCost = 0;
-    for (const pt of pendingRoadStroke.points) {
-      const plan = planConstruction(virtualState, def, pt.gx, pt.gz, brush.level, brush.rotation, brush.faceManually);
+    for (const [index, pt] of pendingRoadStroke.points.entries()) {
+      const plan = planConstruction(virtualState, def, pt.gx, pt.gz, brush.level, brush.rotation, brush.faceManually, strokeRoadAxis(pendingRoadStroke.points,index));
       if (!plan.valid) continue;
       const cost = charges ? plan.def.cost : 0;
       if (charges) virtualState.money -= cost;
+      if (plan.replaceId) virtualState.elements = virtualState.elements.filter(el => el.id !== plan.replaceId);
       virtualState.elements.push({
         id: `preview-${validCount}`,
         defId: plan.def.id,
@@ -1855,6 +1857,7 @@ export const App: React.FC = () => {
         onFire: false,
         animProgress: 0,
         animKind: "place",
+        roadAxis: plan.roadAxis,
       });
       validCount++;
       totalCost += cost;

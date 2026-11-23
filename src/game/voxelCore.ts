@@ -639,7 +639,7 @@ export function getDimmedVoxelMaterial(): THREE.MeshStandardMaterial {
 
 let greedyMaskScratch = new Int32Array(4096);
 
-export function buildVoxelGeometry(vox: PixelVox, scale = VOXEL_SIZE): THREE.BufferGeometry {
+export function buildVoxelGeometry(vox: PixelVox, scale = VOXEL_SIZE, split?: { axis: 0 | 2; cuts: readonly number[] }): THREE.BufferGeometry {
   const positions: number[] = [];
   const normals: number[] = [];
   const colors: number[] = [];
@@ -850,6 +850,10 @@ export function buildVoxelGeometry(vox: PixelVox, scale = VOXEL_SIZE): THREE.Buf
     const dirShade =
       ny > 0 ? 1.05 : ny < 0 ? 0.62 : nz > 0 ? 0.96 : nx > 0 ? 0.88 : nx < 0 ? 0.82 : 0.78;
 
+    // Split greedy faces where a later geometry transform changes slope.
+    const splitU = split && su[split.axis] ? su[split.axis] : 0;
+    const splitV = split && sv[split.axis] ? sv[split.axis] : 0;
+    const origin = split ? face.corners[0][split.axis] : 0;
     for (const [sliceW, bucket] of faceSlices[fi].entries()) {
       const items = bucket.items;
       const { minU, minV } = bucket;
@@ -881,12 +885,14 @@ export function buildVoxelGeometry(vox: PixelVox, scale = VOXEL_SIZE): THREE.Buf
 
           let w = 1;
           if (allowU) {
-            while (du + w < spanU && mask[rowOff + du + w] === token) w++;
+            while (du + w < spanU && mask[rowOff + du + w] === token &&
+              (!splitU || !split!.cuts.includes((minU + du + w) * splitU + origin))) w++;
           }
 
           let h = 1;
           if (allowV) {
-            outerH: while (dv + h < spanV) {
+            outerH: while (dv + h < spanV &&
+                (!splitV || !split!.cuts.includes((minV + dv + h) * splitV + origin))) {
               const nextRow = (dv + h) * spanU + du;
               for (let k = 0; k < w; k++) {
                 if (mask[nextRow + k] !== token) break outerH;

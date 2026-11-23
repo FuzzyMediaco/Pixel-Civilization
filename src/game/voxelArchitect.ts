@@ -1,5 +1,5 @@
 import {dividedCarriageway} from "./designs/carriageways";
-import {corridorTransform} from "./roadCorridors";
+import {CARRIAGEWAY_TAPER_START,corridorTransform} from "./roadCorridors";
 import {VEHICLE_ROADS} from "./roadStandards";
 import {paintRoadStage} from "./designs/roadStages";
 import * as THREE from "three";
@@ -80,8 +80,11 @@ export function buildDesignAsset(
   const fit=Math.min(1,spanX/c.spanX,spanZ/c.spanZ), unit=VOXEL_SIZE*fit;
   const groundShift=def.domain==="land" ? VOXEL_SIZE-unit : 0;
   const mesh = (v: PixelVox,scale=1) => {
-    const geometry = buildVoxelGeometry(v, unit*scale);
     const corridor=appearance.corridor;
+    const cut = Math.round(CARRIAGEWAY_TAPER_START / (unit * scale));
+    const split = corridor && (corridor.minus !== corridor.width || corridor.plus !== corridor.width)
+      ? { axis: corridor.axis === "x" ? 0 as const : 2 as const, cuts: [-cut, cut] } : undefined;
+    const geometry = buildVoxelGeometry(v, unit*scale, split);
     if(corridor){
       const pos=geometry.getAttribute("position");
       for(let i=0;i<pos.count;i++){

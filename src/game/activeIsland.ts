@@ -1,6 +1,6 @@
 import { readPlayerItem, writePlayerItems } from "./deviceSaves";
 import type { GameMode } from "./catalog";
-import { createInitialGameState, recomputeConnectivityAndMetrics, type GameState } from "./simulation";
+import { createInitialGameState, migrateCenteredHighways, recomputeConnectivityAndMetrics, type GameState } from "./simulation";
 import { EXAMPLE_WORLDS, createExampleWorld, type ExampleWorldId } from "./exampleWorlds";
 const SAVE_PREFIX = "pixel_civ_save_v1_";
 
@@ -37,6 +37,7 @@ export function loadModeState(mode: GameMode, exampleId?: ExampleWorldId): GameS
           if (!Array.isArray(parsed.activeAttack.defenders)) parsed.activeAttack.defenders = [];
           if (typeof parsed.activeAttack.severity !== "number") parsed.activeAttack.severity = 1;
         }
+        migrateCenteredHighways(parsed);
         recomputeConnectivityAndMetrics(parsed);
         return parsed;
       }

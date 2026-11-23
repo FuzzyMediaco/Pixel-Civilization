@@ -1,3 +1,4 @@
+import { buildingCharges } from "./cityEconomy";
 import { editedCoastline } from "./coastline";
 import { GRID_SIZE, GRID_HALF } from "./mapBounds";
 import { patrolPosition } from "./policeDispatch";
@@ -42,7 +43,7 @@ import { planFirstStreetFacing } from "./streetFacing";
 import { encodeRoadSitePort } from "./roadTopology";
 import { cellBeyondEdge, getParcelEdgeKey, getParcelEdges } from "./parcelEdges";
 import { getParcelSoils } from "./parcelGeometry";
-import {roadReservation,corridorArt} from "./roadCorridors";
+import {roadBounds,corridorArt,strokeRoadAxis} from "./roadCorridors";
 import { buildPlacedGroupFromAsset, getOrBuildElementAsset, releaseParcelGeometry } from "./voxelArchitect";
 import {
   PixelVox,
@@ -1110,15 +1111,11 @@ export class PixelWorldRenderer {
           minY = entry.group.position.y;
           maxY = minY + Math.max(1.2, (entry.group.userData.topY as number) || 2.2);
         } else {
-          const reserved = el.roadAxis ? roadReservation(el) : undefined;
-          const gMinX = reserved ? Math.min(...reserved.map(([x]) => x)) : el.gx;
-          const gMinZ = reserved ? Math.min(...reserved.map(([, z]) => z)) : el.gz;
-          const spanX = reserved ? Math.max(...reserved.map(([x]) => x)) - gMinX + 1 : el.spanX;
-          const spanZ = reserved ? Math.max(...reserved.map(([, z]) => z)) - gMinZ + 1 : el.spanZ;
-          minX = gMinX * TILE_SIZE;
-          maxX = (gMinX + spanX) * TILE_SIZE;
-          minZ = gMinZ * TILE_SIZE;
-          maxZ = (gMinZ + spanZ) * TILE_SIZE;
+          const bounds = roadBounds(el);
+          minX = bounds.minX * TILE_SIZE;
+          maxX = bounds.maxX * TILE_SIZE;
+          minZ = bounds.minZ * TILE_SIZE;
+          maxZ = bounds.maxZ * TILE_SIZE;
           minY = entry?.baseY ?? 0;
           maxY = minY + Math.max(1.2, (entry?.group.userData.topY as number) || 2.5);
         }
@@ -1130,10 +1127,11 @@ export class PixelWorldRenderer {
         const el = this.gameState.elements.find((e) => e.id === id);
         if (!el) continue;
         const entry = this.placedEntries.get(id);
-        const ex0 = el.gx * TILE_SIZE;
-        const ex1 = (el.gx + el.spanX) * TILE_SIZE;
-        const ez0 = el.gz * TILE_SIZE;
-        const ez1 = (el.gz + el.spanZ) * TILE_SIZE;
+        const bounds = roadBounds(el);
+        const ex0 = bounds.minX * TILE_SIZE;
+        const ex1 = bounds.maxX * TILE_SIZE;
+        const ez0 = bounds.minZ * TILE_SIZE;
+        const ez1 = bounds.maxZ * TILE_SIZE;
         const ey0 = entry?.baseY ?? 0;
         const ey1 = ey0 + Math.max(1.2, (entry?.group.userData.topY as number) || 2.5);
         if (ex0 < minX) minX = ex0;
@@ -1653,15 +1651,15 @@ export class PixelWorldRenderer {
       const [wx, wz] = gridToWorldCenter(el.gx, el.gz, el.spanX, el.spanZ);
 
 
-      const reserved=el.roadAxis?roadReservation(el):undefined;
-      const minX=reserved?Math.min(...reserved.map(([x])=>x)):el.gx,minZ=reserved?Math.min(...reserved.map(([,z])=>z)):el.gz;
-      const width=reserved?Math.max(...reserved.map(([x])=>x))-minX+1:el.spanX,depth=reserved?Math.max(...reserved.map(([,z])=>z))-minZ+1:el.spanZ;
-      const box = new THREE.BoxGeometry(width * TILE_SIZE + 0.16, h, depth * TILE_SIZE + 0.16);
+      const bounds = roadBounds(el);
+      const width = (bounds.maxX - bounds.minX) * TILE_SIZE;
+      const depth = (bounds.maxZ - bounds.minZ) * TILE_SIZE;
+      const box = new THREE.BoxGeometry(width + 0.16, h, depth + 0.16);
       const edges = new THREE.EdgesGeometry(box);
       box.dispose();
       const col = this.bulkSelectMode || this.selectedIds.length > 1 ? 0xff5a5f : 0xf4c44e;
       const seg = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: col }));
-      seg.position.set(reserved?(minX+width/2)*TILE_SIZE:wx, baseY+h*.5,reserved?(minZ+depth/2)*TILE_SIZE:wz);
+      seg.position.set(wx, baseY + h * .5, wz);
       this.overlayGroup.add(seg);
       this.selectionOutlines.push(seg);
     });
@@ -1801,11 +1799,11 @@ export class PixelWorldRenderer {
     const level = this.brush.level;
     const variant = this.brush.variantMode >= 0 ? this.brush.variantMode : 0;
     const occ = buildOccupancyMap(this.gameState.elements);
-    const virtualElements: PlacedElement[] = [...this.gameState.elements];
+    const virtual: GameState = { ...this.gameState, elements: [...this.gameState.elements] };
     const plans: { pt: GridPoint; plan: ReturnType<typeof planConstruction> }[] = [];
 
-    for (const pt of activePoints) {
-      const plan = planConstruction(this.gameState, baseDef, pt.gx, pt.gz, level, 0, false);
+    for (const [index, pt] of activePoints.entries()) {
+      const plan = planConstruction(virtual, baseDef, pt.gx, pt.gz, level, this.brush.rotation, this.brush.faceManually, strokeRoadAxis(activePoints,index));
       plans.push({ pt, plan });
       if (plan.valid) {
         const key = tileKey(pt.gx, pt.gz);
@@ -1832,7 +1830,9 @@ export class PixelWorldRenderer {
           ...(plan.roadAxis ? { roadAxis: plan.roadAxis } : {}),
         };
         occ.set(key, virt);
-        virtualElements.push(virt);
+        if (plan.replaceId) virtual.elements = virtual.elements.filter(el => el.id !== plan.replaceId);
+        virtual.elements.push(virt);
+        if (buildingCharges(virtual)) virtual.money -= plan.def.cost;
       }
     }
 
@@ -1840,7 +1840,7 @@ export class PixelWorldRenderer {
       const def = plan.def;
       const mask = def.isNetwork
         ? getNetworkConnMask(
-            virtualElements,
+            virtual.elements,
             { defId: def.id, gx: pt.gx, gz: pt.gz, overWater: plan.overWater },
             occ,
             this.gameState,
@@ -1848,12 +1848,14 @@ export class PixelWorldRenderer {
         : 0;
       const [wx, wz] = gridToWorldCenter(pt.gx, pt.gz, plan.spanX, plan.spanZ);
       const baseY = this.getGroundElevationForElement(def, wx, wz);
-      const asset = getOrBuildElementAsset(def.id, plan.level, variant, plan.spanX, plan.spanZ, mask, {});
+      const pose = { gx: pt.gx, gz: pt.gz, defId: def.id, roadAxis: plan.roadAxis, spanX: plan.spanX, spanZ: plan.spanZ };
+      const bounds = roadBounds(pose);
+      const asset = getOrBuildElementAsset(def.id, plan.level, variant, plan.spanX, plan.spanZ, mask, { corridor: corridorArt(pose, occ) });
       const ghost = buildPlacedGroupFromAsset(asset, true, plan.valid);
       ghost.position.set(wx, baseY + 0.04, wz);
       this.networkPreviewGroup.add(ghost);
 
-      const box = new THREE.BoxGeometry(plan.spanX * TILE_SIZE, 0.25, plan.spanZ * TILE_SIZE);
+      const box = new THREE.BoxGeometry((bounds.maxX - bounds.minX) * TILE_SIZE, 0.25, (bounds.maxZ - bounds.minZ) * TILE_SIZE);
       const edges = new THREE.EdgesGeometry(box);
       box.dispose();
       const outline = new THREE.LineSegments(
@@ -1873,8 +1875,9 @@ export class PixelWorldRenderer {
       if (!def) continue;
       const [x, z] = gridToWorldCenter(site.gx, site.gz, site.spanX, site.spanZ);
       const y = this.getGroundElevationForElement(def, x, z) + VOXEL_SIZE + 0.12;
-      const left = x - site.spanX * TILE_SIZE / 2, right = x + site.spanX * TILE_SIZE / 2;
-      const top = z - site.spanZ * TILE_SIZE / 2, bottom = z + site.spanZ * TILE_SIZE / 2;
+      const bounds = roadBounds(site);
+      const left = bounds.minX * TILE_SIZE, right = bounds.maxX * TILE_SIZE;
+      const top = bounds.minZ * TILE_SIZE, bottom = bounds.maxZ * TILE_SIZE;
       vertices.push(left,y,top, right,y,top, right,y,top, right,y,bottom,
         right,y,bottom, left,y,bottom, left,y,bottom, left,y,top);
     }
@@ -2029,7 +2032,7 @@ export class PixelWorldRenderer {
     const localSpanX = def.isNetwork || !oddRot ? spanX : spanZ;
     const localSpanZ = def.isNetwork || !oddRot ? spanZ : spanX;
     const corridor=corridorArt({gx,gz,defId:def.id,roadAxis:placement?.roadAxis??moving?.roadAxis},occupancy);
-    if(corridor){const a=corridor.axis==="x";this.cursorOutline.scale.set((a?1:corridor.width)*4,.25,(a?corridor.width:1)*4); if(corridor.width===2){this.cursorOutline.position.x+=a?0:2;this.cursorOutline.position.z+=a?2:0;}}
+    if(corridor){const a=corridor.axis==="x";this.cursorOutline.scale.set((a?1:corridor.width)*4,.25,(a?corridor.width:1)*4); }
     const wantedGhostKey = `${JSON.stringify(corridor)??""}|${def.id}|L${level}|V${variant}|${localSpanX}x${localSpanZ}|C${mask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}|${chk.valid ? "ok" : "bad"}`;
     if (this.ghostKey !== wantedGhostKey) {
       if (this.ghostGroup) {

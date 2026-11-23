@@ -14,6 +14,11 @@ import {
   computeVoxelStrokeEdits,
   fillTileVoxelsFromCell,
   isVoxelSculptTool,
+  effectiveVoxelRadius,
+  voxelCenterWorld,
+  gridPointToVoxelCenter,
+  interpolateVoxelStroke,
+  voxelToTileLocal,
   syncVoxelPatchWaterFromCell,
   writeVoxelEditsToState,
   type VoxelTilePatch,
@@ -502,6 +507,17 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
   const wideId=tool.kind==="bridge" && (tool.mode==="highway"||tool.mode==="freeway")?(tool.mode==="highway"?"highways":"freeways"):undefined;
   const crossAxis=points[0].gz===points.at(-1)!.gz?"x":"z";
   const corridorOcc=wideId||isTerrain(tool)?buildOccupancyMap(state.elements):undefined;
+  const fineShoulderCheck = corridorOcc && tool.kind !== "paint" && isVoxelSculptTool(tool) &&
+    effectiveVoxelRadius(tool) === 0 && input.some(p => p.vx !== undefined && p.vz !== undefined);
+  if (fineShoulderCheck) {
+    for (const { vx, vz } of interpolateVoxelStroke(input.map(gridPointToVoxelCenter))) {
+      const { gx, gz } = voxelToTileLocal(vx,vz);
+      const [wx, wz] = voxelCenterWorld(vx,vz);
+      if (shoulderAt(gx,gz,corridorOcc,[wx/TILE_SIZE,wz/TILE_SIZE])) {
+        return fail("This work would undermine a carriageway shoulder.");
+      }
+    }
+  }
   for (const p of points) {
     if (!inBounds(p.gx, p.gz)) return fail("Part of this project is outside the island.");
     const el = at(state.elements, p.gx, p.gz),
@@ -519,7 +535,9 @@ export function planInfrastructureStroke(state: GameState, tool: InfrastructureT
       )
         return fail("The dam needs two dry banks on opposite sides of a flowing channel.");
     }
-    if(isTerrain(tool)&&corridorOcc&&tool.kind!=="paint"&&shoulderAt(p.gx,p.gz,corridorOcc))return fail("This work would undermine a carriageway shoulder.");
+    if (!fineShoulderCheck && isTerrain(tool) && corridorOcc && tool.kind !== "paint" && shoulderAt(p.gx,p.gz,corridorOcc)) {
+      return fail("This work would undermine a carriageway shoulder.");
+    }
     if(wideId && corridorOcc){
       const reason=corridorConflict(p.gx,p.gz,1,1,wideId,crossAxis,corridorOcc,()=>true);
       if(reason)return fail(reason);

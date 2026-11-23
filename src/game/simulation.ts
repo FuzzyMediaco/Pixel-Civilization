@@ -31,7 +31,9 @@ import { streetDemand } from "./streetDemand";
 import { generationExposure } from "./parcelExposure";
 import { roadSiteAccess, autoFrontageRotation, cellBeyondEdge, parcelAccessSteps, getParcelEdges, getParcelEffectSummary, PARCEL_SIDES, type LocalSide, type EdgeOverride } from "./parcelEdges";
 import { separatedDeckAxis, encodeRoadSitePort } from "./roadTopology";
-import { TILE_SIZE } from "./voxelCore";
+import { TILE_SIZE, VOXELS_PER_TILE } from "./voxelCore";
+import { sampleVoxelColumn } from "./voxelTerrain";
+import type { roadBounds } from "./roadCorridors";
 import { payEarnedGrants } from "./cityGrants";
 import {
   ACHIEVEMENTS,
@@ -342,6 +344,7 @@ export interface GameState {
   cameraView?: import("./worldRenderer").IslandCameraView;
   /** Absent on original island saves. */
   terrainVersion?: 1|2;
+  centeredHighways?: true;
   playSpeed?: number;
   constructionHistory?: import("./constructionHistory").BuildingEdit[];
   economy?: Economy;
@@ -571,6 +574,7 @@ export function createInitialGameState(mode: GameMode): GameState {
   const state: GameState = {
     mode,
     terrainVersion:2,
+    centeredHighways:true,
     money: mode === "survival" ? 2_200 : 2_800,
     population: 0,
     growthPool: 0,
@@ -783,7 +787,53 @@ function shoreRotation(state: GameState, def: CivElementDef, gx: number, gz: num
   return best;
 }
 
-export function planConstruction(state: GameState, selected: CivElementDef, gx: number, gz: number, brushLevel: number, preferred: number, faceManually=false) {
+/** Test only the terrain columns covered by a carriageway, including half-tile shoulders. */
+function dryRoadSurface(state: GameState, x: number, z: number, bounds: ReturnType<typeof roadBounds>) {
+  const cell = getTerrainCell(state, x, z);
+  if (!state.infrastructure?.voxels?.[`${x},${z}`] && (cell.kind === "land" && cell.depth <= .1 || state.infrastructure?.cells[`${x},${z}`])) {
+    return cell.depth <= .1;
+  }
+  const pitch = VOXELS_PER_TILE;
+  for (let vx = Math.max(x, bounds.minX) * pitch; vx < Math.min(x + 1, bounds.maxX) * pitch; vx++) {
+    for (let vz = Math.max(z, bounds.minZ) * pitch; vz < Math.min(z + 1, bounds.maxZ) * pitch; vz++) {
+      if (sampleVoxelColumn(state, vx, vz).depth > .1) return false;
+    }
+  }
+  return true;
+}
+
+/** Keep saved routes and parcels anchored; compact a legacy section only when the new shoulder cannot fit. */
+export function migrateCenteredHighways(state: GameState): void {
+  if (state.centeredHighways) return;
+  const occupancy = buildOccupancyMap(state.elements);
+  const spans = state.infrastructure?.spans;
+  const blockedRuns = new Set<string>();
+  let changedSpans = false;
+  for (const road of state.elements) {
+    if (road.defId !== "highways" || !road.roadAxis) continue;
+    const bridge = spans?.[`${road.gx},${road.gz}`];
+    const blocked = corridorConflict(road.gx, road.gz, 1, 1, road.defId, road.roadAxis, occupancy,
+      (x,z,bounds) => Boolean(bridge) || dryRoadSurface(state,x,z,bounds));
+    if (blocked) {
+      if (bridge && !bridge.run.startsWith("junction-")) blockedRuns.add(bridge.run);
+      else delete road.roadAxis;
+    }
+  }
+  if (blockedRuns.size && spans) {
+    for (const span of Object.values(spans)) if (blockedRuns.has(span.run)) {
+      delete span.corridorWidth;
+      changedSpans = true;
+    }
+    for (const road of state.elements) {
+      const span = spans[`${road.gx},${road.gz}`];
+      if (span && blockedRuns.has(span.run)) delete road.roadAxis;
+    }
+  }
+  if (changedSpans && state.infrastructure) markInfrastructureChanged(state.infrastructure);
+  state.centeredHighways = true;
+}
+
+export function planConstruction(state: GameState, selected: CivElementDef, gx: number, gz: number, brushLevel: number, preferred: number, faceManually=false, strokeAxis?: RoadAxis) {
   const network = selected.isNetwork ? planNetworkPlacement(state, selected, gx, gz) : undefined;
   const def = ELEMENT_BY_ID[network?.defId ?? selected.id];
   const level = state.mode === "god" ? Math.min(getMaxElementLevel(def.id), Math.max(1, brushLevel)) : 1;
@@ -795,8 +845,8 @@ export function planConstruction(state: GameState, selected: CivElementDef, gx: 
   const [spanX, spanZ] = rotation % 2 ? [sz, sx] : [sx, sz];
   const check = network ? { valid: network.ok, reason: network.reason } : checkPlacementValid(state, def, gx, gz, spanX, spanZ);
   const occupancy=buildOccupancyMap(state.elements);
-  const roadAxis=roadWidth(def.id)>1?chooseRoadAxis(gx,gz,preferred,occupancy):undefined;
-  if(check.valid&&roadAxis){const reason=corridorConflict(gx,gz,1,1,def.id,roadAxis,occupancy,(x,z)=>getTerrainCell(state,x,z).depth<=.1);if(reason){check.valid=false;check.reason=reason;}}
+  const roadAxis=roadWidth(def.id)>1?(strokeAxis ?? chooseRoadAxis(gx,gz,preferred,occupancy)):undefined;
+  if(check.valid&&roadAxis){const reason=corridorConflict(gx,gz,1,1,def.id,roadAxis,occupancy,(x,z,bounds)=>dryRoadSurface(state,x,z,bounds));if(reason){check.valid=false;check.reason=reason;}}
   const lock = buildingLockReason(selected, state);
   if (check.valid && lock) {
     check.valid = false;
@@ -822,7 +872,7 @@ export function planRelocation(state: GameState, el: PlacedElement, gx: number, 
       ignore.add(occupied!.id);
     }
   }
-  if(el.roadAxis){const reason=corridorConflict(gx,gz,1,1,el.defId,el.roadAxis,buildOccupancyMap(state.elements,ignore),(x,z)=>getTerrainCell(state,x,z).depth<=.1);if(reason)return {valid:false,reason,underlay};}
+  if(el.roadAxis){const reason=corridorConflict(gx,gz,1,1,el.defId,el.roadAxis,buildOccupancyMap(state.elements,ignore),(x,z,bounds)=>dryRoadSurface(state,x,z,bounds));if(reason)return {valid:false,reason,underlay};}
   return { ...checkPlacementValid(state, def, gx, gz, el.spanX, el.spanZ, ignore), underlay };
 }
 
@@ -889,7 +939,7 @@ export function planGroupRelocation(state: GameState, ids: readonly string[], gx
   for (const target of targets) {
     if (!target.roadAxis) continue;
     const reason = corridorConflict(target.gx,target.gz,1,1,target.defId,target.roadAxis,footprint,
-      (x,z)=>getTerrainCell(state,x,z).depth<=.1);
+      (x,z,bounds)=>dryRoadSurface(state,x,z,bounds));
     if (reason) return invalid(reason);
   }
   return { valid: true, reason: undefined, targets };
@@ -1057,7 +1107,7 @@ export function legacyRoadWidening(state:GameState,el:PlacedElement){
   const width=roadWidth(el.defId),cost=buildingCharges(state)?ELEMENT_BY_ID[el.defId].cost*(width-1):0;
   const occ=buildOccupancyMap(state.elements,new Set([el.id])),axis=chooseRoadAxis(el.gx,el.gz,el.rotation,occ);
   const reason=width===1||el.roadAxis?"Already at its design width.":state.infrastructure?.spans[el.gx+","+el.gz]?"Change the whole crossing in Public works.":
-    corridorConflict(el.gx,el.gz,1,1,el.defId,axis,occ,(x,z)=>getTerrainCell(state,x,z).depth<=.1)??(state.money<cost?"Insufficient treasury for widening.":undefined);
+    corridorConflict(el.gx,el.gz,1,1,el.defId,axis,occ,(x,z,bounds)=>dryRoadSurface(state,x,z,bounds))??(state.money<cost?"Insufficient treasury for widening.":undefined);
   return {axis,cost,reason};
 }
 export function widenLegacyRoad(state:GameState,el:PlacedElement){
