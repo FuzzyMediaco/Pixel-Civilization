@@ -154,7 +154,7 @@ export const EXTRA_PLAYBOOK_CHAPTERS: ExtraPlaybookChapter[] = [
         steps: [
           "Auto-Linking Roads: Every road, avenue, bridge, and street automatically links to all adjacent buildings and neighboring roads the instant you place it — in every game mode, with zero manual wiring required.",
           "Multi-Tile Roads & Bridges: Drag a road or bridge stroke across multiple tiles to preview its cost and route, then tap the floating green checkmark to confirm (or tap anywhere else on the map to cancel cleanly).",
-          "Bulk Select & Draw-to-Delete: Activate Bulk Select from the Top-Right Quick Menu to paint-select multiple buildings or roads (filtered by All, Roads, or Buildings) and demolish them in one tap.",
+          "Activate Bulk Select from the Top-Right Quick Menu, then draw or tap to select roads or buildings. Upgrade eligible items one level, move the selection together to a previewed destination, or delete the selection. Use Undo to reverse the last batch.",
           "Compact Floating Menus: Bottom sheets (Build, Layers, City, Transit, More, Inspector) open background-less at a compact ~1/3 screen height with icon-driven controls so your live 3D island stays front and center. Tap the sheet header chevron or drag its title bar to expand or collapse.",
         ],
         examples: [],

@@ -18,7 +18,7 @@ import { EXAMPLE_WORLDS, createExampleWorld, type ExampleMode, type ExampleWorld
 import { loadModeState, persistMode, resumeIsland } from "./game/activeIsland";
 import { createCanalDistrict } from "./game/canalDistrict";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertOctagon, ArrowDown, ArrowUp, Check, ChevronLeft, Layers, Minus, Plus, RotateCcw, RotateCw, ShieldAlert, Trash2, Undo2, Waves, X } from "lucide-react";
+import { AlertOctagon, ArrowDown, ArrowUp, Check, ChevronLeft, Layers, Minus, Move, Plus, RotateCcw, RotateCw, ShieldAlert, Trash2, Undo2, Waves, X } from "lucide-react";
 import { settleStreetFacing } from "./game/streetFacing";
 import { GameDialog } from "./components/GameDialog";
 import { SaveSlotsModal } from "./components/SaveSlotsModal";
@@ -133,6 +133,10 @@ import {
   stepSimulation,
   triggerCrimeIncident,
   upgradeElementDirect,
+  upgradeGroup,
+  groupMoveRestriction,
+  planGroupRelocation,
+  relocateGroup,
 } from "./game/simulation";
 import {
   type BuildBrush,
@@ -171,7 +175,7 @@ function pickAdjacentNetworkVariant(elements: PlacedElement[], gx: number, gz: n
 }
 
 const DEFAULT_HEIGHT: Record<NavSheet, SheetHeight> = {build: "peek", layers: "peek", city: "peek", sculpt: "peek", more: "peek"};
-const idleBrush = (b: BuildBrush): BuildBrush => ({...b, kind: "none", defId: undefined, movingElementId: undefined});
+const idleBrush = (b: BuildBrush): BuildBrush => ({...b, kind: "none", defId: undefined, movingElementId: undefined, movingGroupIds: undefined, groupDestination: undefined});
 
 export const App: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -1023,6 +1027,7 @@ export const App: React.FC = () => {
       onCancelPendingStroke: handleCancelPendingStroke,
       onBulkSelectElements: handleBulkSelectElements,
       onTileMoveCommit: handleTileMoveCommit,
+      onGroupMoveTarget: (gx, gz) => setBrush(current => current.movingGroupIds ? { ...current, groupDestination: [gx, gz] } : current),
       onSelectElement: handleSelectElement,
       onEmptyTileTap: handleEmptyTileTap,
       onFollowChange: setFollowedService,
@@ -1064,7 +1069,7 @@ export const App: React.FC = () => {
     const bridgePending = Boolean(pendingWorks && pendingWorks.tool.kind === "bridge" && pendingWorks.points.length >= 2);
     rendererRef.current?.setHasPendingBridgeConfirm(bridgePending, bridgePending ? pendingWorks : null);
   }, [pendingWorks]);
-  useEffect(() => {rendererRef.current?.setBulkSelect(bulkSelectMode, bulkFilter);}, [bulkSelectMode, bulkFilter]);
+  useEffect(() => {rendererRef.current?.setBulkSelect(bulkSelectMode && !brush.movingGroupIds, bulkFilter);}, [bulkSelectMode, bulkFilter, brush.movingGroupIds]);
   useEffect(() => {
     if (pendingRoadStroke && pendingRoadStroke.points.length >= 2) {
       let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -1277,6 +1282,7 @@ export const App: React.FC = () => {
         }
         if(ui.pendingRoadStroke) {setPendingRoadStroke(null);return;}
         if(ui.pendingWorks || ui.dispatchTarget) {setPendingWorks(null);setDispatchTarget(undefined);return;}
+        if(brushRef.current.movingGroupIds){setBrush(idleBrush);return;}
         if(ui.bulkSelectMode) {setBulkSelectMode(false);setSelectedIds([]);return;}
         if(ui.worksTool){setWorksTool(null);return;}
         if(brushRef.current.kind!=="none"){setBrush(idleBrush);return;}
@@ -1311,7 +1317,7 @@ export const App: React.FC = () => {
         } else if (selectedIdsRef.current.length === 1) {
           rotateSelected(selectedIdsRef.current[0]);
         }
-      } else if ((e.key === "Delete" || e.key === "Backspace") && selectedIdsRef.current.length > 0) {
+      } else if ((e.key === "Delete" || e.key === "Backspace") && !brushRef.current.movingGroupIds && selectedIdsRef.current.length > 0) {
         demolishRef.current([...selectedIdsRef.current]);
       }
     };
@@ -1392,6 +1398,50 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleUpgradeGroup = () => {
+    commitBuildingEdit("Bulk upgrade",(draft) => {
+      const result = upgradeGroup(draft, selectedIds);
+      const skippedCount = [...result.skipped.values()].reduce((sum, count) => sum + count, 0);
+      const reason = result.skipped.keys().next().value;
+      const detail = [
+        result.spent ? `$${result.spent.toLocaleString()} spent` : "",
+        skippedCount ? `${skippedCount} skipped. ${reason}` : "",
+      ].filter(Boolean).join(" · ");
+      showToast({
+        id: "bulk-upgrade",
+        title: result.upgraded ? `Upgraded ${result.upgraded} ${result.upgraded === 1 ? "site" : "sites"}` : "No selected sites could upgrade",
+        subtitle: detail,
+        tone: result.upgraded ? undefined : "alert",
+      });
+    });
+  };
+
+  const startGroupMove = () => {
+    const ids = new Set(selectedIds);
+    for (const el of stateRef.current.elements) {
+      if (!ids.has(el.id)) continue;
+      const reason = groupMoveRestriction(stateRef.current, el);
+      if (reason) {
+        showToast({id: "bulk-move", title: "Selection cannot move", subtitle: reason, tone: "alert"});
+        return;
+      }
+    }
+    setBrush(brush => ({ ...idleBrush(brush), kind: "move", movingGroupIds: [...selectedIds] }));
+  };
+
+  const confirmGroupMove = () => {
+    const { movingGroupIds, groupDestination } = brushRef.current;
+    if (!movingGroupIds || !groupDestination) return;
+    const plan = planGroupRelocation(stateRef.current, movingGroupIds, ...groupDestination);
+    if (!plan.valid) {
+      showToast({id: "bulk-move", title: "Move blocked", subtitle: plan.reason, tone: "alert"});
+      return;
+    }
+    commitBuildingEdit("Bulk move", draft => { relocateGroup(draft, movingGroupIds, ...groupDestination); });
+    setBrush(idleBrush);
+    showToast({id: "bulk-move", title: `Moved ${plan.targets.length} ${plan.targets.length === 1 ? "item" : "items"}`});
+  };
+
   const handleMaintainSelected = (id: string) => {
     commitState((draft) => {
       if(draft.elements.find(e=>e.id===id)?.onFire) dispatchFire(draft,id);
@@ -1438,6 +1488,14 @@ export const App: React.FC = () => {
     const set = new Set(ids);
     const removed = stateRef.current.elements.filter((e) => set.has(e.id));
     if (removed.length === 0) return;
+    if (bulkSelectModeRef.current) {
+      const spans = stateRef.current.infrastructure?.spans;
+      const runs = new Set(removed.map(el => spans?.[`${el.gx},${el.gz}`]?.run).filter(run => run && !run.startsWith("junction-")));
+      if (runs.size && stateRef.current.elements.some(el => !set.has(el.id) && runs.has(spans?.[`${el.gx},${el.gz}`]?.run))) {
+        showToast({id: "bulk-delete", title: "Select the entire crossing", subtitle: "A partial deletion would split the engineered deck.", tone: "alert"});
+        return;
+      }
+    }
     const primary = removed[0];
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
     for (const el of removed) {
@@ -1837,7 +1895,7 @@ export const App: React.FC = () => {
         }
       : null;
 
-  const placing=!!(brushDef||movingEl||worksTool||pendingWorks||dispatchTarget);
+  const placing=!!(brushDef||movingEl||brush.movingGroupIds||worksTool||pendingWorks||dispatchTarget);
   const showQuickBuildRing = Boolean(
     quickBuild &&
       !sheet &&
@@ -1906,8 +1964,7 @@ export const App: React.FC = () => {
       !guideModal &&
       !pixModal.open &&
       (pendingConfirm ||
-        (bulkSelectMode && selectedIds.length > 0) ||
-        (!placing && (selectedIds.length > 1 || (selected && selectedDef) || deletedAnchor))),
+        (!bulkSelectMode && !placing && (selectedIds.length > 1 || (selected && selectedDef) || deletedAnchor))),
   );
   const showInspector=!!(selected&&selectedDef&&inspectorDetailOpen&&!sheet&&!placing&&!bulkSelectMode&&!guideModal&&!pixModal.open);
   const ringOpen = Boolean(showQuickBuildRing || showSelectionRing);
@@ -2336,61 +2393,51 @@ export const App: React.FC = () => {
       </PlacementBar>}
 
       {bulkSelectMode && (
-        <>
-          <p className="ui-placebar-hint" role="status">
-            {selectedIds.length === 0
-              ? "Draw across the map or tap items to bulk select · 2-finger / Right-drag moves camera"
-              : `${selectedIds.length} item${selectedIds.length === 1 ? "" : "s"} selected · Draw more or tap Trash to bulk delete`}
-          </p>
-          <div className="ui-placebar ui-bulkbar" role="toolbar" aria-label="Bulk select and delete">
-            <div className="ui-bulk-filters" role="group" aria-label="Selection filter">
-              {(["all", "roads", "buildings"] as BulkSelectFilter[]).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  className="ui-bulk-chip"
-                  aria-pressed={bulkFilter === f}
-                  onClick={() => setBulkFilter(f)}
-                >
-                  {f === "all" ? "All" : f === "roads" ? "Roads" : "Buildings"}
-                </button>
-              ))}
-              {selectedHasNetwork && (
-                <button
-                  type="button"
-                  className="ui-bulk-chip is-accent"
-                  onClick={handleSelectConnectedRoads}
-                  title="Select the entire connected road stretch"
-                >
-                  Connected
-                </button>
-              )}
-            </div>
-            <div className="ui-bulk-actions">
-              {selectedIds.length > 0 && (
-                <Button small variant="quiet" label="Clear" onClick={() => setSelectedIds([])} />
-              )}
-              <Button
-                small
-                variant="danger"
-                className="is-solid"
-                icon={<Trash2 size={15} />}
-                label={selectedIds.length > 0 ? `Delete (${selectedIds.length})` : "Delete"}
-                disabled={selectedIds.length === 0}
-                onClick={() => demolish(selectedIds)}
-              />
-              <IconButton
-                variant="primary"
-                aria-label="Done bulk selecting"
-                icon={<Check size={19} />}
-                onClick={() => {
-                  setBulkSelectMode(false);
-                  setSelectedIds([]);
-                }}
-              />
-            </div>
-          </div>
-        </>
+        <div className="ui-placebar ui-bulkbar" role="toolbar" aria-label="Bulk actions">
+          {brush.movingGroupIds ? (
+            <>
+              <p className="ui-bulk-hint" role="status">
+                {brush.groupDestination
+                  ? hoverInfo?.valid ? "Destination ready. Tap another tile to change it." : hoverInfo?.reason ?? "Checking destination…"
+                  : "Tap a destination for the first selected item. Everything else keeps its spacing."}
+              </p>
+              <div className="ui-bulk-actions">
+                <Button small label="Cancel" onClick={() => setBrush(idleBrush)} />
+                <Button small variant="primary" label="Confirm move"
+                  disabled={!brush.groupDestination || !hoverInfo?.valid ||
+                    hoverInfo.gx !== brush.groupDestination[0] || hoverInfo.gz !== brush.groupDestination[1]}
+                  onClick={confirmGroupMove} />
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="ui-bulk-hint" role="status">{selectedIds.length
+                ? `${selectedIds.length} ${selectedIds.length === 1 ? "item" : "items"} selected`
+                : "Draw across the map or tap items to select."}</p>
+              <div className="ui-bulk-filters" role="group" aria-label="Selection filter">
+                {(["all", "roads", "buildings"] as BulkSelectFilter[]).map(f => (
+                  <button key={f} type="button" className="ui-bulk-chip" aria-pressed={bulkFilter === f}
+                    onClick={() => setBulkFilter(f)}>
+                    {f === "all" ? "All" : f === "roads" ? "Roads" : "Buildings"}
+                  </button>
+                ))}
+                {selectedHasNetwork && <button type="button" className="ui-bulk-chip is-accent"
+                  onClick={handleSelectConnectedRoads}>Connected</button>}
+              </div>
+              <div className="ui-bulk-actions">
+                <Button small icon={<ArrowUp size={15} />} label="Upgrade" disabled={!selectedIds.length} onClick={handleUpgradeGroup} />
+                <Button small icon={<Move size={15} />} label="Move" disabled={!selectedIds.length} onClick={startGroupMove} />
+                <Button small variant="danger" icon={<Trash2 size={15} />} label="Delete" disabled={!selectedIds.length}
+                  onClick={() => demolish(selectedIds)} />
+                {gameState.constructionHistory?.at(-1)?.label.startsWith("Bulk ") &&
+                  <Button small variant="quiet" icon={<Undo2 size={15} />} label="Undo" onClick={handleUndoBuilding} />}
+                {selectedIds.length > 0 && <Button small variant="quiet" label="Clear" onClick={() => setSelectedIds([])} />}
+                <IconButton variant="primary" aria-label="Done bulk selecting" icon={<Check size={19} />}
+                  onClick={() => {setBulkSelectMode(false);setSelectedIds([]);}} />
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       {showQuickBuildRing && quickBuild && (

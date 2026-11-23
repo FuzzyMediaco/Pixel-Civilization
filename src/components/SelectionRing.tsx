@@ -295,7 +295,7 @@ export function SelectionRing({
     if (onStartBulkSelect) {
       actions.push({
         id: "bulk",
-        label: "Select multiple to bulk delete",
+        label: "Select multiple for bulk actions",
         icon: <ListChecks size={18} strokeWidth={2.25} aria-hidden="true" />,
         onClick: onStartBulkSelect,
       });

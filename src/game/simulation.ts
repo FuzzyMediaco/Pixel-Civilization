@@ -639,13 +639,16 @@ export function checkPlacementValid(
   spanX: number,
   spanZ: number,
   ignoreIds?: Set<string>,
+  occupancy?: ReadonlyMap<string, PlacedElement>,
 ): { valid: boolean; reason?: string } {
   if (gx < GRID_MIN || gz < GRID_MIN || gx + spanX - 1 > GRID_MAX || gz + spanZ - 1 > GRID_MAX) {
     return { valid: false, reason: "Outside island bounds" };
   }
-  const lock = buildingLockReason(def, state);
-  if (lock && !ignoreIds?.size) return { valid: false, reason: lock };
-  const occ = buildOccupancyMap(state.elements, ignoreIds);
+  if (!ignoreIds?.size) {
+    const lock = buildingLockReason(def, state);
+    if (lock) return { valid: false, reason: lock };
+  }
+  const occ = occupancy ?? buildOccupancyMap(state.elements, ignoreIds);
   const shoulder = corridorConflict(gx,gz,spanX,spanZ,def.id,undefined,occ,()=>true);
   if(shoulder)return {valid:false,reason:shoulder};
   let waterAccess = false;
@@ -838,6 +841,85 @@ export function relocatePlacedElement(state: GameState, el: PlacedElement, gx: n
   return true;
 }
 
+export function groupMoveRestriction(state: GameState, el: PlacedElement): string | undefined {
+  if (state.infrastructure?.spans[`${el.gx},${el.gz}`]) return "Move engineered crossings through Public Works.";
+  if (el.sculptsTerrain || el.waterUnderlay || ELEMENT_BY_ID[el.defId]?.isWaterFeature) return "Leave waterways and terrain features out of the move.";
+  if (state.mobility?.voyages[el.id]) return "Wait for the vessel to finish its voyage.";
+}
+
+export function planGroupRelocation(state: GameState, ids: readonly string[], gx: number, gz: number) {
+  const anchor = state.elements.find(el => el.id === ids[0]);
+  const selected = new Set(ids);
+  const moving = state.elements.filter(el => selected.has(el.id));
+  if (!anchor || moving.length !== selected.size) return { valid: false, reason: "Some selected items are no longer available.", targets: [] };
+  const dx = gx - anchor.gx, dz = gz - anchor.gz;
+  const targets = moving.map(el => ({ ...el, gx: el.gx + dx, gz: el.gz + dz }));
+  const invalid = (reason: string) => ({ valid: false, reason, targets });
+  if (!Number.isInteger(dx) || !Number.isInteger(dz)) return invalid("Choose a tile on the island.");
+  if (!dx && !dz) return invalid("Choose a different destination.");
+
+  const stationary = buildOccupancyMap(state.elements, selected);
+  const sourceKeys = new Set(moving.map(el => `${el.gx},${el.gz}`));
+  for (const target of targets) {
+    const def = ELEMENT_BY_ID[target.defId];
+    const original = { ...target, gx: target.gx - dx, gz: target.gz - dz };
+    const restriction = groupMoveRestriction(state, original);
+    if (restriction) return invalid(restriction);
+    if (!def) return invalid("An element in the selection is unavailable.");
+    const check = checkPlacementValid(state, def, target.gx, target.gz, target.spanX, target.spanZ, selected, stationary);
+    if (!check.valid) return invalid(`${def.name}: ${check.reason}`);
+    const key = `${target.gx},${target.gz}`;
+    if (state.infrastructure?.spans[key] || (state.infrastructure?.streets[key] && !sourceKeys.has(key))) {
+      return invalid("The destination contains engineered road or crossing controls.");
+    }
+    target.overWater = Boolean(def.isRoadNetwork && getTileTerrainKind(target.gx, target.gz, state) !== "land");
+  }
+
+  const footprint = new Map(stationary);
+  for (const target of targets) {
+    for (let x = target.gx; x < target.gx + target.spanX; x++) {
+      for (let z = target.gz; z < target.gz + target.spanZ; z++) {
+        const key = `${x},${z}`;
+        const other = footprint.get(key);
+        if (other && selected.has(other.id)) return invalid("These selected elements overlap and cannot move as a group.");
+        footprint.set(key, target);
+      }
+    }
+  }
+  for (const target of targets) {
+    if (!target.roadAxis) continue;
+    const reason = corridorConflict(target.gx,target.gz,1,1,target.defId,target.roadAxis,footprint,
+      (x,z)=>getTerrainCell(state,x,z).depth<=.1);
+    if (reason) return invalid(reason);
+  }
+  return { valid: true, reason: undefined, targets };
+}
+
+export function relocateGroup(state: GameState, ids: readonly string[], gx: number, gz: number) {
+  const plan = planGroupRelocation(state, ids, gx, gz);
+  if (!plan.valid) return plan;
+  const targets = new Map(plan.targets.map(el => [el.id, el]));
+  const infra = state.infrastructure;
+  if (infra) {
+    const controls: [string, Infrastructure["streets"][string]][] = [];
+    for (const el of state.elements) {
+      const target = targets.get(el.id), key = `${el.gx},${el.gz}`;
+      if (target && infra.streets[key]) {
+        controls.push([`${target.gx},${target.gz}`, infra.streets[key]]);
+        delete infra.streets[key];
+      }
+    }
+    for (const [key, control] of controls) infra.streets[key] = control;
+    if (controls.length) markInfrastructureChanged(infra);
+  }
+  state.elements = state.elements.map(el => {
+    const target = targets.get(el.id);
+    return target ? { ...target, animProgress: 0.85, animKind: "place" } : el;
+  });
+  recomputeConnectivityAndMetrics(state);
+  return plan;
+}
+
 export function removePlacedElements(state: GameState, ids: Set<string>): void {
   const i=state.infrastructure;
   if(i){let changed=false;for(const e of state.elements)if(ids.has(e.id)){const k=`${e.gx},${e.gz}`;if(i.spans[k]||i.streets[k]){delete i.spans[k];delete i.streets[k];changed=true;}}if(changed)i.revision++;}
@@ -989,7 +1071,7 @@ export function placedUpgradeCost(state:GameState,el:PlacedElement){
   const pieces=crossingPieces(state,el);
   return pieces.length?crossingUpgradePrice(pieces[0][1],pieces.length):getUpgradeCost(ELEMENT_BY_ID[el.defId],el.level);
 }
-export function upgradeElementDirect(state: GameState, id: string): { ok: boolean; reason?: string } {
+export function upgradeElementDirect(state: GameState, id: string, refresh = true): { ok: boolean; reason?: string } {
   const el = state.elements.find((e) => e.id === id);
   if (!el) return { ok: false, reason: "Element not found" };
   const pieces=crossingPieces(state,el), span=pieces[0]?.[1];
@@ -1009,7 +1091,7 @@ export function upgradeElementDirect(state: GameState, id: string): { ok: boolea
   if(span){
     if(!resizeCrossing(state,el,level+1))return {ok:false,reason:"Raise the aqueduct above the upgraded deck."};
     transfer(state,"treasury","outside",cost,"Crossing upgrade");
-    recomputeConnectivityAndMetrics(state);return {ok:true};
+    if (refresh) recomputeConnectivityAndMetrics(state);return {ok:true};
   }
   if (!resizeElementForLevel(state, el, el.level + 1)) {
     const [w, h] = getStandardFootprintForLevel(def, el.level + 1);
@@ -1018,8 +1100,32 @@ export function upgradeElementDirect(state: GameState, id: string): { ok: boolea
   transfer(state, "treasury", "outside", cost, "Building upgrade");
   el.animProgress = 1.0;
 
-  recomputeConnectivityAndMetrics(state);
+  if (refresh) recomputeConnectivityAndMetrics(state);
   return { ok: true };
+}
+
+/** Upgrade each eligible site once, with one attempt per engineered crossing. */
+export function upgradeGroup(state: GameState, ids: readonly string[]) {
+  const runs = new Set<string>();
+  const selected = new Set(ids);
+  const skipped = new Map<string, number>();
+  const openingMoney = state.money;
+  let upgraded = 0;
+  for (const el of state.elements) {
+    if (!selected.has(el.id)) continue;
+    const span = state.infrastructure?.spans[`${el.gx},${el.gz}`];
+    const run = span && !span.run.startsWith("junction-") ? span.run : undefined;
+    if (run && runs.has(run)) continue;
+    if (run) runs.add(run);
+    const result = upgradeElementDirect(state, el.id, false);
+    if (result.ok) upgraded++;
+    else {
+      const key = result.reason ?? "Unavailable";
+      skipped.set(key, (skipped.get(key) ?? 0) + 1);
+    }
+  }
+  if (upgraded) recomputeConnectivityAndMetrics(state);
+  return { upgraded, skipped, spent: Math.max(0, openingMoney - state.money) };
 }
 
 export function pushToast(

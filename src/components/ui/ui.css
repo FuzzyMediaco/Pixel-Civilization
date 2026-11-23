@@ -2218,8 +2218,10 @@ button.ui-row:hover { border-color: var(--ui-green); }
   background: #fff5f4;
   color: var(--ui-bad);
 }
+.ui-bulk-hint { flex-basis: 100%; margin: 0; font-size: 12px; font-weight: 650; }
 .ui-bulk-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-left: auto;

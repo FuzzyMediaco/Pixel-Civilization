@@ -21,6 +21,7 @@ import {
   type SelectionFilter,
   planConstruction,
   planRelocation,
+  planGroupRelocation,
   buildOccupancyMap,
   computeHeatmapCells,
   getConnectedRoadCoordSet,
@@ -93,6 +94,8 @@ export interface BuildBrush {
   variantMode: number;
   rotation: number;
   movingElementId?: string;
+  movingGroupIds?: readonly string[];
+  groupDestination?: [number, number];
   faceManually?: boolean;
 }
 
@@ -109,6 +112,7 @@ export interface WorldCallbacks {
   onPendingNetworkStroke?: (stroke: PendingNetworkStroke) => void;
   onCancelPendingStroke?: () => void;
   onBulkSelectElements?: (ids: string[], mode: "add" | "toggle") => void;
+  onGroupMoveTarget?: (gx: number, gz: number) => void;
   onTileMoveCommit: (elementId: string, gx: number, gz: number) => void;
   onInspectTile?: (gx:number,gz:number)=>boolean|void;
   onSelectService?: (id: string) => void;
@@ -410,6 +414,8 @@ export class PixelWorldRenderer {
   private ghostKey = "";
   private curbPreviews = new Map<string,{key:string; original:THREE.Group; ghost:THREE.Group; wasVisible:boolean}>();
   private cursorOutline: THREE.LineSegments;
+  private groupOutline = new THREE.LineSegments(new THREE.BufferGeometry(),
+    new THREE.LineBasicMaterial({ transparent: true, opacity: 0.92 }));
   private selectionOutlines: THREE.LineSegments[] = [];
   private radiusRingMesh: THREE.Mesh | null = null;
 
@@ -582,6 +588,8 @@ export class PixelWorldRenderer {
     );
     this.cursorOutline.visible = false;
     this.overlayGroup.add(this.cursorOutline);
+    this.groupOutline.visible = false;
+    this.overlayGroup.add(this.groupOutline);
     this.overlayGroup.add(this.networkPreviewGroup);
 
     this.bindEvents();
@@ -1857,7 +1865,30 @@ export class PixelWorldRenderer {
     }
   }
 
+  private showGroupMovePreview(ids: readonly string[], gx: number, gz: number) {
+    const plan = planGroupRelocation(this.gameState, ids, gx, gz);
+    const vertices: number[] = [];
+    for (const site of plan.targets) {
+      const def = ELEMENT_BY_ID[site.defId];
+      if (!def) continue;
+      const [x, z] = gridToWorldCenter(site.gx, site.gz, site.spanX, site.spanZ);
+      const y = this.getGroundElevationForElement(def, x, z) + VOXEL_SIZE + 0.12;
+      const left = x - site.spanX * TILE_SIZE / 2, right = x + site.spanX * TILE_SIZE / 2;
+      const top = z - site.spanZ * TILE_SIZE / 2, bottom = z + site.spanZ * TILE_SIZE / 2;
+      vertices.push(left,y,top, right,y,top, right,y,top, right,y,bottom,
+        right,y,bottom, left,y,bottom, left,y,bottom, left,y,top);
+    }
+    const next = new THREE.BufferGeometry();
+    next.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+    this.groupOutline.geometry.dispose();
+    this.groupOutline.geometry = next;
+    this.groupOutline.material.color.setHex(plan.valid ? 0x64f5df : 0xff5a5f);
+    this.groupOutline.visible = vertices.length > 0;
+    this.callbacks.onHoverInfo?.({ gx, gz, valid: plan.valid, reason: plan.reason });
+  }
+
   private updateHoverOverlay(): void {
+    this.groupOutline.visible = false;
     if (this.pendingNetworkStroke || this.networkStroke.length > 0 || this.bulkSelectMode) {
       this.updateCurbPreviews();
       this.cursorOutline.visible = false;
@@ -1893,6 +1924,15 @@ export class PixelWorldRenderer {
       this.callbacks.onHoverInfo?.({gx,gz,valid:plan.valid,reason:plan.reason||sizeSummary+costSummary+(plan.affected.length?" · "+plan.affected.length+" affected":"")});return;
     }
     this.engineering.showPreview(this.gameState,null);
+    if (this.brush.kind === "move" && this.brush.movingGroupIds?.length) {
+      this.updateCurbPreviews();
+      this.cursorOutline.visible = false;
+      if (this.ghostGroup) this.ghostGroup.visible = false;
+      const destination = this.brush.groupDestination ?? this.hoverGrid;
+      if (destination) this.showGroupMovePreview(this.brush.movingGroupIds, ...destination);
+      else this.callbacks.onHoverInfo?.(null);
+      return;
+    }
     if (!this.hoverGrid || this.brush.kind === "none") {
       this.updateCurbPreviews();
       this.cursorOutline.visible = false;
@@ -4261,7 +4301,9 @@ export class PixelWorldRenderer {
 
     if (!this.isDraggingCamera && e.button === 0) {
       const g = this.computePointerGrid(e.clientX, e.clientY);
-      if (this.brush.kind === "move" && this.brush.movingElementId && g) {
+      if (this.brush.kind === "move" && this.brush.movingGroupIds?.length && g) {
+        this.callbacks.onGroupMoveTarget?.(g[0], g[1]);
+      } else if (this.brush.kind === "move" && this.brush.movingElementId && g) {
         this.callbacks.onTileMoveCommit(this.brush.movingElementId, g[0], g[1]);
       } else if (this.brush.kind === "place" && this.brush.defId && g) {
         const def = ELEMENT_BY_ID[this.brush.defId];
@@ -4424,6 +4466,8 @@ export class PixelWorldRenderer {
     this.farmActivity.dispose();
     this.patrolCraft.dispose();
     this.mobilityVisuals.dispose();
+    this.groupOutline.geometry.dispose();
+    this.groupOutline.material.dispose();
     this.renderer.dispose();
   }
 }

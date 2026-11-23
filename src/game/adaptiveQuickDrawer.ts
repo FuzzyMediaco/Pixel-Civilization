@@ -108,7 +108,7 @@ export const DEFAULT_MANUAL_DRAWER_IDS: QuickDrawerActionId[] = [
 
 export const QUICK_DRAWER_CATALOG_META: QuickDrawerCatalogMeta[] = [
   // Quick Menus & Selection
-  { id: "bulk_select", label: "Bulk Select", desc: "Draw to select & delete multiple items", group: "Quick Menus", modeNote: "Manual build modes" },
+  { id: "bulk_select", label: "Bulk Select", desc: "Draw to select, upgrade, move, or delete items", group: "Quick Menus", modeNote: "Manual build modes" },
   { id: "mode_smart", label: "Smart Build", desc: "3-click adaptive categories → elements", group: "Quick Menus", modeNote: "Manual build modes" },
   { id: "mode_quick", label: "Quick Build", desc: "2-click instant adaptive elements", group: "Quick Menus", modeNote: "Manual build modes" },
   { id: "mode_exact", label: "Exact Build", desc: "4-click fixed 7×7×6 decision tree", group: "Quick Menus", modeNote: "Manual build modes" },
@@ -314,7 +314,7 @@ export function buildQuickDrawerItem(
         id,
         label: ctx.bulkSelectMode ? "Exit Bulk" : "Bulk Select",
         title: ctx.canManualEdit
-          ? "Draw to bulk select & delete roads or buildings"
+          ? "Draw to select roads or buildings for group actions"
           : "Bulk Select is available in God, Real & Survival modes",
         active: ctx.bulkSelectMode,
         tone: ctx.bulkSelectMode ? "danger" : undefined,

@@ -15,6 +15,9 @@ import {
   makeElementId,
   recomputeConnectivityAndMetrics,
   removePlacedElements,
+  relocateGroup,
+  planGroupRelocation,
+  upgradeGroup,
   type PlacedElement,
 } from "../src/game/simulation";
 
@@ -157,4 +160,43 @@ test("bulk delete removes multiple selected roads and buildings in one undoable 
   assert.equal(state.elements.length, 5);
   assert.ok(state.elements.some((e) => e.id === r1.id));
   assert.ok(state.elements.some((e) => e.id === h1.id));
+});
+
+test("bulk move keeps relative spacing, can overlap old footprints, and undoes together", () => {
+  const s = createInitialGameState("god");
+  const house = place("house", 0, 0, 2);
+  const road = place("roads", 1, 0);
+  const blocker = place("shops", 3, 0);
+  s.elements = [house, road, blocker];
+  recomputeConnectivityAndMetrics(s);
+
+  const ids = [house.id, road.id];
+  const before = structuredClone(s);
+  assert.equal(relocateGroup(s, ids, 2, 0).valid, false);
+  assert.deepEqual(s, before);
+  assert.equal(planGroupRelocation(s, ids, 1, 0).valid, true);
+  assert.equal(relocateGroup(s, ids, 1, 0).valid, true);
+  assert.deepEqual(s.elements.map(e => [e.gx, e.gz, e.rotation]), [[1, 0, 2], [2, 0, 0], [3, 0, 0]]);
+  rememberBuildingEdit(before, s, "Bulk move");
+  assert.ok(undoBuildingEdit(s).ok);
+  assert.deepEqual(s.elements.map(e => [e.gx, e.gz]), [[0, 0], [1, 0], [3, 0]]);
+});
+
+test("bulk upgrade advances eligible elements exactly one level and can undo the batch", () => {
+  const s = createInitialGameState("god");
+  const a = place("house", 0, 0);
+  const b = place("house", 5, 0);
+  const capped = { ...place("house", 0, 5), level: 5 };
+  const unrelated = place("house", 8, 8);
+  s.elements = [a, b, capped, unrelated];
+  recomputeConnectivityAndMetrics(s);
+  const before = structuredClone(s);
+  const result = upgradeGroup(s, [a.id, a.id, b.id, capped.id]);
+  assert.equal(result.upgraded, 2);
+  assert.equal(result.skipped.get("Already at maximum level"), 1);
+  assert.equal(result.spent, 0);
+  assert.deepEqual(s.elements.map(el => el.level), [2, 2, 5, 1]);
+  rememberBuildingEdit(before, s, "Bulk upgrade");
+  assert.ok(undoBuildingEdit(s).ok);
+  assert.deepEqual(s.elements.map(el => el.level), [1, 1, 5, 1]);
 });
