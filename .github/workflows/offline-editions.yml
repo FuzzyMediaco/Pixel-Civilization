@@ -1,0 +1,54 @@
+name: Build offline editions
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Prepare Android SDK
+        shell: pwsh
+        run: |
+          & "$env:ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager.bat" "platforms;android-35" "build-tools;35.0.0"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Build the game and both platforms
+        shell: pwsh
+        env:
+          PIXEL_ANDROID_KEYSTORE_BASE64: ${{ secrets.PIXEL_ANDROID_KEYSTORE_BASE64 }}
+          PIXEL_KEYSTORE_PASSWORD: ${{ secrets.PIXEL_KEYSTORE_PASSWORD }}
+        run: |
+          if (!$env:PIXEL_ANDROID_KEYSTORE_BASE64 -or !$env:PIXEL_KEYSTORE_PASSWORD) { throw "Configure the release signing key secrets before starting a build." }
+          $env:PIXEL_ANDROID_KEYSTORE = Join-Path $env:RUNNER_TEMP 'island-signing.p12'
+          [IO.File]::WriteAllBytes($env:PIXEL_ANDROID_KEYSTORE,[Convert]::FromBase64String($env:PIXEL_ANDROID_KEYSTORE_BASE64))
+          try {
+            bun install --frozen-lockfile
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            npm run build
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            ./packages/test-updates.ps1
+            ./packages/build-windows.ps1
+            ./packages/build-android.ps1
+            ./packages/verify-editions.ps1
+          } finally {
+            Remove-Item -LiteralPath $env:PIXEL_ANDROID_KEYSTORE -ErrorAction SilentlyContinue
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pixel-Civilization-offline-editions
+          path: |
+            portable/Pixel-Civilization-Android.apk
+            portable/Pixel-Civilization-Windows-x64.zip
+          if-no-files-found: error

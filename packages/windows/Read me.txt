@@ -1,0 +1,5 @@
+Pixel Civilization for Windows
+
+Extract the entire ZIP into one folder, then open Pixel Civilization.exe. Windows 10 or 11 x64 and Microsoft's Edge WebView2 Runtime are required. The complete island, field guide and handbook are included. Your cities stay in your Windows user profile when you close the game or replace the download.
+
+When the computer is online, the game checks pixelcivilization.app for updates. A verified update takes effect the next time you open the game. Closing the game during a download keeps the last working version. Sign in inside the game when you want to connect your local islands to your account. Online services such as Pix need an internet connection.
