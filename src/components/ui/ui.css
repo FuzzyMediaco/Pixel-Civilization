@@ -4194,3 +4194,17 @@ button.ui-row:hover { border-color: var(--ui-green); }
 .player-buttons {display:flex;gap:.4rem;flex-wrap:wrap}
 .player-buttons button[aria-pressed=true] {background:var(--ui-green,#365d4c);color:white}
 .player-conflict {display:grid;gap:.4rem;padding:.65rem;border:1px solid #b8bdaa;border-radius:8px}
+
+.player-entry {
+  height: 100dvh;
+  display: grid;
+  place-items: safe center;
+  overflow: auto;
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  background: #e8efde;
+  color: #253c35;
+}
+.player-entry-card { width: min(100%, 420px); }
+.player-entry-card h1 { margin: 0 0 12px; font-size: clamp(1.7rem, 7vw, 2.5rem); font-weight: 800; line-height: 1.1; }
+.player-entry .ui-btn { min-height: 44px; }

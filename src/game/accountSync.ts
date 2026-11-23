@@ -248,15 +248,37 @@ async function finishSignout() {
   }
   await setPendingSignout(null);
 }
-export async function bootAccountSync() {
+export async function bootAccountSync(requireAccount = false): Promise<boolean> {
+  const local = currentPlayer();
+  if (!cloudAvailable()) return !requireAccount;
   await finishSignout();
-  const user = currentPlayer();
-  if (!user || !cloudAvailable() || !navigator.onLine) return;
-  try {
-    await sync(user.id, true, AbortSignal.timeout(4500));
-  } catch (e) {
-    update({ message: errorText(e) });
+  if (!navigator.onLine) return !requireAccount || Boolean(local);
+
+  let user = local;
+  if (requireAccount) {
+    try {
+      ({ user } = await api<{ user: Player | null }>("/me", "GET", undefined, undefined, AbortSignal.timeout(4500)));
+    } catch (error) {
+      update({ message: errorText(error) });
+      return Boolean(local);
+    }
+    if (!user) return false;
+    if (local?.id !== user.id) {
+      // A browser may remember its cookie even after the device profile was cleared.
+      // Do not start the simulation in the old profile while opening the signed-in one.
+      await rememberPlayer(user);
+      reopenSavedIsland();
+      return false;
+    }
   }
+  if (user) {
+    try {
+      await sync(user.id, true, AbortSignal.timeout(4500));
+    } catch (error) {
+      update({ message: errorText(error) });
+    }
+  }
+  return true;
 }
 let switchInProgress = false;
 export async function autosync() {

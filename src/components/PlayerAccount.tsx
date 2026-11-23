@@ -25,12 +25,12 @@ import {
   type Recovery,
 } from "../game/deviceSaves";
 
-export function PlayerAccount({ saveNow }: { saveNow: () => boolean }) {
+export function PlayerAccount({ saveNow, entry = false }: { saveNow: () => boolean; entry?: boolean }) {
   const progress = useRef<HTMLDialogElement>(null);
   const user = currentPlayer();
   const sync = useSyncExternalStore(watchSync, syncState);
   const device = useSyncExternalStore(onDeviceChange, deviceIssue);
-  const [create, setCreate] = useState(false),
+  const [create, setCreate] = useState(entry && !user),
     [email, setEmail] = useState(user?.email ?? ""),
     [pass, setPass] = useState("");
   const [importGuest, setImportGuest] = useState(true),
@@ -74,7 +74,7 @@ export function PlayerAccount({ saveNow }: { saveNow: () => boolean }) {
       throw e;
     }
   }
-  const form = (!user || login) && (
+  const form = (entry || !user || login) && (
     <form
       onSubmit={(e) => {
         e.preventDefault();
@@ -106,7 +106,8 @@ export function PlayerAccount({ saveNow }: { saveNow: () => boolean }) {
         Email
         <input
           type="email"
-          autoComplete="email"
+          name="username"
+          autoComplete="username"
           required
           maxLength={254}
           value={email}
@@ -117,6 +118,7 @@ export function PlayerAccount({ saveNow }: { saveNow: () => boolean }) {
         Password
         <input
           type="password"
+          name="password"
           autoComplete={create ? "new-password" : "current-password"}
           required
           minLength={create ? 8 : 1}
@@ -145,8 +147,8 @@ export function PlayerAccount({ saveNow }: { saveNow: () => boolean }) {
         {busy
           ? "Connecting…"
           : create
-            ? "Create account & sync"
-            : "Sign in & sync"}
+            ? entry ? "Create account and play" : "Create account & sync"
+            : entry ? "Sign in and play" : "Sign in & sync"}
       </button>
     </form>
   );
@@ -160,9 +162,9 @@ export function PlayerAccount({ saveNow }: { saveNow: () => boolean }) {
       >
         <span role="status">Updating your saves…</span>
       </dialog>
-      <h3>{user ? user.email : "Play on more than one device"}</h3>
+      {!entry && <h3>{user ? user.email : "Play on more than one device"}</h3>}
       <p>
-        {user
+        {entry ? "Your worlds save to your account and follow you between devices." : user
           ? "This device keeps its own playable copy. While online, islands and settings sync to your account."
           : "Your guest islands save on this device. Sign in to bring them to another phone or computer."}
       </p>
@@ -173,7 +175,7 @@ export function PlayerAccount({ saveNow }: { saveNow: () => boolean }) {
           game.
         </p>
       )}
-      {user && (
+      {!entry && user && (
         <>
           <p role="status">
             {sync.busy ? "Syncing…" : sync.message || "Local copy ready."}
@@ -241,7 +243,8 @@ export function PlayerAccount({ saveNow }: { saveNow: () => boolean }) {
         </>
       )}
       {form}
-      {cloudAvailable() && (
+      {entry && <small>Your browser can remember your sign-in.</small>}
+      {!entry && cloudAvailable() && (
         <button
           className="ui-btn"
           aria-expanded={showRecovery}

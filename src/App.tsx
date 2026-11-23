@@ -1525,6 +1525,7 @@ export const App: React.FC = () => {
     setActiveSlotIndex(slotIndex);
     const savedName = updated[slotIndex]?.name ?? `Civilization ${slotIndex + 1}`;
     showToast({id:"saved",title:`Saved "${savedName}"`,subtitle:`Slot ${slotIndex + 1}`});
+    void autosync();
   };
 
   const handleExportWorld = (slotIndex?: number) => {

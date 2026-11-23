@@ -3,6 +3,7 @@ import { AccountError, json, readJson } from "./account-http.mjs";
 import { readSave, writeSave, listSaves } from "./saves.mjs";
 
 const DAY = 86_400_000;
+const SESSION_LIFETIME = 30 * DAY;
 const SESSION_COOKIE = "__Host-pixel_session";
 const PBKDF2_ITERATIONS = 100_000;
 const AUTH_WINDOW = 10 * 60_000;
@@ -38,10 +39,12 @@ async function currentSession(db, request) {
   const token = sessionToken(request);
   if (!token) return null;
   const tokenHash = await digest(token);
-  const user = await db.prepare(`SELECT game_users.id, game_users.email FROM game_sessions
+  const user = await db.prepare(`SELECT game_users.id, game_users.email, game_sessions.expires_at FROM game_sessions
     JOIN game_users ON game_users.id = game_sessions.user_id
     WHERE token_hash = ? AND expires_at > ?`).bind(tokenHash, Date.now()).first();
-  return user ? { user, tokenHash } : null;
+  if (!user) return null;
+  const { expires_at, ...profile } = user;
+  return { user: profile, tokenHash, token, expiresAt: expires_at };
 }
 
 async function countAttempts(db, request, email, action) {
@@ -90,13 +93,13 @@ async function authenticate(db, request, action) {
     user = { id: row.id, email: row.email };
   }
   statements.push(db.prepare(`INSERT INTO game_sessions(token_hash,user_id,expires_at)
-    SELECT ?,id,? FROM game_users WHERE id=?`).bind(tokenHash, now + 30 * DAY, user.id));
+    SELECT ?,id,? FROM game_users WHERE id=?`).bind(tokenHash, now + SESSION_LIFETIME, user.id));
   statements.push(db.prepare("DELETE FROM game_sessions WHERE expires_at <= ?").bind(now));
   const result = await db.batch(statements);
   if (action === "register" && !result[0].results.length) {
     throw new AccountError(409, "An account already uses this email. Try signing in.", "email_taken");
   }
-  return json({ user }, action === "register" ? 201 : 200, { "Set-Cookie": cookie(token, 30 * DAY / 1000) });
+  return json({ user }, action === "register" ? 201 : 200, { "Set-Cookie": cookie(token, SESSION_LIFETIME / 1000) });
 }
 
 function requireMethod(request, expected) {
@@ -126,6 +129,13 @@ export async function accountRequest(request, env) {
     }
     if (path === "me") {
       requireMethod(request, "GET");
+      const now = Date.now();
+      if (session && session.expiresAt - now < 7 * DAY) {
+        const refreshed = await db.prepare("UPDATE game_sessions SET expires_at=? WHERE token_hash=? AND expires_at>? RETURNING token_hash")
+          .bind(now + SESSION_LIFETIME, session.tokenHash, now).first();
+        if (refreshed) return json({ user: session.user }, 200, { "Set-Cookie": cookie(session.token, SESSION_LIFETIME / 1000) });
+        return json({ user: null });
+      }
       return json({ user: session?.user ?? null });
     }
     if (path === "logout") {

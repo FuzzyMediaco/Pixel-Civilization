@@ -32,6 +32,13 @@ test("email accounts and sessions are isolated, expire, and can be revoked", asy
     assert.equal(first.body.user.email, "ada@example.org");
     assert.match(first.issued!, /Secure; HttpOnly; SameSite=Lax/);
     assert.equal((await call("me")).body.user.id, first.body.user.id);
+    assert.equal((await call("me")).issued, null);
+    sqlite.prepare("UPDATE game_sessions SET expires_at=?").run(Date.now() + 3 * 86400000);
+    const refreshed = await call("me");
+    assert.deepEqual(refreshed.body.user, first.body.user);
+    assert.equal(refreshed.cookie, first.cookie);
+    assert.match(refreshed.issued!, /Max-Age=2592000/);
+
     assert.equal((await call("register", "POST", body)).status, 409);
     assert.equal((await call("login", "POST", { ...body, password: "other password" })).status, 401);
     assert.equal((await call("logout", "POST", {}, { Origin: "https://another.example" })).status, 403);
