@@ -162,7 +162,7 @@ export const TUTORIAL_FLOWS: Record<GameMode, TutorialStep[]> = {
     {
       id: "surv-build",
       title: "Build Resilient Essentials",
-      body: "In Survival mode, extended shortages or unrepaired buildings can collapse the city. Open Build and place a road or core starter utility/home.",
+      body: "Track happiness and population. Roads, homes and public services use your construction budget. Businesses are free to open and create jobs and tax revenue. Place a road or home to begin.",
       demoHint: "Demo: Open Build and place an element on the island",
       visibleNav: ["build"],
       showHud: true,
@@ -172,7 +172,7 @@ export const TUTORIAL_FLOWS: Record<GameMode, TutorialStep[]> = {
     {
       id: "surv-select",
       title: "Direct Repair & Emergency Ring",
-      body: "Tap any structure to open its Selection Ring. When disrepair or fire strikes, Repair and Fire Crew buttons appear right on the ring.",
+      body: "Tap a building marked for maintenance to service it for free. Fires need a fire crew, which you can dispatch from the Selection Ring.",
       demoHint: "Demo: Tap a placed building on the island",
       visibleNav: ["build"],
       showHud: true,
@@ -181,7 +181,7 @@ export const TUTORIAL_FLOWS: Record<GameMode, TutorialStep[]> = {
     {
       id: "surv-city",
       title: "Shortages, Auto-Maintain & Safety",
-      body: "City just unlocked! Open City to watch active alerts, toggle Auto-Maintain (1.25× cost), and check Fire & Safety readiness before crime unlocks at Stage 5.",
+      body: "Open City to see what is limiting growth, check the next maintenance deadline and choose free auto-maintenance for essential utilities or all buildings.",
       demoHint: "Demo: Open the City menu",
       visibleNav: ["build", "city"],
       showHud: true,

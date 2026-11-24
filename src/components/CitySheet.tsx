@@ -1,19 +1,24 @@
 import React from "react";
 import { AlertTriangle, ArrowUpRight, Coins, Eye, Hammer, TrainFront, Trophy, Users, Wrench } from "lucide-react";
-import { STAGES } from "../game/catalog";
+import { ELEMENT_BY_ID, STAGES } from "../game/catalog";
 import { WEALTH_PROJECTS } from "../game/wealthProjects";
 import {
   buildingCharges,
   cityWealth,
   economyOf,
   effective,
+  treasuryUpkeepRate,
+  claimSurvivalGrant,
+  canClaimSurvivalGrant,
+  SURVIVAL_RECOVERY_SEC,
+  SURVIVAL_REBUILD_GRANT,
   taxRateOf,
   stagePopulationThreshold,
   unlockWealth,
   wealthTiers,
 } from "../game/cityEconomy";
 import { cityIssues, type CityIssue, type IssueFix } from "../game/cityIssues";
-import type { GameState, HeatmapKind, PlacedElement } from "../game/simulation";
+import { isEssentialUtility, MAINTENANCE_INTERVAL_SEC, maintenanceStatus, type GameState, type HeatmapKind, type PlacedElement } from "../game/simulation";
 import { CityEconomyPanel } from "./CityEconomyPanel";
 import { CityReport } from "./CityReport";
 import { growthLimit } from "./Hud";
@@ -113,12 +118,17 @@ export function CitySheet({
   const tax = taxRateOf(state);
   const charges = buildingCharges(state);
   const econ = economyOf(state);
+  const nextUtility = state.mode === "survival" ? state.elements.reduce<PlacedElement | undefined>((next, site) => {
+    if (!isEssentialUtility(site) || maintenanceStatus(state, site) === "none") return next;
+    const priority = (item: PlacedElement) => item.disrepair ? Infinity : item.maintTimerSec;
+    return !next || priority(site) > priority(next) ? site : next;
+  }, undefined) : undefined;
   const totalWealth = cityWealth(state);
   const peakWealth = unlockWealth(state);
   const wealthDeltaToday = totalWealth - econ.previousDay;
   const netPerMin = (state.metrics.netIncomePerTick ?? 0) * 60;
   const taxPerMin = (state.metrics.grossIncomePerTick ?? 0) * 60;
-  const upkeepPerMin = ((state.metrics.upkeepPerTick ?? 0) * 0.06 * effective(state, "upkeep", 100) / 100) * 60;
+  const upkeepPerMin = treasuryUpkeepRate(state) * 60;
   const history = state.history ?? [];
   const moneySeries = history.slice(-30).map((h) => h.money);
   const wealthSeries = history.slice(-30).map((h) => h.wealth ?? h.money);
@@ -232,22 +242,42 @@ export function CitySheet({
           </div>
 
           {state.mode === "survival" && (
-            <label className="ui-row" style={{ marginTop: 6 }}>
-              <input
-                type="checkbox"
-                checked={!!state.autoMaintain}
-                onChange={(e) => {
-                  const on = e.target.checked;
-                  mutate((s) => {
-                    s.autoMaintain = on;
-                  });
-                }}
-              />
-              <span className="ui-row-body">
-                <b>Auto-maintain</b>
-                <small>Pay 1.25× and repair buildings as they fall due</small>
-              </span>
-            </label>
+            <>
+              <label className="ui-row" style={{ marginTop: 6 }}>
+                <span className="ui-row-body">
+                  <b>Free auto-maintenance</b>
+                  <small>Tap marked sites to maintain them yourself, or choose automatic service.</small>
+                </span>
+                <select aria-label="Automatic maintenance coverage"
+                  value={state.autoMaintain ? (state.autoMaintainUtilitiesOnly ? "essential" : "all") : "manual"}
+                  onChange={event => {
+                    const coverage = event.target.value;
+                    mutate(city => {
+                      city.autoMaintain = coverage !== "manual";
+                      city.autoMaintainUtilitiesOnly = coverage === "essential";
+                    });
+                  }}>
+                  <option value="manual">Manual</option>
+                  <option value="essential">Essential utilities</option>
+                  <option value="all">All buildings</option>
+                </select>
+              </label>
+              {nextUtility && <ListRow
+                icon={<Wrench size={14} />}
+                title={ELEMENT_BY_ID[nextUtility.defId].name + " maintenance"}
+                subtitle={nextUtility.disrepair || nextUtility.maintTimerSec >= MAINTENANCE_INTERVAL_SEC
+                  ? "Due now · Free to restore. Reduced output until serviced."
+                  : "Due in " + Math.ceil(MAINTENANCE_INTERVAL_SEC - nextUtility.maintTimerSec) + " simulation seconds · Free."}
+              />}
+              {econ.recovery > 0 && <ListRow
+                icon={<AlertTriangle size={14} />}
+                title="City recovery window"
+                subtitle={Math.max(0, Math.ceil(SURVIVAL_RECOVERY_SEC - econ.recovery)) + " simulation seconds to restore happiness to 45% or rebuild population."}
+              />}
+              {canClaimSurvivalGrant(state) && <button className="ui-btn" type="button" onClick={() => mutate(city => { claimSurvivalGrant(city); })}>
+                Claim ${SURVIVAL_REBUILD_GRANT} emergency infrastructure grant
+              </button>}
+            </>
           )}
 
           <details className="ui-fold" open>
@@ -342,6 +372,7 @@ export function CitySheet({
 
           {/* Live Simulation Trend Sparklines */}
           <div className="ui-spark-grid">
+            {state.mode === "survival" && <p className="ui-muted">Treasury funds construction and public works. Businesses open for free and earn taxes through trade, sales and payroll.</p>}
             <MiniSparkline values={moneySeries} color="#1e6243" label="Treasury trend" />
             <MiniSparkline values={wealthSeries} color="#b4781f" label="City wealth trend" />
           </div>

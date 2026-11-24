@@ -21,7 +21,7 @@ import { type CivElementDef, getElementLevelName, getMaxElementLevel, getStandar
 import { SYNERGY_RULES } from "../game/cityDynamics";
 import { buildingCharges, upgradeReadiness } from "../game/cityEconomy";
 import { alertIssues, type IssueFix } from "../game/cityIssues";
-import { type GameState, type HeatmapKind, MAINTENANCE_INTERVAL_SEC, type PlacedElement, placedUpgradeCost } from "../game/simulation";
+import { type GameState, type HeatmapKind, MAINTENANCE_INTERVAL_SEC, maintenanceStatus, type PlacedElement, placedUpgradeCost } from "../game/simulation";
 import { BottomSheet, Button, IconButton, InspectorCard, ListRow, type SheetHeight, Tabs, Tag } from "./ui";
 
 export const RAIL_SITES = ["train_depots", "train_stops", "freight_rail_terminal"];
@@ -83,7 +83,7 @@ export function InspectorSheet({
   const isRail = RAIL_SITES.includes(def.id);
   const building = !def.isNetwork && !def.passiveNature;
   const lv = el.landValue ?? 0.5;
-  const needsMaint = state.mode === "survival" && def.needsMaintenance;
+  const maintenance = maintenanceStatus(state, el);
   const cityNeeds = alertIssues(state).filter((i) => i.fix).slice(0, 3);
 
   const tabs: { id: InspectorTab; label: string; icon: React.ReactNode }[] = [
@@ -120,9 +120,8 @@ export function InspectorSheet({
               </Tag>
             )}
             {el.disrepair && <Tag tone="bad">Disrepair</Tag>}
-            {needsMaint && !el.disrepair && (
-              <Tag tone="warn">{Math.max(0, Math.ceil(MAINTENANCE_INTERVAL_SEC - el.maintTimerSec))}s</Tag>
-            )}
+            {maintenance === "soon" && <Tag tone="warn">Maintenance in {Math.ceil(MAINTENANCE_INTERVAL_SEC - el.maintTimerSec)}s</Tag>}
+            {maintenance === "due" && <Tag tone="warn">Maintenance due</Tag>}
             {building && el.landValue !== undefined && (
               <Tag tone={lv >= 1 ? "good" : lv < 0.45 ? "bad" : "info"} title="Land value">
                 LV {lv.toFixed(2)}
@@ -152,7 +151,7 @@ export function InspectorSheet({
                 label={atMax ? "Max" : god || !charges ? "Lv " + (el.level + 1) : "$" + cost.toLocaleString()}
               />
             )}
-            {needsMaint && !el.onFire && <IconButton aria-label="Repair" title="Repair" icon={<Wrench size={14} />} onClick={onMaintain} />}
+            {maintenance !== "none" && maintenance !== "healthy" && <IconButton aria-label="Maintain building for free" title="Maintain for free" icon={<Wrench size={14} />} onClick={onMaintain} />}
             {god && <IconButton aria-label="Level down" title="Level down" icon={<ArrowDown size={14} />} disabled={el.level <= 1} onClick={onLevelDown} />}
             <IconButton aria-label="Move" title="Move" icon={<Move size={14} />} onClick={onMove} />
             {!def.isNetwork && <IconButton aria-label="Rotate 90°" title="Rotate 90°" icon={<RotateCw size={14} />} onClick={onRotate} />}

@@ -16,7 +16,7 @@ import {
   ELEMENTS,
   ELEMENT_BY_ID,
 } from "./catalog";
-import { buildingCharges } from "./cityEconomy";
+import { constructionCost } from "./cityEconomy";
 import { isCustomElementId } from "./customElements";
 import {
   buildingLockReason,
@@ -590,15 +590,14 @@ export function getDecisionTreeLeafElements(
 ): DecisionTreeLeafElement[] {
   const sub = getDecisionTreeSubcategory(parentId, subId);
   if (!sub) return [];
-  const charges = buildingCharges(state);
 
   const out: DecisionTreeLeafElement[] = [];
   for (const id of sub.elementIds) {
     const def = ELEMENT_BY_ID[id];
     if (!def) continue;
     const lockReason = buildingLockReason(def, state) ?? null;
-    const cost = charges ? def.cost : 0;
-    const canAfford = !charges || state.money >= def.cost;
+    const cost = constructionCost(state, def);
+    const canAfford = constructionCost(state, def) <= Math.max(0, state.money);
     const richState: GameState =
       state.mode === "god"
         ? state

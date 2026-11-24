@@ -23,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { ELEMENT_BY_ID } from "../game/catalog";
-import { buildingCharges, effective } from "../game/cityEconomy";
+import { effective } from "../game/cityEconomy";
 import type { GameState } from "../game/simulation";
 import { requiredToolStage } from "../game/terrain";
 import { VOXEL_PITCH } from "../game/voxelTerrain";
@@ -198,7 +198,6 @@ export function QuickBuildRing({
           ? elements.length
           : categories.length;
 
-  const charges = buildingCharges(state);
 
   useEffect(() => {
     setHoveredTitle(null);
@@ -349,7 +348,8 @@ export function QuickBuildRing({
           // Instant Smart Mode (2 taps): 6 super-adaptive placeable elements right away
           instantElements.map((item, idx) => {
             const angDeg = Number((-90 + (idx / count) * 360).toFixed(2));
-            const priceText = charges ? `$${item.cost.toLocaleString()}` : "Free";
+            const cost = item.cost;
+            const priceText = cost ? `$${cost.toLocaleString()}` : "Free";
             return (
               <span
                 key={item.def.id}
@@ -417,7 +417,8 @@ export function QuickBuildRing({
           ) : (
             elements.map((item, idx) => {
               const angDeg = Number((-90 + (idx / count) * 360).toFixed(2));
-              const priceText = charges ? `$${item.cost.toLocaleString()}` : "Free";
+              const cost = item.cost;
+            const priceText = cost ? `$${cost.toLocaleString()}` : "Free";
               return (
                 <span
                   key={item.def.id}
@@ -524,7 +525,8 @@ export function QuickBuildRing({
           // Decision Tree Stage 3: 4–6 actual placeable elements
           treeElements.map((item, idx) => {
             const angDeg = Number((-90 + (idx / count) * 360).toFixed(2));
-            const priceText = charges ? `$${item.cost.toLocaleString()}` : "Free";
+            const cost = item.cost;
+            const priceText = cost ? `$${cost.toLocaleString()}` : "Free";
             const disabled = !item.canAfford || !item.canPlace;
             const statusReason = item.lockReason ?? (!item.canAfford ? `Need ${priceText}` : item.placeReason);
             return (

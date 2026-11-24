@@ -4,7 +4,7 @@ import { FARM_ANCHOR_IDS,FARM_MODULE_IDS } from "./expansionCatalog";
 import { complexBoost,districtReport } from "./farmNetworks";
 import {VEHICLE_ROADS} from "./roadStandards";
 import type { getParcelEffectSummary } from "./parcelEdges";
-import { ELEMENT_BY_ID, STAGES } from "./catalog";
+import { ELEMENT_BY_ID, STAGES, type CivElementDef } from "./catalog";
 import type { CityMetrics, GameState, PlacedElement } from "./simulation";
 import { hydraulics } from "./terrain";
 import { CROP_SITE_IDS, isRetailFoodSite } from "./cityDynamics";
@@ -210,11 +210,34 @@ export function allocateWealth(
 }
 /** Automated cities compress milestones so a watch session can reach the late catalog. */
 export function stagePopulationThreshold(state: GameState, minPopulation: number) {
-  const scale = state.mode === "idle" || state.mode === "manager" ? 1 : 100;
+  const survivalScale = minPopulation <= 15_000 ? 50 : minPopulation <= 85_000 ? 60 : 70;
+  const scale = state.mode === "idle" || state.mode === "manager" ? 1
+    : state.mode === "survival" ? survivalScale : 100;
   return Math.ceil(minPopulation * effective(state, "stageScale", scale) / 100);
 }
 
 export const buildingCharges = (s: GameState) => s.mode !== "god" || effective(s, "charge", 0) > 0;
+export const isFreeSurvivalBusiness = (s: GameState, def: CivElementDef) =>
+  s.mode === "survival" && def.category === "commerce";
+
+export const constructionCost = (s: GameState, def: CivElementDef) =>
+  buildingCharges(s) && !isFreeSurvivalBusiness(s, def) ? def.cost : 0;
+
+export const treasuryUpkeepRate = (s: GameState) =>
+  s.mode === "survival" ? 0 : s.metrics.upkeepPerTick * 0.06 * effective(s, "upkeep", 100) / 100;
+
+export const SURVIVAL_RECOVERY_SEC = 720;
+export const SURVIVAL_REBUILD_GRANT = 300;
+export const canClaimSurvivalGrant = (s: GameState) =>
+  s.mode === "survival" && !s.gameOver && !s.survivalGrantUsed && s.money < 100;
+
+export function claimSurvivalGrant(s: GameState): boolean {
+  if (!canClaimSurvivalGrant(s)) return false;
+  transfer(s, "outside", "treasury", SURVIVAL_REBUILD_GRANT, "Emergency infrastructure grant");
+  s.survivalGrantUsed = true;
+  return true;
+}
+
 function balance(s: GameState, a: Account) {
   return a === "treasury" ? s.money : economyOf(s)[a];
 }
@@ -751,7 +774,7 @@ export function advanceEconomy(s: GameState, dt: number) {
   r.spending = spent / t;
   taxes += transfer(s, "businesses", "treasury", spent * 0.08, "Sales tax");
   // The treasury can lend grocers a little working capital: at most a quarter of this period's payroll tax.
-  let credit = 0.25 * lastWages * taxFraction;
+  let credit = s.mode === "survival" ? 0 : 0.25 * lastWages * taxFraction;
   for (const g of groups.values()) {
     if (!g.people) continue;
     const need = (g.people / (s.mode==="survival"?103:115)) * t;
@@ -847,7 +870,7 @@ export function advanceEconomy(s: GameState, dt: number) {
     s,
     "treasury",
     "outside",
-    (s.metrics.upkeepPerTick * t * 0.06 * effective(s, "upkeep", 100)) / 100,
+    treasuryUpkeepRate(s) * t,
     "Imported upkeep supplies",
   );
   s.metrics.grossIncomePerTick = r.tax;
@@ -904,12 +927,13 @@ export function advanceEconomy(s: GameState, dt: number) {
     s.mode === "survival" &&
     s.highestStageReached >= 2 &&
     !s.faith?.sheltered &&
-    s.population < (STAGES[s.highestStageReached - 1]?.minPop ?? 0)
+    s.happiness < 45 &&
+    s.population < 0.65 * stagePopulationThreshold(s, STAGES[s.highestStageReached - 1]?.minPop ?? 0)
   ) {
     e.recovery += t;
-    if (e.recovery >= 360) {
+    if (e.recovery >= SURVIVAL_RECOVERY_SEC) {
       s.gameOver = true;
-      s.gameOverReason = "The city stayed below its population benchmark for three island days.";
+      s.gameOverReason = "The city stayed below its recovery population with happiness under 45% for six island days.";
     }
   } else e.recovery = 0;
   enforceAccountHolds(s);

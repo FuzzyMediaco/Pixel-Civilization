@@ -716,7 +716,7 @@
           "Happiness and growth use typical solar supply, congestion and crime across the day. Fires, traffic and nighttime incidents still happen at the current hour.",
           "Visit City → Goals for the next population threshold. Stage 3 starts at 15,000 people, stage 13 at 900,000 and stage 20 at 1.55 million. Development grants arrive at qualifying milestones.",
           "Upgrading a typical producer from level 1 to 5 raises its main output sixteenfold. Service radius doubles and operating cost grows about fivefold. Crop harvests, retail throughput and road lanes follow their own rates.",
-          "In Survival, check City → Issues for maintenance. A manual repair costs 2% of construction price times the current level. Auto-maintain pays a 25% premium when repairs fall due."
+          "In Survival, check City → Issues for maintenance deadlines. Tap a marked building to service it for free. Auto-maintenance can cover essential utilities or all buildings."
         ],
         "examples": [
           {

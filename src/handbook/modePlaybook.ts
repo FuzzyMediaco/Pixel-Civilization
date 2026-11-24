@@ -30,7 +30,7 @@ export const PLAYBOOK_MODES: ModeMeta[] = [
     id: "survival",
     label: "Survival",
     shortLabel: "Survival",
-    tagline: "High-stakes city leadership where extended shortages, fires, or disrepair can collapse your island.",
+    tagline: "Grow a resilient city by keeping residents happy, services working and neighborhoods populated.",
     winLoop: "Keep cash reserves buffered, maintain buildings (or enable Auto-Maintain), expand fire & police coverage early, and fortify military defense before raids.",
     pace: "Repair cycles · active disaster & raid pressure",
   },

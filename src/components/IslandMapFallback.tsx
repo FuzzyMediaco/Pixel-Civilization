@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { ELEMENT_BY_ID } from "../game/catalog";
 import { GRID_MIN, GRID_MAX, GRID_SIZE, withinMap } from "../game/mapBounds";
 import { roadBounds } from "../game/roadCorridors";
-import { computeHeatmapCells, type GameState, type HeatmapKind } from "../game/simulation";
+import { computeHeatmapCells, maintenanceStatus, type GameState, type HeatmapKind } from "../game/simulation";
 import { getTerrainCell, type GridPoint } from "../game/terrain";
 import { TILE_SIZE, VOXELS_PER_TILE } from "../game/voxelCore";
 
@@ -145,6 +145,14 @@ export function IslandMapFallback({ state, focus, draw, following, onStopFollowi
             ctx.strokeRect(x-1,y-1,ew+2,eh+2);
             ctx.lineWidth = 1;
           }
+        }
+        const maintenance = maintenanceStatus(state, el);
+        if (maintenance === "soon" || maintenance === "due" || maintenance === "overdue") {
+          const size = Math.max(3, zoom * .24);
+          ctx.fillStyle = "#ffc457";
+          ctx.strokeStyle = "#4d3109";
+          ctx.fillRect(x + ew - size, y, size, size);
+          ctx.strokeRect(x + ew - size, y, size, size);
         }
       }
       const drawVehicle = (id:string,x:number,z:number,rail=false) => {

@@ -1,5 +1,5 @@
 import { ELEMENT_BY_ID } from "./catalog";
-import { buildingCharges, taxRateOf, transfer } from "./cityEconomy";
+import { taxRateOf, transfer } from "./cityEconomy";
 import { rememberBuildingEdit } from "./constructionHistory";
 import { GRID_MAX, GRID_MIN } from "./mapBounds";
 import {
@@ -105,15 +105,10 @@ function placeSingle(
   const lock = buildingLockReason(def, state);
   if (lock) return { ok: false, reason: lock };
 
-  const charges = buildingCharges(state);
   const planned = planConstruction(state, def, gx, gz, level, rot, false);
   if (!planned.valid) {
     return { ok: false, reason: planned.reason || "Blocked site" };
   }
-  if (charges && state.money < planned.def.cost) {
-    return { ok: false, reason: `Needs $${planned.def.cost.toLocaleString()}` };
-  }
-
   let waterUnderlay: PlacedElement | undefined;
   if (planned.replaceId) {
     const idx = state.elements.findIndex((e) => e.id === planned.replaceId);
@@ -150,8 +145,8 @@ function placeSingle(
   };
 
   state.elements.push(placed);
-  if (charges && planned.def.cost > 0) {
-    transfer(state, "treasury", "outside", planned.def.cost, "Construction");
+  if (planned.cost > 0) {
+    transfer(state, "treasury", "outside", planned.cost, "Construction");
   }
   applyLandformPlacement(state, placed);
   settleStreetFacing(state, placed, false);

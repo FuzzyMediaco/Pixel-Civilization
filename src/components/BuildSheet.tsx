@@ -6,7 +6,7 @@ import {
   type ElementCategory,
   ELEMENTS,
 } from "../game/catalog";
-import { buildingCharges, unlockWealth } from "../game/cityEconomy";
+import { buildingCharges, constructionCost, unlockWealth } from "../game/cityEconomy";
 import { type IssueFix, suppliesNeed } from "../game/cityIssues";
 import { isCustomElementId } from "../game/customElements";
 import { buildingLockReason, type GameState } from "../game/simulation";
@@ -236,8 +236,8 @@ export function BuildSheet({
         <>
           <div className="ui-cards is-compact" role="list" aria-label="Items">
             {items.map((d, i) => {
-              const cost = charges ? d.cost : 0;
-              const poor = charges && state.money < cost;
+              const cost = constructionCost(state, d);
+              const poor = cost > 0 && state.money < cost;
               const stat = STAT_LINE(d);
               const selected = brush.kind === "place" && brush.defId === d.id;
               return (
@@ -252,7 +252,7 @@ export function BuildSheet({
                     d.name +
                     (stat ? ", " + stat : "") +
                     ", " +
-                    (charges ? "$" + cost.toLocaleString() : "Free") +
+                    (cost ? "$" + cost.toLocaleString() : "Free") +
                     (poor ? ", not enough funds" : "")
                   }
                   onClick={() => onPick(d.id)}
@@ -261,7 +261,7 @@ export function BuildSheet({
                   <b>{d.name}</b>
                   {stat && <small>{stat}</small>}
                   <span className={"ui-cost" + (poor ? " is-bad" : "")}>
-                    {charges ? "$" + cost.toLocaleString() : "Free"}
+                    {cost ? "$" + cost.toLocaleString() : "Free"}
                   </span>
                 </button>
               );

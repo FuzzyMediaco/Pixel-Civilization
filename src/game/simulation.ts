@@ -10,7 +10,7 @@ import { FARM_MODULE_IDS } from "./expansionCatalog";
 import { GRID_MIN, GRID_MAX } from "./mapBounds";
 export { GRID_MIN, GRID_MAX, GRID_HALF } from "./mapBounds";
 import { hasNavigableHarbor, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
-import { advanceEconomy, buildingCharges, stagePopulationThreshold, cityWealth, unlockWealth, taxRateOf, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
+import { advanceEconomy, buildingCharges, constructionCost, isFreeSurvivalBusiness, treasuryUpkeepRate, stagePopulationThreshold, cityWealth, unlockWealth, taxRateOf, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
 import { advanceOperations, type ProjectOps } from "./projectOperations";
 import { vesselIds,waterHull } from "./travelNetwork";
 import {
@@ -72,7 +72,10 @@ function isCoastalTile(gx: number, gz: number, state?: GameState): boolean {
   return false;
 }
 
-export const MAINTENANCE_INTERVAL_SEC = 300; // 5 minutes of active in-app play
+export const MAINTENANCE_INTERVAL_SEC = 480;
+const MAINTENANCE_WARNING_SEC = 75;
+const MAINTENANCE_GRACE_SEC = 150;
+const STARTER_MAINTENANCE_BONUS_SEC = 120;
 
 export type TerrainCellKind = "land" | "coast" | "water";
 
@@ -390,8 +393,10 @@ export interface GameState {
   awardedGrants?: string[];
   /** Player tax rate in percent (5–25, default 12). Above 15 costs happiness, below 15 adds some. */
   taxRate?: number;
-  /** Survival: pay 1.25× the maintenance price automatically when a building falls due. */
+  /** Survival: perform due maintenance automatically. */
   autoMaintain?: boolean;
+  autoMaintainUtilitiesOnly?: boolean;
+  survivalGrantUsed?: boolean;
 }
 
 /** True when a site's footprint or its ring of neighbouring cells holds fresh surface water. */
@@ -576,7 +581,7 @@ export function createInitialGameState(mode: GameMode): GameState {
     mode,
     terrainVersion:2,
     centeredHighways:true,
-    money: mode === "survival" ? 2_200 : 2_800,
+    money: mode === "survival" ? 3_500 : 2_800,
     population: 0,
     growthPool: 0,
     happiness: 100,
@@ -851,11 +856,12 @@ export function planConstruction(state: GameState, selected: CivElementDef, gx: 
     check.valid = false;
     check.reason = lock;
   }
-  if (check.valid && buildingCharges(state) && state.money < def.cost) {
+  const cost = constructionCost(state, def);
+  if (check.valid && cost > 0 && cost > state.money) {
     check.valid = false;
-    check.reason = `Need $${def.cost.toLocaleString()} to build ${def.name}.`;
+    check.reason = `Need $${cost.toLocaleString()} to build ${def.name}.`;
   }
-  return { ...check, def, level, rotation, spanX, spanZ, roadAxis, overWater: Boolean(network?.overWater), replaceId: network?.replaceId, pedestrianDeck: !!network?.overWater && PEDESTRIAN_IDS.has(selected.id) };
+  return { ...check, cost, def, level, rotation, spanX, spanZ, roadAxis, overWater: Boolean(network?.overWater), replaceId: network?.replaceId, pedestrianDeck: !!network?.overWater && PEDESTRIAN_IDS.has(selected.id) };
 }
 
 export function planRelocation(state: GameState, el: PlacedElement, gx: number, gz: number) {
@@ -1118,6 +1124,7 @@ export function widenLegacyRoad(state:GameState,el:PlacedElement){
 }
 export function placedUpgradeCost(state:GameState,el:PlacedElement){
   const pieces=crossingPieces(state,el);
+  if (isFreeSurvivalBusiness(state, ELEMENT_BY_ID[el.defId])) return 0;
   return pieces.length?crossingUpgradePrice(pieces[0][1],pieces.length):getUpgradeCost(ELEMENT_BY_ID[el.defId],el.level);
 }
 export function upgradeElementDirect(state: GameState, id: string, refresh = true): { ok: boolean; reason?: string } {
@@ -1131,7 +1138,7 @@ export function upgradeElementDirect(state: GameState, id: string, refresh = tru
   if (!def) return { ok: false, reason: "Unknown element" };
 
   const cost = buildingCharges(state) ? placedUpgradeCost(state,el) : 0;
-  if (state.money < cost) {
+  if (cost > 0 && state.money < cost) {
     return { ok: false, reason: `Need $${cost.toLocaleString()} to upgrade` };
   }
 
@@ -1517,8 +1524,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     const edgeRaw = borderEffects.get(el.id)!, amenity = levelMultiplier("amenity", el.level);
     const edgeEffect = { ...edgeRaw, recreation: edgeRaw.recreation * amenity, waste: edgeRaw.waste * amenity,
       education: edgeRaw.education * amenity, heat: edgeRaw.heat * amenity };
-    // Disrepair in Survival Mode cuts positive service output by 75%
-    const serviceHealth = (el.disrepair ? 0.25 : 1.0) * synMult;
+    // A missed service begins with reduced output before deeper disrepair.
+    const serviceHealth = maintenanceOutput(state,el) * synMult;
     upkeepSum += lv.upkeep;
 
     // Shared edible beds feed their household. Ceremonial walks and connected habitat are small
@@ -1699,7 +1706,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
 
     const def=ELEMENT_BY_ID[el.defId]; if(!def||!el.connected||el.onFire)continue;
-    const lv=elementLevelStats(def,el.level),serviceHealth=(el.disrepair?.25:1)*synergyMultiplier(el.synergies?.length??0);
+    const lv=elementLevelStats(def,el.level),serviceHealth=maintenanceOutput(state,el)*synergyMultiplier(el.synergies?.length??0);
     if (authorized && professionalStaff(state,el)>=1 && def.police) {
       policePoints += Math.round(lv.police * serviceHealth);
     }
@@ -1787,7 +1794,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   const ledger = economyOf(state);
   m.grossIncomePerTick = Math.round(ledger.report.tax*10)/10;
   m.upkeepPerTick = Math.round(upkeepSum * 10) / 10;
-  m.netIncomePerTick = Math.round((ledger.report.treasuryNet ?? -m.upkeepPerTick*.06)*10)/10;
+  m.netIncomePerTick = Math.round((ledger.report.treasuryNet ?? -treasuryUpkeepRate(state))*10)/10;
   m.renewablePct = m.powerSupply > 0 ? Math.round((renewableOut / m.powerSupply) * 100) : 0;
   m.landValueAvg = m.connectedHouses > 0 ? Math.round((landValueSum / m.connectedHouses) * 100) / 100 : 0.5;
   {
@@ -1929,14 +1936,14 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
 
     if (state.mode === "survival" && m.disrepairCount > 0) {
-      const pen = Math.min(20, 2 * m.disrepairCount);
+      const pen = Math.min(10, m.disrepairCount);
       happiness -= pen;
       diags.push({
         id: "disrepair",
         severity: pen >= 14 ? "critical" : "warning",
         title: `${m.disrepairCount} Building${m.disrepairCount > 1 ? "s" : ""} Need Maintenance`,
-        detail: "In Survival Mode, service buildings need paid maintenance every few active minutes.",
-        fixHint: "Click buildings with an amber wrench, press 'Maintain All', or turn on auto-maintenance.",
+        detail: "Overdue buildings lose service output until maintained.",
+        fixHint: "Tap a marked building to restore it for free, or use Repair all.",
         deltaHappiness: -pen,
       });
     }
@@ -2974,24 +2981,28 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     }
   }
 
-  // 1. Survival Mode active maintenance timers (first deadline staggered over 180–360 s)
+  // Stagger the first service deadline and give an opening town time to establish utilities.
   if (state.mode === "survival") {
     for (const el of state.elements) {
-      const def = ELEMENT_BY_ID[el.defId];
-      if (!def?.needsMaintenance || !el.connected) continue;
+      if (!ELEMENT_BY_ID[el.defId]?.needsMaintenance || !el.connected || el.onFire) continue;
       if (!el.maintStaggered) {
         el.maintStaggered = true;
-        if (el.maintTimerSec === 0) el.maintTimerSec = MAINTENANCE_INTERVAL_SEC - (180 + (hashId(el.id) % 181));
+        if (!el.maintTimerSec) {
+          el.maintTimerSec = -(hashId(el.id) % 181) -
+            (state.highestStageReached < 2 ? STARTER_MAINTENANCE_BONUS_SEC : 0);
+        }
       }
+      const previous = maintenanceStatus(state, el);
       el.maintTimerSec += dtSec;
-      if (el.maintTimerSec >= MAINTENANCE_INTERVAL_SEC && !el.disrepair) {
-        const autoPrice = maintenancePrice(el) * 1.25;
-        if (state.autoMaintain && state.money >= autoPrice) {
-          transfer(state, "treasury", "outside", autoPrice, "Automatic maintenance");
-          el.maintTimerSec = 0;
-        } else el.disrepair = true;
+      const status = maintenanceStatus(state, el);
+      const auto = state.autoMaintain && (!state.autoMaintainUtilitiesOnly || isEssentialUtility(el));
+      if (auto && (status === "due" || status === "overdue")) {
+        resetMaintenance(el);
         dirty = true;
-      }
+      } else if (status === "due" && el.maintTimerSec >= MAINTENANCE_INTERVAL_SEC + MAINTENANCE_GRACE_SEC) {
+        el.disrepair = true;
+        dirty = true;
+      } else if (status !== previous) dirty = true;
     }
   } else {
     // Real and god mode: crews repair fire damage on their own within a minute.
@@ -3028,6 +3039,10 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
     const baseHousingPop = m.housingBase;
     const essentialDeficit = Math.max(economy.shortage, economy.utilityStrain ?? 0);
     const supplied = m.populationLimiter.cap;
+    const survival = state.mode === "survival";
+    const growthMood = survival ? 62 : 68;
+    const lossMood = survival ? 55 : 65;
+    const deficitThreshold = survival ? 0.45 : 0.35;
     const directedMood=state.mode==="god" && [...economyOf(state).holds,...economyOf(state).once].some(setting=>setting.key==="happiness");
     if(state.mode==="god" && !effective(state,"stageRules",0) && !(directedMood&&state.happiness<65)){
       // Open the first homes quickly. Large settlements grow toward the services this city actually built.
@@ -3035,7 +3050,7 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
       const room=Math.max(0,Math.min(economy.capacity,welcoming)-state.population);
       const arrival=Math.min(room,Math.max(3,baseHousingPop*.55)*dtSec);
       if(arrival>0){state.growthPool+=arrival;dirty=true;}
-    } else if (state.happiness >= 68 && essentialDeficit <= 0.35 && state.metrics.burningCount === 0) {
+    } else if (state.happiness >= growthMood && essentialDeficit <= deficitThreshold && state.metrics.burningCount === 0) {
       // Smooth thriving growth toward neighborhood settlement capacity
       const happyFactor = Math.max(.15,(state.happiness - 58) / 42);
       const employed = Math.min(1,economy.reachable/Math.max(1,economy.workers));
@@ -3044,13 +3059,13 @@ export function stepSimulation(state: GameState, dtSec: number, isTabVisible: bo
       const supported=supplied;
       const arrivals=Math.min(Math.max(0,supported-state.population),growthRate*dtSec);
       if(arrivals>0){state.growthPool+=arrivals;dirty=true;}
-    } else if (state.happiness < 65 || essentialDeficit > 0.35) {
-      // Happiness below 65%: citizens leave slowly (or rapidly if < 50% in Survival / fires active!)
-      const severity = Math.max(0, (65 - state.happiness) / 65);
-      const fireAccel = state.mode === "survival" && (state.happiness < 50 || state.metrics.burningCount > 0) ? 3.4 : 1.0;
+    } else if (state.happiness < lossMood || essentialDeficit > deficitThreshold) {
+      // Persistent shortages and low happiness lead to gradual emigration.
+      const severity = Math.max(0, (lossMood - state.happiness) / lossMood);
+      const fireAccel = state.mode === "survival" && (state.happiness < 40 || state.metrics.burningCount > 0) ? 1.6 : 1.0;
       const taxPressure = 1 + 0.01 * Math.max(0, taxRateOf(state) - 15);
       const lossRate = Math.max(1.5, state.population * 0.025 + 4) * severity * fireAccel * taxPressure;
-      const shortageLoss = state.population * Math.max(0, (essentialDeficit - 0.35) / 0.65) * (state.mode === "survival" ? 0.0024 : 0.0012);
+      const shortageLoss = state.population * Math.max(0, (essentialDeficit - deficitThreshold) / (1 - deficitThreshold)) * 0.0012;
       state.growthPool -= Math.max(lossRate, shortageLoss) * dtSec;
       dirty = true;
     }
@@ -3271,11 +3286,31 @@ export function computeHeatmapCells(state: GameState, kind: HeatmapKind): Heatma
   return Array.from(samples.values());
 }
 
-/** Survival maintenance price: 2% of the build cost per level. */
-export function maintenancePrice(el: PlacedElement): number {
+export function isEssentialUtility(el: PlacedElement): boolean {
   const def = ELEMENT_BY_ID[el.defId];
-  return Math.round((def?.cost ?? 0) * 0.02 * Math.max(1, el.level));
+  return Boolean(def && ((def.power ?? 0) > 0 || (def.water ?? 0) > 0 || (def.waste ?? 0) > 0));
 }
+
+export function maintenanceStatus(state: GameState, el: PlacedElement) {
+  if (state.mode !== "survival" || el.onFire) return "none";
+  if (el.disrepair) return "overdue";
+  if (!el.connected || !ELEMENT_BY_ID[el.defId]?.needsMaintenance) return "none";
+  if (el.maintTimerSec >= MAINTENANCE_INTERVAL_SEC) return "due";
+  return el.maintTimerSec >= MAINTENANCE_INTERVAL_SEC - MAINTENANCE_WARNING_SEC ? "soon" : "healthy";
+}
+
+function maintenanceOutput(state: GameState, el: PlacedElement): number {
+  if (el.disrepair) return state.mode === "survival" ? 0.5 : 0.25;
+  return maintenanceStatus(state, el) === "due" ? 0.8 : 1;
+}
+
+function resetMaintenance(el: PlacedElement) {
+  el.maintTimerSec = 0;
+  el.maintStaggered = true;
+  el.repairTimerSec = 0;
+  el.disrepair = false;
+}
+
 function hashId(id: string): number {
   let h = 2166136261;
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
@@ -3285,14 +3320,7 @@ function hashId(id: string): number {
 export function maintainElement(state: GameState, id: string): boolean {
   const el = state.elements.find((e) => e.id === id);
   if (!el || el.onFire) return false;
-  if (state.mode === "survival") {
-    const price = maintenancePrice(el);
-    if (state.money < price) return false;
-    transfer(state, "treasury", "outside", price, "Maintenance");
-  }
-  el.maintTimerSec = 0;
-  el.repairTimerSec = 0;
-  el.disrepair = false;
+  resetMaintenance(el);
 
   el.animProgress = 0.65;
   el.animKind = "place";
@@ -3304,14 +3332,11 @@ export function maintainAllElements(state: GameState): number {
   let count = 0;
   for (const el of state.elements) {
     const def = ELEMENT_BY_ID[el.defId];
-    if (!el.onFire && (el.disrepair || (def?.needsMaintenance && el.maintTimerSec > 30))) {
-      if (state.mode === "survival") {
-        const price = maintenancePrice(el);
-        if (state.money < price) continue;
-        transfer(state, "treasury", "outside", price, "Maintenance");
-      }
-      el.maintTimerSec = 0;
-      el.disrepair = false;
+    const status = maintenanceStatus(state, el);
+    const needsAttention = state.mode === "survival" ? status === "soon" || status === "due" || status === "overdue"
+      : !el.onFire && (el.disrepair || (def?.needsMaintenance && el.maintTimerSec > 30));
+    if (needsAttention) {
+      resetMaintenance(el);
       count += 1;
     }
   }

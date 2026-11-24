@@ -1,4 +1,3 @@
-import { buildingCharges } from "./cityEconomy";
 import { editedCoastline } from "./coastline";
 import { GRID_SIZE, GRID_HALF } from "./mapBounds";
 import { patrolPosition } from "./policeDispatch";
@@ -21,6 +20,7 @@ import {
   type PlacedElement,
   type SelectionFilter,
   planConstruction,
+  maintenanceStatus,
   planRelocation,
   planGroupRelocation,
   buildOccupancyMap,
@@ -1233,7 +1233,8 @@ export class PixelWorldRenderer {
       }
     });
     if (entry.disrepairBadge) {
-      entry.disrepairBadge.visible = visibleMatch && el.disrepair;
+      const status = maintenanceStatus(this.gameState, el);
+      entry.disrepairBadge.visible = visibleMatch && (el.disrepair || status === "soon" || status === "due");
     }
     if (entry.disconnectBadge) {
       entry.disconnectBadge.visible =
@@ -1844,7 +1845,7 @@ export class PixelWorldRenderer {
         occ.set(key, virt);
         if (plan.replaceId) virtual.elements = virtual.elements.filter(el => el.id !== plan.replaceId);
         virtual.elements.push(virt);
-        if (buildingCharges(virtual)) virtual.money -= plan.def.cost;
+        virtual.money -= plan.cost;
       }
     }
 

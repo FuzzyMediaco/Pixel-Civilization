@@ -18,7 +18,7 @@ import {
   ELEMENT_BY_ID,
   type ElementCategory,
 } from "./catalog";
-import { buildingCharges } from "./cityEconomy";
+import { constructionCost, buildingCharges } from "./cityEconomy";
 import { alertIssues, suppliesNeed, type FixNeed } from "./cityIssues";
 import { isCustomElementId } from "./customElements";
 import { getParcelEdges } from "./parcelEdges";
@@ -441,7 +441,7 @@ export function recommendQuickCategories(
     }
     if (placeable.length === 0) continue;
 
-    const affordable = placeable.filter((d) => !charges || state.money >= d.cost);
+    const affordable = placeable.filter((d) => constructionCost(state, d) <= Math.max(0, state.money));
 
     let score = 10;
     let reason = "Fits this spot";
@@ -651,8 +651,8 @@ export function recommendQuickElements(
     if (buildingLockReason(def, state)) continue;
     if (!canSpatiallyPlaceAt(state, def, gx, gz, placeLevel)) continue;
 
-    const cost = charges ? def.cost : 0;
-    const canAfford = !charges || state.money >= def.cost;
+    const cost = constructionCost(state, def);
+    const canAfford = constructionCost(state, def) <= Math.max(0, state.money);
 
     let score = 15;
     let reason = "Good fit here";
@@ -789,7 +789,7 @@ export function recommendQuickElements(
       if (canAfford) {
         score += 30;
         // Favor high bang-for-buck when treasury is tight
-        if (def.cost <= state.money * 0.45) score += 6;
+        if (constructionCost(state, def) <= state.money * 0.45) score += 6;
       } else {
         score -= 32;
       }
@@ -965,8 +965,8 @@ export function recommendInstantQuickElements(
     if (buildingLockReason(def, state)) continue;
     if (!canSpatiallyPlaceAt(state, def, gx, gz, 1)) continue;
     const cat: QuickBuildCategoryId = isCustomElementId(def.id) ? "custom" : def.category;
-    const cost = charges ? def.cost : 0;
-    const canAfford = !charges || state.money >= def.cost;
+    const cost = constructionCost(state, def);
+    const canAfford = constructionCost(state, def) <= Math.max(0, state.money);
     const baseScore = 44 + (canAfford ? 24 : -30);
     considerItem(
       {

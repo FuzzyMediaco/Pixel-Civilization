@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ELEMENT_BY_ID, STAGES, getStandardFootprintForLevel } from "../src/game/catalog";
-import { advanceEconomy, economyOf, taxRateOf, unlockWealth } from "../src/game/cityEconomy";
+import { advanceEconomy, claimSurvivalGrant, constructionCost, economyOf, stagePopulationThreshold, taxRateOf, treasuryUpkeepRate, unlockWealth } from "../src/game/cityEconomy";
 import { upkeepFor } from "../src/game/cityDynamics";
 import { CITY_GRANTS, payEarnedGrants } from "../src/game/cityGrants";
 import {
   MAINTENANCE_INTERVAL_SEC,
   createInitialGameState,
   maintainElement,
-  maintenancePrice,
+  maintenanceStatus,
+  planConstruction,
   perCapitaDemandScale,
   recomputeConnectivityAndMetrics as recalc,
   stepSimulation,
@@ -101,25 +102,54 @@ test("defense and police requirements scale with the square root / a fixed share
   assert.ok(s.metrics.requiredDefensePower < 6000);
 });
 
-test("survival maintenance is staggered and paid; real-mode fire damage repairs itself", () => {
-  const s = town("survival", (st) => {
-    for (let i = 2; i < 14; i++) put(st, "landfill", i, -1);
-  });
-  s.money = 1e6;
-  for (let t = 0; t < 400; t++) {
-    stepSimulation(s, 1, true);
-    if (s.elements.some((el) => el.disrepair)) break;
-  }
-  const maintained = s.elements.filter((el) => ELEMENT_BY_ID[el.defId].needsMaintenance);
-  assert.ok(maintained.length > 3);
-  const failing = maintained.filter((el) => el.disrepair).length;
-  assert.ok(failing < maintained.length, "not every building fails at once");
-  const victim = maintained.find((el) => el.disrepair)!;
+test("Survival maintenance gives warning, reduces output, and can be cleared with no money", () => {
+  const s = town("survival", st => put(st, "water_treatment_plant", 3, -1));
+  const utility = s.elements.find(el => el.defId === "water_treatment_plant")!;
+  s.money = 0;
+  stepSimulation(s, 1, true);
+  assert.ok(utility.maintTimerSec <= -119, "first service has an opening grace period");
+  utility.maintTimerSec = MAINTENANCE_INTERVAL_SEC - 30;
+  assert.equal(maintenanceStatus(s, utility), "soon");
+  recalc(s);
+  const service = s.metrics.waterSupply;
+  utility.maintTimerSec = MAINTENANCE_INTERVAL_SEC - 1;
+  stepSimulation(s, 1, true);
+  assert.equal(maintenanceStatus(s, utility), "due");
+  assert.ok(s.metrics.waterSupply < service && !utility.disrepair);
+  utility.maintTimerSec += 151;
+  stepSimulation(s, 1, true);
+  assert.equal(maintenanceStatus(s, utility), "overdue");
   const money = s.money;
-  assert.ok(maintainElement(s, victim.id));
-  assert.equal(s.money, money - maintenancePrice(victim));
-  assert.ok(MAINTENANCE_INTERVAL_SEC > 0);
+  assert.ok(maintainElement(s, utility.id));
+  assert.equal(s.money, money);
+  assert.equal(s.metrics.waterSupply, service);
+  utility.maintTimerSec = MAINTENANCE_INTERVAL_SEC - 1;
+  s.autoMaintain = s.autoMaintainUtilitiesOnly = true;
+  const funds = s.money;
+  stepSimulation(s, 1, true);
+  assert.ok(s.money >= funds && utility.maintTimerSec === 0);
+});
 
+test("Survival preserves capital costs, admits free commerce, and offers one emergency grant", () => {
+  const s = createInitialGameState("survival"), r = createInitialGameState("real");
+  assert.equal(s.money, 3500);
+  assert.equal(stagePopulationThreshold(s, 1000), 500);
+  assert.equal(stagePopulationThreshold(r, 1000), 1000);
+  s.money = 0;
+  assert.equal(constructionCost(s, ELEMENT_BY_ID.businesses), 0);
+  assert.equal(constructionCost(r, ELEMENT_BY_ID.businesses), 90);
+  assert.equal(planConstruction(s, ELEMENT_BY_ID.businesses, 0, 0, 1, 0).valid, true);
+  assert.equal(planConstruction(s, ELEMENT_BY_ID.house, 0, 0, 1, 0).valid, false);
+  s.metrics.upkeepPerTick = r.metrics.upkeepPerTick = 100;
+  assert.equal(treasuryUpkeepRate(s), 0);
+  assert.ok(treasuryUpkeepRate(r) > 0);
+  assert.equal(claimSurvivalGrant(s), true);
+  assert.equal(s.money, 300);
+  s.money = 0;
+  assert.equal(claimSurvivalGrant(s), false);
+});
+
+test("real-mode fire damage repairs itself", () => {
   const r = town("real");
   const site = r.elements.find((el) => el.defId === "businesses")!;
   site.disrepair = true;

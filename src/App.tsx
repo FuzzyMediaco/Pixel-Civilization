@@ -6,7 +6,7 @@ import { RailOperations } from "./components/RailOperations";
 import { rememberBuildingEdit, undoBuildingEdit } from "./game/constructionHistory";
 import { dispatchFire } from "./game/projectOperations";
 import { dispatchVessel, previewWaterPassage } from "./game/mobility";
-import { buildingCharges, transfer } from "./game/cityEconomy";
+import { buildingCharges, constructionCost, transfer } from "./game/cityEconomy";
 import "./islandDesk.css";
 import { Connections, GodControls } from "./components/IslandControls";
 import { InfrastructurePanel, defaultSculptTool, worksToolLabel } from "./components/InfrastructurePanel";
@@ -129,7 +129,7 @@ import {
   launchIslandAttack,
   maintainAllElements,
   maintainElement,
-  maintenancePrice,
+  maintenanceStatus,
   makeElementId,
   pushToast,
   randomVariant,
@@ -604,8 +604,8 @@ export const App: React.FC = () => {
 
       const plan = planConstruction(cur, brushDef, gx, gz, curBrush.level, curBrush.rotation, curBrush.faceManually);
       if (!plan.valid) {
-        if (buildingCharges(cur) && cur.money < plan.def.cost) {
-          showToast({id:"funds",title:"Not enough money",subtitle:`Need $${plan.def.cost.toLocaleString()} to build ${plan.def.name}.`,tone:"alert"});
+        if (plan.cost > 0 && cur.money < plan.cost) {
+          showToast({id:"funds",title:"Not enough money",subtitle:`Need $${plan.cost.toLocaleString()} to build ${plan.def.name}.`,tone:"alert"});
         } else if (plan.reason) {
           showToast({id:"placement-blocked",title:"Can't build here",subtitle:plan.reason,tone:"alert"});
         }
@@ -618,10 +618,10 @@ export const App: React.FC = () => {
           : def.isNetwork
             ? pickAdjacentNetworkVariant(cur.elements, gx, gz, def)
             : randomVariant();
-      const charged = buildingCharges(cur) ? def.cost : 0;
+      const charged = plan.cost;
 
       commitBuildingEdit("Place "+def.name,(draft) => {
-        if (charged) transfer(draft,"treasury","outside",def.cost,"Construction");
+        if (charged) transfer(draft,"treasury","outside",charged,"Construction");
         const placed: PlacedElement = {
           id: makeElementId(),
           defId: def.id,
@@ -704,11 +704,18 @@ export const App: React.FC = () => {
     if (!elementId || elementId !== prevId) {
       setSelectionUndo(null);
     }
+    const city = stateRef.current;
+    const site = elementId ? city.elements.find(el => el.id === elementId) : undefined;
+    const status = site ? maintenanceStatus(city, site) : "none";
+    if (site && status !== "none" && status !== "healthy") {
+      commitState(draft => { maintainElement(draft, site.id); });
+      showToast({id:"maintenance",title:"Maintained " + (ELEMENT_BY_ID[site.defId]?.name ?? "building"),subtitle:"Full service restored for free."});
+    }
     setSelectedIds(elementId ? [elementId] : []);
     if (elementId) notifyTutorial("select_element");
     const open = sheetRef.current;
     if (elementId && open) setSheetState(null);
-  }, [notifyTutorial]);
+  }, [commitState, notifyTutorial, showToast]);
 
   // Tapping an empty tile dismisses any open sheet/selection/ring first, or opens the Quick-Build Spiral Menu.
   const handleEmptyTileTap = useCallback((gx: number, gz: number) => {
@@ -780,11 +787,11 @@ export const App: React.FC = () => {
       const { gx, gz } = qb;
       const plan = planConstruction(cur, brushDef, gx, gz, 1, 0, false);
       if (!plan.valid) {
-        if (buildingCharges(cur) && cur.money < plan.def.cost) {
+        if (plan.cost > 0 && cur.money < plan.cost) {
           showToast({
             id: "funds",
             title: "Not enough money",
-            subtitle: `Need $${plan.def.cost.toLocaleString()} to build ${plan.def.name}.`,
+            subtitle: `Need $${plan.cost.toLocaleString()} to build ${plan.def.name}.`,
             tone: "alert",
           });
         } else {
@@ -802,11 +809,11 @@ export const App: React.FC = () => {
       const chosenVariant = def.isNetwork
         ? pickAdjacentNetworkVariant(cur.elements, gx, gz, def)
         : randomVariant();
-      const charged = buildingCharges(cur) ? def.cost : 0;
+      const charged = plan.cost;
       const placedId = makeElementId();
 
       commitBuildingEdit("Place " + def.name, (draft) => {
-        if (charged) transfer(draft, "treasury", "outside", def.cost, "Construction");
+        if (charged) transfer(draft, "treasury", "outside", charged, "Construction");
         const placed: PlacedElement = {
           id: placedId,
           defId: def.id,
@@ -901,8 +908,8 @@ export const App: React.FC = () => {
             : def.isNetwork
               ? pickAdjacentNetworkVariant(draft.elements, pt.gx, pt.gz, def)
               : randomVariant();
-        const charged = buildingCharges(draft) ? def.cost : 0;
-        if (charged) transfer(draft, "treasury", "outside", def.cost, "Construction");
+        const charged = plan.cost;
+        if (charged) transfer(draft, "treasury", "outside", charged, "Construction");
         const placed: PlacedElement = {
           id: makeElementId(),
           defId: def.id,
@@ -1474,9 +1481,8 @@ export const App: React.FC = () => {
       const site = draft.elements.find(element => element.id === id);
       if (!site) return;
       if (site.onFire) dispatchFire(draft,id);
-      else if (!maintainElement(draft,id)) {
-        showToast({id:"repair-funds",title:"Repair costs $" + maintenancePrice(site).toLocaleString(),
-          subtitle:"Available treasury: $" + Math.floor(draft.money).toLocaleString(),tone:"alert"});
+      else if (maintainElement(draft,id)) {
+        showToast({id:"maintenance",title:"Maintained " + (ELEMENT_BY_ID[site.defId]?.name ?? "building"),subtitle:"Full service restored for free."});
       }
     });
   };
@@ -1484,7 +1490,7 @@ export const App: React.FC = () => {
   const handleMaintainAll = () => {
     commitState((draft) => {
       const fixed = maintainAllElements(draft);
-      if (fixed === 0) showToast({id:"maint",title:"No buildings repaired",subtitle:"Repairs need available funds. Burning buildings need a fire crew."});
+      if (fixed === 0) showToast({id:"maint",title:"No buildings repaired",subtitle:"No maintenance is due. Burning buildings need a fire crew."});
       else showToast({id:"maint",title:`Maintained ${fixed} building${fixed > 1 ? "s" : ""}`,subtitle:"Service timers reset."});
     });
   };
@@ -1884,7 +1890,7 @@ export const App: React.FC = () => {
   // Context layer: any specialized menu, sheet, tool, ring, or modal takes clean screen focus and hides outer chrome.
   const brushDef=brush.kind==="place"&&brush.defId?ELEMENT_BY_ID[brush.defId]:undefined;
   const movingEl=brush.kind==="move"?gameState.elements.find(e=>e.id===brush.movingElementId):undefined;
-  const charges=buildingCharges(gameState);
+  const brushCost = brushDef ? constructionCost(gameState, brushDef) : 0;
   const roadStrokeStats = useMemo(() => {
     if (!pendingRoadStroke || pendingRoadStroke.points.length < 2) return null;
     const def = ELEMENT_BY_ID[pendingRoadStroke.defId];
@@ -1899,8 +1905,8 @@ export const App: React.FC = () => {
     for (const [index, pt] of pendingRoadStroke.points.entries()) {
       const plan = planConstruction(virtualState, def, pt.gx, pt.gz, brush.level, brush.rotation, brush.faceManually, strokeRoadAxis(pendingRoadStroke.points,index));
       if (!plan.valid) continue;
-      const cost = charges ? plan.def.cost : 0;
-      if (charges) virtualState.money -= cost;
+      const cost = plan.cost;
+      virtualState.money -= cost;
       if (plan.replaceId) virtualState.elements = virtualState.elements.filter(el => el.id !== plan.replaceId);
       virtualState.elements.push({
         id: `preview-${validCount}`,
@@ -1927,7 +1933,7 @@ export const App: React.FC = () => {
       totalCost += cost;
     }
     return { def, validCount, totalCount: pendingRoadStroke.points.length, totalCost };
-  }, [pendingRoadStroke, gameState, brush.level, brush.rotation, brush.faceManually, charges]);
+  }, [pendingRoadStroke, gameState, brush.level, brush.rotation, brush.faceManually]);
 
   const isBridgeConfirm = Boolean(
     pendingWorks && pendingWorks.tool.kind === "bridge" && worksPreview && worksPreview.points.length >= 2,
@@ -2093,7 +2099,7 @@ export const App: React.FC = () => {
   const hideChrome = hardHideChrome;
   const issues=alertIssues(gameState);
   const showAlert=!hideChrome&&!ringOpen&&!sheet&&issues.length>0;
-  const repairNotice = uiToasts.find(toast => toast.id === "repair-funds");
+  const repairNotice = uiToasts.find(toast => toast.id === "maintenance");
   const gameToasts:UiToast[]=gameState.toasts.map(t=>({id:t.id,title:t.title,subtitle:t.subtitle,tone:t.kind==="stage"?"gold":t.kind==="raid"||t.kind==="alert"?"alert":"normal"}));
   const layerName=LAYERS.find(l=>l.id===activeHeatmap)?.label;
   const hoverBad=brush.kind!=="none"&&hoverInfo&&!hoverInfo.valid?hoverInfo.reason:undefined;
@@ -2421,7 +2427,7 @@ export const App: React.FC = () => {
 
       {/* Context layer */}
       {brushDef&&<PlacementBar label="Placing" def={brushDef} title={brushDef.name+(gameState.mode==="god"?" · Lv "+brush.level:"")}
-        subtitle={(charges?"$"+brushDef.cost.toLocaleString()+(brushDef.isNetwork?" / tile":" each"):"Free")+(placeStats?.defId===brushDef.id?" · "+placeStats.count+" placed"+(placeStats.spent?" = $"+placeStats.spent.toLocaleString():""):"")}
+        subtitle={(brushCost?"$"+brushCost.toLocaleString()+(brushDef.isNetwork?" / tile":" each"):"Free")+(placeStats?.defId===brushDef.id?" · "+placeStats.count+" placed"+(placeStats.spent?" = $"+placeStats.spent.toLocaleString():""):"")}
         hint={
           pendingRoadStroke
             ? (mapFallback ? undefined : "Tap ✓ above the road stretch to build · Tap anywhere else to cancel")

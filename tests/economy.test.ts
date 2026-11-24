@@ -5,6 +5,7 @@ import { ELEMENT_BY_ID, getStandardFootprintForLevel } from "../src/game/catalog
 import {
   activityRule,
   advanceEconomy,
+  SURVIVAL_RECOVERY_SEC,
   allocateWealth,
   cityWealth,
   controlValue,
@@ -259,18 +260,23 @@ test("paired sky and portal services actually complete journeys, and a single ai
     assert.ok(!requestProjectJourney(copy, a.id));
   }
 });
-test("survival collapse runs on three full active days and a recovered benchmark resets the clock", () => {
+test("Survival gives a sustained recovery window and either population or happiness can save the run", () => {
   const s = neighborhood("survival");
   s.highestStageReached = 2;
   recalc(s);
   assert.ok(!s.gameOver);
+  s.population = 300;
+  s.happiness = 45;
+  advanceEconomy(s, 170);
+  assert.equal(economyOf(s).recovery, 0);
+  s.happiness = 44;
   advanceEconomy(s, 170);
   assert.ok(!s.gameOver && economyOf(s).recovery === 170);
-  s.population = 1100;
+  s.population = 325;
   advanceEconomy(s, 1);
   assert.equal(economyOf(s).recovery, 0);
   s.population = 80;
-  advanceEconomy(s, 359);
+  advanceEconomy(s, SURVIVAL_RECOVERY_SEC - 1);
   assert.ok(!s.gameOver);
   advanceEconomy(s, 1);
   assert.ok(s.gameOver);

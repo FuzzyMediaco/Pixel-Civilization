@@ -194,6 +194,7 @@ export function Hud({
           <b>{Math.round(state.happiness)}%</b>
           <small>happy</small>
         </button>
+        {state.mode !== "survival" && <>
         <button
           type="button"
           className={"ui-stat" + (charges && state.money < 0 ? " is-bad" : "")}
@@ -216,6 +217,7 @@ export function Hud({
           <b>{m.powerDemand > 0 ? (powerNet >= 0 ? "+" : "−") + compact(Math.abs(powerNet)) : "—"}</b>
           <small>power</small>
         </button>
+        </>}
       </div>
 
       {onOpenPix && (

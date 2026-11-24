@@ -27,7 +27,7 @@ export type MorePage = "view" | "mode" | "god" | "settings" | "account" | null;
 const MODES: { id: GameMode; title: string; desc: string }[] = [
   { id: "god", title: "God", desc: "Sandbox: free building, terrain sculpting, weather & clock." },
   { id: "real", title: "Real", desc: "Grow Stage 1 → 20 on a live treasury and balanced services." },
-  { id: "survival", title: "Survival", desc: "Repairs, reserves & defense; shortages can collapse the city." },
+  { id: "survival", title: "Survival", desc: "Keep people happy, maintain services for free, and grow a resilient city." },
   { id: "idle", title: "Idle", desc: "Autonomous algorithmic planner grows a Stage 1–20 island." },
   { id: "manager", title: "Manager", desc: "Executive Yes/No decisions while customizing architectural styles." },
 ];
