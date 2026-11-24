@@ -16,9 +16,9 @@ import { VOXELS_PER_TILE, VOXEL_PITCH, effectiveVoxelRadius, isVoxelSculptTool }
 import { visitPracticeRailway } from "./game/practiceRailway";
 import { ExampleIslands, WorldGuide } from "./components/ExampleIslands";
 import { EXAMPLE_WORLDS, createExampleWorld, type ExampleMode, type ExampleWorldId } from "./game/exampleWorlds";
-import { loadModeState, persistMode, resumeIsland } from "./game/activeIsland";
+import { loadModeState, persistMode, readExampleRoute, resumeIsland } from "./game/activeIsland";
 import { createCanalDistrict } from "./game/canalDistrict";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { AlertOctagon, ArrowDown, ArrowUp, Check, ChevronLeft, Layers, Minus, Move, Plus, RotateCcw, RotateCw, ShieldAlert, Trash2, Undo2, Waves, X } from "lucide-react";
 import { settleStreetFacing } from "./game/streetFacing";
 import { GameDialog } from "./components/GameDialog";
@@ -129,6 +129,7 @@ import {
   launchIslandAttack,
   maintainAllElements,
   maintainElement,
+  maintenancePrice,
   makeElementId,
   pushToast,
   randomVariant,
@@ -1470,8 +1471,13 @@ export const App: React.FC = () => {
 
   const handleMaintainSelected = (id: string) => {
     commitState((draft) => {
-      if(draft.elements.find(e=>e.id===id)?.onFire) dispatchFire(draft,id);
-      else maintainElement(draft, id);
+      const site = draft.elements.find(element => element.id === id);
+      if (!site) return;
+      if (site.onFire) dispatchFire(draft,id);
+      else if (!maintainElement(draft,id)) {
+        showToast({id:"repair-funds",title:"Repair costs $" + maintenancePrice(site).toLocaleString(),
+          subtitle:"Available treasury: $" + Math.floor(draft.money).toLocaleString(),tone:"alert"});
+      }
     });
   };
 
@@ -1812,10 +1818,14 @@ export const App: React.FC = () => {
   };
   const activeExample = EXAMPLE_WORLDS.find(world => world.id === gameState.exampleWorldId);
   const openExamples = () => { setSheetState(null); setExamplesOpen(true); };
-  const visitExample = (id: ExampleWorldId, mode: ExampleMode) => {
+  const visitExample = (id: ExampleWorldId, mode: ExampleMode, viewIndex?: number) => {
     const previous = stateRef.current;
     if (!saveActiveMode(previous)) return;
-    const next = previous.exampleWorldId === id && previous.mode === mode ? previous : loadModeState(mode, id);
+    const next = previous.exampleWorldId === id && previous.mode === mode ? { ...previous } : loadModeState(mode, id);
+    if (viewIndex !== undefined) {
+      next.exampleViewpoint = viewIndex;
+      delete next.cameraView;
+    }
     next.exampleReturnMode = previous.exampleReturnMode ?? previous.mode;
     if (!saveModeState(next)) return;
     stateRef.current = next;
@@ -1826,6 +1836,15 @@ export const App: React.FC = () => {
     setBrush(idleBrush);
     restoreIslandView(next);
   };
+  const followExampleLink = useEffectEvent(() => {
+    const route = readExampleRoute(location.hash);
+    if (route) visitExample(route.id, route.mode, route.viewIndex);
+  });
+  useEffect(() => {
+    const onHashChange = () => followExampleLink();
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
   const openRailYard=()=>{
     try {
       const {state:next,depot}=visitPracticeRailway(stateRef.current);
@@ -2806,14 +2825,7 @@ export const App: React.FC = () => {
         onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}
         linkedWorlds={linkedWorlds} onImportWorld={handleImportWorld} onExportWorld={handleExportWorld}/>
       {guideModal && <GuideModal modal={guideModal} currentMode={gameState.mode} onChange={setGuideModal} onClose={() => setGuideModal(null)}
-        onPlayWorld={(id, mode, viewIndex) => {
-          visitExample(id, mode);
-          if (viewIndex !== undefined) {
-            const world = EXAMPLE_WORLDS.find((w) => w.id === id);
-            const pt = world?.viewpoints[viewIndex] ?? world?.camera;
-            if (pt) rendererRef.current?.focusGrid(pt.gx, pt.gz, pt.zoom);
-          }
-        }}/>}
+        onPlayWorld={visitExample}/>}
       {pixModal.open && (
         <PixBuilderModal
           state={gameState}

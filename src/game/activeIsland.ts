@@ -1,7 +1,7 @@
 import { readPlayerItem, writePlayerItems } from "./deviceSaves";
 import type { GameMode } from "./catalog";
 import { createInitialGameState, migrateCenteredHighways, recomputeConnectivityAndMetrics, type GameState } from "./simulation";
-import { EXAMPLE_WORLDS, createExampleWorld, type ExampleWorldId } from "./exampleWorlds";
+import { EXAMPLE_WORLDS, createExampleWorld, type ExampleMode, type ExampleWorldId } from "./exampleWorlds";
 const SAVE_PREFIX = "pixel_civ_save_v1_";
 
 const exampleById = (value: string) => EXAMPLE_WORLDS.find(w => w.id === value)?.id;
@@ -48,18 +48,24 @@ export function loadModeState(mode: GameMode, exampleId?: ExampleWorldId): GameS
   return exampleId ? createExampleWorld(exampleId, mode === "real" ? "real" : "god") : createInitialGameState(mode);
 }
 
+export function readExampleRoute(hash: string): { id: ExampleWorldId; mode: ExampleMode; viewIndex?: number } | undefined {
+  const route = new URLSearchParams(hash.replace(/^#/, ""));
+  const world = EXAMPLE_WORLDS.find(item => item.id === route.get("world"));
+  if (!world) return undefined;
+  const view = route.get("view");
+  const index = Number(view);
+  const validView = view !== null && /^\d+$/.test(view) && world.viewpoints[index];
+  return { id: world.id, mode: route.get("mode") === "real" ? "real" : "god", viewIndex: validView ? index : undefined };
+}
+
 export function resumeIsland(hash = ""): GameState {
   let last = "god";
   try { last = readPlayerItem("pixel_civ_last_mode") ?? last; } catch { /* A private session can still play. */ }
-  const route = new URLSearchParams(hash.replace(/^#/, ""));
-  const requested = exampleById(route.get("world") ?? "");
+  const requested = readExampleRoute(hash);
   if (requested) {
-    const city = loadModeState(route.get("mode") === "real" ? "real" : "god", requested);
-    const view = route.get("view");
-    const index = Number(view);
-    const example = EXAMPLE_WORLDS.find(w => w.id === requested);
-    if (view !== null && /^\d+$/.test(view) && example?.viewpoints[index]) {
-      city.exampleViewpoint = index;
+    const city = loadModeState(requested.mode, requested.id);
+    if (requested.viewIndex !== undefined) {
+      city.exampleViewpoint = requested.viewIndex;
       delete city.cameraView;
     }
     let origin = last;

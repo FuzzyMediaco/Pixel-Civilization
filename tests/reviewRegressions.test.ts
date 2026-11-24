@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { Mesh, Scene, BoxGeometry } from "three";
 import type { IslandCameraView } from "../src/game/worldRenderer";
-import { loadModeState, persistMode, resumeIsland } from "../src/game/activeIsland";
+import { loadModeState, persistMode, readExampleRoute, resumeIsland } from "../src/game/activeIsland";
 import catalog from "../src/handbook/catalog.json";
 import { relatedLessons } from "../src/handbook/relatedLessons";
 import chapters from "../src/handbook/chapters.json";
@@ -148,4 +148,14 @@ test("visiting sample islands, reloading and opening a shared link preserve the 
     if (previous) Object.defineProperty(globalThis,"localStorage",previous);
     else Reflect.deleteProperty(globalThis,"localStorage");
   }
+});
+
+test("shared example links resolve consistent island, mode and camera targets", () => {
+  assert.deepEqual(readExampleRoute("#world=pelican-reach&mode=real&view=1"), {
+    id:"pelican-reach", mode:"real", viewIndex:1,
+  });
+  assert.deepEqual(readExampleRoute("#world=copper-gorge&mode=other&view=900"), {
+    id:"copper-gorge", mode:"god", viewIndex:undefined,
+  });
+  assert.equal(readExampleRoute("#world=missing&view=0"),undefined);
 });
