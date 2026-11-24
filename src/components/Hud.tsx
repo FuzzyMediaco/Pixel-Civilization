@@ -295,7 +295,8 @@ export function Hud({
                   onCustomizeQuickDrawer();
                 }}
               >
-                <SlidersHorizontal size={13} aria-hidden="true" />
+                <SlidersHorizontal size={16} aria-hidden="true" />
+                <span>Customize</span>
               </button>
             )}
           </div>

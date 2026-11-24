@@ -2100,21 +2100,22 @@ button.ui-row:hover { border-color: var(--ui-green); }
   background: var(--ui-warn);
   box-shadow: 0 0 0 1.5px var(--ui-paper);
 }
-/* Background-less floating stack of 6 adaptive quick-access buttons right below the far-right icon */
+/* Keep the quick actions on one right-aligned column, even as their labels change. */
 .ui-hud-drawer {
   position: absolute;
   top: calc(100% + 7px);
   right: 0;
   z-index: 36;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  padding: 0;
-  pointer-events: none;
+  width: min(10.75rem, calc(100vw - 24px));
+  max-height: calc(100dvh - var(--hud-top, 8px) - 100px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: 2px 0 6px;
+  pointer-events: auto;
 }
 @keyframes ui-hud-drop {
   from {
@@ -2128,12 +2129,16 @@ button.ui-row:hover { border-color: var(--ui-green); }
 }
 .ui-hud-drop-btn {
   pointer-events: auto;
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
   align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 12px 0 10px;
-  border-radius: 999px;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  text-align: left;
+  border-radius: 14px;
   border: 1px solid rgba(207, 216, 201, 0.92);
   background: rgba(250, 249, 241, 0.94);
   backdrop-filter: blur(8px);
@@ -2142,14 +2147,17 @@ button.ui-row:hover { border-color: var(--ui-green); }
   font: 700 12px/1 var(--ui-font);
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(17, 42, 35, 0.22);
+  box-shadow: 0 2px 5px rgba(17, 42, 35, 0.20);
   animation: ui-hud-drop 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(var(--drop-idx, 0) * 24ms);
-  transition: transform 0.12s ease, background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
 }
-.ui-hud-drop-btn:hover {
-  transform: translateX(-2px);
-  border-color: var(--ui-green);
+.ui-hud-drop-btn > svg { justify-self: center; width: 16px; height: 16px; }
+.ui-hud-drop-btn > span { overflow: hidden; text-overflow: ellipsis; }
+.ui-hud-drop-btn:hover { border-color: var(--ui-green); }
+.ui-hud-drop-btn:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
+@media (prefers-reduced-motion: reduce) {
+  .ui-hud-drop-btn { animation: none; transition: none; }
 }
 .ui-hud-drop-btn.is-active,
 .ui-hud-drop-btn.is-accent {
@@ -2172,11 +2180,7 @@ button.ui-row:hover { border-color: var(--ui-green); }
   cursor: default;
 }
 .ui-hud-drop-btn.is-customize {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  justify-content: center;
-  border-radius: 999px;
+  margin-top: 2px;
   background: rgba(242, 246, 239, 0.94);
   color: var(--ui-muted);
 }

@@ -2146,7 +2146,7 @@ export const App: React.FC = () => {
   const inFocusMenu = Boolean(ringOpen || hardHideChrome);
   const hideChrome = hardHideChrome;
   const issues=alertIssues(gameState);
-  const showAlert=!hideChrome&&!ringOpen&&!sheet&&issues.length>0;
+  const showAlert=!hideChrome&&!ringOpen&&!quickDrawerOpen&&!sheet&&issues.length>0;
   const repairNotice = uiToasts.find(toast => toast.id === "maintenance");
   const gameToasts:UiToast[]=gameState.toasts.map(t=>({id:t.id,title:t.title,subtitle:t.subtitle,tone:t.kind==="stage"?"gold":t.kind==="raid"||t.kind==="alert"?"alert":"normal"}));
   const layerName=LAYERS.find(l=>l.id===activeHeatmap)?.label;
