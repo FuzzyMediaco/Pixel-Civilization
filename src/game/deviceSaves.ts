@@ -192,6 +192,8 @@ export function openDeviceSaves(): Promise<void> {
     }
   })());
 }
+export const isCloudSavePending = (key: string) => cache.get(key)?.dirty === true;
+
 export function readPlayerItem(key: string): string | null {
   return db ? (cache.get(key)?.data ?? null) : localStorage.getItem(key);
 }

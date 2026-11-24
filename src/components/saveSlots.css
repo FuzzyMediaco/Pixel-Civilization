@@ -1,0 +1,46 @@
+.game-dialog.save-dialog { display: flex; align-items: center; justify-content: center; }
+.game-dialog.save-dialog:not([open]) { display: none; }
+.save-panel { display: flex; flex-direction: column; width: min(100%, 620px); height: min(84dvh, 730px); border: 1px solid #dbe4db; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 54px #142a3245; }
+.save-header { display: flex; align-items: center; justify-content: space-between; flex: none; padding: 12px 20px 10px; border-bottom: 1px solid #e2e9e1; }
+.save-header h2 { margin: 0; font-size: clamp(21px, 5vw, 27px); font-weight: 850; }
+.save-body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: clamp(12px, 3vw, 20px); display: flex; flex-direction: column; gap: 16px; }
+.save-current { padding: 15px; background: #e9f3e9; border: 1px solid #cedfce; border-radius: 14px; display: grid; justify-items: start; gap: 7px; }
+.save-current-title { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-width: 0; }
+.save-current h3 { margin: 0; font-size: 19px; font-weight: 800; overflow-wrap: anywhere; }
+.save-mode { color: #265d46; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 750; background: #f7fff8; }
+.save-status { display: flex; align-items: center; gap: 7px; color: #214e3a; font-size: 13px; font-weight: 740; margin: 0; }
+.save-detail { margin: 0; color: #4b655b; font-size: 12px; line-height: 1.45; }
+.save-library { display: grid; gap: 8px; }
+.save-library-heading { display: flex; align-items: center; justify-content: space-between; color: #4b655b; font-size: 12px; }
+.save-library-heading h3 { color: #203b30; font-size: 14px; margin: 0; font-weight: 780; }
+.save-island, .save-form, .save-backups { border: 1px solid #e0e7df; background: #fff; border-radius: 12px; }
+.save-island.is-active { border-color: #93b49e; background: #f9fdf8; }
+.save-island-row { display: flex; align-items: center; gap: 6px; padding: 8px 9px 8px 12px; }
+.save-island-info { flex: 1; min-width: 0; }
+.save-island h4 { margin: 0 0 2px; font-size: 15px; font-weight: 780; overflow-wrap: anywhere; }
+.save-button, .save-icon, .save-options button { min-height: 44px; border: 1px solid #cfdcd2; border-radius: 9px; cursor: pointer; color: #224637; background: #fff; line-height: 1.15; font-family: inherit; font-size: 13px; font-weight: 700; }
+.save-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; white-space: nowrap; }
+.save-current .save-button { margin-top: 4px; }
+.save-icon { display: inline-grid; place-items: center; width: 44px; flex: 0 0 44px; padding: 0; }
+.save-panel svg { flex-shrink: 0; width: auto; max-width: 20px; display: block; }
+.save-primary { background: #21664d; border-color: #21664d; color: #fff; }
+.save-danger { color: #9a2534 !important; }
+.save-primary:hover { background: #184d3b; }
+.save-button:not(.save-primary):hover, .save-icon:hover, .save-options button:hover { background: #edf5ee; }
+.save-panel button:focus-visible, .save-backups summary:focus-visible, .save-upload:focus-within { outline: 2px solid #205c45; outline-offset: 2px; }
+.save-panel button:disabled { opacity: .55; cursor: default; }
+.save-options, .save-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.save-options { padding: 7px 10px; border-top: 1px solid #e5ebe4; }
+.save-options button { padding: 0 9px; border-color: transparent; }
+.save-form { padding: 12px; display: grid; gap: 8px; }
+.save-form p { margin: 0; }
+.save-form label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; }
+.save-form input, .save-backups select { min-height: 44px; width: 100%; border: 1px solid #ccd9d0; border-radius: 8px; padding: 6px 9px; background: #fff; }
+.save-backups { padding: 0 12px 10px; }
+.save-backups:not([open]) { padding-bottom: 0; }
+.save-backups summary { padding: 13px 0; cursor: pointer; font-size: 13px; font-weight: 740; }
+.save-backups p { margin: 8px 0; }
+.save-upload { position: relative; }
+.save-upload input { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+.save-error { color: #902e23; margin: 0; }
+@media (max-width: 420px) { .save-panel { height: 90dvh; } .save-header { padding-inline: 14px; } }

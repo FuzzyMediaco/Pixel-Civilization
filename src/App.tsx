@@ -1,6 +1,6 @@
 import { strokeRoadAxis } from "./game/roadCorridors";
 import { downloadWorld, importWorldIntoSlot, readLinkedWorld, type TransferWorld } from "./game/worldTransfer";
-import { autosync } from "./game/accountSync";
+import { autosync, scheduleAccountSync } from "./game/accountSync";
 import { readPlayerItem, writePlayerItem, deviceIssue, onDeviceChange, flushDevice } from "./game/deviceSaves";
 import { RailOperations } from "./components/RailOperations";
 import { rememberBuildingEdit, undoBuildingEdit } from "./game/constructionHistory";
@@ -16,7 +16,7 @@ import { VOXELS_PER_TILE, VOXEL_PITCH, effectiveVoxelRadius, isVoxelSculptTool }
 import { visitPracticeRailway } from "./game/practiceRailway";
 import { ExampleIslands, WorldGuide } from "./components/ExampleIslands";
 import { EXAMPLE_WORLDS, createExampleWorld, type ExampleMode, type ExampleWorldId } from "./game/exampleWorlds";
-import { loadModeState, persistMode, readExampleRoute, resumeIsland } from "./game/activeIsland";
+import { loadModeState, persistMode, readExampleRoute, resumeIsland, lastActiveSlot, islandSaveKey } from "./game/activeIsland";
 import { createCanalDistrict } from "./game/canalDistrict";
 import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { AlertOctagon, ArrowDown, ArrowUp, Check, ChevronLeft, Layers, Minus, Move, Plus, RotateCcw, RotateCw, ShieldAlert, Trash2, Undo2, Waves, X } from "lucide-react";
@@ -111,7 +111,7 @@ import {
   deleteCivilizationSlot,
   loadSaveSlots,
   renameCivilizationSlot,
-  saveCivilizationToSlot,
+  persistNamedIsland,
 } from "./game/saveSlots";
 import {
   type GameState,
@@ -190,32 +190,61 @@ export const App: React.FC = () => {
     unlockSky(resumeIsland(typeof location !== "undefined" ? location.hash : "")),
   );
   const stateRef = useRef<GameState>(gameState);
+  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(() => lastActiveSlot(location.hash));
+  const activeSave = useRef<{ index: number; name: string } | null>(null);
+  if (activeSlotIndex !== null && activeSave.current === null) {
+    const slot = loadSaveSlots()[activeSlotIndex];
+    if (slot) activeSave.current = { index: activeSlotIndex, name: slot.name };
+  }
+  const useNamedIsland = (index: number, name: string) => {
+    activeSave.current = { index, name };
+    setActiveSlotIndex(index);
+  };
+  const leaveNamedIsland = () => {
+    activeSave.current = null;
+    setActiveSlotIndex(null);
+  };
   const [examplesOpen,setExamplesOpen] = useState(false);
   const [railSite,setRailSite] = useState<string>();
   const [saveError,setSaveError]=useState(false);
   const [slotError,setSlotError]=useState("");
   const [deviceNotice,setDeviceNotice]=useState(deviceIssue);
   useEffect(()=>onDeviceChange(()=>setDeviceNotice(deviceIssue())),[]);
-  const saveModeState=useCallback((s:GameState)=>{const ok=persistMode(s);setSaveError(!ok);return ok;},[]);
+  const saveModeState = useCallback((state: GameState) => {
+    const ok = persistMode(state);
+    setSaveError(!ok);
+    if (ok) scheduleAccountSync();
+    return ok;
+  }, []);
   const captureView = useCallback((state: GameState) => {
     const view = rendererRef.current?.getCameraView();
     if (view) state.cameraView = view;
   }, []);
   const saveActiveMode = useCallback((state: GameState) => {
     captureView(state);
-    return saveModeState(state);
+    const named = activeSave.current;
+    if (!named) return saveModeState(state);
+    try {
+      persistNamedIsland(named.index, named.name, state);
+      setSaveError(false);
+      scheduleAccountSync();
+      return true;
+    } catch {
+      setSaveError(true);
+      return false;
+    }
   }, [captureView, saveModeState]);
 
   useEffect(() => {
     const route = new URLSearchParams(location.hash.slice(1));
     if (!gameState.exampleWorldId && !route.has("world")) return;
-    if (gameState.exampleWorldId) route.set("world", gameState.exampleWorldId);
+    if (gameState.exampleWorldId && activeSlotIndex === null) route.set("world", gameState.exampleWorldId);
     else route.delete("world");
-    if (gameState.exampleWorldId && gameState.mode === "real") route.set("mode", "real");
+    if (gameState.exampleWorldId && activeSlotIndex === null && gameState.mode === "real") route.set("mode", "real");
     else route.delete("mode");
     route.delete("view"); // A tour link sets the initial camera once. Refresh resumes the player's view.
     history.replaceState(null, "", "#" + route.toString());
-  }, [gameState.exampleWorldId, gameState.mode]);
+  }, [gameState.exampleWorldId, gameState.mode, activeSlotIndex]);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedIdsRef = useRef<string[]>(selectedIds);
@@ -417,7 +446,6 @@ export const App: React.FC = () => {
   }, []);
   const [saveSlots, setSaveSlots] = useState<(CivilizationSaveSlot | null)[]>(() => loadSaveSlots());
   useEffect(() => onDeviceChange(() => setSaveSlots(loadSaveSlots())), []);
-  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [hoverInfo, setHoverInfo] = useState<{gx: number; gz: number; valid: boolean; reason?: string} | null>(null);
 
@@ -1178,8 +1206,9 @@ export const App: React.FC = () => {
   useEffect(() => {
     let lastMs = performance.now(), lastSave=lastMs;
     const flush=()=>saveActiveMode(stateRef.current);
-    const visibility=()=>{if(document.hidden)flush();};
-    window.addEventListener("pagehide",flush);
+    const closeSave = () => { if (flush()) void autosync(); };
+    const visibility=()=>{if(document.hidden)closeSave();};
+    window.addEventListener("pagehide",closeSave);
     window.addEventListener("pixel-save-before-switch",flush);
     document.addEventListener("visibilitychange",visibility);
     const timer = window.setInterval(() => {
@@ -1188,7 +1217,7 @@ export const App: React.FC = () => {
       lastMs = now;
 
       const spd = simSpeedRef.current;
-      if (spd <= 0) return;
+      if (spd <= 0 || document.hidden) return;
 
       const visible = !document.hidden;
       const next: GameState = {
@@ -1213,7 +1242,7 @@ export const App: React.FC = () => {
       }
     }, 250);
 
-    return () => {window.clearInterval(timer);window.removeEventListener("pagehide",flush);window.removeEventListener("pixel-save-before-switch",flush);document.removeEventListener("visibilitychange",visibility);};
+    return () => {window.clearInterval(timer);window.removeEventListener("pagehide",closeSave);window.removeEventListener("pixel-save-before-switch",flush);document.removeEventListener("visibilitychange",visibility);};
   }, []);
 
   // Construction advances on active play time and shares the selected simulation speed.
@@ -1370,7 +1399,7 @@ export const App: React.FC = () => {
     stateRef.current = loaded;
     setGameState(loaded);
     setSelectedIds([]);
-    setActiveSlotIndex(null);
+    leaveNamedIsland();
     setBrush({kind: "none", level: 1, variantMode: -1, rotation: 0});
     autoProfileRef.current = createAutoCivProfile();
     setManagerDecision(null);
@@ -1592,7 +1621,7 @@ export const App: React.FC = () => {
     restoreIslandView(fresh);
     stateRef.current = fresh;
     setGameState(fresh);
-    saveModeState(fresh);
+    saveActiveMode(fresh);
     setSelectedIds([]);
     setConfirmResetOpen(false);
     autoProfileRef.current = createAutoCivProfile();
@@ -1626,23 +1655,29 @@ export const App: React.FC = () => {
   };
 
   const handleSaveToSlot = async (slotIndex: number, name: string) => {
-    captureView(stateRef.current);
-    let updated:typeof saveSlots;
-    try{updated=saveCivilizationToSlot(slotIndex,name,stateRef.current);setSlotError("");}catch{setSlotError("The slot could not be saved. Free browser storage and try again.");return;}
-    try { await flushDevice(); } catch { setSlotError("The slot could not be saved to this device."); return; }
-    setSaveSlots(updated);
-    setActiveSlotIndex(slotIndex);
-    const savedName = updated[slotIndex]?.name ?? `Civilization ${slotIndex + 1}`;
-    showToast({id:"saved",title:`Saved "${savedName}"`,subtitle:`Slot ${slotIndex + 1}`});
-    void autosync();
+    const current = stateRef.current;
+    if (activeSave.current?.index !== slotIndex && !saveActiveMode(current)) return;
+    const savedName = name.trim() || `Civilization ${slotIndex + 1}`;
+    try {
+      persistNamedIsland(slotIndex, savedName, current);
+      useNamedIsland(slotIndex, savedName);
+      setSlotError("");
+      setSaveSlots(loadSaveSlots());
+      await flushDevice();
+      showToast({id:"saved",title:`Autosaving “${savedName}”`});
+      void autosync();
+    } catch {
+      setSlotError("The island could not be saved to this device.");
+    }
   };
 
   const handleExportWorld = (slotIndex?: number) => {
     try {
-      const slot = slotIndex === undefined ? undefined : saveSlots[slotIndex];
+      const slot = slotIndex === undefined ? undefined : loadSaveSlots()[slotIndex];
       if (slotIndex !== undefined && !slot) return;
-      if (!slot) captureView(stateRef.current);
-      downloadWorld(slot?.name ?? "Current Civilization", slot?.state ?? stateRef.current);
+      const current = !slot || activeSave.current?.index === slotIndex;
+      if (current) captureView(stateRef.current);
+      downloadWorld(slot?.name ?? activeSave.current?.name ?? "Current Civilization", current ? stateRef.current : slot.state);
       setSlotError("");
     } catch (error) {
       setSlotError(error instanceof Error ? error.message : "This world could not be exported.");
@@ -1672,28 +1707,40 @@ export const App: React.FC = () => {
 
   const handleLoadSlot = (slotIndex: number) => {
     resetTools();
-    const slot = saveSlots[slotIndex];
-    if (!slot) return;
+    const slot = loadSaveSlots()[slotIndex];
+    if (!slot || activeSave.current?.index === slotIndex) return;
     if(!saveActiveMode(stateRef.current))return;
     const restored = unlockSky(cloneGameStateSnapshot(slot.state));
     pushToast(restored, "stage", `Loaded "${slot.name}"`, `Restored Slot #${slotIndex + 1} · ${restored.population.toLocaleString()} pop`);
+    try { writePlayerItem("pixel_civ_last_mode", "slot-" + slotIndex); }
+    catch { setSlotError("The island could not be opened from device storage."); return; }
+    useNamedIsland(slotIndex, slot.name);
+    setSaveSlots(loadSaveSlots());
+    scheduleAccountSync();
     restoreIslandView(restored);
     stateRef.current = restored;
     setGameState(restored);
-    saveModeState(restored);
     setSelectedIds([]);
-    setActiveSlotIndex(slotIndex);
     setBrush({kind: "none", level: 1, variantMode: -1, rotation: 0});
     setSavesModalOpen(false);
   };
 
   const handleRenameSlot = (slotIndex: number, name: string) => {
-    try{setSaveSlots(renameCivilizationSlot(slotIndex,name));setSlotError("");}catch{setSlotError("The name could not be saved in browser storage.");}
+    try {
+      const slots = renameCivilizationSlot(slotIndex,name);
+      const slot = slots[slotIndex];
+      if (slot && activeSave.current?.index === slotIndex) useNamedIsland(slotIndex, slot.name);
+      setSaveSlots(slots);
+      setSlotError("");
+      scheduleAccountSync();
+    }catch{setSlotError("The name could not be saved in browser storage.");}
   };
 
   const handleDeleteSlot = (slotIndex: number) => {
+    if (activeSave.current?.index === slotIndex && !saveModeState(stateRef.current)) return;
     try{setSaveSlots(deleteCivilizationSlot(slotIndex));setSlotError("");}catch{setSlotError("The slot could not be removed from browser storage.");return;}
-    if (activeSlotIndex === slotIndex) setActiveSlotIndex(null);
+    if (activeSlotIndex === slotIndex) leaveNamedIsland();
+    scheduleAccountSync();
   };
   // Clock, weather and wind are sandbox controls: in real and survival the sky runs on its own.
   const envLocked = () => stateRef.current.mode !== "god";
@@ -1818,9 +1865,10 @@ export const App: React.FC = () => {
     catch{showToast({id:"snap",title:"Snapshot could not be saved",subtitle:"Free a save slot or browser storage, then try again.",tone:"alert"});return false;}
   };
   const activateSandbox=(s:GameState)=>{
+    if (!saveActiveMode(stateRef.current)) return;
     s.mode="god";s.gameOver=false;s.gameOverReason="";s.toasts=[];
     recomputeConnectivityAndMetrics(s);restoreIslandView(s);stateRef.current=s;setGameState(s);saveModeState(s);
-    setSelectedIds([]);setActiveSlotIndex(null);setWorksTool(null);rendererRef.current?.followService();openMore("god");
+    setSelectedIds([]);leaveNamedIsland();setWorksTool(null);rendererRef.current?.followService();openMore("god");
   };
   const activeExample = EXAMPLE_WORLDS.find(world => world.id === gameState.exampleWorldId);
   const openExamples = () => { setSheetState(null); setExamplesOpen(true); };
@@ -1838,7 +1886,7 @@ export const App: React.FC = () => {
     setGameState(next);
     setExamplesOpen(false);
     resetTools();
-    setReturnLine(undefined); setSelectedIds([]); setActiveSlotIndex(null);
+    setReturnLine(undefined); setSelectedIds([]); leaveNamedIsland();
     setBrush(idleBrush);
     restoreIslandView(next);
   };
@@ -2799,7 +2847,7 @@ export const App: React.FC = () => {
             tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onStopTutorial={()=>stopTutorial(false)}/>
         ) : sheet==="more" ? (
           <MoreSheet {...sheetProps} saveNow={()=>saveActiveMode(stateRef.current)} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount} slotCount={saveSlots.length}
-            onSaves={()=>{trackDrawerAction("save_slots",0.5);setSheetState(null);setSlotError("");setSavesModalOpen(true);}} onExamples={openExamples}
+            onSaves={()=>{trackDrawerAction("save_slots",0.5);setSheetState(null);setSlotError("");setSaveSlots(loadSaveSlots());setSavesModalOpen(true);}} onExamples={openExamples}
             onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"course"}});}}
             onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
             onChangeMode={m=>{trackDrawerAction("game_mode",0.5);stopTutorial(false);if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={()=>{stopTutorial(false);copyIsland();}}
@@ -2830,7 +2878,7 @@ export const App: React.FC = () => {
         onTrack={e=>{setRailSite(undefined);rendererRef.current?.focusElement(e.id);handleSelectBrushDef("train_tracks");}}/>}
       {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} currentMode={gameState.mode === "real" ? "real" : "god"} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
         error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
-      <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState}
+      <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState} saveKey={islandSaveKey(gameState)} deviceError={deviceNotice || (saveError ? "Could not save to this device." : "")}
         onClose={() => setSavesModalOpen(false)} onAddSlot={handleAddSaveSlot} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
         onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}
         linkedWorlds={linkedWorlds} onImportWorld={handleImportWorld} onExportWorld={handleExportWorld}/>

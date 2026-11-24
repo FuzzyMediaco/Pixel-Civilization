@@ -1,4 +1,6 @@
 import { readPlayerItem, writePlayerItems } from "./deviceSaves";
+import { cloneGameStateSnapshot, loadSaveSlots } from "./saveSlots";
+import { isSaveSlotIndex } from "./saveSlotLimits";
 import type { GameMode } from "./catalog";
 import { createInitialGameState, migrateCenteredHighways, recomputeConnectivityAndMetrics, type GameState } from "./simulation";
 import { EXAMPLE_WORLDS, createExampleWorld, type ExampleMode, type ExampleWorldId } from "./exampleWorlds";
@@ -58,6 +60,19 @@ export function readExampleRoute(hash: string): { id: ExampleWorldId; mode: Exam
   return { id: world.id, mode: route.get("mode") === "real" ? "real" : "god", viewIndex: validView ? index : undefined };
 }
 
+export function lastActiveSlot(hash = ""): number | null {
+  if (readExampleRoute(hash)) return null;
+  try {
+    const match = /^slot-(\d+)$/.exec(readPlayerItem("pixel_civ_last_mode") ?? "");
+    const index = match ? Number(match[1]) : -1;
+    return isSaveSlotIndex(index) && loadSaveSlots()[index] ? index : null;
+  } catch {
+    return null;
+  }
+}
+
+export const islandSaveKey = (state: GameState) => SAVE_PREFIX + saveName(state.mode, state.exampleWorldId);
+
 export function resumeIsland(hash = ""): GameState {
   let last = "god";
   try { last = readPlayerItem("pixel_civ_last_mode") ?? last; } catch { /* A private session can still play. */ }
@@ -75,6 +90,11 @@ export function resumeIsland(hash = ""): GameState {
     city.exampleReturnMode =
       origin === "real" || origin === "survival" || origin === "idle" || origin === "manager" ? origin : "god";
     return city;
+  }
+  if (last.startsWith("slot-")) {
+    const index = lastActiveSlot(hash);
+    const slot = index === null ? null : loadSaveSlots()[index];
+    if (slot) return cloneGameStateSnapshot(slot.state);
   }
   if (last === "real" || last === "survival" || last === "idle" || last === "manager") return loadModeState(last);
   if (last.startsWith("example-real-")) {

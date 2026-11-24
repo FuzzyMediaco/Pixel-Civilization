@@ -1,4 +1,4 @@
-import { readPlayerItem, slotKey, writePlayerItem, insertPlayerSlot } from "./deviceSaves";
+import { readPlayerItem, slotKey, writePlayerItem, writePlayerItems, insertPlayerSlot } from "./deviceSaves";
 import { listCustomElements, type CustomElementSpec } from "./customElements";
 import { type GameMode, STAGES } from "./catalog";
 import { type GameState, migrateCenteredHighways, recomputeConnectivityAndMetrics } from "./simulation";
@@ -105,6 +105,16 @@ export function saveCivilizationToSlot(
   slots[idx] = makeSlot(idx, customName, cloneGameStateSnapshot(state));
   writePlayerItem(slotKey(idx), JSON.stringify(slots[idx]));
   return slots;
+}
+
+export function persistNamedIsland(index: number, name: string, state: GameState) {
+  if (!isSaveSlotIndex(index)) throw Error("Invalid save slot.");
+  const slot = makeSlot(index, name, { ...state, toasts: [] });
+  // The resume pointer and the world belong to the same device transaction.
+  writePlayerItems([
+    [slotKey(index), JSON.stringify(slot)],
+    ["pixel_civ_last_mode", "slot-" + index],
+  ]);
 }
 
 export async function saveImportedCivilization(slotIndex: number, name: string, state: GameState, additions: CustomElementSpec[]) {

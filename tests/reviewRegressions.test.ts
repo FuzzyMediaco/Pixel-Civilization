@@ -1,9 +1,10 @@
+import { persistNamedIsland, loadSaveSlots } from "../src/game/saveSlots";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { Mesh, Scene, BoxGeometry } from "three";
 import type { IslandCameraView } from "../src/game/worldRenderer";
-import { loadModeState, persistMode, readExampleRoute, resumeIsland } from "../src/game/activeIsland";
+import { lastActiveSlot, loadModeState, persistMode, readExampleRoute, resumeIsland } from "../src/game/activeIsland";
 import catalog from "../src/handbook/catalog.json";
 import { relatedLessons } from "../src/handbook/relatedLessons";
 import chapters from "../src/handbook/chapters.json";
@@ -158,4 +159,36 @@ test("shared example links resolve consistent island, mode and camera targets", 
     id:"copper-gorge", mode:"god", viewIndex:undefined,
   });
   assert.equal(readExampleRoute("#world=missing&view=0"),undefined);
+});
+
+test("named autosave resumes the exact island without changing other islands in its mode", () => {
+  const data = new Map<string, string>();
+  const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => data.set(key, value),
+  } });
+  try {
+    const normal = createInitialGameState("god");
+    normal.money = 5000;
+    assert.ok(persistMode(normal));
+    const other = createInitialGameState("god");
+    other.money = 30;
+    persistNamedIsland(1, "Neighbor", other);
+    const active = createInitialGameState("god");
+    active.money = 540;
+    persistNamedIsland(0, "My island", active);
+    assert.equal(lastActiveSlot(), 0);
+    assert.equal(resumeIsland().money, 540);
+    active.money = 950;
+    persistNamedIsland(0, "My island", active);
+    assert.equal(resumeIsland().money, 950);
+    assert.equal(loadSaveSlots()[1]?.state.money, 30);
+    assert.equal(loadModeState("god").money, 5000);
+    assert.equal(lastActiveSlot("#world=pelican-reach"), null);
+    assert.equal(resumeIsland("#world=pelican-reach").exampleWorldId, "pelican-reach");
+  } finally {
+    if (previous) Object.defineProperty(globalThis, "localStorage", previous);
+    else Reflect.deleteProperty(globalThis, "localStorage");
+  }
 });

@@ -66,6 +66,7 @@ async function api<T>(
   who?: string,
   signal?: AbortSignal,
 ): Promise<T> {
+  const payload = body === undefined ? undefined : JSON.stringify(body);
   const response = await fetch("/api/account" + url, {
     method,
     credentials: "same-origin",
@@ -75,7 +76,9 @@ async function api<T>(
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       ...(who ? { "X-Game-Account": who } : {}),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: payload,
+    keepalive: url === "/saves" || (method === "PUT" && payload !== undefined &&
+      payload.length < 48000 && new TextEncoder().encode(payload).length < 60000),
     signal: signal ?? AbortSignal.timeout(30000),
   });
   const value = await response.json().catch(() => null);
@@ -157,7 +160,10 @@ async function reconcile(who: string, download: boolean, signal?: AbortSignal) {
   );
   const conflicts: string[] = [];
   let updates = false;
-  for (const key of new Set([...cloud.keys(), ...local.keys()])) {
+  const keys = new Set([...cloud.keys(), ...local.keys()]);
+  const resumeKey = "pixel_civ_last_mode";
+  if (keys.delete(resumeKey)) keys.add(resumeKey);
+  for (const key of keys) {
     const r = local.get(key),
       c = cloud.get(key);
     if (c && c.version !== (r?.version ?? 0)) {
@@ -283,10 +289,25 @@ export async function bootAccountSync(requireAccount = false): Promise<boolean> 
   return true;
 }
 let switchInProgress = false;
+let scheduledSync: ReturnType<typeof setTimeout> | undefined;
+
+export function scheduleAccountSync() {
+  if (!currentPlayer() || scheduledSync !== undefined) return;
+  scheduledSync = setTimeout(() => {
+    scheduledSync = undefined;
+    void autosync();
+  }, 750);
+}
 export async function autosync() {
   await finishSignout();
   const user = currentPlayer();
-  if (!user || !cloudAvailable() || inFlight || switchInProgress) return;
+  if (!user || !cloudAvailable() || switchInProgress) return;
+  if (inFlight) {
+    scheduleAccountSync();
+    return;
+  }
+  clearTimeout(scheduledSync);
+  scheduledSync = undefined;
   if (!navigator.onLine) {
     update({ message: "Offline. Changes stay on this device." });
     return;
