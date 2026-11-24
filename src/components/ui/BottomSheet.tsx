@@ -118,6 +118,7 @@ export function BottomSheet({
   headerTrail,
   dock,
   hideTitle,
+  scrollKey,
   children,
 }: {
   id: string;
@@ -133,10 +134,15 @@ export function BottomSheet({
   headerTrail?: React.ReactNode;
   dock?: React.ReactNode;
   hideTitle?: boolean;
+  scrollKey?: string;
   children: React.ReactNode;
 }) {
   const sheetRef = useRef<HTMLElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const suppressGripClick = useRef(false);
+  useLayoutEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  }, [scrollKey]);
   const dragRef = useRef<{
     pointerId: number;
     startY: number;
@@ -189,7 +195,8 @@ export function BottomSheet({
   };
 
   const beginDrag = (e: React.PointerEvent, fromScroll: boolean) => {
-    if (e.button !== 0 && e.pointerType === "mouse") return;
+    if (!e.isPrimary || (e.button !== 0 && e.pointerType === "mouse")) return;
+    suppressGripClick.current = false;
     const el = sheetRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -206,7 +213,8 @@ export function BottomSheet({
     if (!fromScroll) {
       el.classList.add("is-dragging");
       try {
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        const grip = (e.target as Element).closest(".ui-sheet-grip-btn");
+        (grip ?? e.currentTarget).setPointerCapture(e.pointerId);
       } catch {
         // ignore capture issues
       }
@@ -240,25 +248,10 @@ export function BottomSheet({
     const effDy = e.clientY - d.startY;
     const vh = window.innerHeight || 800;
     const maxH = Math.min(vh * 0.78, 680);
-    const minPeekH = Math.min(vh * 0.31, 266);
 
-    if (effDy > 0 && height === "peek") {
-      // Smooth pull-down dismiss from peek with compositor-only transform + opacity
+    if (effDy > 0) {
       el.style.transform = `translate3d(0, ${effDy}px, 0)`;
       el.style.opacity = String(Math.max(0.2, 1 - effDy / Math.max(140, d.startH * 0.9)));
-    } else if (effDy > 0) {
-      // Dragging downward from half/full: shrink height until peek, then translate
-      const nextH = d.startH - effDy;
-      if (nextH >= minPeekH) {
-        el.style.height = `${Math.round(nextH)}px`;
-        el.style.transform = "translate3d(0, 0, 0)";
-        el.style.opacity = "1";
-      } else {
-        const overflow = minPeekH - nextH;
-        el.style.height = `${Math.round(minPeekH)}px`;
-        el.style.transform = `translate3d(0, ${overflow}px, 0)`;
-        el.style.opacity = String(Math.max(0.25, 1 - overflow / 160));
-      }
     } else {
       // Dragging upward: grow toward half/full smoothly
       const nextH = Math.min(maxH, d.startH - effDy);
@@ -279,25 +272,11 @@ export function BottomSheet({
 
     if (!wasDragging) return;
 
+    if (Math.abs(dy) < 10) return;
+    suppressGripClick.current = true;
     const i = ORDER.indexOf(height);
-    // Tap on grip toggles peek <-> half
-    if (Math.abs(dy) < 10 && Math.abs(vel) < 0.25 && !d.fromScroll) {
-      onHeightChange(height === "peek" ? "half" : "peek");
-      return;
-    }
-
-    // Fast flick down or pulled far down
-    if (vel > 0.55 || dy > 110) {
-      if (height === "peek" || vel > 1.1 || dy > 190) {
-        onClose();
-      } else {
-        onHeightChange(ORDER[Math.max(0, i - 1)]);
-      }
-      return;
-    }
-    if (dy > 42) {
-      if (i === 0) onClose();
-      else onHeightChange(ORDER[i - 1]);
+    if (dy > 42 || (dy > 18 && vel > 0.55)) {
+      onClose();
       return;
     }
 
@@ -309,6 +288,11 @@ export function BottomSheet({
     if (dy < -40) {
       onHeightChange(ORDER[Math.min(2, i + 1)]);
     }
+  };
+
+  const cancelDrag = () => {
+    dragRef.current = null;
+    resetDragVisuals();
   };
 
   const onGripKeyDown = (e: React.KeyboardEvent) => {
@@ -343,12 +327,13 @@ export function BottomSheet({
       <div
         className={"ui-sheet-rail" + (header ? " has-custom-header" : "")}
         onPointerDown={(e) => {
-          if ((e.target as HTMLElement).closest("button, input, a, select")) return;
+          const control = (e.target as Element).closest("button, input, a, select");
+          if (control && !control.matches(".ui-sheet-grip-btn")) return;
           beginDrag(e, false);
         }}
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        onPointerCancel={cancelDrag}
       >
         {headerLead && <div className="ui-sheet-rail-lead">{headerLead}</div>}
 
@@ -359,10 +344,13 @@ export function BottomSheet({
             <button
               type="button"
               className="ui-sheet-grip-btn"
-              aria-label={`${title} sheet height: ${height}. Swipe or press up/down arrow to resize, down from peek to close`}
+              aria-label={`${title} sheet height: ${height}. Swipe up to expand or down to close. Arrow keys resize`}
               title="Swipe up/down to resize or close"
               onKeyDown={onGripKeyDown}
-              onClick={() => onHeightChange(height === "peek" ? "half" : "peek")}
+              onClick={e => {
+                if (e.detail > 0 && suppressGripClick.current) return;
+                onHeightChange(height === "peek" ? "half" : "peek");
+              }}
             >
               <span className="ui-sheet-grip" aria-hidden="true" />
             </button>
@@ -397,7 +385,7 @@ export function BottomSheet({
           }}
           onPointerMove={moveDrag}
           onPointerUp={endDrag}
-          onPointerCancel={endDrag}
+          onPointerCancel={cancelDrag}
         >
           {dock}
         </div>
@@ -407,12 +395,12 @@ export function BottomSheet({
         ref={bodyRef}
         className="ui-sheet-body"
         onPointerDown={(e) => {
-          if ((e.target as HTMLElement).closest("input[type='range']")) return;
+          if ((e.target as Element).closest("input, select, button, summary, a, textarea")) return;
           beginDrag(e, true);
         }}
         onPointerMove={moveDrag}
         onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        onPointerCancel={cancelDrag}
       >
         {children}
       </div>

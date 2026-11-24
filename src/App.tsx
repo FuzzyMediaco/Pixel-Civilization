@@ -619,6 +619,14 @@ export const App: React.FC = () => {
     });
   }, []);
 
+  const selectAfterPlacement = useCallback((id: string) => {
+    const select = quickMenuPrefsRef.current.openQuickEditAfterPlace;
+    setInspectorDetailOpen(false);
+    setDeletedAnchor(null);
+    setSelectedIds(select ? [id] : []);
+    setSelectionUndo(select ? { targetId: id, steps: 1 } : null);
+  }, []);
+
   // Place tile callback from 3D canvas
   const handleTilePlace = useCallback(
     (gx: number, gz: number) => {
@@ -648,10 +656,11 @@ export const App: React.FC = () => {
             : randomVariant();
       const charged = plan.cost;
 
+      const placedId = makeElementId();
       commitBuildingEdit("Place "+def.name,(draft) => {
         if (charged) transfer(draft,"treasury","outside",charged,"Construction");
         const placed: PlacedElement = {
-          id: makeElementId(),
+          id: placedId,
           defId: def.id,
           gx,
           gz,
@@ -691,9 +700,12 @@ export const App: React.FC = () => {
       notifyTutorial("place_item");
 
       const beh = cursorBehaviorRef.current;
-      if (beh === "select" || (beh === "auto" && !def.isNetwork)) setBrush(idleBrush);
+      if (beh === "select" || (beh === "auto" && !def.isNetwork)) {
+        setBrush(idleBrush);
+        selectAfterPlacement(placedId);
+      }
     },
-    [commitBuildingEdit,showToast,notifyTutorial,recordPlacementHabit],
+    [commitBuildingEdit,showToast,notifyTutorial,recordPlacementHabit,selectAfterPlacement],
   );
 
   // Move commit callback
@@ -744,6 +756,23 @@ export const App: React.FC = () => {
     const open = sheetRef.current;
     if (elementId && open) setSheetState(null);
   }, [commitState, notifyTutorial, showToast]);
+
+  // A map tap dismisses an open panel before it can trigger a world action.
+  const dismissMapPanel = useCallback(() => {
+    const ui = navigation.current;
+    if (ui.sheet) {
+      setSelectedIds([]);
+      openSheet(null);
+      return true;
+    }
+    if (ui.inspectorDetailOpen) {
+      setInspectorDetailOpen(false);
+      setSelectedIds([]);
+      setSelectionUndo(null);
+      return true;
+    }
+    return false;
+  }, [openSheet]);
 
   // Tapping an empty tile dismisses any open sheet/selection/ring first, or opens the Quick-Build Spiral Menu.
   const handleEmptyTileTap = useCallback((gx: number, gz: number) => {
@@ -878,17 +907,9 @@ export const App: React.FC = () => {
       recordPlacementHabit(def, gx, gz);
       notifyTutorial("place_item");
       setQuickBuild(null);
-      setDeletedAnchor(null);
-      setInspectorDetailOpen(false);
-      if (quickMenuPrefsRef.current.openQuickEditAfterPlace) {
-        setSelectedIds([placedId]);
-        setSelectionUndo({ targetId: placedId, steps: 1 });
-      } else {
-        setSelectedIds([]);
-        setSelectionUndo(null);
-      }
+      selectAfterPlacement(placedId);
     },
-    [commitBuildingEdit, notifyTutorial, recordPlacementHabit, showToast],
+    [commitBuildingEdit, notifyTutorial, recordPlacementHabit, selectAfterPlacement, showToast],
   );
 
   // Dragging 2+ road/bridge tiles holds the stretch in place with a floating checkmark to confirm (click elsewhere to cancel).
@@ -1085,6 +1106,7 @@ export const App: React.FC = () => {
         onBulkSelectElements: handleBulkSelectElements,
         onTileMoveCommit: handleTileMoveCommit,
         onGroupMoveTarget: (gx, gz) => setBrush(current => current.movingGroupIds ? { ...current, groupDestination: [gx, gz] } : current),
+        onMapTap: dismissMapPanel,
         onSelectElement: handleSelectElement,
         onEmptyTileTap: handleEmptyTileTap,
         onFollowChange: setFollowedService,
@@ -1113,6 +1135,7 @@ export const App: React.FC = () => {
     };
   }, [
     handleTilePlace,
+    dismissMapPanel,
     handlePendingNetworkStroke,
     handleCancelPendingStroke,
     handleBulkSelectElements,
@@ -2031,8 +2054,8 @@ export const App: React.FC = () => {
       if (bulkFilter==="all" || (bulkFilter==="roads" ? isRoad : !isRoad)) handleBulkSelectElements([hit.id],"toggle");
       return;
     }
-    handleSelectElement(hit?.id ?? null);
-    setInspectorDetailOpen(Boolean(hit));
+    if (hit) handleSelectElement(hit.id);
+    else if (!bulkSelectMode) handleSelectElement(null);
   };
   const mapStroke = (points:GridPoint[]) => {
     if (pendingWorks || pendingRoadStroke || !points.length) return;
@@ -2120,12 +2143,12 @@ export const App: React.FC = () => {
     [showQuickBuildRing, quickBuildMode, quickBuild, gameState],
   );
   const showSelectionRing = Boolean(
-    !mapFallback && !showQuickBuildRing &&
+    !showQuickBuildRing &&
       !sheet &&
       !inspectorDetailOpen &&
       !guideModal &&
       !pixModal.open &&
-      (pendingConfirm ||
+      ((!mapFallback && pendingConfirm) ||
         (!bulkSelectMode && !placing && (selectedIds.length > 1 || (selected && selectedDef) || deletedAnchor))),
   );
   const showInspector=!!(selected&&selectedDef&&inspectorDetailOpen&&!sheet&&!placing&&!bulkSelectMode&&!guideModal&&!pixModal.open);
@@ -2144,6 +2167,9 @@ export const App: React.FC = () => {
       gameState.gameOver,
   );
   const inFocusMenu = Boolean(ringOpen || hardHideChrome);
+  const projectFallbackRing = useCallback((position: SelectionRingProjection | null) => {
+    ringObserverRef.current?.(position);
+  }, []);
   const hideChrome = hardHideChrome;
   const issues=alertIssues(gameState);
   const showAlert=!hideChrome&&!ringOpen&&!quickDrawerOpen&&!sheet&&issues.length>0;
@@ -2390,7 +2416,8 @@ export const App: React.FC = () => {
       {mapFallback
         ? <IslandMapFallback key={gameState.mode + (gameState.exampleWorldId ?? "")} state={gameState} focus={gameState.mode === "idle" && !followGrowth ? undefined : mapFocus}
             startAt={activeExample?.viewpoints[gameState.exampleViewpoint ?? -1] ?? activeExample?.camera}
-            following={followedService} onStopFollowing={()=>setFollowedService(undefined)} heatmap={activeHeatmap} draw={Boolean(worksTool || brushDef || movingEl || brush.movingGroupIds)} onStroke={mapStroke} onInspect={mapTile} />
+            following={followedService} onStopFollowing={()=>setFollowedService(undefined)} heatmap={activeHeatmap} draw={Boolean(worksTool || brushDef || movingEl || brush.movingGroupIds)} onStroke={mapStroke} onTap={dismissMapPanel} onInspect={mapTile}
+            ringTarget={showSelectionRing ? deletedAnchor ?? selected : undefined} onRingProjection={projectFallbackRing} />
         : <canvas ref={canvasRef} className="block h-full w-full cursor-crosshair touch-none" aria-label="Pixel Civilization 3D Voxel Island" />}
 
       {showHud && (
@@ -2725,7 +2752,7 @@ export const App: React.FC = () => {
           el={selected}
           def={selectedDef}
           deletedName={deletedAnchor?.name}
-          pendingConfirm={pendingConfirm}
+          pendingConfirm={mapFallback ? null : pendingConfirm}
           bulkCount={selectedIds.length}
           bulkActive={bulkSelectMode}
           canUndo={ringCanUndo}
@@ -2767,7 +2794,7 @@ export const App: React.FC = () => {
             if (selected) setRailSite(selected.id);
           }}
           onUndo={handleRingUndo}
-          onOpenDetails={() => { setInspectorDetailOpen(true); notifyTutorial("open_inspector"); }}
+          onOpenDetails={() => { setInspectorHeight("half"); setInspectorDetailOpen(true); notifyTutorial("open_inspector"); }}
         />
       )}
 
@@ -2791,7 +2818,7 @@ export const App: React.FC = () => {
         ) : sheet==="layers" ? (
           <LayersSheet {...sheetProps} state={gameState} active={activeHeatmap} onSelect={l=>{setActiveHeatmap(l);if(l==="power")trackDrawerAction("heatmap_power",0.5);else if(l==="water")trackDrawerAction("heatmap_water",0.5);else if(l==="police")trackDrawerAction("heatmap_safety",0.5);else if(l==="traffic")trackDrawerAction("heatmap_traffic",0.5);if(l!=="none")notifyTutorial("pick_layer");}} onFix={openFix}/>
         ) : sheet==="city" ? (
-          <CitySheet {...sheetProps} state={gameState} tab={cityTab} onTab={t=>{setCityTab(t);if(t==="transit")notifyTutorial("open_transit");}} mutate={editCity} selected={selected} onFocus={focusSite}
+          <CitySheet {...sheetProps} state={gameState} tab={cityTab} onTab={t=>{setCityTab(t);if(t==="transit")notifyTutorial("open_transit");}} mutate={editCity} selected={selected} onFocus={id=>{openSheet(null);focusSite(id);}}
             onFix={openFix} onShowLayer={showLayer} onShowPanel={showPanel} onMaintainAll={()=>{trackDrawerAction("repair_all",0.5);handleMaintainAll();}}
             transitProps={{
               onPickDestination:id=>{setDispatchTarget(id);setSheetState(null);},
@@ -2871,7 +2898,7 @@ export const App: React.FC = () => {
       </AnimatedSheetHost>
 
       {!hideChrome && <BottomNav active={sheet} onToggle={id=>openSheet(id,true)} badges={{city:issues.length}}
-        visibleIds={autoVisibleNav} highlightId={activeTutorialStep?.highlightNav} hiddenForRing={ringOpen}/>}
+        visibleIds={autoVisibleNav} highlightId={activeTutorialStep?.highlightNav} hidden={!!sheet || ringOpen}/>}
 
       {railSite && gameState.elements.some(e=>e.id===railSite) && <RailOperations state={gameState} selected={gameState.elements.find(e=>e.id===railSite)!} change={editCity}
         onClose={()=>setRailSite(undefined)} onFocus={e=>{setRailSite(undefined);setSheetState(null);focusSite(e.id);}}

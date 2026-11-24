@@ -191,6 +191,7 @@ export function CitySheet({
       onHeightChange={onHeight}
       onClose={onClose}
       closeLabel="Close City"
+      scrollKey={tab}
       dock={
         <div className="ui-sheet-dock">
           <Tabs
@@ -317,7 +318,7 @@ export function CitySheet({
                 {Math.round(state.happiness)}%
               </strong>
               <small className="ui-kpi-sub">
-                {problems.length > 0 ? problems[0].title.replace(/\s*\(.+\)$/, "") : "Balanced services"}
+                {problems.length > 0 ? "Service shortages" : "Balanced services"}
               </small>
             </div>
             <div className="ui-kpi-card">
@@ -328,10 +329,13 @@ export function CitySheet({
               <small className="ui-kpi-sub">of {Math.round(econ.report.jobs).toLocaleString("en")} jobs</small>
             </div>
           </div>
-          <CityEconomyPanel state={state} mutate={mutate} selected={selected} onFocus={onFocus} initialPanel="population" />
+          <div className="ui-panel-card">
+            <CityEconomyPanel state={state} mutate={mutate} selected={selected} onFocus={onFocus} initialPanel="population" />
+          </div>
           <details className="ui-fold" open>
             <summary>
-              <span>Wellbeing, food &amp; household needs</span>
+              <span>Wellbeing &amp; household needs</span>
+              <small>{Math.round(state.happiness)}% happy</small>
             </summary>
             <div className="ui-fold-body">
               <CityEconomyPanel state={state} mutate={mutate} selected={selected} onFocus={onFocus} initialPanel="happiness" />

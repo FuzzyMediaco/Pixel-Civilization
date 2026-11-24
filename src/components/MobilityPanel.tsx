@@ -1,6 +1,6 @@
 import { trainFor } from "../game/railOperations";
 import { GRID_MIN, GRID_MAX } from "../game/mapBounds";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ELEMENT_BY_ID } from "../game/catalog";
 import type { GameState, PlacedElement } from "../game/simulation";
 import {
@@ -52,9 +52,13 @@ export function MobilityPanel({
     [message, setMessage] = useState("");
   const [editing, setEditing] = useState(""),
     [showBuilder, setShowBuilder] = useState(false);
+  const editorRef = useRef<HTMLFieldSetElement>(null);
   useEffect(() => {
-    if (focusLine) document.getElementById("service-" + focusLine)?.scrollIntoView({ block: "nearest" });
+    if (focusLine) document.getElementById("service-" + focusLine)?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [focusLine]);
+  useEffect(() => {
+    if (showBuilder) editorRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [showBuilder, editing]);
   const [waypoint, setWaypoint] = useState<Point>([0, 0]);
   const depots = eligibleDepots(state, mode),
     available = eligibleStops(state, mode),
@@ -111,44 +115,43 @@ export function MobilityPanel({
         }
         setEditing("");
         setShowBuilder(false);
-        setMessage("Service started. Follow the vehicle to see its first trip.");
+        setMessage(editing ? "Route updated." : "Service started. Follow the vehicle to see its first trip.");
       } catch (e) {
         setMessage(e instanceof Error ? e.message : "This line could not start.");
       }
     });
   };
   return (
-    <div className="island-content">
-      <h3>Public transit</h3>
-      <div className="island-stats">
-        <div>
-          <strong>{readout.pressure ? readout.score + " / 100" : "—"}</strong>
-          <small>Transit score</small>
+    <div className="ui-transit-content ui-city-section">
+      <section className="ui-panel-card">
+        <div className="ui-card-head ui-transit-heading">
+          <strong>Public transit</strong>
+          <button
+            type="button"
+            className="ui-transit-primary"
+            aria-expanded={showBuilder}
+            aria-controls="transit-line-editor"
+            onClick={() => {
+              setEditing("");
+              setStops([]);
+              setShowBuilder(!showBuilder);
+              setMessage("");
+            }}
+          >
+            {showBuilder ? "Close line editor" : "Plan a line"}
+          </button>
         </div>
-        <div>
-          <strong>{readout.served}</strong>
-          <small>Trips in two minutes</small>
-        </div>
-        <div>
-          <strong>{readout.coverage}%</strong>
-          <small>Walkable access</small>
-        </div>
-      </div>
-      <p>{readout.pressure || state.mobility?.lines.length
-        ? `Demand ${readout.pressure} · ${readout.reliability}% reliable · ${readout.wait.toFixed(1)}s average wait · ${readout.freight} freight delivered`
-        : "Transit demand appears once residents have places to go."}</p>
-      <button
-        onClick={() => {
-          setEditing("");
-          setShowBuilder(!showBuilder);
-          setMessage("");
-        }}
-      >
-        {" "}
-        {showBuilder ? "Close line editor" : "Plan a line"}{" "}
-      </button>
+        <dl className="ui-transit-stats">
+          <div><dt>Transit score</dt><dd>{readout.pressure ? readout.score + " / 100" : "—"}</dd></div>
+          <div><dt>Trips in 2 min</dt><dd>{readout.served}</dd></div>
+          <div><dt>Walkable access</dt><dd>{readout.coverage}%</dd></div>
+        </dl>
+        <p className="ui-card-meta">{readout.pressure || state.mobility?.lines.length
+          ? `Demand ${readout.pressure} · ${readout.reliability}% reliable · ${readout.wait.toFixed(1)}s average wait · ${readout.freight} freight delivered`
+          : "Transit demand appears once residents have places to go."}</p>
+      </section>
       {showBuilder && (
-        <fieldset>
+        <fieldset id="transit-line-editor" className="ui-transit-fields" ref={editorRef}>
           <legend>{editing ? "Edit service" : "New service"}</legend>
           <label>
             Service
@@ -185,16 +188,12 @@ export function MobilityPanel({
               ))}
             </select>
           </label>
-          <div className="island-actions">
-            <button disabled={!chosen} onClick={suggest}>
-              Suggest reachable stops
-            </button>
-            <button disabled={stops.length < 2} onClick={create}>
-              {editing ? "Apply route" : "Start service"}
-            </button>
-          </div>
-          <p>Select stops in the order you want the vehicle to visit.</p>
-          <div className="stop-picker">
+          <p className="ui-card-meta">{!chosen
+            ? "Place a compatible depot or landing for this service."
+            : available.length < 2
+              ? "Place at least two compatible stops and connect them to the depot."
+              : `Select stops in travel order · ${stops.length} selected`}</p>
+          <div className="ui-transit-stops">
             {available.map((e) => (
               <button
                 key={e.id}
@@ -208,15 +207,27 @@ export function MobilityPanel({
               </button>
             ))}
           </div>
+          <div className="ui-transit-actions">
+            <button disabled={!chosen} onClick={suggest}>
+              Suggest reachable stops
+            </button>
+            <button className="ui-transit-primary" disabled={!chosen || stops.length < 2} onClick={create}>
+              {editing ? "Apply route" : "Start service"}
+            </button>
+          </div>
         </fieldset>
       )}
-      {message && <p role="status">{message}</p>}
+      {message && <p className="ui-panel-card ui-card-copy" role="status">{message}</p>}
+      {(state.mobility?.lines.length ?? 0) === 0 && !showBuilder &&
+        <p className="ui-panel-card ui-card-copy">No services yet. Plan a line to connect a depot or landing to two stops.</p>}
       {(state.mobility?.lines ?? []).map((l) => (
-        <details key={l.id} id={"service-" + l.id} open={focusLine === l.id || undefined}>
+        <details className="ui-fold" key={l.id} id={"service-" + l.id} open={focusLine === l.id || undefined}>
           <summary>
-            {l.mode === "rail" ? (l.rail?.name ?? "Rail line") + " · Train" : modeNames[l.mode]} {l.id.replace("line-", "#")} · {l.enabled ? l.status : "Paused"}
+            <span>{l.mode === "rail" ? (l.rail?.name ?? "Rail line") + " · Train" : modeNames[l.mode]} {l.id.replace("line-", "#")}</span>
+            <small>{l.enabled ? l.status : "Paused"}</small>
           </summary>
-          <p>
+          <div className="ui-fold-body ui-transit-fields">
+          <p className="ui-card-meta">
             {l.delivered} delivered · {l.riders.reduce((sum, r) => sum + r.count, 0)} aboard
           </p>
           <ol>
@@ -289,7 +300,7 @@ export function MobilityPanel({
               />
             </label>
           )}
-          <div className="island-actions">
+          <div className="ui-transit-actions">
             <button disabled={!l.enabled} onClick={() => follow(l.id)}>
               {following === l.id ? "Stop following" : "Follow vehicle"}
             </button>
@@ -355,10 +366,11 @@ export function MobilityPanel({
               Remove line
             </button>
           </div>
+          </div>
         </details>
       ))}
       {!!fleet.length && (
-        <fieldset>
+        <fieldset className="ui-transit-fields">
           <legend>Harbor master</legend>
           <label>
             Vessel
@@ -378,7 +390,7 @@ export function MobilityPanel({
                 {vesselHull(ship).turningWidth &&
                   " · Turning basin " + vesselHull(ship).turningWidth!.toFixed(1) + " m"}
               </p>
-              <div className="island-actions">
+              <div className="ui-transit-actions">
                 {(["sail", "recall", "moor"] as const).map((a) => (
                   <button key={a} onClick={() => mutate((s) => dispatchVessel(s, ship.id, a))}>
                     {a === "sail" ? "Patrol" : a === "recall" ? "Return to berth" : "Hold position"}
@@ -388,7 +400,7 @@ export function MobilityPanel({
                   {following === ship.id ? "Stop following" : "Follow ship"}
                 </button>
               </div>
-              <div className="island-actions">
+              <div className="ui-transit-actions">
                 {["East", "South"].map((name, i) => (
                   <label key={name}>
                     {name}
@@ -407,7 +419,7 @@ export function MobilityPanel({
                   </label>
                 ))}
               </div>
-              <div className="island-actions">
+              <div className="ui-transit-actions">
                 <button onClick={() => onPickDestination(ship.id)}>Choose destination on map</button>
                 <button onClick={() => mutate((s) => dispatchVessel(s, ship.id, "sail", waypoint))}>
                   Sail to coordinates

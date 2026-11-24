@@ -3,6 +3,8 @@ import {streetLaneFactor} from "../game/terrain";
 import {roadCapacity} from "../game/cityDynamics";
 import { fireServiceReadiness } from "../game/projectOperations";
 import React, { useEffect, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
+import { ListRow } from "./ui";
 import {
   CATEGORY_META,
   ELEMENT_BY_ID,
@@ -272,7 +274,19 @@ export function CityEconomyPanel({
       ((ELEMENT_BY_ID[el.defId]?.jobs ?? 0) > 0 && !(e.sites[el.id]?.workers ?? 0)),
   );
   const topPlaces = (els: PlacedElement[], label: (el: PlacedElement) => string) => (
-    <div className="island-actions">{els.slice(0, 6).map((el) => show(el, label(el)))}</div>
+    els.length > 0 ? (
+      <div className="ui-list">
+        {els.slice(0, 6).map(el => (
+          <ListRow
+            key={el.id}
+            title={ELEMENT_BY_ID[el.defId].name}
+            subtitle={label(el) + " · " + el.gx + ", " + el.gz}
+            trailing={onFocus && <ArrowUpRight size={14} />}
+            onClick={onFocus && (() => onFocus(el.id))}
+          />
+        ))}
+      </div>
+    ) : null
   );
   const upgrade = site && upgradeReadiness(s, site),
     growth = site && def && site.level < getMaxElementLevel(site.defId);
@@ -289,7 +303,7 @@ export function CityEconomyPanel({
     }, buildingEdit);
   };
   return (
-    <div className="island-content">
+    <div className={tab === "population" || tab === "happiness" ? "ui-people-detail" : "island-content"}>
       <nav className="island-actions" aria-label="City reports">
         {(Object.keys(titles) as EconomyTab[])
           .filter((t) => t !== "controls" || s.mode === "god")
@@ -357,8 +371,8 @@ export function CityEconomyPanel({
       )}
       {tab === "population" && (
         <>
-          <h3>{n(s.population)} residents</h3>
-          <p>
+          <h3>Population &amp; work</h3>
+          <p className="ui-card-meta">
             Stage {s.currentStage} · {STAGES[s.currentStage - 1]?.name}
             {nextStage &&
               " · " + n(Math.max(0, stagePopulationThreshold(s,nextStage.minPop) - s.population)) + " residents to " + nextStage.name}
@@ -377,6 +391,7 @@ export function CityEconomyPanel({
             ]}
           />
           <h4>Local workplaces</h4>
+          {r.jobs <= 0 && <p className="ui-card-meta">Workplaces appear here as your island adds jobs.</p>}
           {topPlaces(
             s.elements
               .filter((el) => e.sites[el.id]?.jobs)
@@ -390,7 +405,7 @@ export function CityEconomyPanel({
       )}
       {tab === "happiness" && (
         <>
-          <h3>Wellbeing · {n(s.happiness)}%</h3>
+          <h3>Food &amp; water</h3>
           <Figures
             rows={[
               ["Local food stock", rate(r.meals) + " meals"],
@@ -402,13 +417,13 @@ export function CityEconomyPanel({
             ]}
           />
           <h4>What households need</h4>
-          <ul>
-            {s.diagnostics.slice(0, 7).map((d) => (
-              <li key={d.id}>
-                <b>{d.title}</b> · {d.fixHint}
-              </li>
+          <div className="ui-list">
+            {s.diagnostics.length === 0 && <p className="ui-card-meta">No household needs reported.</p>}
+            {s.diagnostics.slice(0, 7).map(d => (
+              <ListRow key={d.id} title={d.title} subtitle={d.fixHint} />
             ))}
-          </ul>
+          </div>
+          {trouble.length > 0 && <h4>Sites to check</h4>}
           {topPlaces(trouble, (el) =>
             el.onFire
               ? "Fire call"

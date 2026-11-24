@@ -118,6 +118,7 @@ export interface WorldCallbacks {
   onInspectTile?: (gx:number,gz:number)=>boolean|void;
   onSelectService?: (id: string) => void;
   onFollowChange?: (id?: string) => void;
+  onMapTap?: () => boolean;
   onSelectElement: (elementId: string | null, additiveShift: boolean) => void;
   onEmptyTileTap?: (gx: number, gz: number) => void;
   onHoverInfo?: (info: { gx: number; gz: number; valid: boolean; reason?: string } | null) => void;
@@ -4334,7 +4335,7 @@ export class PixelWorldRenderer {
           this.callbacks.onTilePlace(g[0], g[1]);
         }
       } else {
-        if (g && this.callbacks.onInspectTile?.(g[0], g[1])) return;
+        if (this.callbacks.onMapTap?.() || (g && this.callbacks.onInspectTile?.(g[0], g[1]))) return;
         const hitId = this.raycastPlacedElement(e.clientX, e.clientY);
         if (hitId && this.gameState.mobility?.lines.some((l) => l.id === hitId)) this.callbacks.onSelectService?.(hitId);
         else if (hitId) this.callbacks.onSelectElement(hitId, e.shiftKey);

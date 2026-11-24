@@ -51,7 +51,7 @@ export function TransitContent({
           <span className="ui-kpi-label">Active lines</span>
           <strong className="ui-kpi-val">{lineCount}</strong>
           <small className={"ui-kpi-sub" + (obstructed > 0 ? " is-bad" : "")}>
-            {obstructed ? `${obstructed} ${obstructed === 1 ? "line needs" : "lines need"} attention` : lineCount ? "No lines blocked" : "Start a service from a depot or dock"}
+            {obstructed ? `${obstructed} ${obstructed === 1 ? "line needs" : "lines need"} attention` : lineCount ? "No lines blocked" : "No lines running"}
           </small>
         </div>
         <div className="ui-kpi-card">
@@ -83,7 +83,6 @@ export function TransitContent({
         </div>
       )}
 
-      <div className="ui-panel-card ui-transit-services">
       <MobilityPanel
         state={state}
         mutate={mutate}
@@ -96,7 +95,6 @@ export function TransitContent({
         onGrid={onGrid}
         onRailOps={onRailOps}
       />
-      </div>
     </div>
   );
 }

@@ -6,6 +6,8 @@ import { computeHeatmapCells, maintenanceStatus, type GameState, type HeatmapKin
 import { getTerrainCell, type GridPoint } from "../game/terrain";
 import { TILE_SIZE, VOXELS_PER_TILE } from "../game/voxelCore";
 
+import type { SelectionRingBox, SelectionRingProjection } from "../game/worldRenderer";
+
 interface Props {
   state: GameState;
   focus: [number, number] | undefined;
@@ -15,6 +17,9 @@ interface Props {
   heatmap: HeatmapKind;
   startAt?: {gx:number;gz:number;zoom:number};
   onStroke: (points: GridPoint[]) => void;
+  onTap: () => boolean;
+  ringTarget?: Pick<SelectionRingBox, "gx" | "gz" | "spanX" | "spanZ">;
+  onRingProjection: (projection: SelectionRingProjection | null) => void;
   onInspect: (point: GridPoint) => void;
 }
 
@@ -34,12 +39,12 @@ function paintTerrain(map: HTMLCanvasElement, state: GameState) {
   }
 }
 
-export function IslandMapFallback({ state, focus, draw, following, onStopFollowing, heatmap, startAt, onStroke, onInspect }: Props) {
+export function IslandMapFallback({ state, focus, draw, following, onStopFollowing, heatmap, startAt, onStroke, onTap, onInspect, ringTarget, onRingProjection }: Props) {
   const layer = useMemo(() => computeHeatmapCells(state, heatmap), [state, heatmap]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const data = useRef({ state, focus, draw, following, layer, startAt, onStroke, onInspect });
+  const data = useRef({ state, focus, draw, following, layer, startAt, onStroke, onTap, onInspect, ringTarget, onRingProjection });
   const changeZoom = useRef<(factor: number) => void>(() => {});
-  data.current = { state, focus, draw, following, layer, startAt, onStroke, onInspect };
+  data.current = { state, focus, draw, following, layer, startAt, onStroke, onTap, onInspect, ringTarget, onRingProjection };
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -181,6 +186,19 @@ export function IslandMapFallback({ state, focus, draw, following, onStopFollowi
         ctx.stroke();
         ctx.lineWidth = 1;
       }
+      const ring = current.ringTarget;
+      if (ring) {
+        const rect = canvas.getBoundingClientRect();
+        const x = left + (ring.gx + ring.spanX / 2) * zoom;
+        const y = top + (ring.gz + ring.spanZ / 2) * zoom;
+        const radiusPx = Math.min(84, Math.max(56, Math.max(ring.spanX, ring.spanZ) * zoom / 2 + 27));
+        current.onRingProjection({
+          x: rect.left + Math.min(w - radiusPx - 20, Math.max(radiusPx + 20, x)),
+          y: rect.top + Math.min(h - radiusPx - 20, Math.max(radiusPx + 20, y)),
+          radiusPx,
+          visible: x >= 0 && x <= w && y >= 0 && y <= h,
+        });
+      }
       frame = requestAnimationFrame(paint);
     };
     const wheel = (event: WheelEvent) => {
@@ -212,7 +230,7 @@ export function IslandMapFallback({ state, focus, draw, following, onStopFollowi
       if (drag.drawing) {
         addPoint(event);
         if (stroke.length) data.current.onStroke(stroke);
-      } else if (!drag.moved && event.button === 0) {
+      } else if (!drag.moved && event.button === 0 && !data.current.onTap()) {
         const point = pointAt(event);
         if (withinMap(point.gx,point.gz)) data.current.onInspect(point);
       }

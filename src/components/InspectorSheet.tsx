@@ -101,43 +101,45 @@ export function InspectorSheet({
       onHeightChange={onHeight}
       onClose={onClose}
       closeLabel="Close details"
+      scrollKey={tab}
       title={def.name}
       header={
         <InspectorCard
           def={def}
           title={def.name + " · Lv " + el.level}
           subtitle={levelName + (next ? " → Lv " + (el.level + 1) + nextSize : " · Max")}
+          badges={
+            <span className="ui-tags ui-icard-badges" role="group" aria-label="Status">
+              {building && !god && <Tag tone={el.connected ? "good" : "bad"}>{el.connected ? "Road ✓" : "No road"}</Tag>}
+              {el.awaitingStreet && <Tag tone="warn">Street</Tag>}
+              {el.onFire && (
+                <Tag tone="bad" icon={<Flame size={11} />}>
+                  Fire
+                </Tag>
+              )}
+              {el.disrepair && <Tag tone="bad">Disrepair</Tag>}
+              {maintenance === "soon" && <Tag tone="warn">Maintenance in {Math.ceil(MAINTENANCE_INTERVAL_SEC - el.maintTimerSec)}s</Tag>}
+              {maintenance === "due" && <Tag tone="warn">Maintenance due</Tag>}
+              {building && el.landValue !== undefined && (
+                <Tag tone={lv >= 1 ? "good" : lv < 0.45 ? "bad" : "info"} title="Land value">
+                  LV {lv.toFixed(2)}
+                </Tag>
+              )}
+              {(el.pollution ?? 0) > 1 && <Tag tone="bad">Pol {(el.pollution ?? 0).toFixed(1)}</Tag>}
+              {(el.synergies?.length ?? 0) > 0 && (
+                <Tag
+                  tone="info"
+                  title={(el.synergies ?? []).map((id) => SYNERGY_RULES.find((r) => r.id === id)?.label ?? id).join(", ")}
+                >
+                  +{Math.min(4, el.synergies!.length) * 12}%
+                </Tag>
+              )}
+            </span>
+          }
         />
       }
       dock={
         <div className="ui-insp-dock">
-          <div className="ui-tags" aria-label="Status">
-            {building && !god && <Tag tone={el.connected ? "good" : "bad"}>{el.connected ? "Road ✓" : "No road"}</Tag>}
-            {el.awaitingStreet && <Tag tone="warn">Street</Tag>}
-            {el.onFire && (
-              <Tag tone="bad" icon={<Flame size={11} />}>
-                Fire
-              </Tag>
-            )}
-            {el.disrepair && <Tag tone="bad">Disrepair</Tag>}
-            {maintenance === "soon" && <Tag tone="warn">Maintenance in {Math.ceil(MAINTENANCE_INTERVAL_SEC - el.maintTimerSec)}s</Tag>}
-            {maintenance === "due" && <Tag tone="warn">Maintenance due</Tag>}
-            {building && el.landValue !== undefined && (
-              <Tag tone={lv >= 1 ? "good" : lv < 0.45 ? "bad" : "info"} title="Land value">
-                LV {lv.toFixed(2)}
-              </Tag>
-            )}
-            {(el.pollution ?? 0) > 1 && <Tag tone="bad">Pol {(el.pollution ?? 0).toFixed(1)}</Tag>}
-            {(el.synergies?.length ?? 0) > 0 && (
-              <Tag
-                tone="info"
-                title={(el.synergies ?? []).map((id) => SYNERGY_RULES.find((r) => r.id === id)?.label ?? id).join(", ")}
-              >
-                +{Math.min(4, el.synergies!.length) * 12}%
-              </Tag>
-            )}
-          </div>
-
           <div className="ui-insp-bar">
             {el.onFire ? (
               <Button small variant="primary" icon={<Flame size={14} />} label="Fire crew" onClick={onMaintain} />

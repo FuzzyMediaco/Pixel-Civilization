@@ -17,7 +17,7 @@ export function BottomNav({
   badges,
   visibleIds,
   highlightId,
-  hiddenForRing,
+  hidden,
 }: {
   active: NavSheet | null;
   onToggle: (id: NavSheet) => void;
@@ -26,8 +26,8 @@ export function BottomNav({
   visibleIds?: NavSheet[];
   /** Optional button to softly pulse as the next interactive tutorial step. */
   highlightId?: NavSheet;
-  /** Coordinated hide during Quick Menu spiral choreography. */
-  hiddenForRing?: boolean;
+  /** Hide while a sheet or spiral is open. */
+  hidden?: boolean;
 }) {
   const shown = visibleIds ? ITEMS.filter((item) => visibleIds.includes(item.id)) : ITEMS;
   return (
@@ -35,11 +35,11 @@ export function BottomNav({
       className={
         "ui-nav" +
         (visibleIds && shown.length < ITEMS.length ? " is-tutorial" : "") +
-        (hiddenForRing ? " is-chrome-hidden" : "")
+        (hidden ? " is-chrome-hidden" : "")
       }
       aria-label="Main navigation"
-      aria-hidden={hiddenForRing || undefined}
-      inert={hiddenForRing}
+      aria-hidden={hidden || undefined}
+      inert={hidden}
     >
       {shown.map(({ id, label, Icon, key, compact }) => {
         const badge = badges?.[id] ?? 0;
