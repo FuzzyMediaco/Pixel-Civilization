@@ -27,6 +27,7 @@ import {
   releaseControl,
   setEconomicControl,
   siteOf,
+  stagePopulationThreshold,
   upgradeReadiness,
   wealthTiers,
   type ControlKey,
@@ -360,7 +361,7 @@ export function CityEconomyPanel({
           <p>
             Stage {s.currentStage} · {STAGES[s.currentStage - 1]?.name}
             {nextStage &&
-              " · " + n(Math.max(0, nextStage.minPop - s.population)) + " residents to " + nextStage.name}
+              " · " + n(Math.max(0, stagePopulationThreshold(s,nextStage.minPop) - s.population)) + " residents to " + nextStage.name}
             .
           </p>
           <Figures

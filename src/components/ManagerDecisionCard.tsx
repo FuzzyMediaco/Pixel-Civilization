@@ -47,12 +47,16 @@ export function IdleModeBanner({
   stageName,
   lastAction,
   paused,
+  followGrowth,
+  onToggleFollow,
   onTogglePause,
 }: {
   stage: number;
   stageName: string;
   lastAction: string;
   paused: boolean;
+  followGrowth: boolean;
+  onToggleFollow: () => void;
   onTogglePause: () => void;
 }) {
   return (
@@ -62,6 +66,10 @@ export function IdleModeBanner({
         <strong>Idle Civilization · Stage {stage} ({stageName})</strong>
         <span>{lastAction || "Growing island autonomously… tap any building to inspect stats."}</span>
       </div>
+      <button type="button" className="pc-idle-btn" aria-pressed={followGrowth}
+        aria-label="Follow construction" onClick={onToggleFollow}>
+        Follow
+      </button>
       <button type="button" className="pc-idle-btn" onClick={onTogglePause}>
         {paused ? "Resume" : "Pause"}
       </button>

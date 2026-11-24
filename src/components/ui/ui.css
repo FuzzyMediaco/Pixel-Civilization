@@ -2284,6 +2284,31 @@ button.ui-row:hover { border-color: var(--ui-green); }
   flex-shrink: 0;
 }
 
+.pc-idle-btn[aria-pressed="false"] {
+  background: transparent;
+  color: var(--ui-ink, #19392f);
+}
+
+.pc-map-controls {
+  position: absolute;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+.pc-map-controls button {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--ui-line, #cbd4c4);
+  border-radius: 12px;
+  background: var(--ui-paper, #faf9f1);
+  color: var(--ui-ink, #19392f);
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .pc-mgr-card {
   position: fixed;
   z-index: 38;

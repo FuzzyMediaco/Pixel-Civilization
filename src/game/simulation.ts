@@ -10,7 +10,7 @@ import { FARM_MODULE_IDS } from "./expansionCatalog";
 import { GRID_MIN, GRID_MAX } from "./mapBounds";
 export { GRID_MIN, GRID_MAX, GRID_HALF } from "./mapBounds";
 import { hasNavigableHarbor, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
-import { advanceEconomy, buildingCharges, cityWealth, unlockWealth, taxRateOf, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
+import { advanceEconomy, buildingCharges, stagePopulationThreshold, cityWealth, unlockWealth, taxRateOf, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
 import { advanceOperations, type ProjectOps } from "./projectOperations";
 import { vesselIds,waterHull } from "./travelNetwork";
 import {
@@ -345,6 +345,7 @@ export interface GameState {
   /** Absent on original island saves. */
   terrainVersion?: 1|2;
   centeredHighways?: true;
+  autoCiv?: { seed: number; turn: number };
   playSpeed?: number;
   constructionHistory?: import("./constructionHistory").BuildingEdit[];
   economy?: Economy;
@@ -720,8 +721,8 @@ export interface NetworkPlacementPlan {
  * (steel truss, stone arch, or suspension span for highways), and bridges can be laid right
  * over rivers, canals & ponds — the water keeps flowing underneath.
  */
-export function planNetworkPlacement(state: GameState, def: CivElementDef, gx: number, gz: number): NetworkPlacementPlan {
-  const base = checkPlacementValid(state, def, gx, gz, 1, 1);
+export function planNetworkPlacement(state: GameState, def: CivElementDef, gx: number, gz: number, occupancy = buildOccupancyMap(state.elements)): NetworkPlacementPlan {
+  const base = checkPlacementValid(state, def, gx, gz, 1, 1, undefined, occupancy);
   if (!isElementUnlocked(def, state)) return { ok: false, reason: base.reason, defId: def.id };
   if (base.valid) {
     return { ok: true, defId: def.id, overWater: networkDeckClass(def) === "elevated" && getTileTerrainKind(gx, gz, state) !== "land" };
@@ -730,8 +731,7 @@ export function planNetworkPlacement(state: GameState, def: CivElementDef, gx: n
   if (gx < GRID_MIN || gz < GRID_MIN || gx > GRID_MAX || gz > GRID_MAX) {
     return { ok: false, reason: base.reason, defId: def.id };
   }
-  const occ = buildOccupancyMap(state.elements);
-  const here = occ.get(`${gx},${gz}`);
+  const here = occupancy.get(`${gx},${gz}`);
   const hereDef = here ? ELEMENT_BY_ID[here.defId] : undefined;
   const waterUnder = here
     ? Boolean(hereDef?.isWaterFeature && hereDef.isNetwork)
@@ -760,7 +760,7 @@ export function planNetworkPlacement(state: GameState, def: CivElementDef, gx: n
 }
 
 /** Choose a valid shoreline orientation. Facing is scored per edge tile so a wide side has no inherent advantage. */
-function shoreRotation(state: GameState, def: CivElementDef, gx: number, gz: number, sx: number, sz: number, preferred: number): number {
+function shoreRotation(state: GameState, def: CivElementDef, gx: number, gz: number, sx: number, sz: number, preferred: number, occupancy: Map<string, PlacedElement>): number {
   const rearIntake = ["water_pumping_station", "desalination_plant", "hydro_electric_power_plants"].includes(def.id);
   const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
   let best = preferred;
@@ -768,7 +768,7 @@ function shoreRotation(state: GameState, def: CivElementDef, gx: number, gz: num
   for (let turn = 0; turn < 4; turn++) {
     const rot = (preferred + turn) % 4;
     const [w, h] = rot % 2 ? [sz, sx] : [sx, sz];
-    if (!checkPlacementValid(state, def, gx, gz, w, h).valid) continue;
+    if (!checkPlacementValid(state, def, gx, gz, w, h, undefined, occupancy).valid) continue;
     const [dx, dz] = directions[(rot + (rearIntake ? 2 : 0)) % 4];
     const edge = dx ? h : w;
     let score = 0;
@@ -833,18 +833,17 @@ export function migrateCenteredHighways(state: GameState): void {
   state.centeredHighways = true;
 }
 
-export function planConstruction(state: GameState, selected: CivElementDef, gx: number, gz: number, brushLevel: number, preferred: number, faceManually=false, strokeAxis?: RoadAxis) {
-  const network = selected.isNetwork ? planNetworkPlacement(state, selected, gx, gz) : undefined;
+export function planConstruction(state: GameState, selected: CivElementDef, gx: number, gz: number, brushLevel: number, preferred: number, faceManually=false, strokeAxis?: RoadAxis, occupancy = buildOccupancyMap(state.elements)) {
+  const network = selected.isNetwork ? planNetworkPlacement(state, selected, gx, gz, occupancy) : undefined;
   const def = ELEMENT_BY_ID[network?.defId ?? selected.id];
   const level = state.mode === "god" ? Math.min(getMaxElementLevel(def.id), Math.max(1, brushLevel)) : 1;
   const [sx, sz] = getStandardFootprintForLevel(def, level);
   const rotation = faceManually && !def.isNetwork ? preferred : def.domain === "coast_or_water" && !def.isNetwork
-    ? shoreRotation(state, def, gx, gz, sx, sz, preferred)
-    : autoFrontageRotation(def, gx, gz, sx, sz, preferred, buildOccupancyMap(state.elements),
-      (width,height)=>checkPlacementValid(state,def,gx,gz,width,height).valid);
+    ? shoreRotation(state, def, gx, gz, sx, sz, preferred, occupancy)
+    : autoFrontageRotation(def, gx, gz, sx, sz, preferred, occupancy,
+      (width,height)=>checkPlacementValid(state,def,gx,gz,width,height,undefined,occupancy).valid);
   const [spanX, spanZ] = rotation % 2 ? [sz, sx] : [sx, sz];
-  const check = network ? { valid: network.ok, reason: network.reason } : checkPlacementValid(state, def, gx, gz, spanX, spanZ);
-  const occupancy=buildOccupancyMap(state.elements);
+  const check = network ? { valid: network.ok, reason: network.reason } : checkPlacementValid(state, def, gx, gz, spanX, spanZ, undefined, occupancy);
   const roadAxis=roadWidth(def.id)>1?(strokeAxis ?? chooseRoadAxis(gx,gz,preferred,occupancy)):undefined;
   if(check.valid&&roadAxis){const reason=corridorConflict(gx,gz,1,1,def.id,roadAxis,occupancy,(x,z,bounds)=>dryRoadSurface(state,x,z,bounds));if(reason){check.valid=false;check.reason=reason;}}
   const lock = buildingLockReason(selected, state);
@@ -1607,7 +1606,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   {
     let stageNow = 1;
     for (const s of STAGES) {
-      if (state.population >= s.minPop*effective(state,"stageScale",100)/100) {
+      if (state.population >= stagePopulationThreshold(state,s.minPop)) {
         stageNow = s.stage;
       }
     }

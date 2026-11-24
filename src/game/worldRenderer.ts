@@ -299,6 +299,7 @@ export class PixelWorldRenderer {
 
   // Camera state
   private cameraMode: CameraMode = "pan";
+  private constructionTarget?: THREE.Vector3;
   private target = new THREE.Vector3(0, 0, 0);
   private spherical = { radius: 68, theta: Math.PI * 0.25, phi: 0.88 };
   private walkPos = new THREE.Vector3(0, 2.3, 18);
@@ -901,6 +902,7 @@ export class PixelWorldRenderer {
 
   /** Returns false for older or incomplete saves so the island can use its own starting view. */
   public restoreCameraView(view?: IslandCameraView): boolean {
+    this.stopWatchingConstruction();
     this.followService();
     this.keysDown.clear();
     const vector = (v: unknown) => Array.isArray(v) && v.length === 3 && v.every(Number.isFinite);
@@ -968,11 +970,21 @@ export class PixelWorldRenderer {
     if(id){this.spherical.radius=21;this.cameraMode="pan";this.updateCameraTransform();}
   }
   public focusGrid(gx: number, gz: number, distance = 21): void {
+    this.stopWatchingConstruction();
     this.followService();
     const [x,z]=gridToWorldCenter(gx,gz);
     this.target.set(x,.6,z);this.spherical.radius=distance;this.updateCameraTransform();
   }
+  public watchConstruction(gx: number, gz: number): void {
+    if (this.cameraMode === "walk" || this.following || this.activePointers.size) return;
+    const [x, z] = gridToWorldCenter(gx, gz);
+    this.constructionTarget = new THREE.Vector3(x, .6, z);
+  }
+  public stopWatchingConstruction(): void {
+    this.constructionTarget = undefined;
+  }
   public focusElement(elementId: string): void {
+    this.stopWatchingConstruction();
     this.followService();
     const el = this.gameState.elements.find((e) => e.id === elementId);
     if (!el) return;
@@ -2479,6 +2491,12 @@ export class PixelWorldRenderer {
     this.engineering.animate(this.gameState);
     this.templeLights.update(this.gameState, this.placedEntries, elapsed);
     this.handleKeyboardNavigation(dt);
+    if (this.constructionTarget && !this.activePointers.size && !this.keysDown.size && !this.following && this.cameraMode !== "walk") {
+      this.target.lerp(this.constructionTarget, 1 - Math.exp(-dt * 4.2));
+      this.spherical.radius += (Math.min(64, Math.max(28, this.spherical.radius)) - this.spherical.radius) * dt * 2;
+      if (this.target.distanceToSquared(this.constructionTarget) < .065) this.stopWatchingConstruction();
+      this.updateCameraTransform();
+    }
 
     // Animate rotors, boats bobbing, merge/place squash-stretch, and badges
     for (const el of this.gameState.elements) {
@@ -3813,6 +3831,7 @@ export class PixelWorldRenderer {
   }
 
   private onPointerDown = (e: PointerEvent) => {
+    this.stopWatchingConstruction();
     this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (this.activePointers.size >= 2) {
       const pts = Array.from(this.activePointers.values());

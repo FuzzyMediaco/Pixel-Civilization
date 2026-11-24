@@ -208,6 +208,12 @@ export function allocateWealth(
   setEconomicControl(s, "businesses", (amount * (100 - households - treasury)) / 100, hold);
   economyOf(s).peak = Math.max(peak, cityWealth(s));
 }
+/** Automated cities compress milestones so a watch session can reach the late catalog. */
+export function stagePopulationThreshold(state: GameState, minPopulation: number) {
+  const scale = state.mode === "idle" || state.mode === "manager" ? 1 : 100;
+  return Math.ceil(minPopulation * effective(state, "stageScale", scale) / 100);
+}
+
 export const buildingCharges = (s: GameState) => s.mode !== "god" || effective(s, "charge", 0) > 0;
 function balance(s: GameState, a: Account) {
   return a === "treasury" ? s.money : economyOf(s)[a];

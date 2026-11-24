@@ -37,6 +37,7 @@ import { CitySheet, type CityTab } from "./components/CitySheet";
 import { SettingsSheet } from "./components/SettingsSheet";
 import { MoreSheet, type CursorBehavior, type MorePage } from "./components/MoreSheet";
 import { IdleModeBanner, ManagerDecisionCard } from "./components/ManagerDecisionCard";
+import { IslandMapFallback } from "./components/IslandMapFallback";
 import { PixBuilderModal, type PixTab } from "./components/PixBuilderModal";
 import { TutorialOverlay } from "./components/TutorialOverlay";
 import { AnimatedSheetHost, BottomSheet, Button, ConfirmDialog, IconButton, Toasts, type SheetHeight, type UiToast } from "./components/ui";
@@ -84,6 +85,7 @@ import {
 } from "./game/adaptiveQuickDrawer";
 import {
   type AutoCivProfile,
+  type AutoStepOutcome,
   type ManagerChoice,
   type ManagerDecision,
   applyManagerChoice,
@@ -327,6 +329,18 @@ export const App: React.FC = () => {
   const autoProfileRef = useRef<AutoCivProfile>(createAutoCivProfile());
   const [idlePaused, setIdlePaused] = useState(false);
   const [autoLastAction, setAutoLastAction] = useState("");
+  const [followGrowth, setFollowGrowth] = useState(true);
+  const [mapFallback, setMapFallback] = useState(false);
+  const [mapFocus, setMapFocus] = useState<[number, number]>();
+  const followGrowthRef = useRef(true);
+  followGrowthRef.current = followGrowth;
+  const showAutoAction = useCallback((outcome: AutoStepOutcome) => {
+    setAutoLastAction(outcome.summary);
+    if (outcome.focusGrid && followGrowthRef.current && stateRef.current.mode === "idle" && !sheetRef.current) {
+      if (rendererRef.current) rendererRef.current.watchConstruction(...outcome.focusGrid);
+      else setMapFocus(outcome.focusGrid);
+    }
+  }, []);
   const [managerDecision, setManagerDecision] = useState<ManagerDecision | null>(null);
   const managerDecisionRef = useRef<ManagerDecision | null>(null);
   managerDecisionRef.current = managerDecision;
@@ -1022,25 +1036,32 @@ export const App: React.FC = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const world = new PixelWorldRenderer(canvas, stateRef.current, {
-      onTilePlace: handleTilePlace,
-      onPendingNetworkStroke: handlePendingNetworkStroke,
-      onCancelPendingStroke: handleCancelPendingStroke,
-      onBulkSelectElements: handleBulkSelectElements,
-      onTileMoveCommit: handleTileMoveCommit,
-      onGroupMoveTarget: (gx, gz) => setBrush(current => current.movingGroupIds ? { ...current, groupDestination: [gx, gz] } : current),
-      onSelectElement: handleSelectElement,
-      onEmptyTileTap: handleEmptyTileTap,
-      onFollowChange: setFollowedService,
-      onSelectService:id=>{setReturnLine(id);openTransit();setSelectedIds([]);setDeletedAnchor(null);setSelectionUndo(null);setQuickBuild(null);},
-      onHoverInfo: setHoverInfo,
-      onInspectTile: (gx,gz)=>{
-        setInspectPoint({gx,gz});
-        const target=targetRef.current;
-        if(target){commitState(s=>dispatchVessel(s,target,"sail",[gx,gz]));setDispatchTarget(undefined);openTransit();return true;}
-      },
-      onInfrastructureStroke: (tool,points)=>setPendingWorks({tool:{...tool},points:points.map(p=>({...p}))}),
-    });
+    let world: PixelWorldRenderer;
+    try {
+      world = new PixelWorldRenderer(canvas, stateRef.current, {
+        onTilePlace: handleTilePlace,
+        onPendingNetworkStroke: handlePendingNetworkStroke,
+        onCancelPendingStroke: handleCancelPendingStroke,
+        onBulkSelectElements: handleBulkSelectElements,
+        onTileMoveCommit: handleTileMoveCommit,
+        onGroupMoveTarget: (gx, gz) => setBrush(current => current.movingGroupIds ? { ...current, groupDestination: [gx, gz] } : current),
+        onSelectElement: handleSelectElement,
+        onEmptyTileTap: handleEmptyTileTap,
+        onFollowChange: setFollowedService,
+        onSelectService:id=>{setReturnLine(id);openTransit();setSelectedIds([]);setDeletedAnchor(null);setSelectionUndo(null);setQuickBuild(null);},
+        onHoverInfo: setHoverInfo,
+        onInspectTile: (gx,gz)=>{
+          setInspectPoint({gx,gz});
+          const target=targetRef.current;
+          if(target){commitState(s=>dispatchVessel(s,target,"sail",[gx,gz]));setDispatchTarget(undefined);openTransit();return true;}
+        },
+        onInfrastructureStroke: (tool,points)=>setPendingWorks({tool:{...tool},points:points.map(p=>({...p}))}),
+      });
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes("WebGL context")) throw error;
+      setMapFallback(true);
+      return;
+    }
     rendererRef.current = world;
     if (ringObserverRef.current) world.setSelectionRingObserver(ringObserverRef.current);
     restoreIslandView(stateRef.current);
@@ -1183,40 +1204,38 @@ export const App: React.FC = () => {
     return () => {window.clearInterval(timer);window.removeEventListener("pagehide",flush);window.removeEventListener("pixel-save-before-switch",flush);document.removeEventListener("visibilitychange",visibility);};
   }, []);
 
-  // Algorithmic Idle Mode & Manager Mode growth loop
+  // Construction advances on active play time and shares the selected simulation speed.
   useEffect(() => {
     if (gameState.mode !== "idle" && gameState.mode !== "manager") return;
-    let tickCount = 0;
+    let lastPlay = stateRef.current.activePlaySec;
+    let nextProjectAt = lastPlay + 1.5;
     const interval = window.setInterval(() => {
-      if (document.hidden || simSpeedRef.current <= 0) return;
-      const cur = stateRef.current;
-      if (cur.gameOver || (cur.mode !== "idle" && cur.mode !== "manager")) return;
-      if (cur.mode === "idle" && idlePausedRef.current) return;
-      if (cur.mode === "manager" && managerDecisionRef.current) return;
+      const current = stateRef.current;
+      const mode = current.mode;
+      if (current.activePlaySec < lastPlay) nextProjectAt = current.activePlaySec + 1.5;
+      lastPlay = current.activePlaySec;
+      if (document.hidden || simSpeedRef.current <= 0 || current.gameOver ||
+        (mode !== "idle" && mode !== "manager") ||
+        (mode === "idle" && idlePausedRef.current) || managerDecisionRef.current) return;
+      if (current.activePlaySec < nextProjectAt) return;
+      nextProjectAt = current.activePlaySec + 1.5;
 
-      tickCount++;
-      // In Manager mode, surface an executive decision every other cycle once a road exists
-      if (cur.mode === "manager" && tickCount % 2 === 0 && cur.elements.length >= 2) {
-        const decision = generateManagerDecision(cur, autoProfileRef.current, tickCount);
-        if (decision) {
-          setManagerDecision(decision);
-          return;
-        }
+      const turn = (current.autoCiv?.turn ?? 0) + 1;
+      if (mode === "manager" && turn % 3 === 0) {
+        const decision = generateManagerDecision(current, autoProfileRef.current, turn);
+        managerDecisionRef.current = decision;
+        setManagerDecision(decision);
+        return;
       }
 
-      let outcomeSummary = "";
-      let acted = false;
+      let outcome: AutoStepOutcome | undefined;
       commitState((draft) => {
-        const out = runAutoCivStep(draft, autoProfileRef.current, tickCount);
-        acted = out.didAct;
-        outcomeSummary = out.summary;
+        outcome = runAutoCivStep(draft, autoProfileRef.current, turn);
       });
-      if (acted && outcomeSummary) {
-        setAutoLastAction(outcomeSummary);
-      }
-    }, 2400);
+      if (outcome) showAutoAction(outcome);
+    }, 250);
     return () => window.clearInterval(interval);
-  }, [gameState.mode, commitState]);
+  }, [gameState.mode, commitState, showAutoAction]);
 
   const rotateSelected=useCallback((id:string)=>{
     commitBuildingEdit("Rotate building",(draft) => {
@@ -1344,6 +1363,7 @@ export const App: React.FC = () => {
     autoProfileRef.current = createAutoCivProfile();
     setManagerDecision(null);
     setAutoLastAction("");
+    setMapFocus(undefined);
     setIdlePaused(false);
     return true;
   };
@@ -1561,18 +1581,19 @@ export const App: React.FC = () => {
     autoProfileRef.current = createAutoCivProfile();
     setManagerDecision(null);
     setAutoLastAction("");
+    setMapFocus(undefined);
     setIdlePaused(false);
   };
 
   const handleManagerChoice = (choice: ManagerChoice) => {
+    if (!managerDecisionRef.current || stateRef.current.mode !== "manager") return;
+    managerDecisionRef.current = null;
     setManagerDecision(null);
-    let summary = "";
+    let outcome: AutoStepOutcome | undefined;
     commitState((draft) => {
-      const turnIdx = draft.elements.length + Math.round(draft.activePlaySec);
-      const out = applyManagerChoice(draft, autoProfileRef.current, choice, turnIdx);
-      summary = out.summary;
+      outcome = applyManagerChoice(draft, autoProfileRef.current, choice, (draft.autoCiv?.turn ?? 0) + 1);
     });
-    if (summary) setAutoLastAction(summary);
+    if (outcome) showAutoAction(outcome);
   };
 
   const handleSaveToSlot = async (slotIndex: number, name: string) => {
@@ -2225,7 +2246,10 @@ export const App: React.FC = () => {
 
   return (
     <main className={"island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]"+(showAlert?" has-alert":"")+(inFocusMenu?" has-focus-menu":"")+(ringOpen?" is-ring-open":"")}>
-      <canvas ref={canvasRef} className="block h-full w-full cursor-crosshair touch-none" aria-label="Pixel Civilization 3D Voxel Island"/>
+      {mapFallback
+        ? <IslandMapFallback state={gameState} focus={gameState.mode === "idle" && followGrowth ? mapFocus : undefined}
+            onInspect={handleSelectElement} />
+        : <canvas ref={canvasRef} className="block h-full w-full cursor-crosshair touch-none" aria-label="Pixel Civilization 3D Voxel Island" />}
 
       {showHud && (
         <Hud
@@ -2260,6 +2284,11 @@ export const App: React.FC = () => {
           stageName={currentStageMeta.name}
           lastAction={autoLastAction}
           paused={idlePaused}
+          followGrowth={followGrowth}
+          onToggleFollow={() => {
+            if (followGrowth) rendererRef.current?.stopWatchingConstruction();
+            setFollowGrowth(value => !value);
+          }}
           onTogglePause={() => setIdlePaused((p) => !p)}
         />
       )}

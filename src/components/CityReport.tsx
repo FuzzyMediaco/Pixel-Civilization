@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Activity, AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Info, Layers, Trophy, X } from "lucide-react";
 import { ELEMENTS, STAGES } from "../game/catalog";
 import { ACHIEVEMENTS, SYNERGY_RULES } from "../game/cityDynamics";
+import { stagePopulationThreshold } from "../game/cityEconomy";
 import { CITY_GRANTS, grantProgress } from "../game/cityGrants";
 import { type GameState, type HistorySample } from "../game/simulation";
 
@@ -294,7 +295,7 @@ export const CityReport: React.FC<{ state: GameState; tab: ReportSection }> = ({
                         </span>
                       </div>
                       <span className="font-mono-num text-xs font-bold text-stone-600">
-                        {st.minPop.toLocaleString()} population
+                        {stagePopulationThreshold(state,st.minPop).toLocaleString()} population
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-stone-600">{st.note}</p>

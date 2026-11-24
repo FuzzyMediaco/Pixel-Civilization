@@ -8,6 +8,7 @@ import {
   economyOf,
   effective,
   taxRateOf,
+  stagePopulationThreshold,
   unlockWealth,
   wealthTiers,
 } from "../game/cityEconomy";
@@ -476,7 +477,7 @@ export function CitySheet({
               <div className="ui-card-head">
                 <strong>Next: Stage {next.stage} · {next.name}</strong>
                 <span className="ui-card-sub">
-                  {state.population.toLocaleString()} / {next.minPop.toLocaleString()}
+                  {state.population.toLocaleString()} / {stagePopulationThreshold(state,next.minPop).toLocaleString()}
                 </span>
               </div>
               <div className="ui-meter">
@@ -485,13 +486,13 @@ export function CitySheet({
                     width:
                       Math.max(
                         0,
-                        Math.min(100, ((state.population - stage.minPop) / Math.max(1, next.minPop - stage.minPop)) * 100),
+                        Math.min(100, ((state.population - stagePopulationThreshold(state,stage.minPop)) / Math.max(1, stagePopulationThreshold(state,next.minPop) - stagePopulationThreshold(state,stage.minPop))) * 100),
                       ) + "%",
                   }}
                 />
               </div>
               <p className="ui-card-meta">
-                {Math.max(0, next.minPop - state.population).toLocaleString()} more residents needed
+                {Math.max(0, stagePopulationThreshold(state,next.minPop) - state.population).toLocaleString()} more residents needed
                 {limit?.atCap ? ` · currently capped by ${limit.need}` : ""}.
               </p>
             </div>
