@@ -2093,6 +2093,7 @@ export const App: React.FC = () => {
   const hideChrome = hardHideChrome;
   const issues=alertIssues(gameState);
   const showAlert=!hideChrome&&!ringOpen&&!sheet&&issues.length>0;
+  const repairNotice = uiToasts.find(toast => toast.id === "repair-funds");
   const gameToasts:UiToast[]=gameState.toasts.map(t=>({id:t.id,title:t.title,subtitle:t.subtitle,tone:t.kind==="stage"?"gold":t.kind==="raid"||t.kind==="alert"?"alert":"normal"}));
   const layerName=LAYERS.find(l=>l.id===activeHeatmap)?.label;
   const hoverBad=brush.kind!=="none"&&hoverInfo&&!hoverInfo.valid?hoverInfo.reason:undefined;
@@ -2406,7 +2407,10 @@ export const App: React.FC = () => {
           {gameState.activeAttack.defenders.length?"":" · no defenders!"} · lost {gameState.activeAttack.buildingsDestroyed}</span>
         {gameState.mode==="god"&&<Button small label="Stop" onClick={handleClearAttack}/>}
       </div>}
-      {!hideChrome && !ringOpen && <Toasts items={[...uiToasts,...gameToasts]} onDismiss={dismissToast}/>}
+      {!hideChrome && !ringOpen
+        ? <Toasts items={[...uiToasts,...gameToasts]} onDismiss={dismissToast}/>
+        : repairNotice && (showSelectionRing || showInspector) &&
+          <Toasts items={[repairNotice]} onDismiss={dismissToast}/>}
 
       {!hideChrome && !ringOpen && activeExample && !sheet && !showInspector && !placing &&
         <WorldGuide key={activeExample.id} world={activeExample} selected={gameState.exampleViewpoint} onVisit={visitViewpoint} onBrowse={openExamples} onRailYard={openRailYard}/>}
