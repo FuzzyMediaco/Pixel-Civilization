@@ -1,7 +1,7 @@
 import { ELEMENT_BY_ID, MAX_FOOTPRINT, STAGES, type GameMode } from "./catalog";
 import { enforceModeBalance, getCustomElementSpec, listCustomElements, registerCustomElement, type CustomElementSpec } from "./customElements";
 import { withinMap } from "./mapBounds";
-import { saveImportedCivilization } from "./saveSlots";
+import { MAX_SAVE_SLOTS, saveImportedCivilization } from "./saveSlots";
 import type { GameState } from "./simulation";
 
 export const MAX_TRANSFER_BYTES = 16 * 1024 * 1024;
@@ -88,7 +88,7 @@ export function readWorldFile(text: string): TransferWorld[] {
   const custom = typeof storedSpecs === "string" ? parseJson(storedSpecs) : [];
   const worlds = [];
   if (raw.activeState) worlds.push(checkedWorld(raw.activeState, "Imported Civilization", custom));
-  for (const value of Array.isArray(raw.slots) ? raw.slots.slice(0, 3) : []) {
+  for (const value of Array.isArray(raw.slots) ? raw.slots.slice(0, MAX_SAVE_SLOTS) : []) {
     const slot = record(value);
     if (slot?.state) worlds.push(checkedWorld(slot.state, slot.name, custom));
   }

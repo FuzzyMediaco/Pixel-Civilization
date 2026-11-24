@@ -3,11 +3,12 @@ import { listCustomElements, type CustomElementSpec } from "./customElements";
 import { type GameMode, STAGES } from "./catalog";
 import { type GameState, migrateCenteredHighways, recomputeConnectivityAndMetrics } from "./simulation";
 
-export const MAX_SAVE_SLOTS = 3;
+import { INITIAL_SAVE_SLOTS, isSaveSlotIndex, MAX_SAVE_SLOTS } from "./saveSlotLimits";
+export { MAX_SAVE_SLOTS } from "./saveSlotLimits";
 const SLOTS_STORAGE_KEY = "pixel_civ_saved_slots_v1";
 
 export interface CivilizationSaveSlot {
-  slotIndex: number; // 0, 1, 2
+  slotIndex: number;
   name: string;
   mode: GameMode;
   savedAt: number;
@@ -21,31 +22,35 @@ export interface CivilizationSaveSlot {
 }
 
 export function createEmptySlots(): (CivilizationSaveSlot | null)[] {
-  return [null, null, null];
+  return Array.from({ length: INITIAL_SAVE_SLOTS }, () => null);
 }
 
 export function loadSaveSlots(): (CivilizationSaveSlot | null)[] {
   const result = createEmptySlots();
+  let previous: unknown[] = [];
   try {
-    const legacy = readPlayerItem(SLOTS_STORAGE_KEY);
-    const previous = legacy ? JSON.parse(legacy) : [];
-    for (let i = 0; i < MAX_SAVE_SLOTS; i++) {
+    const legacy = JSON.parse(readPlayerItem(SLOTS_STORAGE_KEY) ?? "null");
+    if (Array.isArray(legacy)) previous = legacy;
+  } catch { /* Legacy data can be corrupt while individual slots are usable. */ }
+  for (let i = 0; i < MAX_SAVE_SLOTS; i++) {
+    try {
       const raw = readPlayerItem(slotKey(i));
-      const item: CivilizationSaveSlot | null = raw === null ? previous?.[i] : JSON.parse(raw);
-      if (item && item.state && Array.isArray(item.state.elements)) {
-        result[i] = {
-          ...item,
-          slotIndex: i,
-        };
+      if (i < INITIAL_SAVE_SLOTS || raw !== null || i < previous.length) {
+        while (result.length <= i) result.push(null);
+        const item: CivilizationSaveSlot | null = raw === null ? (previous[i] as CivilizationSaveSlot | undefined) ?? null : JSON.parse(raw);
+        if (item?.state && Array.isArray(item.state.elements)) result[i] = { ...item, slotIndex: i };
       }
-    }
-  } catch {
-    // Ignore malformed storage
+    } catch { /* Keep reading the other slots. */ }
   }
   return result;
 }
 
-
+export async function addCivilizationSlot(): Promise<(CivilizationSaveSlot | null)[]> {
+  const next = loadSaveSlots().length;
+  if (!isSaveSlotIndex(next)) throw Error("All ten save slots are available.");
+  await insertPlayerSlot(next, "null");
+  return loadSaveSlots();
+}
 
 export function cloneGameStateSnapshot(state: GameState): GameState {
   const cloned = JSON.parse(JSON.stringify({ ...state, toasts: [] })) as GameState;
@@ -72,7 +77,7 @@ export function cloneGameStateSnapshot(state: GameState): GameState {
   return cloned;
 }
 
-function makeSlot(index: number, name: string, state: GameState): CivilizationSaveSlot {
+export function makeSlot(index: number, name: string, state: GameState): CivilizationSaveSlot {
   const stage = STAGES[Math.max(0, Math.min(STAGES.length - 1, state.currentStage - 1))];
   return {
     slotIndex: index,
@@ -95,14 +100,16 @@ export function saveCivilizationToSlot(
   state: GameState,
 ): (CivilizationSaveSlot | null)[] {
   const slots = loadSaveSlots();
-  const idx = Math.max(0, Math.min(MAX_SAVE_SLOTS - 1, slotIndex));
+  if (!isSaveSlotIndex(slotIndex) || slotIndex >= slots.length) throw Error("Add this save slot first.");
+  const idx = slotIndex;
   slots[idx] = makeSlot(idx, customName, cloneGameStateSnapshot(state));
   writePlayerItem(slotKey(idx), JSON.stringify(slots[idx]));
   return slots;
 }
 
 export async function saveImportedCivilization(slotIndex: number, name: string, state: GameState, additions: CustomElementSpec[]) {
-  if (slotIndex < 0 || slotIndex >= MAX_SAVE_SLOTS || loadSaveSlots()[slotIndex]) {
+  const slots = loadSaveSlots();
+  if (!isSaveSlotIndex(slotIndex) || slotIndex >= slots.length || slots[slotIndex]) {
     throw Error("Choose an empty slot to import this world.");
   }
   const custom: [string, string] | undefined = additions.length
@@ -127,7 +134,7 @@ export function renameCivilizationSlot(
 
 export function deleteCivilizationSlot(slotIndex: number): (CivilizationSaveSlot | null)[] {
   const slots = loadSaveSlots();
-  if (slotIndex >= 0 && slotIndex < MAX_SAVE_SLOTS) {
+  if (isSaveSlotIndex(slotIndex) && slotIndex < slots.length) {
     slots[slotIndex] = null;
     writePlayerItem(slotKey(slotIndex), JSON.stringify(slots[slotIndex]));
   }

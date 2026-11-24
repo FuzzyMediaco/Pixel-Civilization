@@ -235,7 +235,7 @@ export function BuildSheet({
       ) : (
         <>
           <div className="ui-cards is-compact" role="list" aria-label="Items">
-            {items.map((d) => {
+            {items.map((d, i) => {
               const cost = charges ? d.cost : 0;
               const poor = charges && state.money < cost;
               const stat = STAT_LINE(d);
@@ -257,7 +257,7 @@ export function BuildSheet({
                   }
                   onClick={() => onPick(d.id)}
                 >
-                  <ElementFavicon def={d} />
+                  <ElementFavicon def={d} eager={i < 12} />
                   <b>{d.name}</b>
                   {stat && <small>{stat}</small>}
                   <span className={"ui-cost" + (poor ? " is-bad" : "")}>

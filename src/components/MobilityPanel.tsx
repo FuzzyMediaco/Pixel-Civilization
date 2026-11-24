@@ -122,7 +122,7 @@ export function MobilityPanel({
       <h3>Public transit</h3>
       <div className="island-stats">
         <div>
-          <strong>{readout.pressure ? readout.score + " / 100" : "Low demand"}</strong>
+          <strong>{readout.pressure ? readout.score + " / 100" : "—"}</strong>
           <small>Transit score</small>
         </div>
         <div>
@@ -134,10 +134,9 @@ export function MobilityPanel({
           <small>Walkable access</small>
         </div>
       </div>
-      <p>
-        Demand {readout.pressure} · Reliability {readout.reliability}% · Average wait {readout.wait.toFixed(1)}s ·
-        Freight delivered {readout.freight}
-      </p>
+      <p>{readout.pressure || state.mobility?.lines.length
+        ? `Demand ${readout.pressure} · ${readout.reliability}% reliable · ${readout.wait.toFixed(1)}s average wait · ${readout.freight} freight delivered`
+        : "Transit demand appears once residents have places to go."}</p>
       <button
         onClick={() => {
           setEditing("");

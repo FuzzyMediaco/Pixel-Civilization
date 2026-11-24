@@ -1,14 +1,21 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ELEMENT_BY_ID } from "../game/catalog";
-import { GRID_MIN, GRID_MAX, GRID_SIZE } from "../game/mapBounds";
+import { GRID_MIN, GRID_MAX, GRID_SIZE, withinMap } from "../game/mapBounds";
 import { roadBounds } from "../game/roadCorridors";
-import type { GameState } from "../game/simulation";
-import { getTerrainCell } from "../game/terrain";
+import { computeHeatmapCells, type GameState, type HeatmapKind } from "../game/simulation";
+import { getTerrainCell, type GridPoint } from "../game/terrain";
+import { TILE_SIZE, VOXELS_PER_TILE } from "../game/voxelCore";
 
 interface Props {
   state: GameState;
   focus: [number, number] | undefined;
-  onInspect: (id: string) => void;
+  draw: boolean;
+  following?: string;
+  onStopFollowing: () => void;
+  heatmap: HeatmapKind;
+  startAt?: {gx:number;gz:number;zoom:number};
+  onStroke: (points: GridPoint[]) => void;
+  onInspect: (point: GridPoint) => void;
 }
 
 function paintTerrain(map: HTMLCanvasElement, state: GameState) {
@@ -19,7 +26,7 @@ function paintTerrain(map: HTMLCanvasElement, state: GameState) {
     for (let x = GRID_MIN; x <= GRID_MAX; x++) {
       const cell = getTerrainCell(state, x, z);
       const grain = ((Math.imul(x, 733) ^ Math.imul(z, 571)) & 7) - 4;
-      ctx.fillStyle = cell.kind === "land" ? `hsl(94 35% ${53 + grain + cell.elevation}%)`
+      ctx.fillStyle = cell.kind === "land" ? `hsl(94 35% ${53 + grain + cell.elevation * 3}%)`
         : cell.kind === "coast" ? "#dfcb92"
         : `hsl(192 62% ${50 + grain * .3 - cell.depth * 2.1}%)`;
       ctx.fillRect(x - GRID_MIN, z - GRID_MIN, 1, 1);
@@ -27,11 +34,12 @@ function paintTerrain(map: HTMLCanvasElement, state: GameState) {
   }
 }
 
-export function IslandMapFallback({ state, focus, onInspect }: Props) {
+export function IslandMapFallback({ state, focus, draw, following, onStopFollowing, heatmap, startAt, onStroke, onInspect }: Props) {
+  const layer = useMemo(() => computeHeatmapCells(state, heatmap), [state, heatmap]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const data = useRef({ state, focus, onInspect });
+  const data = useRef({ state, focus, draw, following, layer, startAt, onStroke, onInspect });
   const changeZoom = useRef<(factor: number) => void>(() => {});
-  data.current = { state, focus, onInspect };
+  data.current = { state, focus, draw, following, layer, startAt, onStroke, onInspect };
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -41,25 +49,43 @@ export function IslandMapFallback({ state, focus, onInspect }: Props) {
     let terrainKey = "";
     let frame = 0;
     let last = 0;
-    let zoom = 22;
+    const opening = data.current;
+    const camera = opening.state.cameraView;
+    let zoom = camera ? Math.max(3,Math.min(40,1150/camera.radius)) : opening.startAt ? Math.max(4,Math.min(34,1150/opening.startAt.zoom)) : 22;
     changeZoom.current = factor => {
       zoom = Math.max(3, Math.min(60, zoom * factor));
     };
-    let gx = 0;
-    let gz = 0;
+    let gx = camera ? camera.target[0]/TILE_SIZE : (opening.startAt?.gx ?? 0);
+    let gz = camera ? camera.target[2]/TILE_SIZE : (opening.startAt?.gz ?? 0);
     let focusSeen: Props["focus"];
     let suspendedFocus: Props["focus"];
-    let drag: {x: number; y: number; moved: boolean} | undefined;
+    let drag: {id: number; x: number; y: number; moved: boolean; drawing: boolean} | undefined;
+    let stroke: GridPoint[] = [];
+    const pointAt = (event: PointerEvent): GridPoint => {
+      const rect = canvas.getBoundingClientRect();
+      const x = gx + (event.clientX - rect.left - rect.width/2)/zoom;
+      const z = gz + (event.clientY - rect.top - rect.height/2)/zoom;
+      return {gx: Math.floor(x), gz: Math.floor(z), vx: Math.floor(x*VOXELS_PER_TILE), vz: Math.floor(z*VOXELS_PER_TILE)};
+    };
+    const addPoint = (event: PointerEvent) => {
+      const point = pointAt(event);
+      const previous = stroke.at(-1);
+      if (withinMap(point.gx,point.gz) && (previous?.vx!==point.vx || previous?.vz!==point.vz)) stroke.push(point);
+    };
     const paint = (time: number) => {
       const current = data.current;
-      const { state, focus } = current;
+      const { state, focus, following } = current;
       const dt = Math.min(.06, (time-last)/1000);
       last = time;
       focusSeen = focus;
-      if (focus && focus !== suspendedFocus && !drag) {
+      const lines = state.mobility?.lines ?? [];
+      const voyages = state.mobility?.voyages ?? {};
+      const vehicle = following && (lines.find(line=>line.id===following)?.position ?? voyages[following]?.position);
+      const target = vehicle || (focus !== suspendedFocus ? focus : undefined);
+      if (target && !drag) {
         const factor = 1 - Math.exp(-dt * 6);
-        gx += (focus[0] + .5 - gx) * factor;
-        gz += (focus[1] + .5 - gz) * factor;
+        gx += (target[0] + .5 - gx) * factor;
+        gz += (target[1] + .5 - gz) * factor;
       }
       const cacheKey = (state.terrainVersion ?? 1) + ":" + (state.infrastructure?.stamp ?? "");
       if (terrainKey !== cacheKey) {
@@ -79,6 +105,14 @@ export function IslandMapFallback({ state, focus, onInspect }: Props) {
       const left = w / 2 - gx * zoom, top = h / 2 - gz * zoom;
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(terrain, Math.floor(left + GRID_MIN * zoom), Math.floor(top + GRID_MIN * zoom), GRID_SIZE * zoom, GRID_SIZE * zoom);
+      for (const tile of current.layer) {
+        const x = left + tile.gx * zoom, y = top + tile.gz * zoom;
+        if (x+zoom < 0 || y+zoom < 0 || x > w || y > h) continue;
+        ctx.fillStyle = tile.score < 0
+          ? `rgba(244,90,63,${.2 + Math.abs(tile.score)*.45})`
+          : `rgba(85,225,194,${.2 + tile.score*.45})`;
+        ctx.fillRect(x,y,zoom+1,zoom+1);
+      }
       for (const el of state.elements) {
         const def = ELEMENT_BY_ID[el.defId];
         if (!def) continue;
@@ -113,6 +147,32 @@ export function IslandMapFallback({ state, focus, onInspect }: Props) {
           }
         }
       }
+      const drawVehicle = (id:string,x:number,z:number,rail=false) => {
+        const selected=id===following;
+        const size=Math.max(2,zoom*(selected ? .28 : .17));
+        ctx.beginPath();
+        ctx.arc(left+(x+.5)*zoom,top+(z+.5)*zoom,size,0,Math.PI*2);
+        ctx.fillStyle=rail ? "#fbbf24" : "#8ee9f5";
+        ctx.fill();
+        ctx.strokeStyle=selected ? "#fff" : "#23434d";
+        ctx.stroke();
+      };
+      for(const line of lines) if (line.position && line.enabled) drawVehicle(line.id,...line.position,line.mode==="rail");
+      for(const [id,voyage] of Object.entries(voyages)) if(voyage.position && !voyage.moored) drawVehicle(id,...voyage.position);
+      if (stroke.length) {
+        ctx.beginPath();
+        for (const [i, point] of stroke.entries()) {
+          const x = left + ((point.vx ?? 0)+.5)/VOXELS_PER_TILE*zoom;
+          const z = top + ((point.vz ?? 0)+.5)/VOXELS_PER_TILE*zoom;
+          if (i) ctx.lineTo(x,z);
+          else ctx.moveTo(x,z);
+        }
+        ctx.lineWidth = Math.max(3, zoom*.35);
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#e9fcaa";
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      }
       frame = requestAnimationFrame(paint);
     };
     const wheel = (event: WheelEvent) => {
@@ -120,35 +180,50 @@ export function IslandMapFallback({ state, focus, onInspect }: Props) {
       changeZoom.current(Math.exp(-event.deltaY*.0015));
     };
     const down = (event: PointerEvent) => {
+      if (drag || (event.button !== 0 && event.button !== 2)) return;
       canvas.setPointerCapture(event.pointerId);
       suspendedFocus = focusSeen;
-      drag = {x:event.clientX,y:event.clientY,moved:false};
+      const drawing = data.current.draw && event.button === 0 && !event.shiftKey;
+      drag = {id:event.pointerId,x:event.clientX,y:event.clientY,moved:false,drawing};
+      if (drawing) addPoint(event);
     };
     const move = (event: PointerEvent) => {
-      if (!drag) return;
+      if (drag?.id !== event.pointerId) return;
+      if (drag.drawing) {
+        addPoint(event);
+        return;
+      }
       const dx=event.clientX-drag.x, dy=event.clientY-drag.y;
       if (!drag.moved && Math.abs(dx)+Math.abs(dy)<4) return;
       gx = Math.max(GRID_MIN,Math.min(GRID_MAX,gx-dx/zoom));
       gz = Math.max(GRID_MIN,Math.min(GRID_MAX,gz-dy/zoom));
-      drag = {x:event.clientX,y:event.clientY,moved:true};
+      drag = {...drag,x:event.clientX,y:event.clientY,moved:true};
     };
     const up = (event: PointerEvent) => {
-      if (drag && !drag.moved) {
-        const rect = canvas.getBoundingClientRect();
-        const x = Math.floor(gx + (event.clientX - rect.left - rect.width/2)/zoom);
-        const z = Math.floor(gz + (event.clientY - rect.top - rect.height/2)/zoom);
-        const el = data.current.state.elements.find(e=>x>=e.gx && x<e.gx+e.spanX && z>=e.gz && z<e.gz+e.spanZ);
-        if (el) data.current.onInspect(el.id);
+      if (drag?.id !== event.pointerId) return;
+      if (drag.drawing) {
+        addPoint(event);
+        if (stroke.length) data.current.onStroke(stroke);
+      } else if (!drag.moved && event.button === 0) {
+        const point = pointAt(event);
+        if (withinMap(point.gx,point.gz)) data.current.onInspect(point);
       }
       drag = undefined;
+      stroke = [];
     };
-    const cancel = () => { drag = undefined; };
+    const cancel = (event: PointerEvent) => {
+      if (drag?.id !== event.pointerId) return;
+      drag = undefined;
+      stroke = [];
+    };
+    const contextMenu = (event: Event) => event.preventDefault();
     frame = requestAnimationFrame(paint);
     canvas.addEventListener("wheel", wheel, {passive:false});
     canvas.addEventListener("pointerdown", down);
     canvas.addEventListener("pointermove", move);
     canvas.addEventListener("pointerup", up);
     canvas.addEventListener("pointercancel", cancel);
+    canvas.addEventListener("contextmenu", contextMenu);
     return () => {
       cancelAnimationFrame(frame);
       canvas.removeEventListener("wheel",wheel);
@@ -156,13 +231,15 @@ export function IslandMapFallback({ state, focus, onInspect }: Props) {
       canvas.removeEventListener("pointermove",move);
       canvas.removeEventListener("pointerup",up);
       canvas.removeEventListener("pointercancel",cancel);
+      canvas.removeEventListener("contextmenu",contextMenu);
     };
   }, []);
 
   return <>
-    <canvas ref={canvasRef} className="absolute inset-0 block h-full w-full cursor-grab touch-none"
+    <canvas ref={canvasRef} className={`absolute inset-0 block h-full w-full touch-none ${draw ? "cursor-crosshair" : "cursor-grab"}`}
       aria-label="Pixel Civilization island map" />
-    <div className="pc-map-controls" role="group" aria-label="Island map zoom">
+    <div className="pc-map-controls" role="group" aria-label="Island map controls">
+      {following && <button type="button" className="pc-map-stop" onClick={onStopFollowing}>Stop following</button>}
       <button type="button" aria-label="Zoom out" onClick={() => changeZoom.current(.72)}>−</button>
       <button type="button" aria-label="Zoom in" onClick={() => changeZoom.current(1.38)}>+</button>
     </div>

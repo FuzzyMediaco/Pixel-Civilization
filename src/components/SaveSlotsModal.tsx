@@ -1,6 +1,6 @@
 import { GameDialog } from "./GameDialog";
 import React, { useEffect, useState } from "react";
-import { Download, Upload, Check, ChevronDown, ChevronUp, FolderOpen, Pencil, Save, Trash2, X } from "lucide-react";
+import { Download, Upload, Check, ChevronDown, ChevronUp, FolderOpen, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { type GameMode } from "../game/catalog";
 import { type CivilizationSaveSlot, MAX_SAVE_SLOTS } from "../game/saveSlots";
 import { type GameState } from "../game/simulation";
@@ -17,6 +17,7 @@ interface SaveSlotsModalProps {
   onExportWorld: (slotIndex?: number) => void;
   onImportWorld: (slotIndex: number, world: TransferWorld) => Promise<boolean>;
   linkedWorlds: TransferWorld[];
+  onAddSlot: () => Promise<number | undefined>;
   onSaveToSlot: (slotIndex: number, name: string) => void;
   onLoadSlot: (slotIndex: number) => void;
   onRenameSlot: (slotIndex: number, name: string) => void;
@@ -25,6 +26,8 @@ interface SaveSlotsModalProps {
 
 function modeBadge(mode: GameMode): { label: string; cls: string } {
   if (mode === "god") return { label: "God Mode", cls: "bg-indigo-100 text-indigo-800 border-indigo-200" };
+  if (mode === "idle") return { label: "Idle", cls: "bg-sky-100 text-sky-800 border-sky-200" };
+  if (mode === "manager") return { label: "Manager", cls: "bg-amber-100 text-amber-800 border-amber-200" };
   if (mode === "survival") return { label: "Survival", cls: "bg-rose-100 text-rose-800 border-rose-200" };
   return { label: "Real Mode", cls: "bg-emerald-100 text-emerald-800 border-emerald-200" };
 }
@@ -48,17 +51,14 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
   activeSlotIndex,
   currentState,
   onClose, onExportWorld, onImportWorld, linkedWorlds,
-  onSaveToSlot,
+  onAddSlot, onSaveToSlot,
   onLoadSlot,
   onRenameSlot,error,
   onDeleteSlot,
 }) => {
-  const [draftNames, setDraftNames] = useState<string[]>([
-    "Civilization 1",
-    "Civilization 2",
-    "Civilization 3",
-  ]);
+  const [draftNames, setDraftNames] = useState<string[]>([]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [confirm, setConfirm] = useState<{index: number; action: "overwrite" | "delete"} | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [fileWorlds, setFileWorlds] = useState<TransferWorld[]>([]);
   const [worldIndex, setWorldIndex] = useState(0);
@@ -84,14 +84,16 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
   }
 
   async function importSelected() {
-    if (busy || !selectedWorld || emptySlot < 0) return;
+    if (busy || !selectedWorld) return;
     setBusy(true);
     setTransferMessage("");
     try {
-      if (await onImportWorld(emptySlot, selectedWorld)) {
+      const index = emptySlot < 0 ? await onAddSlot() : emptySlot;
+      if (index === undefined) return;
+      if (await onImportWorld(index, selectedWorld)) {
         setFileWorlds(fileWorlds.filter((_, i) => i !== worldIndex));
         setWorldIndex(0);
-        setTransferMessage(`Saved “${selectedWorld.name}” in Slot ${emptySlot + 1}.`);
+        setTransferMessage(`Saved “${selectedWorld.name}” in Slot ${index + 1}.`);
       }
     } finally {
       setBusy(false);
@@ -101,12 +103,13 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
   useEffect(() => {
     if (!open) return;
     setDraftNames(
-      Array.from({ length: MAX_SAVE_SLOTS }, (_, idx) => {
+      Array.from({ length: slots.length }, (_, idx) => {
         const s = slots[idx];
         return s ? s.name : `Civilization ${idx + 1}`;
       }),
     );
     setEditingIdx(null);
+    setConfirm(null);
   }, [open, slots]);
 
   if (!open) return null;
@@ -117,17 +120,17 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
     <GameDialog label="Saved civilizations" onDismiss={onClose} className="island-modal fixed inset-0 z-40 flex items-center justify-center bg-stone-950/60 p-4">
       <div
         className={`flex w-full flex-col overflow-hidden rounded-xl border border-stone-900/20 bg-[#fcfaf5] shadow-2xl transition-all ${
-          expanded ? "max-h-[92vh] max-w-4xl" : "max-h-[70vh] max-w-xl"
+          expanded ? "max-h-[92dvh] max-w-4xl" : "max-h-[84dvh] max-w-xl"
         }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-stone-200 px-5 py-3.5">
           <div>
             <h2 className="font-display text-lg font-extrabold text-stone-900">
-              Saved Civilizations ({filledCount}/{MAX_SAVE_SLOTS})
+              Saved islands ({filledCount}/{slots.length})
             </h2>
             <p className="text-xs font-medium text-stone-500">
-              Save up to 3 islands and switch between them anytime — progress stays saved in your browser.
+              Save a snapshot of your island. Sign in to sync it across devices.
             </p>
           </div>
           <div className="flex items-center gap-1.5">
@@ -155,7 +158,7 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
         {/* Current Island Summary Strip */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 bg-stone-100/80 px-5 py-2.5 text-xs">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-stone-700">Current Island:</span>
+            <span className="font-bold text-stone-700">Current island</span>
             <span
               className={`rounded border px-1.5 py-0.5 text-[11px] font-bold ${
                 modeBadge(currentState.mode).cls
@@ -164,12 +167,12 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
               {modeBadge(currentState.mode).label}
             </span>
             <span className="font-mono-num font-semibold text-stone-700">
-              {currentState.population.toLocaleString()} pop · {currentState.elements.length} items
+              {currentState.population.toLocaleString()} pop · {currentState.elements.length.toLocaleString()} placed
             </span>
           </div>
           {activeSlotIndex !== null && (
             <span className="text-[11px] font-semibold text-emerald-700">
-              Active Slot #{activeSlotIndex + 1}
+              Loaded from slot {activeSlotIndex + 1}
             </span>
           )}
         </div>
@@ -199,14 +202,15 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
                   </select>
                 </label>}
                 <p>{selectedWorld.name} · {selectedWorld.state.elements.length.toLocaleString()} items · {modeBadge(selectedWorld.state.mode).label}</p>
-                {emptySlot < 0 ? <p>All slots are full. Export an existing slot before making room.</p> :
-                  <button type="button" disabled={busy} onClick={() => void importSelected()} className="ui-btn">Save to Slot {emptySlot + 1}</button>}
+                {emptySlot < 0 && slots.length >= MAX_SAVE_SLOTS ? <p>All ten slots are full. Export an island before making room.</p> :
+                  <button type="button" disabled={busy} onClick={() => void importSelected()} className="ui-btn">
+                    {emptySlot < 0 ? "Add a slot and import" : `Import into slot ${emptySlot + 1}`}
+                  </button>}
               </div>
             )}
             {transferMessage && <p role="status">{transferMessage}</p>}
           </section>
-        {/* 3 Save Slots */}
-          {Array.from({ length: MAX_SAVE_SLOTS }, (_, idx) => {
+          {Array.from({ length: slots.length }, (_, idx) => {
             const slot = slots[idx];
             const isActive = activeSlotIndex === idx;
             const draftName = draftNames[idx] ?? `Civilization ${idx + 1}`;
@@ -354,7 +358,7 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => onSaveToSlot(idx, draftName)}
+                      onClick={() => setConfirm({index: idx, action: "overwrite"})}
                       className="flex items-center gap-1 rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-bold text-stone-800 hover:bg-stone-100"
                       title="Overwrite this slot with your current island"
                     >
@@ -365,7 +369,8 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
                       aria-label={`Export ${slot.name}`}><Download size={15} aria-hidden="true" /> Export</button>
                     <button
                       type="button"
-                      onClick={() => onDeleteSlot(idx)}
+                      onClick={() => setConfirm({index: idx, action: "delete"})}
+                      aria-label={`Delete ${slot.name}`}
                       className="rounded-md border border-rose-200 bg-rose-50 p-1.5 text-rose-700 hover:bg-rose-100"
                       title="Delete Saved Civilization"
                     >
@@ -373,9 +378,26 @@ export const SaveSlotsModal: React.FC<SaveSlotsModalProps> = ({
                     </button>
                   </div>
                 </div>
+                {confirm?.index === idx && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-stone-200 pt-3 text-sm">
+                    <span>{confirm.action === "delete" ? `Delete “${slot.name}”?` : `Replace “${slot.name}” with the current island?`}</span>
+                    <button type="button" className="ui-btn" onClick={() => setConfirm(null)}>Cancel</button>
+                    <button type="button" className="ui-btn" onClick={() => {
+                      setConfirm(null);
+                      if (confirm.action === "delete") onDeleteSlot(idx);
+                      else onSaveToSlot(idx, slot.name);
+                    }}>{confirm.action === "delete" ? "Delete island" : "Replace island"}</button>
+                  </div>
+                )}
               </div>
             );
           })}
+          {slots.length < MAX_SAVE_SLOTS && (
+            <button type="button" disabled={busy} className="ui-btn w-full justify-center" onClick={async () => {
+              setBusy(true);
+              try { await onAddSlot(); } finally { setBusy(false); }
+            }}><Plus size={16} aria-hidden="true" /> Add save slot · up to {MAX_SAVE_SLOTS}</button>
+          )}
         </div>
       </div>
     </GameDialog>

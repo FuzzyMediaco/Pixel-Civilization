@@ -2309,6 +2309,12 @@ button.ui-row:hover { border-color: var(--ui-green); }
   cursor: pointer;
 }
 
+.pc-map-controls .pc-map-stop {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
 .pc-mgr-card {
   position: fixed;
   z-index: 38;

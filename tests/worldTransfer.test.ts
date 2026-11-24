@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { addCivilizationSlot, deleteCivilizationSlot, loadSaveSlots, saveCivilizationToSlot } from "../src/game/saveSlots";
+import { isPlayerKey } from "../src/game/deviceSaves";
 import { createInitialGameState } from "../src/game/simulation";
 import { importWorldIntoSlot, readWorldFile, serializeWorld } from "../src/game/worldTransfer";
 
@@ -25,6 +27,23 @@ test("world exports round-trip and legacy imports preserve other saves", async (
     await importWorldIntoSlot(1, { ...world, name: "Second world" });
     assert.equal(storage.get("pixel_civ_slot_0"), first);
     assert.equal(JSON.parse(storage.get("pixel_civ_slot_1")!).name, "Second world");
+    assert.equal(loadSaveSlots().length, 3);
+    for (let size = 4; size <= 10; size++) assert.equal((await addCivilizationSlot()).length, size);
+    await assert.rejects(addCivilizationSlot(), /ten/);
+    assert.equal(isPlayerKey("pixel_civ_slot_9"), true);
+    assert.equal(isPlayerKey("pixel_civ_slot_10"), false);
+    await importWorldIntoSlot(9, { ...world, name: "Tenth world" });
+    assert.equal(loadSaveSlots()[9]?.name, "Tenth world");
+    assert.throws(() => saveCivilizationToSlot(10, "Invalid", state), /slot/);
+    deleteCivilizationSlot(9);
+    assert.equal(loadSaveSlots().length, 10);
+    assert.equal(loadSaveSlots()[9], null);
+    assert.equal(storage.get("pixel_civ_slot_0"), first);
+    storage.set("pixel_civ_slot_2", "invalid save JSON");
+    await importWorldIntoSlot(9, world);
+    assert.equal(loadSaveSlots()[9]?.name, world.name);
+    const expanded = {...backup,slots:Array.from({length:10},(_,i)=>({name:`World ${i+1}`,state}))};
+    assert.equal(readWorldFile(JSON.stringify(expanded)).at(-1)?.name,"World 10");
   } finally {
     if (oldStorage) Object.defineProperty(globalThis, "localStorage", oldStorage);
     else Reflect.deleteProperty(globalThis, "localStorage");

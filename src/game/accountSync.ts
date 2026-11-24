@@ -171,7 +171,9 @@ async function reconcile(who: string, download: boolean, signal?: AbortSignal) {
         conflicts.push(key);
         continue;
       }
-      if (!download) {
+      // New named islands can appear in the saves list without replacing the active island
+      // or any device save. Existing records continue through the explicit refresh flow.
+      if (!download && (r || !key.startsWith("pixel_civ_slot_"))) {
         updates = true;
         continue;
       }
@@ -273,7 +275,7 @@ export async function bootAccountSync(requireAccount = false): Promise<boolean> 
   }
   if (user) {
     try {
-      await sync(user.id, true, AbortSignal.timeout(4500));
+      await sync(user.id, true, AbortSignal.timeout(12000));
     } catch (error) {
       update({ message: errorText(error) });
     }
@@ -417,7 +419,7 @@ export async function resolveSave(key: string, choice: "device" | "account") {
 }
 export function saveLabel(key: string) {
   if (key.startsWith("pixel_civ_slot_"))
-    return "Named island " + (Number(key.slice(-1)) + 1);
+    return "Named island " + (Number(key.slice("pixel_civ_slot_".length)) + 1);
   if (key.startsWith("pixel_civ_save_v1_"))
     return (
       key

@@ -38,10 +38,11 @@ export function TransitContent({
 }: TransitContentProps) {
   const yards = state.elements.filter((e) => RAIL_SITES.includes(e.defId) && e.defId !== "train_stops");
   const lines = state.mobility?.lines ?? [];
-  const lineCount = new Set(lines.map(lineKey)).size;
+  const enabled = lines.filter(line => line.enabled);
+  const lineCount = new Set(enabled.map(lineKey)).size;
   const share = Math.round(state.metrics.transitShare ?? 0);
   const congestion = Math.round(state.metrics.congestion ?? 0);
-  const obstructed = lines.filter((l) => l.status !== "running").length;
+  const obstructed = new Set(enabled.filter(line => line.blocked).map(lineKey)).size;
 
   return (
     <div className="ui-city-section">
@@ -50,7 +51,7 @@ export function TransitContent({
           <span className="ui-kpi-label">Active lines</span>
           <strong className="ui-kpi-val">{lineCount}</strong>
           <small className={"ui-kpi-sub" + (obstructed > 0 ? " is-bad" : "")}>
-            {obstructed > 0 ? `${obstructed} needs attention` : lineCount > 0 ? "All running" : "Add a depot or dock"}
+            {obstructed ? `${obstructed} ${obstructed === 1 ? "line needs" : "lines need"} attention` : lineCount ? "No lines blocked" : "Start a service from a depot or dock"}
           </small>
         </div>
         <div className="ui-kpi-card">
@@ -82,6 +83,7 @@ export function TransitContent({
         </div>
       )}
 
+      <div className="ui-panel-card ui-transit-services">
       <MobilityPanel
         state={state}
         mutate={mutate}
@@ -94,6 +96,7 @@ export function TransitContent({
         onGrid={onGrid}
         onRailOps={onRailOps}
       />
+      </div>
     </div>
   );
 }

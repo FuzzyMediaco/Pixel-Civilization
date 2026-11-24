@@ -1,3 +1,5 @@
+import { isSaveSlotIndex, INITIAL_SAVE_SLOTS, MAX_SAVE_SLOTS } from "./saveSlotLimits";
+
 /** Large islands live in IndexedDB. A per-profile read cache keeps the simulation's synchronous reads cheap. */
 export interface Player {
   id: string;
@@ -21,10 +23,11 @@ export interface Recovery {
 const GUEST = "guest";
 const LEGACY_SLOTS = "pixel_civ_saved_slots_v1";
 export const slotKey = (i: number) => "pixel_civ_slot_" + i;
-export const isPlayerKey = (key: string) =>
-  /^pixel_civ_(save_v1_[a-z0-9-]+|slot_[0-2]|lab_snapshot|last_mode|example_origin|place_hints|pix_custom_elements_v1|playbook_checks_v1|build_habits_v1|quick_drawer_(habits|prefs)_v1|quick_build_mode_v1|quick_menu_prefs_v1)$/.test(
-    key,
-  );
+export const isPlayerKey = (key: string) => {
+  const slot = /^pixel_civ_slot_(0|[1-9]\d*)$/.exec(key);
+  return slot ? isSaveSlotIndex(Number(slot[1])) :
+    /^pixel_civ_(save_v1_[a-z0-9-]+|lab_snapshot|last_mode|example_origin|place_hints|pix_custom_elements_v1|playbook_checks_v1|build_habits_v1|quick_drawer_(habits|prefs)_v1|quick_build_mode_v1|quick_menu_prefs_v1)$/.test(key);
+};
 let db: IDBDatabase | undefined, boot: Promise<void> | undefined;
 let player: Player | null = null,
   frozen = false,
@@ -117,8 +120,8 @@ async function importLegacy() {
     try {
       const parsed = JSON.parse(slots);
       if (!Array.isArray(parsed)) throw Error();
-      parsed.slice(0, 3).forEach((s, i) => {
-        if (s) rows.set(slotKey(i), JSON.stringify(s));
+      parsed.slice(0, MAX_SAVE_SLOTS).forEach((s, i) => {
+        if (!rows.has(slotKey(i)) && (s || i >= INITIAL_SAVE_SLOTS)) rows.set(slotKey(i), JSON.stringify(s));
       });
     } catch {
       legacy.delete(LEGACY_SLOTS);
@@ -261,6 +264,7 @@ export function writePlayerItems(items: [string, string][]) {
 }
 /** Install an imported slot and any new design definitions as one operation. */
 export async function insertPlayerSlot(index: number, data: string, custom?: [string, string]) {
+  if (!isSaveSlotIndex(index)) throw Error("This slot number is unavailable.");
   await flushDevice();
   if (frozen) throw Error("Wait for the account switch to finish, then try again.");
   const key = slotKey(index);
@@ -397,8 +401,10 @@ export async function acceptCloud(
     store.put(row);
     accepted = true;
     tx.addEventListener("complete", () => {
-      if (who === scope() && cache.get(key)?.rev === expectedRev)
+      if (who === scope() && cache.get(key)?.rev === expectedRev) {
         cache.set(key, row);
+        if (key.startsWith("pixel_civ_slot_")) notify();
+      }
     });
   };
   await done;

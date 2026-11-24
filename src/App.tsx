@@ -106,6 +106,7 @@ import {
 } from "./game/catalog";
 import {
   type CivilizationSaveSlot,
+  addCivilizationSlot,
   cloneGameStateSnapshot,
   deleteCivilizationSlot,
   loadSaveSlots,
@@ -414,6 +415,7 @@ export const App: React.FC = () => {
     return () => controller.abort();
   }, []);
   const [saveSlots, setSaveSlots] = useState<(CivilizationSaveSlot | null)[]>(() => loadSaveSlots());
+  useEffect(() => onDeviceChange(() => setSaveSlots(loadSaveSlots())), []);
   const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [hoverInfo, setHoverInfo] = useState<{gx: number; gz: number; valid: boolean; reason?: string} | null>(null);
@@ -603,6 +605,8 @@ export const App: React.FC = () => {
       if (!plan.valid) {
         if (buildingCharges(cur) && cur.money < plan.def.cost) {
           showToast({id:"funds",title:"Not enough money",subtitle:`Need $${plan.def.cost.toLocaleString()} to build ${plan.def.name}.`,tone:"alert"});
+        } else if (plan.reason) {
+          showToast({id:"placement-blocked",title:"Can't build here",subtitle:plan.reason,tone:"alert"});
         }
         return;
       }
@@ -1346,7 +1350,7 @@ export const App: React.FC = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [openSheet,rotateSelected,commitBuildingEdit]);
 
-  const resetTools=()=>{setDispatchTarget(undefined);setPendingWorks(null);setPendingRoadStroke(null);setBulkSelectMode(false);setQuickBuild(null);setQuickDrawerOpen(false);setWorksTool(null);setSheetState(null);setMorePage(null);setInspectorDetailOpen(false);setDeletedAnchor(null);setSelectionUndo(null);rendererRef.current?.followService();};
+  const resetTools=()=>{setFollowedService(undefined);setMapFocus(undefined);setDispatchTarget(undefined);setPendingWorks(null);setPendingRoadStroke(null);setBulkSelectMode(false);setQuickBuild(null);setQuickDrawerOpen(false);setWorksTool(null);setSheetState(null);setMorePage(null);setInspectorDetailOpen(false);setDeletedAnchor(null);setSelectionUndo(null);rendererRef.current?.followService();};
 
   // UI Handlers
   const handleSwitchMode = (mode: GameMode) => {
@@ -1596,6 +1600,18 @@ export const App: React.FC = () => {
     if (outcome) showAutoAction(outcome);
   };
 
+  const handleAddSaveSlot = async () => {
+    try {
+      const slots = await addCivilizationSlot();
+      setSaveSlots(slots);
+      setSlotError("");
+      void autosync();
+      return slots.length - 1;
+    } catch (error) {
+      setSlotError(error instanceof Error ? error.message : "The slot could not be added.");
+    }
+  };
+
   const handleSaveToSlot = async (slotIndex: number, name: string) => {
     captureView(stateRef.current);
     let updated:typeof saveSlots;
@@ -1776,7 +1792,14 @@ export const App: React.FC = () => {
     if(buildingEdit)commitBuildingEdit(buildingEdit,update);
     else commitState(update);
   };
-  const focusSite=(id:string)=>{setSelectedIds([id]);rendererRef.current?.focusElement(id);};
+  const focusSite=(id:string)=>{
+    setSelectedIds([id]);
+    if (rendererRef.current) rendererRef.current.focusElement(id);
+    else {
+      const site=stateRef.current.elements.find(el=>el.id===id);
+      if (site) setMapFocus([site.gx,site.gz]);
+    }
+  };
   const snapshot=(s:GameState)=>{
     try{writePlayerItem("pixel_civ_lab_snapshot",JSON.stringify({...s,toasts:[]}));setHasSnapshot(true);return true;}
     catch{showToast({id:"snap",title:"Snapshot could not be saved",subtitle:"Free a save slot or browser storage, then try again.",tone:"alert"});return false;}
@@ -1892,11 +1915,11 @@ export const App: React.FC = () => {
   const pendingConfirm: PendingConfirmAction | null = roadStrokeStats
     ? {
         key: `road:${roadStrokeStats.def.id}:${pendingRoadStroke!.points.map((p) => `${p.gx},${p.gz}`).join(";")}`,
-        label: `Build ${roadStrokeStats.validCount} ${roadStrokeStats.def.name} tiles`,
+        label: `Build ${roadStrokeStats.def.name} · ${roadStrokeStats.validCount} tiles`,
         sublabel:
           roadStrokeStats.validCount > 0
-            ? `${roadStrokeStats.validCount} tiles${roadStrokeStats.totalCost > 0 ? ` · $${roadStrokeStats.totalCost.toLocaleString()}` : ""}`
-            : "Blocked",
+            ? (roadStrokeStats.totalCost > 0 ? `$${roadStrokeStats.totalCost.toLocaleString()}` : "Free")
+            : "No tiles can be built along this route",
         valid: roadStrokeStats.validCount > 0,
         onConfirm: handleConfirmRoadStroke,
       }
@@ -1905,7 +1928,7 @@ export const App: React.FC = () => {
           key: `bridge:${pendingWorks.points.map((p) => `${p.gx},${p.gz}`).join(";")}`,
           label: `Build ${worksPreview.points.length}-tile bridge`,
           sublabel: worksPreview.valid
-            ? `${worksPreview.points.length} tiles${worksPreview.cost > 0 ? ` · $${worksPreview.cost.toLocaleString()}` : ""}`
+            ? (worksPreview.cost > 0 ? `$${worksPreview.cost.toLocaleString()}` : "Free")
             : worksPreview.reason,
           valid: worksPreview.valid,
           onConfirm: () => {
@@ -1920,8 +1943,49 @@ export const App: React.FC = () => {
       : null;
 
   const placing=!!(brushDef||movingEl||brush.movingGroupIds||worksTool||pendingWorks||dispatchTarget);
+  const mapTile = ({gx,gz}:GridPoint) => {
+    if (dispatchTarget) {
+      commitState(draft=>dispatchVessel(draft,dispatchTarget,"sail",[gx,gz]));
+      setDispatchTarget(undefined);
+      openTransit();
+      return;
+    }
+    setInspectPoint({gx,gz});
+    const hit = stateRef.current.elements.find(el=>gx>=el.gx && gx<el.gx+el.spanX && gz>=el.gz && gz<el.gz+el.spanZ);
+    if (bulkSelectMode && hit) {
+      const isRoad = ELEMENT_BY_ID[hit.defId]?.isNetwork;
+      if (bulkFilter==="all" || (bulkFilter==="roads" ? isRoad : !isRoad)) handleBulkSelectElements([hit.id],"toggle");
+      return;
+    }
+    handleSelectElement(hit?.id ?? null);
+    setInspectorDetailOpen(Boolean(hit));
+  };
+  const mapStroke = (points:GridPoint[]) => {
+    if (pendingWorks || pendingRoadStroke || !points.length) return;
+    const first=points[0];
+    if (worksTool) setPendingWorks({tool:worksTool,points});
+    else if (brush.movingGroupIds) setBrush(current=>({...current,groupDestination:[first.gx,first.gz]}));
+    else if (movingEl) handleTileMoveCommit(movingEl.id,first.gx,first.gz);
+    else if (brushDef) {
+      if (!brushDef.isNetwork) {
+        handleTilePlace(first.gx,first.gz);
+        return;
+      }
+      const route:GridPoint[]=[{gx:first.gx,gz:first.gz}];
+      for (const next of points.slice(1)) {
+        let {gx,gz}=route.at(-1)!;
+        while (gx!==next.gx || gz!==next.gz) {
+          if (Math.abs(next.gx-gx)>=Math.abs(next.gz-gz)) gx+=Math.sign(next.gx-gx);
+          else gz+=Math.sign(next.gz-gz);
+          route.push({gx,gz});
+        }
+      }
+      if (route.length>1) handlePendingNetworkStroke({defId:brushDef.id,points:route});
+      else handleTilePlace(first.gx,first.gz);
+    }
+  };
   const showQuickBuildRing = Boolean(
-    quickBuild &&
+    !mapFallback && quickBuild &&
       !sheet &&
       !inspectorDetailOpen &&
       !guideModal &&
@@ -1982,7 +2046,7 @@ export const App: React.FC = () => {
     [showQuickBuildRing, quickBuildMode, quickBuild, gameState],
   );
   const showSelectionRing = Boolean(
-    !showQuickBuildRing &&
+    !mapFallback && !showQuickBuildRing &&
       !sheet &&
       !inspectorDetailOpen &&
       !guideModal &&
@@ -2158,6 +2222,8 @@ export const App: React.FC = () => {
           openWorks();
           break;
         case "save_slots":
+          setSheetState(null);
+          setSlotError("");
           setSavesModalOpen(true);
           break;
         case "handbook":
@@ -2247,8 +2313,9 @@ export const App: React.FC = () => {
   return (
     <main className={"island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]"+(showAlert?" has-alert":"")+(inFocusMenu?" has-focus-menu":"")+(ringOpen?" is-ring-open":"")}>
       {mapFallback
-        ? <IslandMapFallback state={gameState} focus={gameState.mode === "idle" && followGrowth ? mapFocus : undefined}
-            onInspect={handleSelectElement} />
+        ? <IslandMapFallback key={gameState.mode + (gameState.exampleWorldId ?? "")} state={gameState} focus={gameState.mode === "idle" && !followGrowth ? undefined : mapFocus}
+            startAt={activeExample?.viewpoints[gameState.exampleViewpoint ?? -1] ?? activeExample?.camera}
+            following={followedService} onStopFollowing={()=>setFollowedService(undefined)} heatmap={activeHeatmap} draw={Boolean(worksTool || brushDef || movingEl || brush.movingGroupIds)} onStroke={mapStroke} onInspect={mapTile} />
         : <canvas ref={canvasRef} className="block h-full w-full cursor-crosshair touch-none" aria-label="Pixel Civilization 3D Voxel Island" />}
 
       {showHud && (
@@ -2333,10 +2400,10 @@ export const App: React.FC = () => {
         subtitle={(charges?"$"+brushDef.cost.toLocaleString()+(brushDef.isNetwork?" / tile":" each"):"Free")+(placeStats?.defId===brushDef.id?" · "+placeStats.count+" placed"+(placeStats.spent?" = $"+placeStats.spent.toLocaleString():""):"")}
         hint={
           pendingRoadStroke
-            ? "Tap ✓ above the road stretch to build · Tap anywhere else to cancel"
+            ? (mapFallback ? undefined : "Tap ✓ above the road stretch to build · Tap anywhere else to cancel")
             : hoverBad ??
               (brushDef.isRoadNetwork
-                ? "Tap 1 tile to place · Drag 2+ tiles, then tap ✓ to confirm"
+                ? (mapFallback ? "Tap to place a tile · Drag to draw a route" : "Tap to place a tile · Drag to draw a route, then tap ✓")
                 : hintsLeft > 0
                   ? (brushDef.isNetwork || cursorBehavior === "place"
                       ? "Tap or drag to draw · 2-finger pan/zoom · Space+drag or Right-drag camera · ✓ done"
@@ -2374,10 +2441,10 @@ export const App: React.FC = () => {
             title={worksToolLabel(worksTool.kind)}
             subtitle={
               worksTool.kind === "bridge"
-                ? "Drag 2+ tiles across water, then tap ✓ to confirm"
+                ? (mapFallback ? "Drag from one bank to the other" : "Drag from one bank to the other, then tap ✓")
                 : isVoxelBrush
-                  ? `${diam} vox (${meters}m) · Drag to sculpt · 2-finger pan/zoom`
-                  : "Drag on the map · 2-finger or Space+drag to move camera"
+                  ? `${diam} vox (${meters}m) · Drag to sculpt${mapFallback ? " · Shift+drag to pan" : " · 2-finger pan/zoom"}`
+                  : mapFallback ? "Drag to draw · Shift+drag to pan" : "Drag on the map · 2-finger or Space+drag to move camera"
             }
           >
             {isTerrainFlip && (
@@ -2406,7 +2473,13 @@ export const App: React.FC = () => {
           </PlacementBar>
         );
       })()}
-      {pendingWorks&&worksPreview&&isBridgeConfirm&&(
+      {mapFallback && pendingConfirm && <div className="ui-placebar is-works" role="toolbar" aria-label="Confirm construction">
+        <span className="ui-icard-body"><span className="ui-icard-title">{pendingConfirm.label}</span>
+          <span className="ui-icard-sub">{pendingConfirm.sublabel}</span></span>
+        <Button label="Cancel" small onClick={handleCancelPendingStroke}/>
+        <Button label="Build" small variant="primary" disabled={!pendingConfirm.valid} onClick={pendingConfirm.onConfirm}/>
+      </div>}
+      {pendingWorks&&worksPreview&&isBridgeConfirm&&!mapFallback&&(
         <p className={"ui-placebar-hint" + (worksPreview.valid ? "" : " is-bad")} role={worksPreview.valid ? "status" : "alert"}>
           {worksPreview.valid
             ? `Tap ✓ above the ${worksPreview.points.length}-tile bridge to build · Tap anywhere else to cancel`
@@ -2644,10 +2717,16 @@ export const App: React.FC = () => {
             onFix={openFix} onShowLayer={showLayer} onShowPanel={showPanel} onMaintainAll={()=>{trackDrawerAction("repair_all",0.5);handleMaintainAll();}}
             transitProps={{
               onPickDestination:id=>{setDispatchTarget(id);setSheetState(null);},
-              onFollow:id=>rendererRef.current?.followService(id),
+              onFollow:id=>{
+                if (rendererRef.current) rendererRef.current.followService(id);
+                else {
+                  setFollowedService(id);
+                  if (id) setSheetState(null);
+                }
+              },
               following:followedService,
               focusLine:returnLine,
-              onGrid:(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});rendererRef.current?.focusGrid(x,z);setSelectedIds([]);openWorks();},
+              onGrid:(x,z,line)=>{setReturnLine(line);setInspectPoint({gx:x,gz:z});if(rendererRef.current)rendererRef.current.focusGrid(x,z);else setMapFocus([x,z]);setSelectedIds([]);openWorks();},
               onRailOps:id=>setRailSite(id),
             }}/>
         ) : sheet==="sculpt" ? (
@@ -2689,8 +2768,8 @@ export const App: React.FC = () => {
             simSpeed={simSpeed} onSimSpeed={(v)=>{trackDrawerAction("sim_speed",0.5);setSimSpeed(v);}}
             tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onStopTutorial={()=>stopTutorial(false)}/>
         ) : sheet==="more" ? (
-          <MoreSheet {...sheetProps} saveNow={()=>saveActiveMode(stateRef.current)} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount}
-            onSaves={()=>{trackDrawerAction("save_slots",0.5);setSavesModalOpen(true);}} onExamples={openExamples}
+          <MoreSheet {...sheetProps} saveNow={()=>saveActiveMode(stateRef.current)} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount} slotCount={saveSlots.length}
+            onSaves={()=>{trackDrawerAction("save_slots",0.5);setSheetState(null);setSlotError("");setSavesModalOpen(true);}} onExamples={openExamples}
             onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"chapters"}});}}
             onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
             onChangeMode={m=>{trackDrawerAction("game_mode",0.5);stopTutorial(false);if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={()=>{stopTutorial(false);copyIsland();}}
@@ -2722,7 +2801,7 @@ export const App: React.FC = () => {
       {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} currentMode={gameState.mode === "real" ? "real" : "god"} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
         error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
       <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState}
-        onClose={() => setSavesModalOpen(false)} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
+        onClose={() => setSavesModalOpen(false)} onAddSlot={handleAddSaveSlot} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
         onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}
         linkedWorlds={linkedWorlds} onImportWorld={handleImportWorld} onExportWorld={handleExportWorld}/>
       {guideModal && <GuideModal modal={guideModal} currentMode={gameState.mode} onChange={setGuideModal} onClose={() => setGuideModal(null)}

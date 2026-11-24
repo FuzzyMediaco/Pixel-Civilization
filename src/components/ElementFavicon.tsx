@@ -123,7 +123,7 @@ export function renderIsometricVoxelThumb(def: CivElementDef): string | null {
 }
 
 /** The same cached design illustration appears in the build palette and handbook. */
-export function ElementFavicon({ def, className = "" }: { def: CivElementDef; className?: string }) {
+export function ElementFavicon({ def, className = "", eager = false }: { def: CivElementDef; className?: string; eager?: boolean }) {
   const [imgFailed, setImgFailed] = useState(false);
 
   const isoUrl = useMemo(() => {
@@ -176,7 +176,7 @@ export function ElementFavicon({ def, className = "" }: { def: CivElementDef; cl
       src={"./handbook/catalog/thumbs/" + def.id + ".webp"}
       alt=""
       aria-hidden="true"
-      loading="lazy"
+      loading={eager ? "eager" : "lazy"}
       decoding="async"
       width={36}
       height={36}

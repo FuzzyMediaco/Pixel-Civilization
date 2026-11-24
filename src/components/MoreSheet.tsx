@@ -17,7 +17,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { type GameMode, STAGES } from "../game/catalog";
-import { MAX_SAVE_SLOTS } from "../game/saveSlots";
 import type { GameState } from "../game/simulation";
 import { PWAInstallRow } from "./PWAInstallRow";
 import { BottomSheet, Button, type SheetHeight } from "./ui";
@@ -49,6 +48,7 @@ export function MoreSheet({
   onHeight,
   onClose,
   savedCount,
+  slotCount,
   onSaves,
   onExamples,
   onOpenHandbook,
@@ -69,6 +69,7 @@ export function MoreSheet({
   onHeight: (h: SheetHeight) => void;
   onClose: () => void;
   savedCount: number;
+  slotCount: number;
   onSaves: () => void;
   onExamples: () => void;
   onOpenHandbook: () => void;
@@ -127,7 +128,7 @@ export function MoreSheet({
               <Cloud size={18} aria-hidden="true" />
               <span>View</span>
             </button>
-            <button type="button" className="ui-more-tile" onClick={onSaves} title={`${savedCount} of ${MAX_SAVE_SLOTS} save slots used`}>
+            <button type="button" className="ui-more-tile" onClick={onSaves} title={`${savedCount} of ${slotCount} save slots used`}>
               <Save size={18} aria-hidden="true" />
               <span>Saves</span>
               {savedCount > 0 && <em className="ui-more-badge">{savedCount}</em>}
