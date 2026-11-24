@@ -1381,6 +1381,7 @@ export const App: React.FC = () => {
       setSelectedIds([]);
       setBrush(idleBrush);
     }
+    setSheetState(null);
     setActiveHeatmap("none");
     setTutorialState({ mode, stepIndex: 0, completed: false });
   };
@@ -2228,7 +2229,7 @@ export const App: React.FC = () => {
           break;
         case "handbook":
           setSheetState(null);
-          setGuideModal({ kind: "unified", atlasRoute: { tab: "chapters" } });
+          setGuideModal({ kind: "unified", atlasRoute: { tab: "course" } });
           break;
         case "pix_advise":
           openPixStudio("advise");
@@ -2770,7 +2771,7 @@ export const App: React.FC = () => {
         ) : sheet==="more" ? (
           <MoreSheet {...sheetProps} saveNow={()=>saveActiveMode(stateRef.current)} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount} slotCount={saveSlots.length}
             onSaves={()=>{trackDrawerAction("save_slots",0.5);setSheetState(null);setSlotError("");setSavesModalOpen(true);}} onExamples={openExamples}
-            onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"chapters"}});}}
+            onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"course"}});}}
             onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
             onChangeMode={m=>{trackDrawerAction("game_mode",0.5);stopTutorial(false);if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={()=>{stopTutorial(false);copyIsland();}}
             onReset={()=>setConfirmResetOpen(true)}

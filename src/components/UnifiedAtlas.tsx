@@ -41,17 +41,19 @@ import {
   getModeChapterBrief,
 } from "../handbook/modePlaybook";
 import { relatedLessons } from "../handbook/relatedLessons";
+import { CoursePanel } from "./CoursePanel";
 import { AtlasModel } from "./AtlasModel";
 import type { BuildCategory } from "./BuildSheet";
 import { CategoryFavicon } from "./CategoryFavicon";
 import { ElementFavicon } from "./ElementFavicon";
 import { BALANCED_EXPANSION_BY_ID, BALANCED_EXPANSION_ELEMENTS } from "../game/expansionBalancedCatalog";
 
-export type AtlasTab = "atlas" | "chapters" | "islands";
+export type AtlasTab = "atlas" | "chapters" | "islands" | "course";
 
 export interface UnifiedAtlasRoute {
   tab: AtlasTab;
   elementId?: string;
+  courseLesson?: string;
   level?: number;
   variant?: number; // 1..4
   section?: string;
@@ -178,8 +180,9 @@ function parseExternalRoute(route?: Partial<UnifiedAtlasRoute>): UnifiedAtlasRou
   const validId = route?.elementId && ELEMENT_BY_ID[route.elementId] ? route.elementId : undefined;
   const maxLv = validId ? Math.max(5, getMaxElementLevel(validId)) : 5;
   return {
-    tab: validId ? "atlas" : route?.tab ?? "chapters",
+    tab: validId ? "atlas" : route?.tab ?? "course",
     elementId: validId,
+    courseLesson: route?.courseLesson,
     level: clampInt(route?.level, 1, maxLv, validId ? Math.min(3, maxLv) : 3),
     variant: clampInt(route?.variant, 1, 4, 1),
     section: route?.section || GUIDE_CHAPTERS[0]?.id || "quick_menus",
@@ -247,6 +250,7 @@ export function UnifiedAtlas({
     }
   }, [
     initialRoute?.tab,
+    initialRoute?.courseLesson,
     initialRoute?.elementId,
     initialRoute?.level,
     initialRoute?.variant,
@@ -267,16 +271,15 @@ export function UnifiedAtlas({
   };
 
   const updateRoute = (patch: Partial<UnifiedAtlasRoute>, scrollTop = false) => {
-    setRoute((prev) => {
-      const next: UnifiedAtlasRoute = { ...prev, ...patch };
-      if (patch.elementId && patch.elementId !== prev.elementId) {
-        const maxLv = Math.max(5, getMaxElementLevel(patch.elementId));
-        next.level = clampInt(patch.level, 1, maxLv, Math.min(3, maxLv));
-        next.variant = clampInt(patch.variant, 1, 4, 1);
-      }
-      onChangeRoute?.(next);
-      return next;
-    });
+    const next: UnifiedAtlasRoute = { ...route, ...patch };
+    if (patch.tab && patch.tab !== "atlas") next.elementId = undefined;
+    if (patch.elementId && patch.elementId !== route.elementId) {
+      const maxLv = Math.max(5, getMaxElementLevel(patch.elementId));
+      next.level = clampInt(patch.level, 1, maxLv, Math.min(3, maxLv));
+      next.variant = clampInt(patch.variant, 1, 4, 1);
+    }
+    setRoute(next);
+    onChangeRoute?.(next);
     if (patch.section) {
       setOpenSectionId(findParentSectionId(patch.section));
       setOpenChapterId(patch.section);
@@ -425,13 +428,16 @@ export function UnifiedAtlas({
           <span>Handbook</span>
         </div>
         <nav className="pc-atlas-tabs" aria-label="Handbook sections">
+          <button type="button" aria-pressed={route.tab === "course"} onClick={() => updateRoute({ tab:"course" },true)}>
+            <BookOpen size={13} aria-hidden="true" /><span>Course</span>
+          </button>
           <button
             type="button"
             aria-pressed={route.tab === "chapters"}
             onClick={() => updateRoute({ tab: "chapters" }, true)}
           >
             <BookOpen size={13} aria-hidden="true" />
-            <span>Playbook</span>
+            <span>Field Guide</span>
           </button>
           <button
             type="button"
@@ -469,7 +475,7 @@ export function UnifiedAtlas({
             ref={globalSearchRef}
             type="search"
             aria-label="Search Handbook"
-            placeholder="Search Playbook, elements, controls, or islands…"
+            placeholder="Search the field guide, elements, or islands…"
             value={globalSearch}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setTimeout(() => setSearchFocused(false), 160)}
@@ -627,7 +633,14 @@ export function UnifiedAtlas({
       </div>
 
       <div className="pc-atlas-main">
-        {route.tab === "atlas" && selectedEntry && selectedDef && selectedDesign ? (
+        {route.tab !== "course" && route.courseLesson && <button className="pc-course-back" type="button" onClick={() => updateRoute({tab:"course"},true)}>Back to course lesson</button>}
+        {route.tab === "course" ? (
+          <CoursePanel lessonId={route.courseLesson}
+            onLesson={courseLesson => updateRoute({tab:"course",courseLesson},true)}
+            onAtlas={elementId => updateRoute({tab:"atlas",elementId,courseLesson:route.courseLesson ?? "frontage"},true)}
+            onRead={section => updateRoute({tab:"chapters",section,lesson:undefined,courseLesson:route.courseLesson ?? "frontage"},true)}
+            onTour={onPlayWorld ? tour => onPlayWorld(tour.world,"god",tour.view) : undefined} />
+        ) : route.tab === "atlas" && selectedEntry && selectedDef && selectedDesign ? (
           <section className="pc-atlas-detail" aria-label={selectedEntry.name}>
             <div className="pc-atlas-crumb-bar">
               <button
@@ -694,7 +707,7 @@ export function UnifiedAtlas({
                   <div className="pc-atlas-stage-foot">
                     <div className="pc-atlas-style-caption">
                       <strong>{styleNames[variantZero]}</strong>
-                      <span>{staticImage ? "Illustrated fallback" : "Drag to orbit 360°"}</span>
+                      <span>{staticImage ? "Illustrated angles" : "Drag to orbit 360°"}</span>
                     </div>
                     <div className="pc-atlas-variants" role="group" aria-label="Visual style">
                       {["A", "B", "C", "D"].map((letter, idx) => (

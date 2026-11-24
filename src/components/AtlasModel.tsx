@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { renderIsometricVoxelThumb } from "./ElementFavicon";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "../game/designs/index";
 import {
@@ -36,6 +37,9 @@ export function AtlasModel({
 }: AtlasModelProps) {
   const mount = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
+  const [angle, setAngle] = useState(0);
+  const illustrated = useMemo(() => error ? renderIsometricVoxelThumb(def,level,variant,angle,300) : null,[error,def,level,variant,angle]);
+  const description = def.name + ", level " + level + ", style " + (variant + 1);
   const viewer = useRef<{
     show: (d: CivElementDef, lv: number, v: number, isJoined: boolean) => void;
     light: (dark: boolean) => void;
@@ -236,10 +240,19 @@ export function AtlasModel({
     <div
       ref={mount}
       className={"pc-atlas-viewport" + (error ? " is-static" : "") + (className ? " " + className : "")}
-      role="img"
-      aria-label={def.name + ", level " + level + ", style " + (variant + 1)}
+      role={error ? "group" : "img"}
+      aria-label={description}
     >
-      {error && (
+      {error && illustrated && (
+        <div className="pc-atlas-illustrated">
+          <img src={illustrated} alt={description + ", angle " + (angle + 1) + " of four"} />
+          <div className="pc-course-actions" aria-label="Rotate illustrated model">
+            <button type="button" onClick={() => setAngle(a => (a + 3) % 4)}>Rotate left</button>
+            <button type="button" onClick={() => setAngle(a => (a + 1) % 4)}>Rotate right</button>
+          </div>
+        </div>
+      )}
+      {error && !illustrated && (
         <div
           className="pc-atlas-flat-fallback"
           style={{

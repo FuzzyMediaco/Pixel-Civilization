@@ -12,15 +12,24 @@ const ISO_THUMB_CACHE = new Map<string, string>();
  * onto an offscreen canvas and caches the PNG data URL. Used for new balanced-catalog elements
  * (which don't have pre-baked static .webp files) and as a reliable fallback if any thumb fails.
  */
-export function renderIsometricVoxelThumb(def: CivElementDef): string | null {
-  const cached = ISO_THUMB_CACHE.get(def.id);
+export function renderIsometricVoxelThumb(def: CivElementDef, level = 2, variant = 0, angle = 0, size = 72): string | null {
+  const cacheKey = [def.id,level,variant,angle,size].join(":");
+  const cached = ISO_THUMB_CACHE.get(cacheKey);
   if (cached) return cached;
   if (typeof document === "undefined") return null;
 
   try {
-    const [sx, sz] = getStandardFootprintForLevel(def, 2);
-    const ctxData = buildDesignVoxels(def, 2, 0, sx, sz, 0);
-    const map = ctxData.v.v;
+    const [sx, sz] = getStandardFootprintForLevel(def, level);
+    const ctxData = buildDesignVoxels(def, level, variant, sx, sz, 0);
+    const source = ctxData.v.v;
+    const map = angle === 0 ? source : new Map(Array.from(source, ([k, style]) => {
+      const x = ((k >>> 20) & 1023) - 512;
+      const y = ((k >>> 10) & 1023) - 512;
+      const z = (k & 1023) - 512;
+      if (angle === 1) return [packVoxKey(z,y,-x), style];
+      if (angle === 2) return [packVoxKey(-x,y,-z), style];
+      return [packVoxKey(-z,y,x), style];
+    }));
     if (map.size === 0) return null;
 
     // Extract visible surface voxels only (skip completely enclosed interior voxels)
@@ -55,8 +64,7 @@ export function renderIsometricVoxelThumb(def: CivElementDef): string | null {
       if (vp > maxV) maxV = vp;
     }
 
-    const size = 72;
-    const pad = 6;
+    const pad = size / 12;
     const spanU = Math.max(4, maxU - minU + 2.4);
     const spanV = Math.max(4, maxV - minV + 2.8);
     const scale = Math.min((size - pad * 2) / spanU, (size - pad * 2) / spanV);
@@ -115,7 +123,11 @@ export function renderIsometricVoxelThumb(def: CivElementDef): string | null {
     }
 
     const url = canvas.toDataURL("image/png");
-    ISO_THUMB_CACHE.set(def.id, url);
+    if (ISO_THUMB_CACHE.size >= 384) {
+      const oldest = ISO_THUMB_CACHE.keys().next().value;
+      if (oldest !== undefined) ISO_THUMB_CACHE.delete(oldest);
+    }
+    ISO_THUMB_CACHE.set(cacheKey, url);
     return url;
   } catch {
     return null;

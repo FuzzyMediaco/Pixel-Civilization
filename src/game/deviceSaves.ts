@@ -26,7 +26,7 @@ export const slotKey = (i: number) => "pixel_civ_slot_" + i;
 export const isPlayerKey = (key: string) => {
   const slot = /^pixel_civ_slot_(0|[1-9]\d*)$/.exec(key);
   return slot ? isSaveSlotIndex(Number(slot[1])) :
-    /^pixel_civ_(save_v1_[a-z0-9-]+|lab_snapshot|last_mode|example_origin|place_hints|pix_custom_elements_v1|playbook_checks_v1|build_habits_v1|quick_drawer_(habits|prefs)_v1|quick_build_mode_v1|quick_menu_prefs_v1)$/.test(key);
+    /^pixel_civ_(save_v1_[a-z0-9-]+|lab_snapshot|last_mode|example_origin|place_hints|pix_custom_elements_v1|playbook_checks_v1|course_checks_v1|build_habits_v1|quick_drawer_(habits|prefs)_v1|quick_build_mode_v1|quick_menu_prefs_v1)$/.test(key);
 };
 let db: IDBDatabase | undefined, boot: Promise<void> | undefined;
 let player: Player | null = null,

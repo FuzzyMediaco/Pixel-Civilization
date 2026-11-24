@@ -9,26 +9,30 @@ const readLocation = () =>
   typeof location !== "undefined" ? new URLSearchParams(location.hash.slice(1)) : new URLSearchParams();
 
 function hashToRoute(params: URLSearchParams): Partial<UnifiedAtlasRoute> {
+  const courseLesson = params.get("course") ?? undefined;
   const design = params.get("design") ?? undefined;
   if (design) {
     return {
-      tab: "atlas",
+      tab: "atlas", courseLesson,
       elementId: design,
+      level: Number(params.get("level")) || undefined,
+      variant: Number(params.get("style")) || undefined,
       query: params.get("q") ?? undefined,
       category: params.get("category") ?? undefined,
     };
   }
   const section = params.get("section") ?? "";
+  if (!section) return { tab: "course", courseLesson };
   if (section === "worlds") return { tab: "islands" };
   if (section === "catalog") {
     return {
-      tab: "atlas",
+      tab: "atlas", courseLesson,
       query: params.get("q") ?? undefined,
       category: params.get("category") ?? undefined,
     };
   }
   return {
-    tab: "chapters",
+    tab: "chapters", courseLesson,
     section: section || "start",
     lesson: params.get("lesson") ?? undefined,
   };
@@ -64,18 +68,24 @@ export function HandbookView({ embedded = false, initialRoute, onClose, onPlayWo
       onChangeRoute={(next) => {
         if (embedded || typeof history === "undefined") return;
         const fields: Record<string, string> = {};
+        if (next.courseLesson) fields.course = next.courseLesson;
         if (next.tab === "atlas") {
-          if (next.elementId) fields.design = next.elementId;
+          if (next.elementId) {
+            fields.design = next.elementId;
+            if (next.level) fields.level = String(next.level);
+            if (next.variant) fields.style = String(next.variant);
+          }
           else fields.section = "catalog";
           if (next.query) fields.q = next.query;
           if (next.category) fields.category = next.category;
         } else if (next.tab === "islands") {
           fields.section = "worlds";
-        } else {
+        } else if (next.tab === "chapters") {
           fields.section = next.section || "start";
           if (next.lesson) fields.lesson = next.lesson;
         }
-        history.replaceState(null, "", "#" + new URLSearchParams(fields).toString());
+        const hash = new URLSearchParams(fields).toString();
+        history.replaceState(null, "", hash ? "#" + hash : location.pathname + location.search);
       }}
     />
   );
