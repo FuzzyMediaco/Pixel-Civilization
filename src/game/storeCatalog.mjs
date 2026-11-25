@@ -49,7 +49,8 @@ export function canUseProduct(snapshot, id) {
   return Boolean(
     snapshot?.accountId &&
       snapshot.validUntil > Date.now() &&
-      (snapshot.owned.includes(id) ||
+      ((snapshot.complimentary === true && Boolean(productById(id))) ||
+        snapshot.owned.includes(id) ||
         snapshot.plan === id ||
         productById(snapshot.plan)?.includes.includes(id)),
   );

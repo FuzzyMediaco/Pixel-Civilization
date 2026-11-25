@@ -98,16 +98,27 @@ export function farmActivityRuns(s: GameState): FarmJobRun[] {
 }
 /** Closed patrol within an occupied farming corridor. A short turn at each end avoids visible teleporting. */
 export function farmJobPose(run: FarmJobRun, time: number) {
-  const [a, b] = run.path,
-    phase = (((time / run.period + run.offset) % 1) + 1) % 1,
-    forward = phase < 0.5;
-  const t = forward ? phase * 2 : 2 - phase * 2,
-    dx = b[0] - a[0],
-    dz = b[1] - a[1],
-    length = Math.hypot(dx, dz);
-  const blend = Math.sin(t * Math.PI) * 0.055 * (forward ? 1 : -1),
-    angle = Math.atan2(dx, dz) + (forward ? 0 : Math.PI);
-  return { x: a[0] + dx * t - (dz * blend) / length, z: a[1] + dz * t + (dx * blend) / length, angle };
+  const [a, b] = run.path;
+  const dx = b[0] - a[0], dz = b[1] - a[1], length = Math.hypot(dx, dz);
+  if (length === 0) return { x: a[0], z: a[1], angle: 0 };
+  // Two straight passes joined by semicircles contained inside the ends of the lane.
+  const radius = Math.min(0.08, length / 2), straight = length - 2 * radius, turn = Math.PI * radius;
+  const phase = ((time / run.period + run.offset) % 1 + 1) % 1;
+  const distance = phase * 2 * (straight + turn);
+  let along: number, side: number, heading: number;
+  if (distance < straight) {
+    along = radius + distance; side = radius; heading = 0;
+  } else if (distance < straight + turn) {
+    heading = (distance - straight) / radius;
+    along = length - radius + radius * Math.sin(heading); side = radius * Math.cos(heading);
+  } else if (distance < 2 * straight + turn) {
+    along = length - radius - (distance - straight - turn); side = -radius; heading = Math.PI;
+  } else {
+    heading = Math.PI + (distance - 2 * straight - turn) / radius;
+    along = radius + radius * Math.sin(heading); side = radius * Math.cos(heading);
+  }
+  return { x: a[0] + (dx * along - dz * side) / length, z: a[1] + (dz * along + dx * side) / length,
+    angle: Math.atan2(dx, dz) + heading };
 }
 function geometry(kind: FarmJob) {
   const v = new PixelVox();
@@ -169,19 +180,24 @@ interface Herd {
   state: Float32Array;
   /** first instance slot in each part mesh of this kind/coat */
   slot: number;
-  frame: number;
+  previous: Float32Array;
+  remainder: number;
+  bounds: THREE.Sphere;
+  shown?: boolean;
 }
 interface PartMeshes {
   kind: CritterKind;
   meshes: { role: CritterRole; pivot: THREE.Vector3; mesh: THREE.InstancedMesh }[];
   used: number;
+  visible: boolean;
 }
 const roles: Record<CritterRole, number> = { body: 0, head: 1, legA: 2, legB: 3, wings: 4 };
 export class CritterHerds {
   private root = new THREE.Group();
   private herds: Herd[] = [];
   private bins = new Map<string, PartMeshes>();
-  private frame = 0;
+  private frustum = new THREE.Frustum();
+  private bounds = new THREE.Sphere();
   private seed = 12345;
   private m = new THREE.Matrix4();
   private animal = new THREE.Matrix4();
@@ -190,7 +206,6 @@ export class CritterHerds {
   private e = new THREE.Euler();
   private p = new THREE.Vector3();
   private s = new THREE.Vector3();
-  private w = new THREE.Vector3();
   private hidden = new THREE.Matrix4().makeScale(0, 0, 0);
   constructor(
     scene: THREE.Scene,
@@ -222,14 +237,15 @@ export class CritterHerds {
         adopted = true;
         const sig = el.id + "#" + i + group.uuid;
         const prev = old.get(sig);
-        next.push(prev ?? this.spawn(sig, group, pen, i));
+        next.push(prev ?? this.spawn(sig, group, pen));
       });
       if (preview) preview.visible = !adopted;
     }
+    if (next.length === this.herds.length && next.every((h, i) => h === this.herds[i])) return;
     this.herds = next;
     this.layout();
   }
-  private spawn(sig: string, group: THREE.Group, pen: BuiltCritterPen, index: number): Herd {
+  private spawn(sig: string, group: THREE.Group, pen: BuiltCritterPen): Herd {
     const state = new Float32Array(pen.count * S),
       [x0, z0, x1, z1] = pen.area;
     for (let i = 0; i < pen.count; i++) {
@@ -244,8 +260,9 @@ export class CritterHerds {
       state[o + 7] = this.rand() * 10;
       state[o + 8] = 0.75 + this.rand() * 0.5;
     }
-    group.updateMatrixWorld(true);
-    return { sig, group, pen, state, slot: 0, frame: index % 3 };
+    const center = new THREE.Vector3((x0 + x1) / 2, pen.y, (z0 + z1) / 2);
+    const bounds = new THREE.Sphere(center, Math.hypot(x1 - x0, z1 - z0) / 2 + 2 * pen.scale);
+    return { sig, group, pen, state, previous: state.slice(), slot: 0, remainder: 0, bounds };
   }
   /** Assign instance slots; grow (re-create) meshes only when a bin overflows. */
   private layout() {
@@ -266,6 +283,7 @@ export class CritterHerds {
         bin = {
           kind: kind as CritterKind,
           used: 0,
+          visible: false,
           meshes: model.parts
             .slice()
             .sort((a, b) => roles[a.role] - roles[b.role])
@@ -286,7 +304,7 @@ export class CritterHerds {
       const bin = this.bins.get(h.pen.kind + "|" + h.pen.coat)!;
       h.slot = bin.used;
       bin.used += h.pen.count;
-      h.frame = -1;
+      h.shown = undefined;
     }
     for (const [key, bin] of this.bins) {
       const used = need.get(key) ?? 0;
@@ -298,31 +316,50 @@ export class CritterHerds {
   }
   update(dt: number) {
     if (!this.herds.length) return;
-    this.frame++;
-    const cam = this.camera?.()?.position,
-      step = Math.min(0.1, dt);
-    for (const h of this.herds) {
-      // Far herds idle (frozen); mid-range herds update at a third of the rate.
-      let interval = 1;
-      if (cam) {
-        this.w.setFromMatrixPosition(h.group.matrixWorld);
-        const d = this.w.distanceTo(cam);
-        interval = d > 140 ? 0 : d > 60 ? 3 : 1;
-      }
-      if (h.frame >= 0 && (interval === 0 || (this.frame + h.slot) % interval)) continue;
-      this.simulate(h, h.frame < 0 ? 0 : step * interval);
-      h.frame = this.frame;
+    const camera = this.camera?.();
+    if (camera) {
+      camera.updateWorldMatrix(true, false);
+      this.frustum.setFromProjectionMatrix(this.m.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
     }
-    for (const bin of this.bins.values()) for (const m of bin.meshes) m.mesh.instanceMatrix.needsUpdate = true;
+    const step = 1 / 12;
+    for (const bin of this.bins.values()) bin.visible = false;
+    for (const h of this.herds) {
+      // Pens can rotate, scale and move with their parent parcel.
+      h.group.updateWorldMatrix(true, false);
+      const shown = h.group.visible && h.group.children[0]?.visible !== false &&
+        (!camera || this.frustum.intersectsSphere(this.bounds.copy(h.bounds).applyMatrix4(h.group.matrixWorld)));
+      const bin = this.bins.get(h.pen.kind + "|" + h.pen.coat)!;
+      if (!shown) {
+        if (h.shown === false) continue;
+        for (const part of bin.meshes)
+          for (let i = 0; i < h.pen.count; i++) part.mesh.setMatrixAt(h.slot + i, this.hidden);
+      } else {
+        bin.visible = true;
+        // Steering and separation use a fixed step. Interpolate every visible frame,
+        // including the frames between steering ticks. Bound work after tab suspension.
+        h.remainder += Math.min(0.5, Math.max(0, dt));
+        while (h.remainder + 1e-9 >= step) {
+          h.previous.set(h.state);
+          this.steer(h, step);
+          h.remainder = Math.max(0, h.remainder - step);
+        }
+        this.drawHerd(h, bin, h.remainder / step);
+      }
+      h.shown = shown;
+      for (const part of bin.meshes) {
+        part.mesh.instanceMatrix.addUpdateRange(h.slot * 16, h.pen.count * 16);
+        part.mesh.instanceMatrix.needsUpdate = true;
+      }
+    }
+    for (const bin of this.bins.values())
+      for (const part of bin.meshes) part.mesh.visible = bin.visible;
   }
-  private simulate(h: Herd, dt: number) {
+  private steer(h: Herd, dt: number) {
     const { pen, state } = h,
       t = CRITTER_TUNING[pen.kind],
       [x0, z0, x1, z1] = pen.area,
       sc = pen.scale,
-      pad = Math.min(0.35 * sc, (x1 - x0) / 2, (z1 - z0) / 2),
-      bin = this.bins.get(pen.kind + "|" + pen.coat)!,
-      shown = h.group.visible && h.group.children[0]?.visible !== false;
+      pad = Math.min(0.35 * sc, (x1 - x0) / 2, (z1 - z0) / 2);
     for (let i = 0; i < pen.count; i++) {
       const o = i * S;
       let x = state[o],
@@ -378,28 +415,30 @@ export class CritterHerds {
       state[o] = x;
       state[o + 1] = z;
       state[o + 2] = hd;
-      // ---- pose ----
-      const ph = state[o + 7],
-        moving = state[o + 6] === 0;
-      let y = pen.y,
-        roll = 0,
-        head = 0,
-        legs = 0,
-        flap = 1;
+    }
+  }
+  private drawHerd(h: Herd, bin: PartMeshes, blend: number) {
+    const { pen, state, previous } = h, t = CRITTER_TUNING[pen.kind], sc = pen.scale;
+    for (let i = 0; i < pen.count; i++) {
+      const o = i * S;
+      const x = THREE.MathUtils.lerp(previous[o], state[o], blend),
+        z = THREE.MathUtils.lerp(previous[o + 1], state[o + 1], blend),
+        hd = THREE.MathUtils.lerp(previous[o + 2], state[o + 2], blend),
+        ph = THREE.MathUtils.lerp(previous[o + 7], state[o + 7], blend),
+        walk = 1 - THREE.MathUtils.lerp(previous[o + 6], state[o + 6], blend);
+      let y = pen.y, roll = 0, head = 0, legs = 0, flap = 1;
       if (t.fly) {
         y += (0.7 + 0.25 * Math.sin(ph * 0.21 + i)) * sc;
-        flap = 0.35 + 0.65 * Math.abs(Math.sin(ph * 3));
-      } else if (moving) {
-        const sw = Math.sin(ph);
-        legs = sw * 0.6;
-        y += Math.abs(sw) * t.bounce * sc;
-        if (t.hop) y += Math.max(0, Math.sin(ph * 0.25)) ** 8 * 0.12 * sc;
-        if (t.waddle) roll = sw * 0.18;
-        head = Math.sin(ph * 2) * 0.06;
+        flap = 0.65 + 0.35 * Math.sin(ph * 0.9);
       } else {
-        // graze / peck: the head dips to the grass, rising now and then to look around
+        const sw = Math.sin(ph);
+        legs = sw * 0.6 * walk;
+        y += Math.abs(sw) * t.bounce * sc * walk;
+        if (t.hop) y += Math.max(0, Math.sin(ph * 0.25)) ** 8 * 0.12 * sc * walk;
+        if (t.waddle) roll = sw * 0.18 * walk;
         const cycle = Math.sin(ph * (t.hop || t.waddle ? 3.2 : 0.7) + i);
-        head = t.graze * (t.hop || t.waddle ? Math.max(0, cycle) ** 3 : 0.55 + 0.45 * cycle);
+        const graze = t.graze * (t.hop || t.waddle ? Math.max(0, cycle) ** 3 : 0.55 + 0.45 * cycle);
+        head = THREE.MathUtils.lerp(graze, Math.sin(ph * 2) * 0.06, walk);
       }
       this.e.set(0, hd, roll, "YXZ");
       this.q.setFromEuler(this.e);
@@ -407,10 +446,6 @@ export class CritterHerds {
       this.s.setScalar(sc);
       this.animal.compose(this.p, this.q, this.s).premultiply(h.group.matrixWorld);
       for (const m of bin.meshes) {
-        if (!shown) {
-          m.mesh.setMatrixAt(h.slot + i, this.hidden);
-          continue;
-        }
         this.part.makeTranslation(m.pivot.x, m.pivot.y, m.pivot.z);
         if (m.role === "head" && head) this.part.multiply(this.m.makeRotationX(head));
         else if (m.role === "legA" && legs) this.part.multiply(this.m.makeRotationX(legs));
@@ -431,6 +466,7 @@ export class FarmActivityVisuals {
   private meshes = new Map<string, THREE.Mesh>();
   private geometry = new Map<FarmJob, THREE.BufferGeometry>();
   private clock = 0;
+  private previousHerdTime?: number;
   readonly herds: CritterHerds;
   constructor(scene: THREE.Scene, camera?: () => THREE.Camera | undefined) {
     scene.add(this.root);
@@ -441,8 +477,9 @@ export class FarmActivityVisuals {
     this.herds.sync(elements, entries);
   }
   /** Livestock animate on the real clock (they keep grazing while the city is paused). */
-  animateHerds(dt: number) {
-    this.herds.update(dt);
+  animateHerds(elapsed: number) {
+    this.herds.update(elapsed - (this.previousHerdTime ?? elapsed));
+    this.previousHerdTime = elapsed;
   }
   update(state: GameState, dt: number) {
     this.clock += dt;
@@ -454,7 +491,14 @@ export class FarmActivityVisuals {
       if (!mesh) {
         if (!this.geometry.has(run.job)) this.geometry.set(run.job, geometry(run.job));
         mesh = new THREE.Mesh(this.geometry.get(run.job), getPixelVoxelMaterial());
-        if (run.job === "herd") mesh.add(new THREE.Mesh(critterModel("horse", 3).whole, getPixelVoxelMaterial()));
+        if (run.job === "herd") {
+          for (const part of critterModel("horse", 3).parts) {
+            const piece = new THREE.Mesh(part.geo, getPixelVoxelMaterial());
+            piece.name = part.role;
+            piece.position.set(...part.pivot);
+            mesh.add(piece);
+          }
+        }
         this.meshes.set(run.key, mesh);
         this.root.add(mesh);
       }
@@ -467,6 +511,14 @@ export class FarmActivityVisuals {
         p.z * TILE_SIZE,
       );
       mesh.rotation.y = p.angle;
+      if (run.job === "herd") {
+        const stride = Math.sin(this.clock * CRITTER_TUNING.horse.stride);
+        for (const piece of mesh.children) {
+          if (piece.name === "legA") piece.rotation.x = stride * 0.42;
+          if (piece.name === "legB") piece.rotation.x = -stride * 0.42;
+          if (piece.name === "head") piece.rotation.x = Math.sin(this.clock * 12) * 0.05;
+        }
+      }
     }
     for (const [key, mesh] of this.meshes)
       if (!keys.has(key)) {

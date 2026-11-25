@@ -436,7 +436,7 @@ export function PixBuilderModal({
         </div>
         {!activeProvider.connected && <p className="pix-notice">{providerNames[provider]} is currently unavailable for this account. View plans in More → Island Store.</p>}
         {activeProvider.connected && <label className="pix-notice"><input type="checkbox" checked={Boolean(consent[provider])} onChange={e=>setConsent(values=>({...values,[provider]:e.target.checked}))}/> Allow {provider==="free" ? modelLabel : providerNames[provider]} to receive my prompt and the island details used for this request. You can turn sharing off here.</label>}
-        {provider!=="free" && access.plan && <p className="pix-notice">{access.usage.messages} of {access.usage.limit} messages used this period.</p>}
+        {provider!=="free" && access.plan && access.usage.limit > 0 && <p className="pix-notice">{access.usage.messages} of {access.usage.limit} messages used this period.</p>}
 
         <div className="pix-body">
           {tab === "element" && (

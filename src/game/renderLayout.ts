@@ -38,9 +38,10 @@ export class RenderLayout {
   private topology=new ParcelLayoutRevision();
   parcels=new Map<string,ReturnType<typeof renderParcel>>();
   blockers=new BuildingCollisionIndex([]);
+  occupancy=new Map<string,PlacedElement>();
   update(state:GameState,ground:(def:CivElementDef,x:number,z:number)=>number):boolean{
     if(!this.topology.update(state))return false;
-    const occupancy=buildOccupancyMap(state.elements);
+    const occupancy=this.occupancy=buildOccupancyMap(state.elements);
     this.parcels.clear();
     for(const el of state.elements){
       const def=ELEMENT_BY_ID[el.defId];if(def)this.parcels.set(el.id,renderParcel(state,el,def,occupancy,ground));

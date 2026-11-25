@@ -33,6 +33,7 @@ async function snapshot(env, user) {
     accountId: user?.id ?? null,
     owned,
     plan: plan?.product_id ?? null,
+    ...(plan?.store === "complimentary" && { complimentary: true }),
     usage: await getUsage(db, user?.id, plan),
     providers,
     readyStores,
@@ -82,6 +83,7 @@ export async function commerceRequest(request, env) {
       const sku = productById(body.productId);
       requireStore(sku, 400, "Unknown game product.", "bad_product");
       const access = await snapshot(env, user);
+      requireStore(!access.complimentary, 409, "Your account already includes this item.", "owned");
       if (sku.kind === "subscription" && access.plan) {
         const grant = (await activeGrants(env.GAME_ACCOUNTS, user.id)).plan;
         if (grant.store === "stripe") return json(await portal(env, user));

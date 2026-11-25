@@ -6,6 +6,7 @@ import {
   invalidateGatewayBalance,
   runGateway,
 } from "./pix-gateway.mjs";
+import { capacitySql, capacityParams } from "./pix-capacity.mjs";
 import { AccountError } from "./account-http.mjs";
 import { currentSession } from "./accounts.mjs";
 import { activeGrants, requireOrigin, requireStore, usageWindow, utf8 } from "./store-data.mjs";
@@ -157,18 +158,23 @@ export async function reserveGeneration(
   // completed binding requests in the estimate while provider debits propagate.
   const gatewaySum = `SELECT COALESCE(SUM(cost_micros),0) AS committed FROM game_pix_usage
     WHERE model IN (?,?,?) AND state!='failed' AND (state='reserved' OR started_at>=?)`;
+  // A complimentary request can use only the balance left after paying players' allowances.
+  const sharedCapacity = gateway && grant.store === "complimentary";
+  const discretionaryWhere = sharedCapacity ? " AND (SELECT available FROM capacity)>=?" : "";
   const gatewayWhere = gateway ? " AND (" + gatewaySum + ")+?<=?" : "";
   const gatewayParams = gateway
     ? [...Object.values(GATEWAY_MODELS), gateway.checkedAt - 120000, worst, gateway.availableMicros]
     : [];
   const row = await db
     .prepare(
-      `INSERT INTO game_pix_usage(user_id,request_key,started_at,provider,model,state,cost_micros)
+      (sharedCapacity ? capacitySql : "") +
+        `INSERT INTO game_pix_usage(user_id,request_key,started_at,provider,model,state,cost_micros)
     SELECT ?,?,?,?,?,'reserved',? WHERE (SELECT COUNT(*) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed') < ?
-    AND (SELECT COALESCE(SUM(cost_micros),0) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed')+? <= ?${gatewayWhere}
+    AND (SELECT COALESCE(SUM(cost_micros),0) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed')+? <= ?${gatewayWhere}${discretionaryWhere}
     ON CONFLICT(user_id,request_key) DO NOTHING RETURNING request_key`,
     )
     .bind(
+      ...(sharedCapacity ? capacityParams(gateway, now) : []),
       user,
       id,
       now,
@@ -185,6 +191,7 @@ export async function reserveGeneration(
       worst,
       product.budgetMicros,
       ...gatewayParams,
+      ...(sharedCapacity ? [worst] : []),
     )
     .first();
   if (!row) {
@@ -198,6 +205,18 @@ export async function reserveGeneration(
         "This Pix request has already been submitted. Send a new request to generate again.",
         "duplicate_generation",
       );
+    if (sharedCapacity) {
+      const capacity = await db
+        .prepare(capacitySql + "SELECT available FROM capacity")
+        .bind(...capacityParams(gateway, now))
+        .first();
+      requireStore(
+        capacity.available >= worst,
+        503,
+        "Pix is waiting for available gateway credits.",
+        "provider_unavailable",
+      );
+    }
     if (gateway) {
       const row = await db
         .prepare(gatewaySum)

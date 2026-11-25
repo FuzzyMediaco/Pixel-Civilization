@@ -136,7 +136,7 @@ export class EngineeringView {
   private lights = new Map<string, THREE.Mesh>();
   private weights = new Map<string, THREE.Mesh>();
   private streamMarks: THREE.InstancedMesh | null = null;
-  private currentPoints: { x: number; y: number; z: number; dx: number; dz: number; phase: number }[] = [];
+  private readonly flowTime = { value: 0 };
   constructor(private readonly drawOceanWithWaves = false) {
     this.mask = new THREE.DataTexture(this.pixels, GRID_SIZE, GRID_SIZE);
     this.mask.magFilter = THREE.NearestFilter;
@@ -153,7 +153,14 @@ export class EngineeringView {
           "#include <begin_vertex>\nvWorksXZ=(modelMatrix*vec4(position,1.)).xz;\nvVoxelTop=normal.y;",
         );
       const checkerSnippet = voxelChecker
-        ? `\nif(vVoxelTop>0.5){\n vec2 vc=floor(vWorksXZ/0.25);\n float ck=mod(vc.x+vc.y,2.0);\n if(ck>0.5) diffuseColor.rgb*=vec3(0.935,0.955,0.925);\n}`
+        ? `
+          if (vVoxelTop > 0.5) {
+            vec2 cell = vWorksXZ / 0.25;
+            vec2 footprint = fwidth(cell);
+            float detail = 1.0 - smoothstep(0.35, 1.2, max(footprint.x, footprint.y));
+            float check = mix(0.5, mod(floor(cell.x) + floor(cell.y), 2.0), detail);
+            diffuseColor.rgb *= mix(vec3(1.0), vec3(0.935, 0.955, 0.925), check);
+          }`
         : "";
       s.fragmentShader =
         "varying vec2 vWorksXZ;\nvarying float vVoxelTop;\nuniform sampler2D uWorksMask;\n" +
@@ -199,7 +206,7 @@ export class EngineeringView {
     this.clear(this.group);
     this.moving.clear();
     this.weights.clear();
-    this.currentPoints = [];
+    const currents: { x: number; y: number; z: number; dx: number; dz: number; phase: number; drop?: number }[] = [];
     if (this.streamMarks) {
       (this.streamMarks.material as THREE.Material).dispose();
       this.streamMarks.dispose();
@@ -321,7 +328,7 @@ export class EngineeringView {
         if (cell.depth > 0) {
           if (hydro.channels.has(k) && cell.flowDir !== undefined) {
             const [dx, dz] = DIRECTIONS[cell.flowDir];
-            this.currentPoints.push({
+            currents.push({
               x: x + 2 - dx * 0.9 + dz * 0.34,
               y: cell.waterLevel + 0.035,
               z: z + 2 - dz * 0.9 + dx * 0.34,
@@ -572,7 +579,7 @@ export class EngineeringView {
           );
         if (hydro.channels.has(k) && cell.flowDir !== undefined) {
           const [dx, dz] = DIRECTIONS[cell.flowDir];
-          this.currentPoints.push({
+          currents.push({
             x: x + 2 - dx * 0.9 + dz * 0.34,
             y: cell.waterLevel + 0.035,
             z: z + 2 - dz * 0.9 + dx * 0.34,
@@ -765,7 +772,7 @@ export class EngineeringView {
         const [dx, dz] = DIRECTIONS[side],
           neighbor = hydro.runs.get(tileKey(gx + dx, gz + dz));
         if (r.flow && neighbor?.upstream === (side + 2) % 4) {
-          this.currentPoints.push({ x: cx, y: h + 0.09, z: cz, dx, dz, phase: (gx * 3 + gz * 5) * 0.21 });
+          currents.push({ x: cx, y: h + 0.09, z: cz, dx, dz, phase: (gx * 3 + gz * 5) * 0.21 });
         }
         const feed = r.inlet === side,
           delivery = Boolean(((r.deliveries ?? 0) | (r.waterOutlets ?? 0)) & (1 << side));
@@ -817,6 +824,10 @@ export class EngineeringView {
           0x75c9d7,
         );
         solid.box(x - 0.14, bottom, z - 0.14, 0.28, Math.max(0.1, h - bottom), 0.28, 0x86d5df);
+        const drop = h - bottom - 0.24;
+        if (drop > 0.3) {
+          currents.push({ x: x + dx * 0.145, y: h - 0.12, z: z + dz * 0.145, dx, dz, phase: gx * 0.37 + gz * 0.23, drop });
+        }
         solid.box(x - 0.4, bottom + 0.02, z - 0.4, 0.8, 0.08, 0.8, 0xc3e9e4);
       }
     }
@@ -1158,29 +1169,42 @@ export class EngineeringView {
       this.lights.set(k, mesh);
       this.group.add(mesh);
     }
-    if (this.currentPoints.length) {
+    if (currents.length) {
       const geometry = new THREE.BoxGeometry(0.26, 0.032, 0.1);
       const color = new THREE.MeshBasicMaterial({ color: 0xafe2e4 });
-      this.streamMarks = new THREE.InstancedMesh(geometry, color, this.currentPoints.length);
+      const paths = new Float32Array(currents.length * 3);
+      this.streamMarks = new THREE.InstancedMesh(geometry, color, currents.length);
+      this.streamMarks.name = "Water current highlights";
+      const matrix = new THREE.Matrix4();
+      currents.forEach((p, index) => {
+        if (p.drop) matrix.makeRotationZ(-Math.PI / 2);
+        else matrix.makeRotationY(-Math.atan2(p.dz, p.dx));
+        matrix.setPosition(p.x, p.y, p.z);
+        this.streamMarks!.setMatrixAt(index, matrix);
+        paths.set([p.phase, p.drop ?? 1.8, p.drop ? 3.4 / p.drop : 0.6], index * 3);
+      });
+      geometry.setAttribute("flowPath", new THREE.InstancedBufferAttribute(paths, 3));
+      color.onBeforeCompile = (shader) => {
+        shader.uniforms.uFlowTime = this.flowTime;
+        shader.vertexShader = shader.vertexShader.replace("#include <common>",
+          "#include <common>\nuniform float uFlowTime;\nattribute vec3 flowPath;").replace("#include <begin_vertex>", `
+          #include <begin_vertex>
+          float travel = fract(uFlowTime * flowPath.z + flowPath.x);
+          transformed *= smoothstep(0.0, 0.13, travel) * (1.0 - smoothstep(0.84, 1.0, travel));
+          transformed.x += travel * flowPath.y;
+        `);
+      };
       this.streamMarks.frustumCulled = false;
       this.group.add(this.streamMarks);
     }
     if (solid.positions.length) this.group.add(solid.mesh(this.material));
     if (voxelWater.positions.length) this.group.add(voxelWater.mesh(this.voxelWaterMat));
   }
-  animate(state: GameState) {
+  animate(state: GameState, elapsedSeconds: number) {
+    this.flowTime.value = elapsedSeconds;
     for (const [k, m] of this.weights) {
       const s = state.infrastructure?.spans[k];
       if (s) m.position.y = -liftProgress(state, s) * 4.5;
-    }
-    if (this.streamMarks) {
-      const m = new THREE.Matrix4();
-      this.currentPoints.forEach((p, j) => {
-        const slide = ((((state.activePlaySec * 0.6 + p.phase) % 1) + 1) % 1) * 1.8;
-        m.makeTranslation(p.x + p.dx * slide, p.y, p.z + p.dz * slide);
-        this.streamMarks!.setMatrixAt(j, m);
-      });
-      this.streamMarks.instanceMatrix.needsUpdate = true;
     }
     for (const [k, m] of this.moving) {
       const s = state.infrastructure?.spans[k];

@@ -7,7 +7,8 @@ import { openAccountDatabase } from "../src/server/localAccounts.mjs";
 import { accountRequest } from "../worker/accounts.mjs";
 import { commerceRequest } from "../worker/commerce.mjs";
 import { reserveGeneration, pixWithPlans } from "../worker/pix-plans.mjs";
-import { recordPurchase } from "../worker/store-data.mjs";
+import { GATEWAY_MODELS } from "../worker/pix-gateway.mjs";
+import { activeGrants, recordPurchase, usageWindow } from "../worker/store-data.mjs";
 import { STORE_PRODUCTS, canUseProduct, productForEra, productForMode } from "../src/game/storeCatalog.mjs";
 
 const origin = "https://pixelcivilization.app";
@@ -840,4 +841,130 @@ test("concurrent Pix requests from separate players share one prepaid gateway wa
   const failed = outcomes.find((r) => r.status === "rejected");
   assert.equal((failed as PromiseRejectedResult).reason.code, "provider_unavailable");
   assert.equal((app.sqlite.prepare("SELECT COUNT(*) AS n FROM game_pix_usage").get() as any).n, 1);
+});
+
+test("complimentary access follows one existing account through web, offline leases and Pix", async (t) => {
+  const keys = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, [
+    "sign",
+    "verify",
+  ]);
+  const app = await setup({
+    STORE_LEASE_SIGNING_JWK: JSON.stringify(await crypto.subtle.exportKey("jwk", keys.privateKey)),
+    OPENAI_API_KEY: "local-fixture",
+  });
+  t.after(() => app.sqlite.close());
+  const register = (email: string) =>
+    accountRequest(
+      app.req("/api/account/register", "POST", "", { email, password: "city password 9" }),
+      app.env,
+    );
+  const peer = await register("other@example.test");
+  const peerCookie = peer.headers.get("set-cookie")!.split(";")[0],
+    peerId = (await peer.json()).user.id;
+  const snapshot = async (cookie: string) =>
+    (await commerceRequest(app.req("/api/commerce/access", "GET", cookie), app.env)).json();
+  app.sqlite.prepare("INSERT INTO game_complimentary_access(slot,user_id) VALUES(1,?)").run(app.user);
+  assert.throws(() =>
+    app.sqlite.prepare("INSERT INTO game_complimentary_access(slot,user_id) VALUES(2,?)").run(peerId),
+  );
+  const access = await snapshot(app.cookie);
+  assert.equal(access.plan, "pix_complete");
+  assert.equal(access.complimentary, true);
+  assert.equal(access.usage.limit, 2500);
+  assert.equal(access.pixBilling, null);
+  assert.ok(STORE_PRODUCTS.every((p) => canUseProduct(access, p.id)));
+  const [head, body, sig] = access.lease.split(".");
+  assert.ok(
+    await crypto.subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      keys.publicKey,
+      Buffer.from(sig, "base64url"),
+      Buffer.from(head + "." + body),
+    ),
+  );
+  const lease = JSON.parse(Buffer.from(body, "base64url").toString());
+  assert.equal(lease.sub, app.user);
+  assert.equal(lease.complimentary, true);
+  assert.ok(lease.exp > Date.now() / 1000 + 6 * 86400 && lease.exp <= Date.now() / 1000 + 7 * 86400);
+  for (const cookie of ["", peerCookie]) {
+    const other = await snapshot(cookie);
+    assert.equal(other.plan, null);
+    assert.ok(!other.complimentary);
+    assert.ok(!canUseProduct(other, "mode_god"));
+  }
+  for (const id of ["era_rome", "mode_god", "pix_starter", "pix_complete"]) {
+    const response = await app.call("checkout", { productId: id });
+    assert.equal(response.status, 409);
+    assert.equal((await response.json()).code, "owned");
+  }
+  assert.equal((await register("ADA@example.COM")).status, 409);
+  assert.equal((await app.call("access", undefined, { "X-Game-Account": peerId })).status, 409);
+  const generate = (cookie: string) =>
+    pixWithPlans(
+      app.req(
+        "/api/pix/world",
+        "POST",
+        cookie,
+        { prompt: "Plant an orchard" },
+        { "X-Pix-Provider": "openai", "Idempotency-Key": "owner-request" },
+      ),
+      app.env,
+      null,
+    );
+  const provider = t.mock.method(globalThis, "fetch", async () =>
+    json({
+      output: [{ content: [{ type: "output_text", text: JSON.stringify({ operations: [] }) }] }],
+      usage: { input_tokens: 100, output_tokens: 20 },
+    }),
+  );
+  assert.equal((await generate(peerCookie)).status, 402);
+  assert.equal((await generate(app.cookie)).status, 200);
+  assert.equal(provider.mock.callCount(), 1);
+  assert.equal((await snapshot(app.cookie)).usage.messages, 1);
+  assert.equal((app.sqlite.prepare("SELECT COUNT(*) AS n FROM game_purchases").get() as any).n, 0);
+  const deletion = await accountRequest(
+    app.req("/api/account/me", "DELETE", app.cookie, { password: "city password 9" }),
+    app.env,
+  );
+  assert.equal(deletion.status, 200);
+  const recreated = await register("ADA@example.com");
+  const recreatedCookie = recreated.headers.get("set-cookie")!.split(";")[0];
+  assert.notEqual((await recreated.json()).user.id, app.user);
+  assert.equal((await snapshot(recreatedCookie)).plan, null);
+  assert.equal((app.sqlite.prepare("SELECT COUNT(*) AS n FROM game_complimentary_access").get() as any).n, 0);
+});
+
+test("complimentary Pix uses calendar months and only uncommitted gateway credits", async (t) => {
+  const app = await setup();
+  t.after(() => app.sqlite.close());
+  app.sqlite.prepare("INSERT INTO game_complimentary_access(slot,user_id) VALUES(1,?)").run(app.user);
+  const peer = await accountRequest(
+    app.req("/api/account/register", "POST", "", {
+      email: "neighbor@example.test",
+      password: "city password 9",
+    }),
+    app.env,
+  );
+  const peerId = (await peer.json()).user.id;
+  const now = Date.UTC(2028, 1, 29);
+  const grant = (await activeGrants(app.db, app.user, now)).plan;
+  assert.deepEqual(usageWindow(grant, now), [Date.UTC(2028, 1, 1), Date.UTC(2028, 2, 1)]);
+  assert.deepEqual(usageWindow(grant, Date.UTC(2028, 11, 31)), [Date.UTC(2028, 11, 1), Date.UTC(2029, 0, 1)]);
+  const wallet = { availableMicros: 800, checkedAt: now };
+  app.sqlite
+    .prepare(
+      "INSERT INTO game_pix_funded_terms(id,user_id,product_id,budget_micros,kind,state,created_at,hold_until) VALUES('paid',?,'pix_starter',600,'initial','held',?,?)",
+    )
+    .run(peerId, now, now + 86400000);
+  const reserve = (id: string, cost: number) =>
+    reserveGeneration(app.db, app.user, id, grant, "openai", cost, now, GATEWAY_MODELS.openai, wallet);
+  const results = await Promise.allSettled([
+    reserve("owner-simultaneous-a", 150),
+    reserve("owner-simultaneous-b", 150),
+  ]);
+  assert.equal(results.filter((x) => x.status === "fulfilled").length, 1);
+  assert.ok(results.some((x) => x.status === "rejected" && x.reason.code === "provider_unavailable"));
+  await assert.rejects(reserve("owner-over", 51), { code: "provider_unavailable" });
+  await reserve("owner-last", 50);
+  assert.equal((app.sqlite.prepare("SELECT SUM(cost_micros) AS n FROM game_pix_usage").get() as any).n, 200);
 });

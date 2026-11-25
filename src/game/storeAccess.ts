@@ -63,13 +63,21 @@ async function offline(id: string | null): Promise<StoreAccess | null> {
       !Array.isArray(grant.owned)
     )
       return null;
-    return { ...blank, accountId: id, owned: grant.owned, plan: grant.plan, validUntil: grant.exp * 1000 };
+    return {
+      ...blank,
+      accountId: id,
+      owned: grant.owned,
+      plan: grant.plan,
+      complimentary: grant.complimentary === true,
+      validUntil: grant.exp * 1000,
+    };
   } catch {
     return null;
   }
 }
 function put(snapshot: Verified, id: string | null) {
   if ((currentPlayer()?.id ?? null) !== id) return cachedStoreAccess();
+  if (snapshot.accountId !== id) snapshot = blank;
   if (id && snapshot.accountId === id) {
     try {
       if (snapshot.lease) localStorage.setItem(key(id), snapshot.lease);
