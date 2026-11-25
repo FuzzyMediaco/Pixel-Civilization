@@ -162,6 +162,11 @@ export async function confirmStorePurchase(receipt: StoreReceipt): Promise<Store
 export async function startWebCheckout(productId: string): Promise<string> {
   return (await api<{ url: string }>("checkout", { productId })).url;
 }
+export async function stopPixRenewal(): Promise<StoreAccess> {
+  const id = currentPlayer()?.id;
+  if (!id) throw new Error("Sign in to manage your Pix plan.");
+  return put(await api<Verified>("pix/cancel-renewal", {}, id), id);
+}
 export async function openBillingPortal(): Promise<string> {
   return (await api<{ url: string }>("portal", {})).url;
 }

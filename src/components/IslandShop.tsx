@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { GameDialog } from "./GameDialog";
 import { PlayerAccount } from "./PlayerAccount";
 import { STORE_PRODUCTS, canUseProduct, productById, type StoreProduct } from "../game/storeCatalog.mjs";
-import { cachedStoreAccess, confirmStorePurchase, fetchStoreAccess, finishWebCheckout, openBillingPortal, startWebCheckout, subscribeStoreAccess, type StoreReceipt } from "../game/storeAccess";
+import { cachedStoreAccess, confirmStorePurchase, fetchStoreAccess, finishWebCheckout, openBillingPortal, startWebCheckout, stopPixRenewal, subscribeStoreAccess, type StoreReceipt } from "../game/storeAccess";
 import { currentPlayer } from "../game/deviceSaves";
 import { tourId, tourImage } from "../game/periodTours";
 import "./islandShop.css";
@@ -16,6 +16,13 @@ interface NativeStore {
 export function nativeShop() {return (window as Window & {pixelStore?:NativeStore}).pixelStore;}
 export const useStoreAccess = () => useSyncExternalStore(subscribeStoreAccess,cachedStoreAccess);
 const dollars=(cents:number)=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(cents/100);
+function hostedInvoice(value?: string) {
+  if (!value) return;
+  try {
+    const url = new URL(value);
+    if (url.protocol === "https:" && ["invoice.stripe.com","pay.stripe.com"].includes(url.hostname) && !url.username && !url.password && !url.port) return url.href;
+  } catch { /* Wait for a refreshed billing snapshot. */ }
+}
 const kindNames={era:"Time periods",mode:"Modes",subscription:"Pix plans"} as const;
 
 export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()=>void;saveNow:()=>boolean}) {
@@ -27,10 +34,14 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
   const [accountForm,setAccountForm]=useState(false);
   const [receiptAttempt,retryReceipt]=useState(0);
   const [receiptPending,setReceiptPending]=useState(false);
+  const [confirmStop, setConfirmStop] = useState(false);
+  const billing = access.pixBilling;
+  const invoice = hostedInvoice(billing?.invoiceUrl);
+  const paidThrough = billing?.paidThrough ? new Date(billing.paidThrough).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "";
   const [externalBilling,setExternalBilling]=useState<{href:string;label:string}>();
   function openWebBilling(address:string,label:string) {
     const url=new URL(address);
-    if(url.protocol!=="https:" || !["checkout.stripe.com","buy.stripe.com","billing.stripe.com"].includes(url.hostname)) throw Error("The billing link could not be verified.");
+    if(url.protocol!=="https:" || url.username || url.password || url.port || !["checkout.stripe.com","buy.stripe.com","billing.stripe.com"].includes(url.hostname)) throw Error("The billing link could not be verified.");
     if(navigator.userAgent.includes("PixelCivilizationOffline")) setExternalBilling({href:url.href,label});
     else location.assign(url.href);
   }
@@ -68,16 +79,23 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
     if(outcome!=="complete"){finishReturn();return;}
     const session=url.searchParams.get("session_id");
     if(!session){setMessage("The receipt link is missing its checkout number.");return;}
-    if(!access.accountId || access.accountId!==currentPlayer()?.id)return;
+    if (!access.accountId || access.accountId !== currentPlayer()?.id) {
+      setAccountForm(true);
+      setMessage("Sign in to the game account that opened checkout to check this receipt.");
+      return;
+    }
     let stopped=false;
     let retryTimer:number|undefined;
     let checks=0;
     async function check() {
       try {
-        await finishWebCheckout(session!);
+        const checked = await finishWebCheckout(session!);
         if(stopped)return;
         setReceiptPending(false);
-        setMessage("Your purchase has been checked. Your library is up to date.");
+        if (checked.pixBilling?.state === "invoice_open" || checked.pixBilling?.state === "processing") {
+          setKind("subscription");
+          setMessage("Payment setup received. Your plan starts when Stripe confirms the first invoice.");
+        } else setMessage("Your purchase has been checked. Your library is up to date.");
         finishReturn();
       } catch(error) {
         if(stopped)return;
@@ -91,6 +109,14 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
     void check();
     return ()=>{stopped=true;window.clearTimeout(retryTimer);};
   },[access.accountId,receiptAttempt]);
+  useEffect(() => {
+    if (!access.accountId || (billing?.state !== "invoice_open" && billing?.state !== "processing")) return;
+    const refresh = () => { if (document.visibilityState === "visible") void fetchStoreAccess(); };
+    const timer = window.setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
+  }, [access.accountId, billing?.state]);
   const purchase=(p:StoreProduct)=>handle(async()=>{
     if(!access.accountId){setAccountForm(true);return;}
     if(!saveNow()){throw Error("Save your island before opening checkout.");}
@@ -105,14 +131,41 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
       <button className="ui-btn" onClick={onClose} aria-label="Close store">Close</button></header>
     <nav aria-label="Store categories">{(Object.keys(kindNames) as StoreProduct["kind"][]).map(k=><button key={k} type="button" className="ui-btn" aria-pressed={k===kind} onClick={()=>setKind(k)}>{kindNames[k]}</button>)}</nav>
     {accountForm && !access.accountId && <PlayerAccount saveNow={saveNow}/>}
-    {kind==="subscription" && <p>Pix plans renew monthly. Each includes a message allowance and an AI usage budget. The first limit reached pauses paid messages until renewal. Includes are available while subscribed.</p>}
+    {kind==="subscription" && <>
+      <p>Each plan includes game access and a monthly Pix allowance. Paid messages pause when you reach either limit.</p>
+      {storeEdition ? <p>Monthly Pix purchases are coming to this store.</p> :
+        <details className="pc-shop-terms">
+          <summary>How billing and renewal work</summary>
+          <p>Set up your payment method, then review your first Stripe invoice, including applicable tax. Your plan starts when you pay. It renews monthly while the next month’s AI allowance is funded. You can stop renewal here and keep the rest of your paid month.</p>
+        </details>}
+    </>}
+    {billing && billing.state !== "ended" && !storeEdition && <section className="pc-shop-billing" aria-label="Your Pix billing">
+      {billing.state === "invoice_open" && <>
+        <h2>Your first Pix invoice</h2>
+        <p>Review the total on Stripe. Your plan starts after payment is confirmed.</p>
+        {invoice && <a className="ui-btn" href={invoice} target="_blank" rel="noopener noreferrer">Review and pay first invoice ↗</a>}
+      </>}
+      {billing.state === "processing" && <p role="status">Stripe is confirming your Pix payment.</p>}
+      {(billing.state === "invoice_open" || billing.state === "processing") && <button type="button" className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{await fetchStoreAccess();})}>Check payment status</button>}
+      {billing.state === "active" && <p>{billing.renews ? "Monthly renewal is on." : "Monthly renewal is off."} {paidThrough && `Your current access runs through ${paidThrough}.`}</p>}
+      {billing.state === "active" && billing.renews && (confirmStop ? <>
+        <p>Stop future Pix renewals? You keep access through this paid period.</p>
+        <button type="button" className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{await stopPixRenewal();setConfirmStop(false);setMessage("Monthly renewal has been stopped.");})}>Confirm stop</button>
+        <button type="button" className="ui-btn" disabled={busy} onClick={()=>setConfirmStop(false)}>Keep renewal</button>
+      </> : <button type="button" className="ui-btn" disabled={busy} onClick={()=>setConfirmStop(true)}>Stop Pix renewal</button>)}
+    </section>}
     {access.plan && <p role="status">{productById(access.plan)?.label} · {access.usage.messages} of {access.usage.limit} messages · {dollars(access.usage.spendMicros/10000)} of {dollars(access.usage.budgetMicros/10000)} AI usage this period.</p>}
     {externalBilling && <p role="status" className="pc-shop-status"><a className="ui-btn" href={externalBilling.href}>{externalBilling.label} ↗</a></p>}
     {receiptPending && <button className="ui-btn" type="button" onClick={()=>retryReceipt(n=>n+1)}>Check purchase again</button>}
     {message && <p role="status" className="pc-shop-status">{message}</p>}
     <section className="pc-shop-grid" aria-label={kindNames[kind]}>{STORE_PRODUCTS.filter(p=>p.kind===kind).map(p=>{
       const listing=listings.find(l=>l.id===p.id), owned=canUseProduct(access,p.id);
-      const available=(!storeEdition||Boolean(native)) && access.readyStores.includes(native?.platform??"stripe") && (!native||Boolean(listing)) && (p.kind!=="subscription"||(access.providers.length>=3 && (native || access.webSubscriptionsReady!==false)));
+      const admission = access.pixAdmission?.tiers[p.id];
+      const isPlan = p.kind === "subscription";
+      const checkoutPending = isPlan && (billing?.state === "invoice_open" || billing?.state === "processing");
+      const tierReady = !isPlan || (!checkoutPending && !storeEdition && admission?.available === true && access.providers.length >= 3 && access.webSubscriptionsReady === true);
+      const available = tierReady && (!storeEdition || Boolean(native)) && access.readyStores.includes(native?.platform ?? "stripe") && (!native || Boolean(listing));
+      const unavailableLabel = checkoutPending ? "Checkout in progress" : isPlan && !storeEdition && admission?.reason === "wallet_capacity" ? "At capacity" : "Purchases opening soon";
       const price=listing?.price??dollars(p.usdCents);
       return <article key={p.id} data-featured={p.id===initial}>
         {p.era && <img alt="" src={tourImage(p.era,"skyline")} loading="lazy"/>}
@@ -120,8 +173,8 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
         {p.era && <a href={"./#world="+tourId(p.era,"starter")+"&era="+p.era} target="_blank" rel="noreferrer">Explore free island ↗</a>}
         {p.kind==="mode" && <p>{p.mode==="god"?"Sculpt terrain, control time and build without limits on your own islands.":"Balance growth, upkeep and emergencies on your own islands."}</p>}
         {p.kind==="subscription" && <p>{p.messages?.toLocaleString()} messages · {dollars((p.budgetMicros??0)/10000)} AI usage. {p.id==="pix_complete"?"Includes both modes and all ten time periods.":"Includes "+p.includes.map(id=>productById(id)?.label).join(", ")+"."}</p>}
-        <button className="ui-btn" disabled={busy||owned||(!available&&Boolean(access.accountId))} onClick={()=>void purchase(p)}>
-          {owned?"In your library":!access.accountId?"Sign in to purchase":!available?"Purchases opening soon":p.kind==="subscription"?"Subscribe":"Unlock "+p.label}</button>
+        <button className="ui-btn" disabled={busy||owned||!available} onClick={()=>void purchase(p)}>
+          {owned?"In your library":!available?unavailableLabel:!access.accountId?"Sign in to purchase":isPlan?"Subscribe":"Unlock "+p.label}</button>
       </article>;
     })}</section>
     <footer>{native && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(!access.accountId){setAccountForm(true);return;}const receipts=await native.restore();await deliver(receipts);await fetchStoreAccess();setMessage("Your purchases have been checked.");})}>Restore purchases</button>}

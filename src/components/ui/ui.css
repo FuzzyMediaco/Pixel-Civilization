@@ -2789,6 +2789,12 @@ button.ui-row:hover { border-color: var(--ui-green); }
   color: var(--ui-green);
   margin-bottom: 2px;
 }
+.pix-card [aria-label="Report a Pix result"] label {
+  display: grid;
+  gap: 5px;
+  font-weight: 600;
+}
+.pix-card [aria-label="Report a Pix result"] select,
 .pix-card textarea, .pix-inline-form input {
   width: 100%;
   padding: 10px 12px;
