@@ -20,7 +20,14 @@ def sim(*args, timeout=120, capture=False, check=True):
 
 
 def device(family):
-    all_devices = json.loads(sim("list", "devices", "available", "-j", capture=True).stdout)["devices"]
+    # On a freshly provisioned Mac the first query also starts CoreSimulator.
+    # A slow service launch should not discard an otherwise usable runner.
+    try:
+        inventory = sim("list", "devices", "available", "-j", capture=True, timeout=180)
+    except subprocess.TimeoutExpired:
+        print("Waiting for the simulator device service to initialize", flush=True)
+        inventory = sim("list", "devices", "available", "-j", capture=True, timeout=240)
+    all_devices = json.loads(inventory.stdout)["devices"]
     pattern = r"iPhone .*Pro Max" if family == "phone" else r"iPad Pro.*13-inch"
     for runtime, devices in all_devices.items():
         # StoreKit Test on the 26.5 simulator can fail to save its local configuration.
