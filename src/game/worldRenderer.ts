@@ -121,6 +121,7 @@ export interface WorldCallbacks {
   onMapTap?: () => boolean;
   onSelectElement: (elementId: string | null, additiveShift: boolean) => void;
   onEmptyTileTap?: (gx: number, gz: number) => void;
+  onGridPointer?: (gx: number, gz: number) => void;
   onHoverInfo?: (info: { gx: number; gz: number; valid: boolean; reason?: string } | null) => void;
 }
 
@@ -970,6 +971,17 @@ export class PixelWorldRenderer {
     this.callbacks.onFollowChange?.(id);
     if(id){this.spherical.radius=21;this.cameraMode="pan";this.updateCameraTransform();}
   }
+  public projectGrid(gx: number, gz: number) {
+    const [x, z] = gridToWorldCenter(gx, gz);
+    this.projVec.set(x, 1.5, z).project(this.camera);
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: rect.left + (this.projVec.x + 1) * rect.width / 2,
+      y: rect.top + (1 - this.projVec.y) * rect.height / 2,
+      visible: Math.abs(this.projVec.x) <= 1 && Math.abs(this.projVec.y) <= 1 && Math.abs(this.projVec.z) <= 1,
+    };
+  }
+
   public focusGrid(gx: number, gz: number, distance = 21): void {
     this.stopWatchingConstruction();
     this.followService();
@@ -3885,6 +3897,7 @@ export class PixelWorldRenderer {
     }
 
     const g = this.computePointerGrid(e.clientX, e.clientY);
+    if (g) this.callbacks.onGridPointer?.(g[0], g[1]);
     this.hoverGrid = g;
     this.updateHoverOverlay();
 
@@ -4007,6 +4020,7 @@ export class PixelWorldRenderer {
 
     const prevVoxel = this.hoverVoxel;
     const g = this.computePointerGrid(e.clientX, e.clientY);
+    if (g) this.callbacks.onGridPointer?.(g[0], g[1]);
     const voxelChanged =
       Boolean(this.worksTool && isVoxelSculptTool(this.worksTool)) &&
       ((!prevVoxel && Boolean(this.hoverVoxel)) ||

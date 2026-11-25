@@ -35,7 +35,7 @@ function sessionToken(request) {
   return match?.[1];
 }
 
-async function currentSession(db, request) {
+export async function currentSession(db, request) {
   const token = sessionToken(request);
   if (!token) return null;
   const tokenHash = await digest(token);

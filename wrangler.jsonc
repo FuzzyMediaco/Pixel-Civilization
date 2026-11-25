@@ -14,9 +14,9 @@
   },
   "ai": { "binding": "AI" },
   "durable_objects": {
-    "bindings": [{ "name": "PIX_BUDGET", "class_name": "PixBudget" }]
+    "bindings": [{ "name": "PIX_BUDGET", "class_name": "PixBudget" }, { "name": "SHARED_ISLANDS", "class_name": "SharedIsland" }]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PixBudget"] }],
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PixBudget"] }, { "tag": "v2", "new_sqlite_classes": ["SharedIsland"] }],
   "d1_databases": [{
     "binding": "GAME_ACCOUNTS",
     "database_name": "pixel-civilization-accounts",

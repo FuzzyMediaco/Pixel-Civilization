@@ -4,6 +4,7 @@ import { currentPlayer } from "../game/deviceSaves";
 import {
   BookOpen,
   UserRound,
+  Users,
   ChevronLeft,
   Cloud,
   Download,
@@ -50,6 +51,7 @@ export function MoreSheet({
   savedCount,
   slotCount,
   onSaves,
+  onSharedIslands,
   onExamples,
   onOpenHandbook,
   onOpenPixBuilder,
@@ -71,6 +73,7 @@ export function MoreSheet({
   savedCount: number;
   slotCount: number;
   onSaves: () => void;
+  onSharedIslands?: () => void;
   onExamples: () => void;
   onOpenHandbook: () => void;
   onOpenPixBuilder?: () => void;
@@ -133,6 +136,9 @@ export function MoreSheet({
               <span>Saves</span>
               {savedCount > 0 && <em className="ui-more-badge">{savedCount}</em>}
             </button>
+            {onSharedIslands && <button type="button" className="ui-more-tile" onClick={onSharedIslands}>
+              <Users size={18} aria-hidden="true" /><span>Shared Islands</span>
+            </button>}
             <button type="button" className="ui-more-tile" onClick={() => onPage("mode")} title={`Current: ${modeName} mode`}>
               <Gamepad2 size={18} aria-hidden="true" />
               <span>{modeName}</span>
