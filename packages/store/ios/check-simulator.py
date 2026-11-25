@@ -1,5 +1,6 @@
 """Check the bundled iOS game using Apple's simulator and StoreKit tools."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -32,6 +33,7 @@ def device(family):
 
 def boot(udid):
     sim("bootstatus", udid, "-b", timeout=420)
+    subprocess.run(["open", "-a", "Simulator", "--args", "-CurrentDeviceUDID", udid], timeout=45, check=True)
     sim("status_bar", udid, "override", "--time", "9:41", "--batteryState", "charged", "--batteryLevel", "100")
 
 
@@ -52,6 +54,7 @@ def capture(family, udid):
         data = Path(sim("get_app_container", udid, APP, "data", capture=True).stdout.strip())
         output = ROOT / "build" / (family + "-screens")
         output.mkdir(parents=True, exist_ok=True)
+        fingerprints = set()
         for scene in ("street", "skyline", "guide"):
             print("Rendering", family, scene, flush=True)
             marker = data / "Library/Caches" / ("PixelStoreCapture-" + scene)
@@ -61,10 +64,22 @@ def capture(family, udid):
             while not marker.exists() and time.monotonic() < deadline:
                 time.sleep(1)
             ready = marker.exists() and marker.read_text() == scene
-            name = scene + ("" if ready else "-did-not-render") + ".png"
-            sim("io", udid, "screenshot", str(output / name), timeout=45)
-            if not ready:
-                raise RuntimeError(f"{family} never rendered {scene} with its real controls")
+            screen = output / (scene + "-did-not-render.png")
+            has_image = False
+            for _ in range(5 if ready else 1):
+                screen.unlink(missing_ok=True)
+                sim("io", udid, "screenshot", str(screen), timeout=45)
+                check = subprocess.run([str(ROOT / "build/check-frame"), str(screen)], timeout=30)
+                fingerprint = hashlib.sha256(screen.read_bytes()).digest()
+                if ready and check.returncode == 0 and fingerprint not in fingerprints:
+                    fingerprints.add(fingerprint)
+                    screen.rename(output / (scene + ".png"))
+                    has_image = True
+                    break
+                if ready:
+                    time.sleep(5)
+            if not has_image:
+                raise RuntimeError(f"{family} did not display a distinct rendered {scene} with its controls")
             print("Captured playable", family, scene, flush=True)
             stop(udid)
     finally:
@@ -83,6 +98,7 @@ def main():
              "-only-testing:StoreCatalogTests", "CODE_SIGN_IDENTITY=-"]
     if stage == "compile":
         subprocess.run(["xcodegen", "generate"], check=True)
+        subprocess.run(["xcrun", "swiftc", "check-frame.swift", "-o", "build/check-frame"], check=True, timeout=100)
         subprocess.run([*build, "build-for-testing"], timeout=1800, check=True)
     elif stage == "purchases":
         boot(udid)
