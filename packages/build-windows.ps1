@@ -30,7 +30,8 @@ try {
     $manifest=[xml](Get-Content -Raw -LiteralPath "$PSScriptRoot/windows/app.manifest")
     $identity=$manifest.DocumentElement.SelectSingleNode("*[local-name()='assemblyIdentity']")
     $identity.SetAttribute("version",$assemblyVersion)
-    $manifest.Save("$work/app.manifest")
+    $manifestFile=Join-Path $work "app.manifest"
+    $manifest.Save($manifestFile)
     $metadata=@"
 using System.Reflection;
 [assembly: AssemblyTitle("Pixel Civilization")]
@@ -39,10 +40,11 @@ using System.Reflection;
 [assembly: AssemblyFileVersion("$assemblyVersion")]
 [assembly: AssemblyInformationalVersion("$VersionName")]
 "@
-    Set-Content -LiteralPath "$work/ReleaseVersion.cs" -Value $metadata -Encoding UTF8
+    $metadataFile=Join-Path $work "ReleaseVersion.cs"
+    Set-Content -LiteralPath $metadataFile -Value $metadata -Encoding UTF8
     $compiler="$env:WINDIR/Microsoft.NET/Framework64/v4.0.30319/csc.exe"
     $sources=(Get-ChildItem "$PSScriptRoot/windows" -Filter "*.cs" -File).FullName
-    & $compiler /nologo /target:winexe /platform:x64 "/out:$app/Pixel Civilization.exe" "/win32icon:$PSScriptRoot/../public/favicon.ico" "/win32manifest:$work/app.manifest" /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll "/r:$app/Microsoft.Web.WebView2.Core.dll" "/r:$app/Microsoft.Web.WebView2.WinForms.dll" "$work/ReleaseVersion.cs" @sources
+    & $compiler /nologo /target:winexe /platform:x64 "/out:$app/Pixel Civilization.exe" "/win32icon:$PSScriptRoot/../public/favicon.ico" "/win32manifest:$manifestFile" /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll "/r:$app/Microsoft.Web.WebView2.Core.dll" "/r:$app/Microsoft.Web.WebView2.WinForms.dll" $metadataFile @sources
     if ($LASTEXITCODE -ne 0) {throw "Windows build failed."}
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip=Join-Path $work "release.zip"
