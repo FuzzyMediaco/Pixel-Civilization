@@ -63,6 +63,9 @@
     }
   ],
   "vars": {
+    "PIX_GATEWAY_ACCOUNT": "99a3f38f0df7b3db1b8f8ac754473eb7",
+    "PIX_GATEWAY_ID": "pixel-civilization-pix",
+    "PIX_GATEWAY_VERIFIED_MODELS": "openai/gpt-6-luna,anthropic/claude-haiku-4.5,google/gemini-2.5-flash-lite",
     "STRIPE_PRICE_IDS": "{\"era_china\":\"price_1UfjVvKUWukQY91AsRPBR7gx\",\"era_egypt\":\"price_1UfjW2KUWukQY91AlaWlhLQy\",\"era_rome\":\"price_1UfjW3KUWukQY91AVgqbp8zn\",\"era_greece\":\"price_1UfjW5KUWukQY91A9lszH9lu\",\"era_medieval\":\"price_1UfjW6KUWukQY91AH6J8h1B4\",\"era_renaissance\":\"price_1UfjW7KUWukQY91AZ3mPGaSg\",\"era_wwii\":\"price_1UfjWHKUWukQY91AxP2HIkXv\",\"era_deco\":\"price_1UfjWIKUWukQY91AHbG6lcgN\",\"era_3027\":\"price_1UfjWJKUWukQY91ADu2jrpfM\",\"era_wasteland\":\"price_1UfjWKKUWukQY91A8lbdlHL9\",\"mode_survival\":\"price_1UfjWQKUWukQY91AFLHqNfKW\",\"mode_god\":\"price_1UfjWSKUWukQY91AaDUS4n3U\",\"pix_starter\":\"price_1UfjWTKUWukQY91A2KgZvyBz\",\"pix_builder\":\"price_1UfjWVKUWukQY91AquXuyrTs\",\"pix_studio\":\"price_1UfjWhKUWukQY91ApuQFWlnT\",\"pix_complete\":\"price_1UfjWiKUWukQY91A1VfYDo6X\"}",
     "STRIPE_PORTAL_CONFIG": "bpc_1UflTPKUWukQY91AjKqHVYxc",
     "STRIPE_TAX_READY": "true"

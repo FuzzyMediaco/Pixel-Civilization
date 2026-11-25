@@ -1,3 +1,4 @@
+import { pixAdmission as getPixAdmission } from "./pix-funding.mjs";
 import { importLegacySlots } from "./legacy-modes.mjs";
 import { AccountError, json, readJson } from "./account-http.mjs";
 import { currentSession } from "./accounts.mjs";
@@ -5,7 +6,7 @@ import { activeGrants, DAY, getUsage, requireOrigin, requireStore, signAccess } 
 import { activeNativeStores, verifyNative, refreshNative } from "./native-purchases.mjs";
 import {
   checkout,
-  keyCheckoutReady,
+  fundedSubscriptionBillingReady,
   portal,
   reconcileSession,
   stripeAvailable,
@@ -23,14 +24,17 @@ async function snapshot(env, user) {
   const { owned, plan } = user ? await activeGrants(db, user.id) : { owned: [], plan: null };
   const readyStores = activeNativeStores(env);
   if (stripeAvailable(env)) readyStores.push("stripe");
+  const providers = await enabledModels(env);
+  const pixAdmission = await getPixAdmission(env, user?.id, providers, fundedSubscriptionBillingReady(env));
   const access = {
     accountId: user?.id ?? null,
     owned,
     plan: plan?.product_id ?? null,
     usage: await getUsage(db, user?.id, plan),
-    providers: enabledModels(env),
+    providers,
     readyStores,
-    webSubscriptionsReady: keyCheckoutReady(env) && enabledModels(env).length === 3,
+    pixAdmission,
+    webSubscriptionsReady: Object.values(pixAdmission.tiers).some((tier) => tier.available),
     validUntil: Math.min(Date.now() + 7 * DAY, plan?.expires_at ?? Infinity),
   };
   return { ...access, lease: await signAccess(env, access) };
@@ -73,15 +77,7 @@ export async function commerceRequest(request, env) {
     if (path === "checkout") {
       const sku = productById(body.productId);
       requireStore(sku, 400, "Unknown game product.", "bad_product");
-      if (sku.kind === "subscription")
-        requireStore(
-          enabledModels(env).length === 3,
-          503,
-          "Pix subscriptions open when all three included providers are connected.",
-          "providers_unavailable",
-        );
       const access = await snapshot(env, user);
-      requireStore(!canUseProduct(access, sku.id), 409, "Your account already includes this item.", "owned");
       if (sku.kind === "subscription" && access.plan) {
         const grant = (await activeGrants(env.GAME_ACCOUNTS, user.id)).plan;
         if (grant.store === "stripe") return json(await portal(env, user));
@@ -89,6 +85,24 @@ export async function commerceRequest(request, env) {
           409,
           "Manage the existing plan in the store where you subscribed.",
           "manage_subscription",
+        );
+      }
+      requireStore(!canUseProduct(access, sku.id), 409, "Your account already includes this item.", "owned");
+      if (sku.kind === "subscription") {
+        requireStore(
+          access.providers.length === 3,
+          503,
+          "Pix subscriptions open when all included providers are connected.",
+          "providers_unavailable",
+        );
+        const tier = access.pixAdmission.tiers[sku.id];
+        requireStore(
+          tier?.available,
+          tier?.reason === "wallet_capacity" ? 409 : 503,
+          tier?.reason === "wallet_capacity"
+            ? "This Pix plan is at capacity. Your card has not been charged."
+            : "Monthly checkout is currently unavailable.",
+          tier?.reason === "wallet_capacity" ? "pix_capacity" : "billing_unavailable",
         );
       }
       return json(await checkout(env, user, sku.id));
