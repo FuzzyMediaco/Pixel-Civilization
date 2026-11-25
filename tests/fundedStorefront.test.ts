@@ -382,6 +382,8 @@ test("public purchase routes bind the first Pix invoice to the signed-in player 
   });
   assert.equal(reversal.status, 200, JSON.stringify(reversal.body));
   assert.equal((await access(owner.cookie)).body.plan, null);
+  assert.equal((await access(owner.cookie)).body.pixBilling.state, "revoked");
+  assert.equal((await access(owner.cookie)).body.pixBilling.renews, false);
   // Another delivery of the older paid event must consult current Stripe state.
   assert.equal((await event("evt_latepaid", "invoice.paid", stub)).status, 200);
   assert.equal((await complete(owner.cookie)).body.plan, null);
@@ -398,7 +400,8 @@ test("a delayed setup webhook rechecks cash before issuing the first invoice and
   const opened = await http("/api/commerce/checkout", player.cookie, { productId: "pix_starter" });
   assert.equal(opened.status, 200);
   vendor.saved = true;
-  vendor.walletCents = 1;
+  // All three model routes are affordable, but the full $1.49 Starter term is not.
+  vendor.walletCents = 100;
   const session = { id: setupId, customer };
   const blocked = await event("evt_setup_retry", "checkout.session.completed", session);
   assert.equal(blocked.status, 409);
