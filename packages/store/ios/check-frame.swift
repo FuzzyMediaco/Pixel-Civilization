@@ -31,4 +31,3 @@ for y in 9..<(height - 9) {
 }
 print("Captured \(image.width) × \(image.height) with \(colors.count) scene colors")
 exit(colors.count >= 40 ? 0 : 1)
-
