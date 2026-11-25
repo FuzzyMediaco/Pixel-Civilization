@@ -125,7 +125,7 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
       </article>;
     })}</section>
     <footer>{native && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(!access.accountId){setAccountForm(true);return;}const receipts=await native.restore();await deliver(receipts);await fetchStoreAccess();setMessage("Your purchases have been checked.");})}>Restore purchases</button>}
-      {(native||(!storeEdition&&access.plan)) && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(native)await native.manage();else openWebBilling(await openBillingPortal(),"Manage billing in your browser");})}>Manage subscription</button>}
+      {(native||(!storeEdition&&(access.plan||access.canManageHostedBilling))) && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(native)await native.manage();else openWebBilling(await openBillingPortal(),"Manage billing in your browser");})}>Manage subscription</button>}
       <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy</a><a href="/support.html" target="_blank" rel="noreferrer">Support</a>{native?.platform==="apple" && <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noreferrer">Apple terms of use</a>}
     </footer>
   </GameDialog>;

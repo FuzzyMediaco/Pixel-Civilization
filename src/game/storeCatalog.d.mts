@@ -16,6 +16,7 @@ export interface StoreAccess {
   providers: string[];
   readyStores: string[];
   webSubscriptionsReady?: boolean;
+  canManageHostedBilling?: boolean;
   usage: { messages: number; spendMicros: number; limit: number; budgetMicros: number; periodEnd: number };
   validUntil: number;
 }

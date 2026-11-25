@@ -63,7 +63,7 @@ export async function recordPurchase(db, entry) {
     );
   }
 }
-export async function activeGrants(db, user, now = Date.now()) {
+export async function activeGrants(db, user, now = Date.now(), includeHostedSandbox = false) {
   const rows = await db
     .prepare(
       `SELECT product_id,period_start,expires_at,checked_at,store FROM game_purchases
@@ -71,6 +71,12 @@ export async function activeGrants(db, user, now = Date.now()) {
     )
     .bind(user, now, now - 2 * DAY)
     .all();
+  if (includeHostedSandbox) {
+    const hosted = await db.prepare(`SELECT product_id,period_start,expires_at,? AS checked_at,'stripe' AS store
+      FROM game_pix_link_entitlements WHERE user_id=? AND period_start<=? AND expires_at>?`)
+      .bind(now, user, now, now).all();
+    rows.results.push(...hosted.results);
+  }
   const permanent = rows.results.filter((r) => productById(r.product_id)?.kind !== "subscription");
   const plans = rows.results
     .filter((r) => productById(r.product_id)?.kind === "subscription")

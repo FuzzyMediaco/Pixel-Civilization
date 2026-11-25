@@ -1,3 +1,4 @@
+import { recurringSandbox } from "./stripe-recurring-links.mjs";
 import { AccountError } from "./account-http.mjs";
 import { currentSession } from "./accounts.mjs";
 import { activeGrants, requireOrigin, requireStore, usageWindow, utf8 } from "./store-data.mjs";
@@ -186,7 +187,7 @@ async function paidClient(env, request, provider) {
     "account_changed",
   );
   const user = session.user.id,
-    grant = (await activeGrants(db, user)).plan;
+    grant = (await activeGrants(db, user, Date.now(), recurringSandbox(env, request.url))).plan;
   requireStore(grant, 402, "A Pix subscription is required for this provider.", "plan_required");
   const requestId = request.headers.get("Idempotency-Key") || crypto.randomUUID();
   requireStore(/^[A-Za-z0-9_-]{8,100}$/.test(requestId), 400, "Invalid Pix request ID.", "bad_request");

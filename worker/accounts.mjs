@@ -135,7 +135,7 @@ export async function accountRequest(request, env) {
       await countAttempts(db,request,session.user.email,"delete");
       const row=await db.prepare("SELECT password_salt,password_hash FROM game_users WHERE id=?").bind(session.user.id).first();
       if(!row || !matchesHash(await passwordHash(body.password,row.password_salt),row.password_hash)) throw new AccountError(401,"Password is incorrect.","invalid_credentials");
-      await cancelWebSubscriptions(env,session.user.id);
+      await cancelWebSubscriptions(env,session.user.id,request.url);
       await db.prepare("DELETE FROM game_users WHERE id=?").bind(session.user.id).run();
       return json({user:null,deleted:true},200,{"Set-Cookie":cookie("",0)});
     }

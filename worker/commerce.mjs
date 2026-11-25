@@ -11,26 +11,31 @@ import {
   stripeAvailable,
   stripeWebhook,
 } from "./stripe-store.mjs";
+import { cleanOrphanPayments, existingHostedPlan, recurringLinksReady, recurringSandbox } from "./stripe-recurring-links.mjs";
 import { enabledModels } from "./pix-plans.mjs";
 import { canUseProduct, productById } from "../src/game/storeCatalog.mjs";
 
-async function snapshot(env, user) {
+async function snapshot(env, user, url) {
   const db = env.GAME_ACCOUNTS;
   if (user) {
     await importLegacySlots(db, user.id);
     await refreshNative(env, user.id);
   }
-  const { owned, plan } = user ? await activeGrants(db, user.id) : { owned: [], plan: null };
+  const sandbox = recurringSandbox(env, url);
+  const hosted = recurringLinksReady(env, url);
+  const { owned, plan } = user ? await activeGrants(db, user.id, Date.now(), sandbox) : { owned: [], plan: null };
   const readyStores = activeNativeStores(env);
-  if (stripeAvailable(env)) readyStores.push("stripe");
+  if (stripeAvailable(env) || hosted) readyStores.push("stripe");
+  const providers = await enabledModels(env);
   const access = {
     accountId: user?.id ?? null,
     owned,
     plan: plan?.product_id ?? null,
     usage: await getUsage(db, user?.id, plan),
-    providers: enabledModels(env),
+    providers,
     readyStores,
-    webSubscriptionsReady: keyCheckoutReady(env) && enabledModels(env).length === 3,
+    webSubscriptionsReady: (keyCheckoutReady(env) || hosted) && providers.length === 3,
+    canManageHostedBilling: Boolean(user && sandbox && (await existingHostedPlan(db, user.id))),
     validUntil: Math.min(Date.now() + 7 * DAY, plan?.expires_at ?? Infinity),
   };
   return { ...access, lease: await signAccess(env, access) };
@@ -61,37 +66,37 @@ export async function commerceRequest(request, env) {
       "The signed-in account changed.",
       "account_changed",
     );
-    if (path === "access" && request.method === "GET") return json(await snapshot(env, user));
+    if (path === "access" && request.method === "GET") return json(await snapshot(env, user, request.url));
     requireStore(request.method === "POST", 405, "Unsupported method.", "method");
     requireStore(user, 401, "Sign in to your game account first.", "unauthorized");
     await rateCheck(env.GAME_ACCOUNTS, user.id);
     const body = await readJson(request, 16384);
     if (path === "purchase") {
       await verifyNative(env, body, user.id);
-      return json(await snapshot(env, user));
+      return json(await snapshot(env, user, request.url));
     }
     if (path === "checkout") {
       const sku = productById(body.productId);
       requireStore(sku, 400, "Unknown game product.", "bad_product");
+      const access = await snapshot(env, user, request.url);
       if (sku.kind === "subscription")
         requireStore(
-          enabledModels(env).length === 3,
+          access.providers.length === 3,
           503,
           "Pix subscriptions open when all three included providers are connected.",
           "providers_unavailable",
         );
-      const access = await snapshot(env, user);
       requireStore(!canUseProduct(access, sku.id), 409, "Your account already includes this item.", "owned");
       if (sku.kind === "subscription" && access.plan) {
-        const grant = (await activeGrants(env.GAME_ACCOUNTS, user.id)).plan;
-        if (grant.store === "stripe") return json(await portal(env, user));
+        const grant = (await activeGrants(env.GAME_ACCOUNTS, user.id, Date.now(), recurringSandbox(env, request.url))).plan;
+        if (grant.store === "stripe") return json(await portal(env, user, request.url));
         throw new AccountError(
           409,
           "Manage the existing plan in the store where you subscribed.",
           "manage_subscription",
         );
       }
-      return json(await checkout(env, user, sku.id));
+      return json(await checkout(env, user, sku.id, request.url));
     }
     if (path === "checkout/complete") {
       requireStore(
@@ -100,10 +105,10 @@ export async function commerceRequest(request, env) {
         "Invalid checkout session.",
         "bad_session",
       );
-      await reconcileSession(env, body.sessionId, user.id);
-      return json(await snapshot(env, user));
+      await reconcileSession(env, body.sessionId, user.id, request.url);
+      return json(await snapshot(env, user, request.url));
     }
-    if (path === "portal") return json(await portal(env, user));
+    if (path === "portal") return json(await portal(env, user, request.url));
     throw new AccountError(404, "Unknown store page.", "not_found");
   } catch (error) {
     if (error instanceof AccountError) return json({ error: error.message, code: error.code }, error.status);
@@ -122,6 +127,7 @@ export async function maintainCommerce(env) {
   await refreshNative(env);
   const db = env.GAME_ACCOUNTS,
     now = Date.now();
+  if (env.STRIPE_RECURRING_LINKS_SANDBOX === "true") await cleanOrphanPayments(db, now);
   await db.batch([
     db.prepare("DELETE FROM game_store_checks WHERE window<?").bind(Math.floor(now / 600000) - 2),
     db.prepare("DELETE FROM game_stripe_events WHERE processed_at<?").bind(now - 60 * DAY),

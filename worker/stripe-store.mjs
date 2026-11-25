@@ -1,4 +1,5 @@
 import { applyLinkEvent, claimLinkReceipt, linkCheckout, paymentLinksReady } from "./stripe-links.mjs";
+import { existingHostedPlan, hostedReceipt, recurringCheckout, recurringEvent, recurringLinksReady, recurringPortal, recurringSandbox } from "./stripe-recurring-links.mjs";
 import { AccountError, json } from "./account-http.mjs";
 import { DAY, asId, recordPurchase, requireStore, utf8 } from "./store-data.mjs";
 import { productById } from "../src/game/storeCatalog.mjs";
@@ -70,9 +71,11 @@ async function customerFor(env, user) {
     .first();
   return row.customer_id;
 }
-export async function checkout(env, user, id) {
+export async function checkout(env, user, id, url) {
   const sku = productById(id),
     price = prices(env)[id];
+  if (sku?.kind === "subscription" && recurringLinksReady(env, url) && (!keyCheckoutReady(env) || !price))
+    return recurringCheckout(env, user, id, url);
   if (sku && sku.kind !== "subscription" && (!keyCheckoutReady(env) || !price))
     return linkCheckout(env, user, id);
   requireStore(
@@ -165,7 +168,8 @@ export async function checkout(env, user, id) {
   }
   return { url: session.url };
 }
-export async function portal(env, user) {
+export async function portal(env, user, url) {
+  if (recurringSandbox(env, url) && (await existingHostedPlan(env.GAME_ACCOUNTS, user.id))) return recurringPortal(env, user);
   const row = await env.GAME_ACCOUNTS.prepare("SELECT customer_id FROM game_stripe_customers WHERE user_id=?")
     .bind(user.id)
     .first();
@@ -216,7 +220,8 @@ async function charged(env, pi) {
   }
   return true;
 }
-export async function reconcileSession(env, id, expectedUser) {
+export async function reconcileSession(env, id, expectedUser, url) {
+  if (expectedUser && recurringSandbox(env, url) && (await hostedReceipt(env.GAME_ACCOUNTS, id, expectedUser))) return;
   if (expectedUser && (await claimLinkReceipt(env.GAME_ACCOUNTS, id, expectedUser))) return;
   const pending = () => {
     throw new AccountError(
@@ -404,7 +409,8 @@ export async function stripeWebhook(request, env) {
   if (await db.prepare("SELECT event_id FROM game_stripe_events WHERE event_id=?").bind(event.id).first())
     return json({ received: true });
   const object = event.data?.object;
-  const linkSession = await applyLinkEvent(db, env, event);
+  const recurring = await recurringEvent(env, event, request.url);
+  const linkSession = recurring || (await applyLinkEvent(db, env, event));
   if (linkSession || !env.STRIPE_SECRET_KEY) {
     await db
       .prepare("INSERT OR IGNORE INTO game_stripe_events(event_id,processed_at) VALUES(?,?)")
@@ -436,11 +442,18 @@ export async function stripeWebhook(request, env) {
     .run();
   return json({ received: true });
 }
-export async function cancelWebSubscriptions(env, user) {
+export async function cancelWebSubscriptions(env, user, url) {
+  if (recurringSandbox(env, url)) {
+    const hosted = await existingHostedPlan(env.GAME_ACCOUNTS, user);
+    requireStore(!hosted, 409,
+      "Your Stripe plan must finish cancellation before you can delete this account. Manage billing in the Stripe portal.",
+      "cancel_in_portal");
+  }
   const row = await env.GAME_ACCOUNTS.prepare("SELECT customer_id FROM game_stripe_customers WHERE user_id=?")
     .bind(user)
     .first();
   if (!row) return;
+  requireStore(env.STRIPE_SECRET_KEY, 503, "Stripe could not verify billing closure. Your account is still available.", "stripe_unavailable");
   // Deleting a Stripe customer cancels their recurring subscriptions, including past due or pending ones.
   const response = await fetch("https://api.stripe.com/v1/customers/" + escape(row.customer_id), {
     method: "DELETE",

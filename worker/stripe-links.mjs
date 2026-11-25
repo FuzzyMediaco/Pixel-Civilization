@@ -54,7 +54,7 @@ export async function linkCheckout(env, user, productId) {
   url.searchParams.set("client_reference_id", reference);
   return { url: url.href };
 }
-async function digest(value) {
+export async function digestStripeReference(value) {
   return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", utf8(value))), (b) =>
     b.toString(16).padStart(2, "0"),
   ).join("");
@@ -78,7 +78,7 @@ function synchronize(db, payment) {
 }
 export async function claimLinkReceipt(db, sessionId, userId) {
   if (!returnedSession.test(sessionId)) return false;
-  const key = await digest(sessionId);
+  const key = await digestStripeReference(sessionId);
   const known = await db
     .prepare("SELECT payment_key FROM game_link_receipts WHERE session_key=?")
     .bind(key)
@@ -148,8 +148,8 @@ async function receiveSession(db, event, session, product, linkId) {
     typeof session.client_reference_id === "string" && session.client_reference_id.length <= 80
       ? session.client_reference_id
       : "";
-  const sessionKey = await digest(session.id),
-    paymentKey = await digest(pi);
+  const sessionKey = await digestStripeReference(session.id),
+    paymentKey = await digestStripeReference(pi);
   await db.batch([
     db
       .prepare(
@@ -196,7 +196,7 @@ export async function applyLinkEvent(db, env, event) {
         .bind(linkId)
         .first());
     const product = productById(match?.[0] || historical?.product_id);
-    if (product) await receiveSession(db, event, obj, product, linkId);
+    if (product && product.kind !== "subscription") await receiveSession(db, event, obj, product, linkId);
     return true;
   }
   if (!obj || (event.type !== "charge.refunded" && !disputeEvents.has(event.type))) return false;
@@ -211,16 +211,17 @@ export async function applyLinkEvent(db, env, event) {
     terminal = true;
   } else {
     if (!/^dp_[a-zA-Z0-9]+$/.test(obj.id || "")) return false;
-    eventKey = await digest(obj.id);
+    eventKey = await digestStripeReference(obj.id);
     terminal =
       event.type === "charge.dispute.closed" || ["won", "lost", "warning_closed"].includes(obj.status);
     blocked = !["won", "warning_closed"].includes(obj.status);
   }
-  const payment = await digest(pi);
+  const payment = await digestStripeReference(pi);
   if (
     !links(env).size &&
     !(await db
       .prepare("SELECT 1 FROM game_link_tickets UNION ALL SELECT 1 FROM game_link_receipts LIMIT 1")
+      .bind()
       .first())
   )
     return false;
