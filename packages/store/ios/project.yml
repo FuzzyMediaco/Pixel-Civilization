@@ -15,7 +15,8 @@ targets:
     sources:
       - path: Game
         excludes: [Info.plist]
-      - path: ../../../src/styles/DM-Sans-LICENSE.txt
+      - path: Typography
+        type: folder
         buildPhase: resources
       - path: ../generated/web
         name: web
