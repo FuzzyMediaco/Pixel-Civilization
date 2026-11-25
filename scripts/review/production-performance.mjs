@@ -1,0 +1,77 @@
+// Run against a local static production build with no traffic from other benchmarks.
+import assert from "node:assert/strict";
+import {createHash} from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import {chromium} from "./ui-lib.mjs";
+
+const origin = new URL(process.env.PERIOD_BENCH_ORIGIN ?? "http://127.0.0.1:5402");
+assert.ok(["localhost","127.0.0.1"].includes(origin.hostname));
+const out = process.env.PERIOD_BENCH_OUTPUT ?? "docs/review/period-production/desktop-performance.json";
+const eras = ["original","ancient-egypt","ancient-china","rome-aqueduct","ancient-greece","medieval-europe",
+  "renaissance-italy","world-war-ii","art-deco","future-3027","post-apocalyptic"];
+const worker = await (await fetch(new URL("/sw.js",origin))).text();
+const edition = worker.match(/pixel-civ-shell-[0-9a-f]{16}/)?.[0];
+assert.ok(edition, "Run against a compiled production build");
+const browser = await chromium.launch({executablePath:process.env.CHROME_PATH,args:[
+  "--enable-gpu","--ignore-gpu-blocklist","--enable-unsafe-swiftshader","--enable-precise-memory-info"
+]});
+const report = {edition,world:"rome-skyline",fixture:null,graphics:null,software:browser.version(),runs:[]};
+try {
+  for (let n=1;n<=3;n++) for(const era of eras) {
+    const ctx=await browser.newContext({viewport:{width:1000,height:700},deviceScaleFactor:1});
+    try {
+      const packResponses=[];
+      ctx.on("response", res => {
+        const resource = new URL(res.url());
+        if(resource.origin!==origin.origin || !/^\/assets\/(pack-|periodArchitecture-|romePilot-)/.test(resource.pathname) || res.fromServiceWorker())return;
+        packResponses.push((async () => {
+          await res.finished();
+          const size = await res.request().sizes().catch(()=>null);
+          const body = size?.responseBodySize || (await res.body()).length;
+          return {file:resource.pathname.split("/").pop(),body};
+        })());
+      });
+      const page=await ctx.newPage();page.setDefaultTimeout(90000);
+      const start=Date.now();
+      await page.goto(new URL("/#world=rome-skyline&era="+era,origin).href,{waitUntil:"domcontentloaded"});
+      await page.waitForFunction(v=>window.__pixelWorld?.gameState.exampleWorldId==="rome-skyline" &&
+        window.__pixelWorld.appearanceEra===v,era);
+      const worldReadyMs=Date.now()-start;
+      const {layout,graphics,...data}=await page.evaluate(async()=>{
+        const world=window.__pixelWorld,frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+        world.gameState.timeOfDay=14;world.gameState.timeLocked=true;
+        world.gameState.weather="clear";world.gameState.weatherLocked=true;
+        world.focusGrid(-1,-1,82);
+        const cam={...world.getCameraView(),theta:.68,phi:.89,autoSpin:false};
+        const layout=world.gameState.elements.map(e=>[e.defId,e.gx,e.gz,e.rotation,e.spanX,e.spanZ,e.level,e.variant]).sort();
+        for(let i=0;i<8;i++)await frame();
+        let last=await frame(),rendered=world.renderer.info.render.frame;
+        const times=[];
+        for(let step=0;step<60;step++){
+          world.restoreCameraView({...cam,theta:cam.theta+step/120});
+          let now;
+          do {now=await frame();if(now-last>10000)throw Error("Rendering stalled");}while(world.renderer.info.render.frame===rendered);
+          rendered=world.renderer.info.render.frame;times.push(now-last);last=now;
+        }
+        const ordered=times.toSorted((a,b)=>a-b);
+        const gl=world.renderer.getContext(),info=gl.getExtension("WEBGL_debug_renderer_info");
+        return {layout,graphics:{renderer:gl.getParameter(info?.UNMASKED_RENDERER_WEBGL??gl.RENDERER),
+          viewport:[innerWidth,innerHeight],buffer:[gl.drawingBufferWidth,gl.drawingBufferHeight],dpr:devicePixelRatio},
+          frames:times.length,medianMs:+((ordered[29]+ordered[30])/2).toFixed(2),p95Ms:+ordered[56].toFixed(2),
+          heapBytes:performance.memory?.usedJSHeapSize??null};
+      });
+      const fixture={sites:layout.length,sha256:createHash("sha256").update(JSON.stringify(layout)).digest("hex")};
+      report.fixture??=fixture;assert.deepEqual(fixture,report.fixture);report.graphics??=graphics;assert.deepEqual(graphics,report.graphics);
+      const atlasStart=Date.now();
+      await page.goto(new URL("/field-guide.html?id=apartments&level=4&variant=3&era="+era,origin).href,{waitUntil:"domcontentloaded"});
+      await page.locator('[data-model-ready="true"][data-model-selection="'+era+'/apartments/4/3/single"]').waitFor();
+      const atlasFirstModelMs=Date.now()-atlasStart;
+      const packs=await Promise.all(packResponses);
+      if(era==="original")assert.equal(packs.length,0);else assert.ok(packs.length>=2 && packs.some(p=>p.file.startsWith("pack-"+era+"-")));
+      report.runs.push({era,run:n,...data,worldReadyMs,atlasFirstModelMs,packResponseBodyBytes:packs.reduce((sum,p)=>sum+p.body,0),packs});
+      fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify(report,null,2)+"\n");
+      console.log(era,n,data.medianMs,atlasFirstModelMs,packs.length);
+    } finally {await ctx.close();}
+  }
+} finally {await browser.close();}

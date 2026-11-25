@@ -1,0 +1,709 @@
+{
+  "edition": "pixel-civ-shell-cf37b38d3faeecf4",
+  "world": "rome-skyline",
+  "fixture": {
+    "sites": 156,
+    "sha256": "5dc9a1b5824069a4ef13157ffea3f4d160b3c3ba102769db9631b5002c1e27c2"
+  },
+  "graphics": {
+    "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "viewport": [
+      1000,
+      700
+    ],
+    "buffer": [
+      1000,
+      700
+    ],
+    "dpr": 1
+  },
+  "software": "157.0.8103.79",
+  "runs": [
+    {
+      "era": "original",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 49.4,
+      "heapBytes": 291519825,
+      "worldReadyMs": 14023,
+      "atlasFirstModelMs": 2394,
+      "packResponseBodyBytes": 0,
+      "packs": []
+    },
+    {
+      "era": "ancient-egypt",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.6,
+      "heapBytes": 348217963,
+      "worldReadyMs": 10677,
+      "atlasFirstModelMs": 1549,
+      "packResponseBodyBytes": 12032,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-ancient-egypt-D8zUBi-y.js",
+          "body": 244
+        }
+      ]
+    },
+    {
+      "era": "ancient-china",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.9,
+      "heapBytes": 358259630,
+      "worldReadyMs": 10526,
+      "atlasFirstModelMs": 1754,
+      "packResponseBodyBytes": 12032,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-ancient-china-BNXswsyK.js",
+          "body": 244
+        }
+      ]
+    },
+    {
+      "era": "rome-aqueduct",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.6,
+      "heapBytes": 347727413,
+      "worldReadyMs": 12013,
+      "atlasFirstModelMs": 1815,
+      "packResponseBodyBytes": 29228,
+      "packs": [
+        {
+          "file": "romePilot-CNBjlkRG.js",
+          "body": 17196
+        },
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-rome-aqueduct-D-ivx9pq.js",
+          "body": 244
+        }
+      ]
+    },
+    {
+      "era": "ancient-greece",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 17,
+      "p95Ms": 50,
+      "heapBytes": 354920165,
+      "worldReadyMs": 13606,
+      "atlasFirstModelMs": 1532,
+      "packResponseBodyBytes": 12033,
+      "packs": [
+        {
+          "file": "pack-ancient-greece-DG7eTiJh.js",
+          "body": 245
+        },
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        }
+      ]
+    },
+    {
+      "era": "medieval-europe",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 33.7,
+      "heapBytes": 342798092,
+      "worldReadyMs": 10089,
+      "atlasFirstModelMs": 1821,
+      "packResponseBodyBytes": 12034,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-medieval-europe-07SXy6pn.js",
+          "body": 246
+        }
+      ]
+    },
+    {
+      "era": "renaissance-italy",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.9,
+      "p95Ms": 33.5,
+      "heapBytes": 362492714,
+      "worldReadyMs": 14085,
+      "atlasFirstModelMs": 1534,
+      "packResponseBodyBytes": 24072,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-renaissance-italy-D2HAfWaQ.js",
+          "body": 248
+        },
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-renaissance-italy-D2HAfWaQ.js",
+          "body": 248
+        }
+      ]
+    },
+    {
+      "era": "world-war-ii",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 33.5,
+      "heapBytes": 338946964,
+      "worldReadyMs": 10648,
+      "atlasFirstModelMs": 1329,
+      "packResponseBodyBytes": 12031,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-world-war-ii-oJACjLtu.js",
+          "body": 243
+        }
+      ]
+    },
+    {
+      "era": "art-deco",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.6,
+      "heapBytes": 351787752,
+      "worldReadyMs": 9767,
+      "atlasFirstModelMs": 1374,
+      "packResponseBodyBytes": 12027,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-art-deco-CQZTmO7r.js",
+          "body": 239
+        }
+      ]
+    },
+    {
+      "era": "future-3027",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.6,
+      "heapBytes": 351204877,
+      "worldReadyMs": 9544,
+      "atlasFirstModelMs": 1689,
+      "packResponseBodyBytes": 12030,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-future-3027-Br3m7onF.js",
+          "body": 242
+        }
+      ]
+    },
+    {
+      "era": "post-apocalyptic",
+      "run": 1,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 33.5,
+      "heapBytes": 353663932,
+      "worldReadyMs": 10313,
+      "atlasFirstModelMs": 1147,
+      "packResponseBodyBytes": 12035,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-post-apocalyptic-DOV_ZOp5.js",
+          "body": 247
+        }
+      ]
+    },
+    {
+      "era": "original",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.5,
+      "heapBytes": 267933813,
+      "worldReadyMs": 8279,
+      "atlasFirstModelMs": 1137,
+      "packResponseBodyBytes": 0,
+      "packs": []
+    },
+    {
+      "era": "ancient-egypt",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 33.7,
+      "heapBytes": 362152727,
+      "worldReadyMs": 9304,
+      "atlasFirstModelMs": 1085,
+      "packResponseBodyBytes": 12032,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-ancient-egypt-D8zUBi-y.js",
+          "body": 244
+        }
+      ]
+    },
+    {
+      "era": "ancient-china",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.75,
+      "p95Ms": 33.5,
+      "heapBytes": 338044587,
+      "worldReadyMs": 9130,
+      "atlasFirstModelMs": 1232,
+      "packResponseBodyBytes": 12032,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-ancient-china-BNXswsyK.js",
+          "body": 244
+        }
+      ]
+    },
+    {
+      "era": "rome-aqueduct",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.6,
+      "heapBytes": 350139508,
+      "worldReadyMs": 9084,
+      "atlasFirstModelMs": 1054,
+      "packResponseBodyBytes": 29228,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "romePilot-CNBjlkRG.js",
+          "body": 17196
+        },
+        {
+          "file": "pack-rome-aqueduct-D-ivx9pq.js",
+          "body": 244
+        }
+      ]
+    },
+    {
+      "era": "ancient-greece",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 33.6,
+      "heapBytes": 347850937,
+      "worldReadyMs": 9045,
+      "atlasFirstModelMs": 1185,
+      "packResponseBodyBytes": 12033,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-ancient-greece-DG7eTiJh.js",
+          "body": 245
+        }
+      ]
+    },
+    {
+      "era": "medieval-europe",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.5,
+      "heapBytes": 372780369,
+      "worldReadyMs": 9446,
+      "atlasFirstModelMs": 2072,
+      "packResponseBodyBytes": 12034,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-medieval-europe-07SXy6pn.js",
+          "body": 246
+        }
+      ]
+    },
+    {
+      "era": "renaissance-italy",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 33.6,
+      "heapBytes": 358228418,
+      "worldReadyMs": 10841,
+      "atlasFirstModelMs": 1009,
+      "packResponseBodyBytes": 12036,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-renaissance-italy-D2HAfWaQ.js",
+          "body": 248
+        }
+      ]
+    },
+    {
+      "era": "world-war-ii",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.5,
+      "heapBytes": 358985368,
+      "worldReadyMs": 8161,
+      "atlasFirstModelMs": 1259,
+      "packResponseBodyBytes": 12031,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-world-war-ii-oJACjLtu.js",
+          "body": 243
+        }
+      ]
+    },
+    {
+      "era": "art-deco",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.75,
+      "p95Ms": 33.6,
+      "heapBytes": 339293327,
+      "worldReadyMs": 8589,
+      "atlasFirstModelMs": 961,
+      "packResponseBodyBytes": 12027,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-art-deco-CQZTmO7r.js",
+          "body": 239
+        }
+      ]
+    },
+    {
+      "era": "future-3027",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.6,
+      "heapBytes": 345840481,
+      "worldReadyMs": 7902,
+      "atlasFirstModelMs": 1020,
+      "packResponseBodyBytes": 12030,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-future-3027-Br3m7onF.js",
+          "body": 242
+        }
+      ]
+    },
+    {
+      "era": "post-apocalyptic",
+      "run": 2,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.4,
+      "heapBytes": 346576523,
+      "worldReadyMs": 8769,
+      "atlasFirstModelMs": 899,
+      "packResponseBodyBytes": 12035,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-post-apocalyptic-DOV_ZOp5.js",
+          "body": 247
+        }
+      ]
+    },
+    {
+      "era": "original",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.7,
+      "heapBytes": 285691153,
+      "worldReadyMs": 6880,
+      "atlasFirstModelMs": 960,
+      "packResponseBodyBytes": 0,
+      "packs": []
+    },
+    {
+      "era": "ancient-egypt",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.6,
+      "heapBytes": 339275727,
+      "worldReadyMs": 7944,
+      "atlasFirstModelMs": 983,
+      "packResponseBodyBytes": 12032,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-ancient-egypt-D8zUBi-y.js",
+          "body": 244
+        }
+      ]
+    },
+    {
+      "era": "ancient-china",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.7,
+      "heapBytes": 354010343,
+      "worldReadyMs": 8359,
+      "atlasFirstModelMs": 977,
+      "packResponseBodyBytes": 12032,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-ancient-china-BNXswsyK.js",
+          "body": 244
+        }
+      ]
+    },
+    {
+      "era": "rome-aqueduct",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.5,
+      "heapBytes": 358988173,
+      "worldReadyMs": 7774,
+      "atlasFirstModelMs": 1090,
+      "packResponseBodyBytes": 29228,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "romePilot-CNBjlkRG.js",
+          "body": 17196
+        },
+        {
+          "file": "pack-rome-aqueduct-D-ivx9pq.js",
+          "body": 244
+        }
+      ]
+    },
+    {
+      "era": "ancient-greece",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.5,
+      "heapBytes": 351439658,
+      "worldReadyMs": 8913,
+      "atlasFirstModelMs": 1105,
+      "packResponseBodyBytes": 12033,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-ancient-greece-DG7eTiJh.js",
+          "body": 245
+        }
+      ]
+    },
+    {
+      "era": "medieval-europe",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 33.6,
+      "heapBytes": 366038477,
+      "worldReadyMs": 8551,
+      "atlasFirstModelMs": 1254,
+      "packResponseBodyBytes": 12034,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-medieval-europe-07SXy6pn.js",
+          "body": 246
+        }
+      ]
+    },
+    {
+      "era": "renaissance-italy",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 34.2,
+      "heapBytes": 355380369,
+      "worldReadyMs": 9519,
+      "atlasFirstModelMs": 2369,
+      "packResponseBodyBytes": 12036,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-renaissance-italy-D2HAfWaQ.js",
+          "body": 248
+        }
+      ]
+    },
+    {
+      "era": "world-war-ii",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 33.5,
+      "heapBytes": 211300036,
+      "worldReadyMs": 10824,
+      "atlasFirstModelMs": 1319,
+      "packResponseBodyBytes": 12031,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-world-war-ii-oJACjLtu.js",
+          "body": 243
+        }
+      ]
+    },
+    {
+      "era": "art-deco",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.8,
+      "p95Ms": 33.4,
+      "heapBytes": 335498910,
+      "worldReadyMs": 8074,
+      "atlasFirstModelMs": 955,
+      "packResponseBodyBytes": 12027,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-art-deco-CQZTmO7r.js",
+          "body": 239
+        }
+      ]
+    },
+    {
+      "era": "future-3027",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.7,
+      "p95Ms": 33.6,
+      "heapBytes": 352896516,
+      "worldReadyMs": 7943,
+      "atlasFirstModelMs": 989,
+      "packResponseBodyBytes": 12030,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-future-3027-Br3m7onF.js",
+          "body": 242
+        }
+      ]
+    },
+    {
+      "era": "post-apocalyptic",
+      "run": 3,
+      "frames": 60,
+      "medianMs": 16.75,
+      "p95Ms": 33.5,
+      "heapBytes": 336657084,
+      "worldReadyMs": 7797,
+      "atlasFirstModelMs": 880,
+      "packResponseBodyBytes": 12035,
+      "packs": [
+        {
+          "file": "periodArchitecture-DU6XELIm.js",
+          "body": 11788
+        },
+        {
+          "file": "pack-post-apocalyptic-DOV_ZOp5.js",
+          "body": 247
+        }
+      ]
+    }
+  ]
+}
