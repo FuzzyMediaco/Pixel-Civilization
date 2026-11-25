@@ -11,7 +11,7 @@ android {
         minSdk 26
         targetSdk 36
         versionCode = (System.getenv('PIXEL_BUILD_NUMBER') ?: (System.currentTimeMillis().intdiv(60000)).toString()).toInteger()
-        versionName = (System.getenv('PIXEL_MARKETING_VERSION') ?: '1.0.0')
+        versionName = (System.getenv('PIXEL_MARKETING_VERSION') ?: file('../../version.txt').text.trim())
     }
     signingConfigs {
         if (signingPath && signingPassword) {
@@ -37,8 +37,9 @@ android {
 }
 tasks.register('prepareStoreAssets', Exec) {
     inputs.dir(System.getenv('PIXEL_WEB_DIST') ?: '../../../dist')
-    inputs.files('../prepare.mjs', '../bundle-content.mjs', '../bridge.js')
+    inputs.files('../../version.txt', '../prepare.mjs', '../bundle-content.mjs', '../bridge.js')
     outputs.dir('../generated/web')
+    outputs.file('../generated/version.xcconfig')
     commandLine 'node', '../prepare.mjs'
 }
 tasks.named('preBuild').configure { dependsOn('prepareStoreAssets') }

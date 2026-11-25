@@ -23,6 +23,9 @@ for (const {path:relative} of manifest.files) {
     await writeFile(dest,storePage(html));
   } else await cp(path.join(source, relative), dest);
 }
+const marketingVersion = (await readFile(path.join(root,"packages/version.txt"),"utf8")).trim();
+if (!/^\d+\.\d+\.\d+$/.test(marketingVersion)) throw Error("Invalid native marketing version");
+await writeFile(path.join(here,"generated/version.xcconfig"), "MARKETING_VERSION = " + marketingVersion + "\n");
 await cp(path.join(here,"bridge.js"),path.join(target,"store-bridge.js"));
 await writeFile(path.join(target,"store-edition.json"), JSON.stringify({release:manifest.release, files:manifest.files.length})+"\n");
 console.log(`Prepared ${manifest.files.length} files from web edition ${manifest.release}.`);

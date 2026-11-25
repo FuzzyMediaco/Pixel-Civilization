@@ -19,6 +19,7 @@ on:
   pull_request:
     paths:
       - 'packages/store/**'
+      - 'packages/version.txt'
       - '.github/workflows/mobile-stores.yml'
       - 'src/game/storeCatalog.mjs'
 concurrency:
@@ -138,6 +139,7 @@ jobs:
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO
           app="build/PixelCivilization.xcarchive/Products/Applications/PixelCivilization.app"
           test "$(plutil -extract CFBundleIdentifier raw "$app/Info.plist")" = app.pixelcivilization.game
+          test "$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")" = "$(cat ../../version.txt)"
           lipo "$app/PixelCivilization" -verify_arch arm64
           node ../verify-folder.mjs "$app/web"
           ditto -c -k --keepParent build/PixelCivilization.xcarchive build/PixelCivilization-device-unsigned.zip

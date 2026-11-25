@@ -5,6 +5,7 @@
     [string]$BuildTools = "$env:ANDROID_HOME/build-tools/35.0.0",
     [string]$KeyStore = $env:PIXEL_ANDROID_KEYSTORE,
     [string]$KeyAlias = "pixel-civilization",
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$VersionName = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "version.txt")).Trim(),
     [int]$VersionCode = [int][Math]::Floor([DateTimeOffset]::UtcNow.ToUnixTimeSeconds() / 60)
 )
 $ErrorActionPreference = "Stop"
@@ -37,7 +38,7 @@ try {
     Run "$env:JAVA_HOME/bin/jar.exe" @("cf","$work/classes.jar","-C",$cls,".")
     Run "$env:JAVA_HOME/bin/java.exe" @("-cp","$BuildTools/lib/d8.jar","com.android.tools.r8.D8","--min-api","26","--lib",$AndroidJar,"--output",$dex,"$work/classes.jar")
     Run "$BuildTools/aapt2.exe" @("compile","--dir","$work/res","-o","$work/resources.zip")
-    Run "$BuildTools/aapt2.exe" @("link","-o","$work/base.apk","-I",$AndroidJar,"--manifest","$PSScriptRoot/android/AndroidManifest.xml","--min-sdk-version","26","--target-sdk-version","35","--version-code","$VersionCode","--version-name","1.$VersionCode","$work/resources.zip")
+    Run "$BuildTools/aapt2.exe" @("link","-o","$work/base.apk","-I",$AndroidJar,"--manifest","$PSScriptRoot/android/AndroidManifest.xml","--min-sdk-version","26","--target-sdk-version","35","--version-code","$VersionCode","--version-name",$VersionName,"$work/resources.zip")
     # jar writes Android-standard forward slashes for every nested asset on Windows.
     Run "$env:JAVA_HOME/bin/jar.exe" @("uf","$work/base.apk","-C",$dex,"classes.dex","-C",$work,"assets")
     Add-Type -AssemblyName System.IO.Compression.FileSystem

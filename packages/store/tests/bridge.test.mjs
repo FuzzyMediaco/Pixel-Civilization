@@ -65,3 +65,15 @@ test("local sample links close the store and open within the app window",()=>{
   assert.deepEqual(opened,["https://pixelcivilization.app/#world=ancient-china-starter"]);
   assert.equal(dismissed,1);
 });
+
+test("native stores offer one-time items and keep all four monthly plans closed",async()=>{
+  const calls=[];
+  const store=load({webkit:{messageHandlers:{pixelBilling:{postMessage:async message=>{calls.push(message);return [];}}}}});
+  const plans=["pix_starter","pix_builder","pix_studio","pix_complete"];
+  await store.products(["era_rome","mode_god",...plans]);
+  assert.deepEqual(Array.from(calls[0].args[0]),["era_rome","mode_god"]);
+  for (const sku of plans) await assert.rejects(store.purchase(sku,"test-account"),/currently closed/);
+  assert.equal(calls.length,1);
+  await store.restore();
+  assert.equal(calls[1].action,"restore");
+});
