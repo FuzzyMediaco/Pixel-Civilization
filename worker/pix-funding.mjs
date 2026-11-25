@@ -1,3 +1,4 @@
+import { enabledModels } from "./pix-plans.mjs";
 import { STORE_PRODUCTS, productById } from "../src/game/storeCatalog.mjs";
 import { GATEWAY_MODELS, gatewayAccess } from "./pix-gateway.mjs";
 import { DAY, requireStore } from "./store-data.mjs";
@@ -65,6 +66,12 @@ function openInitial(db, user) {
 async function wallet(env) {
   const result = await gatewayAccess(env, true);
   requireStore(result, 409, capacityMessage, "pix_capacity");
+  requireStore(
+    (await enabledModels(env)).length === 3,
+    503,
+    "All included Pix providers must be available before starting another paid term.",
+    "providers_unavailable",
+  );
   return result;
 }
 export async function pixAdmission(env, user, providers, billingReady) {

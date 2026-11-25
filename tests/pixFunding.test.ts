@@ -179,3 +179,17 @@ test("the top-up fee does not create additional sellable credits or reduce any p
   );
   assert.equal((await x.admission()).tiers.pix_starter.available, false);
 });
+
+test("a disconnected provider blocks a new charge even if a setup had already held enough credits", async (t) => {
+  const x = setup(t, 500),
+    u = x.user("bad-connection");
+  const hold = await reservePixCheckout(x.env, u, "pix_starter");
+  const partial = { ...x.env, PIX_GATEWAY_VERIFIED_MODELS: "openai/gpt-6-luna" };
+  await assert.rejects(commitPixCheckout(partial, hold.id, u, "pix_starter"), {
+    code: "providers_unavailable",
+  });
+  assert.equal(
+    (x.sqlite.prepare("SELECT state FROM game_pix_funded_terms WHERE id=?").get(hold.id) as any).state,
+    "held",
+  );
+});
