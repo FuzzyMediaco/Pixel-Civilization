@@ -2,6 +2,11 @@ name: Mobile store builds
 on:
   workflow_dispatch:
     inputs:
+      native_target:
+        description: Which native builds to run
+        type: choice
+        default: all
+        options: [all, play, apple-archive, apple-simulators]
       web_edition:
         description: Published web edition SHA-256 to include unchanged
         required: false
@@ -37,6 +42,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: {name: mobile-web, path: dist, retention-days: 3}
   play:
+    if: ${{ !inputs.native_target || inputs.native_target == 'all' || inputs.native_target == 'play' }}
     needs: web
     runs-on: ubuntu-latest
     steps:
@@ -72,6 +78,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: {name: Pixel-Civilization-Play-Bundle, path: 'packages/store/android/build/outputs/bundle/release/*.aab'}
   apple-simulators:
+    if: ${{ !inputs.native_target || inputs.native_target == 'all' || inputs.native_target == 'apple-simulators' }}
     needs: web
     runs-on: macos-26
     timeout-minutes: 85
@@ -105,6 +112,7 @@ jobs:
             packages/store/ios/build/storekit-result.json
           if-no-files-found: warn
   apple-archive:
+    if: ${{ !inputs.native_target || inputs.native_target == 'all' || inputs.native_target == 'apple-archive' }}
     needs: web
     runs-on: macos-26-intel
     timeout-minutes: 50
@@ -125,7 +133,7 @@ jobs:
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO
           app="build/PixelCivilization.xcarchive/Products/Applications/PixelCivilization.app"
           test "$(plutil -extract CFBundleIdentifier raw "$app/Info.plist")" = app.pixelcivilization.game
-          lipo -verify_arch arm64 "$app/PixelCivilization"
+          lipo "$app/PixelCivilization" -verify_arch arm64
           node ../verify-folder.mjs "$app/web"
           ditto -c -k --keepParent build/PixelCivilization.xcarchive build/PixelCivilization-device-unsigned.zip
       - uses: actions/upload-artifact@v4
