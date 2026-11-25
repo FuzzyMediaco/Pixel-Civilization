@@ -36,7 +36,7 @@ export function PixReportButton({ kind, excerpt }: { kind: ResultKind; excerpt: 
   return (
     <div className="pix-stack" role="group" aria-label="Report a Pix result">
       <label>Reason
-        <select value={reason} disabled={status === "sending"} onChange={event => setReason(event.target.value)}>
+        <select aria-label="Reason for reporting" value={reason} disabled={status === "sending"} onChange={event => setReason(event.target.value)}>
           <option value="inappropriate">Inappropriate content</option>
           <option value="harmful">Harmful or unsafe advice</option>
           <option value="other">Other concern</option>
