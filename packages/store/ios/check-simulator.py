@@ -144,7 +144,7 @@ def main():
     os.chdir(ROOT)
     (ROOT / "build").mkdir(exist_ok=True)
     udid = device("tablet" if stage == "tablet" else "phone")
-    build = ["xcodebuild", "-jobs", "2", "-project", "PixelCivilization.xcodeproj", "-scheme", "PixelCivilization",
+    build = ["xcodebuild", "-project", "PixelCivilization.xcodeproj", "-scheme", "PixelCivilization",
              "-destination", "platform=iOS Simulator,id=" + udid, "-derivedDataPath", "build/derived",
              "-only-testing:StoreCatalogTests", "CODE_SIGN_IDENTITY=-"]
     if stage == "compile":

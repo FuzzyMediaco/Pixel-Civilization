@@ -35,6 +35,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: 24}
       - uses: oven-sh/setup-bun@v2
+      - name: Verify Swift source encoding before scheduling Mac builds
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for source in Path("packages/store/ios").rglob("*.swift"):
+              source.read_text(encoding="utf-8")
+          PY
       - run: bun install --frozen-lockfile && node --test packages/store/tests/bridge.test.mjs && node packages/store/catalog.mjs
       - name: Prepare the reviewed web edition
         env:
@@ -111,9 +118,6 @@ jobs:
       - name: Test StoreKit products, account association, and restoration
         if: ${{ !cancelled() && steps.compile.outcome == 'success' && (!inputs.native_target || contains(fromJSON('["all", "apple-simulators", "apple-purchases"]'), inputs.native_target)) }}
         run: python3 packages/store/ios/check-simulator.py purchases
-      - name: Show Apple compiler crash details
-        if: failure()
-        run: python3 packages/store/ios/compiler-crashes.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -141,7 +145,7 @@ jobs:
           brew install xcodegen
           cd packages/store/ios
           xcodegen generate
-          xcodebuild archive -jobs 2 -project PixelCivilization.xcodeproj -scheme PixelCivilization \
+          xcodebuild archive -project PixelCivilization.xcodeproj -scheme PixelCivilization \
             -destination 'generic/platform=iOS' -archivePath build/PixelCivilization.xcarchive \
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO
           app="build/PixelCivilization.xcarchive/Products/Applications/PixelCivilization.app"
@@ -150,9 +154,6 @@ jobs:
           lipo "$app/PixelCivilization" -verify_arch arm64
           node ../verify-folder.mjs "$app/web"
           ditto -c -k --keepParent build/PixelCivilization.xcarchive build/PixelCivilization-device-unsigned.zip
-      - name: Show Apple compiler crash details
-        if: failure()
-        run: python3 packages/store/ios/compiler-crashes.py
       - uses: actions/upload-artifact@v4
         with:
           name: Pixel-Civilization-Apple-Device-Archive
