@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<title>Pixel Civilization · Device review</title>
+<style>
+:root{color-scheme:light;font:16px/1.5 system-ui,sans-serif;color:#183e32;background:#f7f6ed}
+*{box-sizing:border-box}body{margin:0}main{max-width:65rem;padding:clamp(1rem,4vw,3rem);margin:auto}
+h1,h2{line-height:1.16}h1{font-size:clamp(1.7rem,4vw,2.5rem)}p{max-width:68ch}
+button,select,textarea{font:inherit}button,select{min-height:44px;border:1px solid #617e6a;border-radius:.5rem;padding:.45rem .8rem;background:#fffefa;color:inherit}
+button{cursor:pointer}button:disabled{cursor:default;opacity:.55}#start{background:#255a44;color:white}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem}dt{font-weight:650}dd{margin:0 0 .6rem;overflow-wrap:anywhere}
+#wrapper{overflow-x:auto;margin:.7rem 0 1.2rem}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+caption{text-align:start}th,td{padding:.4rem .65rem;text-align:right;white-space:nowrap;border-bottom:1px solid #d7ddcd}th:first-child,td:first-child{text-align:left}
+textarea{width:100%;min-height:10rem}button:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #a55713;outline-offset:2px}
+#stage:empty,#bar[hidden]{display:none}#stage,#stage iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff;z-index:2}
+#stage iframe{pointer-events:none}#bar{position:fixed;z-index:3;inset:auto .5rem max(.5rem,env(safe-area-inset-bottom));margin:auto;max-width:43rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;background:#15392ef2;color:white;border-radius:.6rem;padding:.4rem .75rem}
+#bar button{color:#183e32}#status{font-weight:650}[hidden]{display:none}
+</style></head><body>
+<main><h1>Device performance review</h1>
+<p>Run the same 156-site city in all eleven appearances. Each sample warms the selected style, orbits the city for 60 rendered frames, then opens the Atlas. Keep this tab visible and leave the device in one orientation.</p>
+<div class="controls"><label for="repeats">Runs per appearance</label><select id="repeats"><option value="1">1 · 11 samples</option><option value="3">3 · 33 samples</option></select><button id="start" disabled>Start review</button></div>
+<p id="status" role="status">Checking the game build…</p><dl id="build"></dl>
+<section id="results" hidden><h2>Results</h2><p id="count"></p>
+<div class="controls"><button id="copy">Copy results</button><button id="download">Download JSON</button></div>
+<div id="wrapper" role="region" aria-label="Frame and load measurements" tabindex="0"><table>
+<thead><tr><th>Appearance</th><th>Run</th><th>Frames</th><th>Median ms</th><th>95th percentile ms</th><th>City ready ms</th><th>Atlas first draw ms</th></tr></thead>
+<tbody id="rows"></tbody></table></div>
+<details><summary>View JSON</summary><textarea id="json" readonly aria-label="Benchmark results"></textarea></details></section>
+<p>Results stay in this browser. Save the JSON to share them. Loading times use this device’s normal browser cache.</p>
+</main><div id="stage"></div><div id="bar" hidden><span id="progress" role="status"></span><button id="stop">Stop</button></div>
+<script type="module" src="./device-review.mjs"></script></body></html>
