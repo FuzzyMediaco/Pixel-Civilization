@@ -148,6 +148,11 @@ def main():
              "-destination", "platform=iOS Simulator,id=" + udid, "-derivedDataPath", "build/derived",
              "-only-testing:StoreCatalogTests", "CODE_SIGN_IDENTITY=-"]
     if stage == "compile":
+        sdk = subprocess.check_output(["xcrun", "--sdk", "iphonesimulator", "--show-sdk-path"], text=True).strip()
+        arch = subprocess.check_output(["uname", "-m"], text=True).strip()
+        subprocess.run(["xcrun", "--sdk", "iphonesimulator", "swiftc", "-typecheck",
+                        "-target", arch + "-apple-ios16.0-simulator", "-sdk", sdk,
+                        "Game/IslandStartupStatus.swift"], check=True, timeout=180)
         subprocess.run(["xcodegen", "generate"], check=True)
         subprocess.run(["xcrun", "swiftc", "check-frame.swift", "-o", "build/check-frame"], check=True, timeout=100)
         subprocess.run([*build, "build-for-testing"], timeout=1800, check=True)
