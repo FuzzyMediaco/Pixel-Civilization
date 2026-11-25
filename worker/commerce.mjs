@@ -23,14 +23,15 @@ async function snapshot(env, user) {
   const { owned, plan } = user ? await activeGrants(db, user.id) : { owned: [], plan: null };
   const readyStores = activeNativeStores(env);
   if (stripeAvailable(env)) readyStores.push("stripe");
+  const providers = await enabledModels(env);
   const access = {
     accountId: user?.id ?? null,
     owned,
     plan: plan?.product_id ?? null,
     usage: await getUsage(db, user?.id, plan),
-    providers: enabledModels(env),
+    providers,
     readyStores,
-    webSubscriptionsReady: keyCheckoutReady(env) && enabledModels(env).length === 3,
+    webSubscriptionsReady: keyCheckoutReady(env) && providers.length === 3,
     validUntil: Math.min(Date.now() + 7 * DAY, plan?.expires_at ?? Infinity),
   };
   return { ...access, lease: await signAccess(env, access) };
@@ -73,14 +74,14 @@ export async function commerceRequest(request, env) {
     if (path === "checkout") {
       const sku = productById(body.productId);
       requireStore(sku, 400, "Unknown game product.", "bad_product");
+      const access = await snapshot(env, user);
       if (sku.kind === "subscription")
         requireStore(
-          enabledModels(env).length === 3,
+          access.providers.length === 3,
           503,
           "Pix subscriptions open when all three included providers are connected.",
           "providers_unavailable",
         );
-      const access = await snapshot(env, user);
       requireStore(!canUseProduct(access, sku.id), 409, "Your account already includes this item.", "owned");
       if (sku.kind === "subscription" && access.plan) {
         const grant = (await activeGrants(env.GAME_ACCOUNTS, user.id)).plan;

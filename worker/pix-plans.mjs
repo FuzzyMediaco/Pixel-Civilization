@@ -1,3 +1,12 @@
+import {
+  GATEWAY_MODELS,
+  gatewayAccess,
+  gatewayCanRun,
+  checkGatewayBudget,
+  fundedCost,
+  invalidateGatewayBalance,
+  runGateway,
+} from "./pix-gateway.mjs";
 import { AccountError } from "./account-http.mjs";
 import { currentSession } from "./accounts.mjs";
 import { activeGrants, requireOrigin, requireStore, usageWindow, utf8 } from "./store-data.mjs";
@@ -33,8 +42,18 @@ export const PIX_MODELS = {
     cached: 0.01,
   },
 };
-export const enabledModels = (env) => Object.keys(PIX_MODELS).filter((k) => Boolean(env[PIX_MODELS[k].key]));
+export async function enabledModels(env) {
+  const gateway = await gatewayAccess(env);
+  return Object.keys(PIX_MODELS).filter(
+    (provider) =>
+      env[PIX_MODELS[provider].key] ||
+      gatewayCanRun(gateway, provider, minimumReservation(PIX_MODELS[provider])),
+  );
+}
 const maxOutput = 4096;
+function minimumReservation(config) {
+  return maxOutput * config.output + 2048 * Math.max(config.input, config.cacheWrite ?? 0);
+}
 function schemaTypes(schema) {
   if (Array.isArray(schema)) return schema.map(schemaTypes);
   if (!schema || typeof schema !== "object") return schema;
@@ -45,7 +64,7 @@ function schemaTypes(schema) {
     ]),
   );
 }
-function requestSpec(provider, model, system, prompt, schema, key) {
+export function pixRequestSpec(provider, model, system, prompt, schema, key) {
   const lower = schemaTypes(schema);
   if (provider === "openai")
     return {
@@ -54,7 +73,8 @@ function requestSpec(provider, model, system, prompt, schema, key) {
       body: {
         model,
         instructions: system + " Return one JSON object matching this schema: " + JSON.stringify(lower),
-        input: prompt,
+        // The Responses API also checks the input messages for an explicit JSON request.
+        input: prompt + "\nReturn the requested JSON object.",
         store: false,
         reasoning: { effort: "none" },
         text: { format: { type: "json_object" } },
@@ -121,14 +141,37 @@ function requestSpec(provider, model, system, prompt, schema, key) {
     }),
   };
 }
-export async function reserveGeneration(db, user, id, grant, provider, worst, now = Date.now()) {
+export async function reserveGeneration(
+  db,
+  user,
+  id,
+  grant,
+  provider,
+  worst,
+  now = Date.now(),
+  model = PIX_MODELS[provider].model,
+  gateway = null,
+) {
   const product = productById(grant.product_id),
     [start, end] = usageWindow(grant, now);
+  // Reserve against one shared observed wallet as well as the player's plan. Keep recently
+  // completed binding requests in the estimate while provider debits propagate.
+  const gatewaySum = `SELECT COALESCE(SUM(cost_micros),0) AS committed FROM game_pix_usage
+    WHERE model IN (?,?,?) AND state!='failed' AND (state='reserved' OR started_at>=?)`;
+  const gatewayWhere = gateway ? " AND (" + gatewaySum + ")+?<=?" : "";
+  const gatewayParams = gateway
+    ? [
+        ...Object.values(GATEWAY_MODELS),
+        gateway.checkedAt - 120000,
+        worst,
+        fundedCost(gateway.availableMicros, true),
+      ]
+    : [];
   const row = await db
     .prepare(
       `INSERT INTO game_pix_usage(user_id,request_key,started_at,provider,model,state,cost_micros)
     SELECT ?,?,?,?,?,'reserved',? WHERE (SELECT COUNT(*) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed') < ?
-    AND (SELECT COALESCE(SUM(cost_micros),0) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed')+? <= ?
+    AND (SELECT COALESCE(SUM(cost_micros),0) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed')+? <= ?${gatewayWhere}
     ON CONFLICT(user_id,request_key) DO NOTHING RETURNING request_key`,
     )
     .bind(
@@ -136,7 +179,7 @@ export async function reserveGeneration(db, user, id, grant, provider, worst, no
       id,
       now,
       provider,
-      PIX_MODELS[provider].model,
+      model,
       worst,
       user,
       start,
@@ -147,6 +190,7 @@ export async function reserveGeneration(db, user, id, grant, provider, worst, no
       end,
       worst,
       product.budgetMicros,
+      ...gatewayParams,
     )
     .first();
   if (!row) {
@@ -160,6 +204,18 @@ export async function reserveGeneration(db, user, id, grant, provider, worst, no
         "This Pix request has already been submitted. Send a new request to generate again.",
         "duplicate_generation",
       );
+    if (gateway) {
+      const row = await db
+        .prepare(gatewaySum)
+        .bind(...Object.values(GATEWAY_MODELS), gateway.checkedAt - 120000)
+        .first();
+      requireStore(
+        row.committed + worst <= fundedCost(gateway.availableMicros, true),
+        503,
+        "Pix is waiting for available gateway credits.",
+        "provider_unavailable",
+      );
+    }
     throw new AccountError(
       429,
       "Your plan has reached its message or model-cost allowance for this billing period.",
@@ -169,8 +225,10 @@ export async function reserveGeneration(db, user, id, grant, provider, worst, no
 }
 async function paidClient(env, request, provider) {
   const config = PIX_MODELS[provider];
+  const viaGateway = Boolean(config && !env[config.key]);
+  const access = viaGateway ? await gatewayAccess(env) : null;
   requireStore(
-    config && env[config.key],
+    config && (!viaGateway || gatewayCanRun(access, provider, minimumReservation(config))),
     503,
     "This Pix provider is currently unavailable.",
     "provider_unavailable",
@@ -194,14 +252,25 @@ async function paidClient(env, request, provider) {
     modelId: config.model,
     modelLabel: config.label,
     async generate(system, prompt, schema) {
-      const spec = requestSpec(provider, config.model, system, prompt, schema, env[config.key]),
+      const spec = pixRequestSpec(provider, config.model, system, prompt, schema, env[config.key]),
         body = JSON.stringify(spec.body);
       // UTF-8 byte count plus protocol overhead bounds input conservatively. Release the difference on settlement.
       const worst = Math.ceil(
         (utf8(body).length + 2048) * Math.max(config.input, config.cacheWrite ?? 0) +
           maxOutput * config.output,
       );
-      await reserveGeneration(db, user, requestId, grant, provider, worst);
+      if (viaGateway) checkGatewayBudget(access, worst);
+      await reserveGeneration(
+        db,
+        user,
+        requestId,
+        grant,
+        provider,
+        fundedCost(worst, viaGateway),
+        Date.now(),
+        viaGateway ? GATEWAY_MODELS[provider] : config.model,
+        access,
+      );
       const settle = async (state, cost, input = 0, output = 0) =>
         db
           .prepare(
@@ -211,12 +280,15 @@ async function paidClient(env, request, provider) {
           .run();
       let response;
       try {
-        response = await fetch(spec.url, {
-          method: "POST",
-          headers: { ...spec.headers, "Content-Type": "application/json" },
-          body,
-          signal: AbortSignal.timeout(85000),
-        });
+        const signal = AbortSignal.timeout(85000);
+        response = viaGateway
+          ? await runGateway(env, provider, spec.body, signal)
+          : await fetch(spec.url, {
+              method: "POST",
+              headers: { ...spec.headers, "Content-Type": "application/json" },
+              body,
+              signal,
+            });
       } catch {
         throw new AccountError(
           502,
@@ -225,6 +297,7 @@ async function paidClient(env, request, provider) {
         );
       }
       if (!response.ok) {
+        if (viaGateway && response.status === 402) invalidateGatewayBalance(env);
         await settle("failed", 0);
         throw new AccountError(
           502,
@@ -247,7 +320,7 @@ async function paidClient(env, request, provider) {
           cached * (config.cached ?? config.input) +
           written * (config.cacheWrite ?? config.input) +
           result.output * config.output;
-        await settle("settled", Math.ceil(cost), result.input, result.output);
+        await settle("settled", fundedCost(cost, viaGateway), result.input, result.output);
       }
       const data = typeof result.raw === "string" ? JSON.parse(result.raw) : result.raw;
       requireStore(
@@ -264,13 +337,14 @@ export async function pixWithPlans(request, env, freeClient) {
   try {
     const path = new URL(request.url).pathname;
     if (path === "/api/pix/status" && request.method === "GET") {
+      const providers = await enabledModels(env);
       return Response.json(
         {
           ok: true,
-          configured: Boolean(freeClient || enabledModels(env).length),
+          configured: Boolean(freeClient || providers.length),
           connectedModel: freeClient?.modelId ?? null,
           modelLabel: freeClient?.modelLabel ?? "Pix subscription",
-          providers: [...(freeClient ? ["free"] : []), ...enabledModels(env)],
+          providers: [...(freeClient ? ["free"] : []), ...providers],
         },
         { headers: { "Cache-Control": "no-store" } },
       );
