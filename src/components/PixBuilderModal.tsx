@@ -34,6 +34,7 @@ import {
 } from "../game/pixWorldActions";
 import { type GameState, type HeatmapKind, buildingLockReason } from "../game/simulation";
 import { AtlasModel } from "./AtlasModel";
+import { PixReportButton } from "./PixReportButton";
 import { GameDialog } from "./GameDialog";
 
 export type PixTab = "element" | "world" | "advise";
@@ -134,7 +135,7 @@ export function PixBuilderModal({
   const [advQuestion, setAdvQuestion] = useState("");
   const [advLoading, setAdvLoading] = useState(false);
   const [advError, setAdvError] = useState<string | null>(null);
-  const [advThread, setAdvThread] = useState<{ question: string; advice: PixAdviceResponse }[]>([]);
+  const [advThread, setAdvThread] = useState<{ id: string; question: string; advice: PixAdviceResponse }[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -328,7 +329,7 @@ export function PixBuilderModal({
     setAdvLoading(true);
     setAdvError(null);
     try {
-      const history = advThread.slice(-3).flatMap((turn) => [
+      const history = advThread.slice(0, 3).reverse().flatMap((turn) => [
         { role: "user", text: turn.question },
         { role: "pix", text: `${turn.advice.headline}. ${turn.advice.diagnosis}` },
       ]);
@@ -348,7 +349,7 @@ export function PixBuilderModal({
         setAdvError(json.error || `Pix could not analyze your island (HTTP ${resp.status}).`);
         return;
       }
-      setAdvThread((prev) => [{ question: asked, advice: json.advice as PixAdviceResponse }, ...prev].slice(0, 6));
+      setAdvThread((prev) => [{ id: crypto.randomUUID(), question: asked, advice: json.advice as PixAdviceResponse }, ...prev].slice(0, 6));
       setAdvQuestion("");
     } catch {
       setAdvError("Network error contacting PixBuilder server.");
@@ -679,6 +680,7 @@ export function PixBuilderModal({
                               )}
                             </div>
                             <p className="pix-muted" style={{ marginTop: 10 }}>{shownDesc}</p>
+                            <PixReportButton key={`${draftSpec.id}-${previewRev}-${previewLevel}`} kind="design" excerpt={[shownTitle, shownDesc, draftSpec.architectNote].filter(Boolean).join("\n")} />
                             <dl className="pix-stats-dl">
                               <div><dt>Level</dt><dd>Lv {hasAllLevels ? previewLevel : 5}</dd></div>
                               <div><dt>Cost</dt><dd>${shownStats.cost.toLocaleString()}</dd></div>
@@ -754,6 +756,7 @@ export function PixBuilderModal({
                 <section className="pix-card">
                   <h3>Proposed World Plan</h3>
                   <p className="pix-prose">{worldPlan.summary}</p>
+                  <PixReportButton key={JSON.stringify(worldPlan)} kind="world" excerpt={worldPlan.summary} />
                   <dl className="pix-stats-dl">
                     <div><dt>Terrain Ops</dt><dd>{worldPlan.terrainOps?.length ?? 0}</dd></div>
                     <div><dt>Road Corridors</dt><dd>{worldPlan.roadLines?.length ?? 0}</dd></div>
@@ -829,8 +832,8 @@ export function PixBuilderModal({
                 {advError && <p className="pix-error" role="alert">{advError}</p>}
               </section>
 
-              {advThread.map((turn, tIdx) => (
-                <section key={tIdx} className="pix-card">
+              {advThread.map((turn) => (
+                <section key={turn.id} className="pix-card">
                   <span className="pix-kicker">
                     PIX BRIEFING · {state.mode.toUpperCase()} MODE · “{turn.question}”
                   </span>
@@ -841,6 +844,7 @@ export function PixBuilderModal({
                       <li key={i}>{tip}</li>
                     ))}
                   </ul>
+                  <PixReportButton kind="advice" excerpt={[turn.advice.headline, turn.advice.diagnosis, ...turn.advice.tips, ...turn.advice.actions.map(action => action.label)].join("\n")} />
                   {turn.advice.actions.length > 0 && (
                     <div className="pix-advice-actions">
                       {turn.advice.actions.map((act, idx) => (
