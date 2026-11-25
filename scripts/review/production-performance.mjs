@@ -3,13 +3,12 @@ import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import {appearances as eras,canonicalLayout,measureOrbit} from "./period-orbit.mjs";
 import {chromium} from "./ui-lib.mjs";
 
 const origin = new URL(process.env.PERIOD_BENCH_ORIGIN ?? "http://127.0.0.1:5402");
 assert.ok(["localhost","127.0.0.1"].includes(origin.hostname));
 const out = process.env.PERIOD_BENCH_OUTPUT ?? "docs/review/period-production/desktop-performance.json";
-const eras = ["original","ancient-egypt","ancient-china","rome-aqueduct","ancient-greece","medieval-europe",
-  "renaissance-italy","world-war-ii","art-deco","future-3027","post-apocalyptic"];
 const worker = await (await fetch(new URL("/sw.js",origin))).text();
 const edition = worker.match(/pixel-civ-shell-[0-9a-f]{16}/)?.[0];
 assert.ok(edition, "Run against a compiled production build");
@@ -38,31 +37,9 @@ try {
       await page.waitForFunction(v=>window.__pixelWorld?.gameState.exampleWorldId==="rome-skyline" &&
         window.__pixelWorld.appearanceEra===v,era);
       const worldReadyMs=Date.now()-start;
-      const {layout,graphics,...data}=await page.evaluate(async()=>{
-        const world=window.__pixelWorld,frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
-        world.gameState.timeOfDay=14;world.gameState.timeLocked=true;
-        world.gameState.weather="clear";world.gameState.weatherLocked=true;
-        world.focusGrid(-1,-1,82);
-        const cam={...world.getCameraView(),theta:.68,phi:.89,autoSpin:false};
-        const layout=world.gameState.elements.map(e=>[e.defId,e.gx,e.gz,e.rotation,e.spanX,e.spanZ,e.level,e.variant]).sort();
-        for(let i=0;i<8;i++)await frame();
-        let last=await frame(),rendered=world.renderer.info.render.frame;
-        const times=[];
-        for(let step=0;step<60;step++){
-          world.restoreCameraView({...cam,theta:cam.theta+step/120});
-          let now;
-          do {now=await frame();if(now-last>10000)throw Error("Rendering stalled");}while(world.renderer.info.render.frame===rendered);
-          rendered=world.renderer.info.render.frame;times.push(now-last);last=now;
-        }
-        const ordered=times.toSorted((a,b)=>a-b);
-        const gl=world.renderer.getContext(),info=gl.getExtension("WEBGL_debug_renderer_info");
-        return {layout,graphics:{renderer:gl.getParameter(info?.UNMASKED_RENDERER_WEBGL??gl.RENDERER),
-          viewport:[innerWidth,innerHeight],buffer:[gl.drawingBufferWidth,gl.drawingBufferHeight],dpr:devicePixelRatio},
-          frames:times.length,medianMs:+((ordered[29]+ordered[30])/2).toFixed(2),p95Ms:+ordered[56].toFixed(2),
-          heapBytes:performance.memory?.usedJSHeapSize??null};
-      });
+      const {layout,graphics,...data}=await page.evaluate(measureOrbit);
       const fixture={sites:layout.length,sha256:createHash("sha256").update(JSON.stringify(layout)).digest("hex")};
-      report.fixture??=fixture;assert.deepEqual(fixture,report.fixture);report.graphics??=graphics;assert.deepEqual(graphics,report.graphics);
+      assert.deepEqual(fixture,canonicalLayout);report.fixture??=fixture;report.graphics??=graphics;assert.deepEqual(graphics,report.graphics);
       const atlasStart=Date.now();
       await page.goto(new URL("/field-guide.html?id=apartments&level=4&variant=3&era="+era,origin).href,{waitUntil:"domcontentloaded"});
       await page.locator('[data-model-ready="true"][data-model-selection="'+era+'/apartments/4/3/single"]').waitFor();
