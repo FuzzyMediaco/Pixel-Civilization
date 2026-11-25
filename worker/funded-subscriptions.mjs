@@ -402,8 +402,17 @@ export async function completeFunded(env, session, expectedUser, stripe, reconci
   )
     throw unsupported();
   if (session.status !== "complete") throw pending();
+  await settleFundedCard(env, id, session.setup_intent, stripe, reconcile, allowNew);
+  return true;
+}
+
+// The public return and webhook verify the hosted session above. Billing independently verifies the
+// card SetupIntent against the persisted customer, terms and funding reservation before issuing an invoice.
+export async function settleFundedCard(env, id, setupIntent, stripe, reconcile, allowNew = false) {
+  const db = env.GAME_ACCOUNTS;
   await withLock(db, id, async (row) => {
     if (row.finished) return;
+    if (!row.user_id || !row.consent_at || !row.consent_text) throw unsupported();
     if (row.subscription_id && row.invoice_id) {
       const bill = await stripe(env, "invoices/" + q(row.invoice_id));
       await refreshFirstInvoice(env, row, bill, stripe);
@@ -413,7 +422,7 @@ export async function completeFunded(env, session, expectedUser, stripe, reconci
     let schedule;
     if (row.schedule_id) schedule = await stripe(env, "subscription_schedules/" + q(row.schedule_id));
     else {
-      const intentId = idOf(session.setup_intent, "seti_");
+      const intentId = idOf(setupIntent, "seti_");
       if (!intentId) throw pending();
       const setup = await stripe(env, "setup_intents/" + q(intentId));
       if (
@@ -514,7 +523,6 @@ export async function completeFunded(env, session, expectedUser, stripe, reconci
     await refreshFirstInvoice(env, { ...row, subscription_id: subId }, invoice, stripe);
     if (invoice.status === "paid") await reconcile(env, subId, row.user_id);
   });
-  return true;
 }
 
 // The schedule, not a browser redirect or the cron job, is the final stop on Stripe's side.

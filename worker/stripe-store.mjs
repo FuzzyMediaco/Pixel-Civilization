@@ -13,6 +13,8 @@ import { AccountError, json } from "./account-http.mjs";
 import { DAY, asId, recordPurchase, requireStore, utf8 } from "./store-data.mjs";
 import { productById } from "../src/game/storeCatalog.mjs";
 
+export const STRIPE_API_VERSION = "2026-09-30.endive";
+
 function prices(env) {
   try {
     return JSON.parse(env.STRIPE_PRICE_IDS || "{}");
@@ -46,7 +48,7 @@ const escape = encodeURIComponent;
 const appUrl = (env) => env.STOREFRONT_ORIGIN || "https://pixelcivilization.app";
 async function stripe(env, path, form, idem) {
   requireStore(env.STRIPE_SECRET_KEY, 503, "Web purchases are currently unavailable.", "missing_stripe");
-  const headers = { Authorization: "Bearer " + env.STRIPE_SECRET_KEY, "Stripe-Version": "2026-09-30.endive" };
+  const headers = { Authorization: "Bearer " + env.STRIPE_SECRET_KEY, "Stripe-Version": STRIPE_API_VERSION };
   if (idem) headers["Idempotency-Key"] = idem;
   const res = await fetch("https://api.stripe.com/v1/" + path, {
     method: form ? "POST" : "GET",
@@ -558,7 +560,7 @@ export async function cancelWebSubscriptions(env, user) {
     method: "DELETE",
     headers: {
       Authorization: "Bearer " + env.STRIPE_SECRET_KEY,
-      "Stripe-Version": "2026-09-30.endive",
+      "Stripe-Version": STRIPE_API_VERSION,
     },
     signal: AbortSignal.timeout(12000),
   });
