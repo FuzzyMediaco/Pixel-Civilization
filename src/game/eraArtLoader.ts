@@ -1,5 +1,5 @@
 import { normalizeEra } from "./eraStyles";
-import { prepareOfflineShell } from "../offlineShell";
+import { artOutsideWorkerControl, keepViewedEra, prepareOfflineShell } from "../offlineShell";
 import type { Ink, ProductionEra } from "./designs/periodArtCatalog";
 
 type RomeArt = typeof import("./designs/romePilot");
@@ -47,6 +47,7 @@ export async function loadEraArt(value: unknown): Promise<void> {
   const existing=pending.get(era);
   if(existing)return existing;
   const loading=prepareOfflineShell().then(async()=>{
+    const retainInitialPack=artOutsideWorkerControl();
     if(era==="rome-forum"){await loadRomanPilot();}
     else if(Object.hasOwn(imports,era)){
       const key=era as ProductionEra;
@@ -54,6 +55,7 @@ export async function loadEraArt(value: unknown): Promise<void> {
         era==="rome-aqueduct"?loadRomanPilot():undefined]);
       engine=module;inks.set(key,kit.default);
     }
+    if(retainInitialPack)await keepViewedEra(era);
     revision++;
   }).finally(()=>pending.delete(era));
   pending.set(era,loading);

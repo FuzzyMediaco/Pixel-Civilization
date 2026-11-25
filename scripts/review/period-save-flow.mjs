@@ -1,8 +1,8 @@
 // Start the game on the supplied origin. This check only writes an isolated browser profile.
 import assert from "node:assert/strict";
-import { chromium } from "./ui-lib.mjs";
+import { chromium, localPreviewArgs } from "./ui-lib.mjs";
 const origin = process.env.PERIOD_TEST_ORIGIN ?? "http://127.0.0.1:5382";
-const browser = await chromium.launch({executablePath:process.env.CHROME_PATH,args:["--enable-unsafe-swiftshader"]});
+const browser = await chromium.launch({executablePath:process.env.CHROME_PATH,args:["--enable-unsafe-swiftshader",...localPreviewArgs(origin)]});
 try {
   const page = await browser.newPage({viewport:{width:1050,height:770}});
   page.setDefaultTimeout(45000);

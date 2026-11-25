@@ -7,9 +7,10 @@ const PAGES = new Map([
   ["/gallery", "/gallery.html"], ["/gallery.html", "/gallery.html"],
   ["/downloads", "/downloads.html"], ["/downloads.html", "/downloads.html"],
 ]);
+const OPTIONAL_ART = [ /* optional art */ ];
+const ICONS = ["/site.webmanifest", "/favicon.ico", "/favicon-32.png", "/pwa-192x192.png", "/pwa-512x512.png", "/apple-touch-icon.png"];
 const SHELL = [
-  ...new Set(PAGES.values()), "/ui/typography.css", "/ui/dm-sans-latin.woff2", "/site.webmanifest", "/favicon.ico",
-  "/pwa-192x192.png", "/pwa-512x512.png", "/apple-touch-icon.png",
+  ...new Set(PAGES.values()), "/ui/typography.css", "/ui/dm-sans-latin.woff2", ...ICONS,
   /* compiled files */
 ];
 
@@ -29,6 +30,21 @@ self.addEventListener("activate", event => {
     await self.clients.claim();
   })());
 });
+// On a slow first installation the page can render its selected art before this worker controls it.
+self.addEventListener("message", event => {
+  if (event.data?.type !== "keep-viewed-era" || !event.ports[0]) return;
+  const era = event.data.era;
+  if (typeof era !== "string") return;
+  const selected = OPTIONAL_ART.filter(file => file.startsWith("/assets/pack-" + era + "-"));
+  if (era === "rome-forum" || era === "rome-aqueduct") selected.push(...OPTIONAL_ART.filter(file => file.startsWith("/assets/romePilot-")));
+  if (selected.length && era !== "rome-forum") selected.push(...OPTIONAL_ART.filter(file => file.startsWith("/assets/periodArchitecture-")));
+  event.waitUntil((async () => {
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      await Promise.all(selected.map(async file => { if (!await cache.match(file)) await cache.add(file); }));
+    } finally { event.ports[0].postMessage("done"); }
+  })().catch(() => {}));
+});
 self.addEventListener("fetch", event => {
   const { request } = event;
   const url = new URL(request.url);
@@ -45,7 +61,7 @@ self.addEventListener("fetch", event => {
     })());
     return;
   }
-  if (!url.pathname.startsWith("/handbook/") && !url.pathname.startsWith("/assets/")) return;
+  if (!ICONS.includes(url.pathname) && !["/handbook/", "/assets/", "/ui/"].some(prefix => url.pathname.startsWith(prefix))) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
     const hit = await cache.match(request);
