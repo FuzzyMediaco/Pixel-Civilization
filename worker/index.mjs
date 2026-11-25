@@ -1,15 +1,17 @@
 import { serveGameAsset } from "./installer-assets.mjs";
 import { commerceRequest, maintainCommerce } from "./commerce.mjs";
 import pix from "./pix-runtime.mjs";
+import { expirePixReports, pixReport } from "./pix-reports.mjs";
 import { accountRequest } from "./accounts.mjs";
 
 export { PixBudget } from "./pix-runtime.mjs";
 
 export default {
-  async scheduled(_event, env, ctx) { ctx.waitUntil(maintainCommerce(env)); },
+  async scheduled(_event, env, ctx) { ctx.waitUntil(Promise.all([maintainCommerce(env), expirePixReports(env)])); },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith("/api/")) return serveGameAsset(request, env.ASSETS);
+    if (url.pathname === "/api/pix/report") return pixReport(request, env);
     if (url.pathname.startsWith("/api/commerce/")) return commerceRequest(request, env);
     if (url.pathname.startsWith("/api/account/")) {
       return accountRequest(request, env);

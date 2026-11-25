@@ -78,7 +78,7 @@ private final class GameRequest: ChannelInboundHandler {
                 outgoing.httpMethod = req.method.rawValue
                 outgoing.timeoutInterval = 60
                 outgoing.setValue("https://pixelcivilization.app", forHTTPHeaderField: "Origin")
-                for key in ["Content-Type","Accept","X-Game-Account","If-Match","Idempotency-Key","User-Agent","Accept-Language"] {
+                for key in ["Content-Type","Accept","X-Pix-Provider","X-Game-Account","If-Match","Idempotency-Key","User-Agent","Accept-Language"] {
                     outgoing.setValue(req.headers.first(name: key), forHTTPHeaderField: key)
                 }
                 if !body.isEmpty { outgoing.httpBody = body }
