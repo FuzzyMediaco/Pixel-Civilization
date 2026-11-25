@@ -87,7 +87,7 @@ async function customerFor(env, user) {
     .first();
   return row.customer_id;
 }
-export async function checkout(env, user, id) {
+export async function checkout(env, user, id, billingConsent) {
   const sku = productById(id),
     price = prices(env)[id];
   if (sku && sku.kind !== "subscription" && (!keyCheckoutReady(env) || !price))
@@ -120,7 +120,7 @@ export async function checkout(env, user, id) {
     "The checkout price is being updated. Try again soon.",
     "price_mismatch",
   );
-  if (subscription) return startFunded(env, user, sku, price, stripe, customerFor);
+  if (subscription) return startFunded(env, user, sku, price, stripe, customerFor, billingConsent);
   const customer = await customerFor(env, user);
   const db = env.GAME_ACCOUNTS,
     scope = sku.id,
@@ -389,7 +389,7 @@ async function reconcileSubscription(env, id, expectedUser) {
         invoice.currency === "usd" &&
         asId(invoice.customer) === binding.customer_id &&
         asId(invoice.parent?.subscription_details?.subscription ?? invoice.subscription) === id &&
-        invoice.amount_paid >= productById(binding.product_id).usdCents &&
+        invoice.amount_paid >= binding.consent_price_cents &&
         sub.status === "active",
     );
     if (active)

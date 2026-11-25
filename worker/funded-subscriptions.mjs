@@ -1,7 +1,8 @@
 import { GATEWAY_MODELS } from "./pix-gateway.mjs";
 import { AccountError } from "./account-http.mjs";
 import { DAY, asId, requireStore } from "./store-data.mjs";
-import { productById, STORE_PRODUCTS } from "../src/game/storeCatalog.mjs";
+import { STORE_PRODUCTS } from "../src/game/storeCatalog.mjs";
+import { PIX_BILLING_CONSENT_VERSION, pixBillingConsentText } from "../src/game/pixBillingConsent.mjs";
 import {
   reservePixCheckout,
   commitPixCheckout,
@@ -184,7 +185,13 @@ export async function fundedSnapshot(db, user) {
     cancelPending: !r.finished && !r.renews && !r.stop_confirmed,
   };
 }
-export async function startFunded(env, user, sku, price, stripe, customerFor) {
+export async function startFunded(env, user, sku, price, stripe, customerFor, consent) {
+  requireStore(
+    consent?.accepted === true && consent.version === PIX_BILLING_CONSENT_VERSION,
+    400,
+    "Review and accept the monthly card authorization for this Pix plan before continuing.",
+    "billing_consent_required",
+  );
   const db = env.GAME_ACCOUNTS,
     current = await byAccount(db, user.id),
     now = Date.now();
@@ -203,13 +210,17 @@ export async function startFunded(env, user, sku, price, stripe, customerFor) {
   const expires = Math.floor(now / 1000) + 31 * 60;
   await sql(
     db,
-    `INSERT OR IGNORE INTO game_stripe_funded(first_term,user_id,product_id,price_id,customer_id,created_at,setup_expires,next_check)
-   VALUES(?,?,?,?,?,?,?,?)`,
+    `INSERT OR IGNORE INTO game_stripe_funded(first_term,user_id,product_id,price_id,customer_id,consent_version,consent_text,consent_at,consent_price_cents,created_at,setup_expires,next_check)
+   VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
     term.id,
     user.id,
     sku.id,
     price,
     customer,
+    PIX_BILLING_CONSENT_VERSION,
+    pixBillingConsentText(sku),
+    now,
+    sku.usdCents,
     now,
     expires * 1000,
     expires * 1000,
@@ -236,11 +247,6 @@ export async function startFunded(env, user, sku, price, stripe, customerFor) {
       throw pending();
     }
     const origin = env.STOREFRONT_ORIGIN || "https://pixelcivilization.app";
-    const message =
-      sku.label +
-      " costs USD " +
-      (sku.usdCents / 100).toFixed(2) +
-      " per month plus applicable tax. Save your card for future funded monthly renewals. Review and pay the first invoice separately. Stop renewals in the Island Store.";
     const session = await stripe(
       env,
       "checkout/sessions",
@@ -252,8 +258,9 @@ export async function startFunded(env, user, sku, price, stripe, customerFor) {
         "customer_update[address]": "auto",
         "customer_update[name]": "auto",
         "payment_method_types[0]": "card",
-        "consent_collection[terms_of_service]": "required",
-        "custom_text[submit][message]": message,
+        "custom_text[submit][message]": row.consent_text,
+        "metadata[pixel_consent_version]": row.consent_version,
+        "setup_intent_data[metadata][pixel_consent_version]": row.consent_version,
         "setup_intent_data[metadata][pixel_funded_root]": term.id,
         "metadata[pixel_funded_root]": term.id,
         "metadata[pixel_account]": user.id,
@@ -329,7 +336,7 @@ async function verifyFirstInvoice(env, row, invoice, stripe) {
     (invoice.collection_method !== "send_invoice" ||
       invoice.currency !== "usd" ||
       invoice.automatic_tax?.enabled !== true ||
-      invoice.subtotal !== productById(row.product_id).usdCents ||
+      invoice.subtotal !== row.consent_price_cents ||
       invoice.lines?.has_more ||
       invoice.lines?.data?.length !== 1 ||
       line.quantity !== 1 ||
@@ -352,7 +359,7 @@ async function verifyFirstInvoice(env, row, invoice, stripe) {
       invoice.currency !== "usd" ||
       invoice.automatic_tax?.enabled !== true ||
       invoice.automatic_tax.status !== "complete" ||
-      invoice.subtotal !== productById(row.product_id).usdCents ||
+      invoice.subtotal !== row.consent_price_cents ||
       !Number.isSafeInteger(invoice.amount_due) ||
       invoice.amount_due < invoice.subtotal)
   )
@@ -388,7 +395,13 @@ export async function completeFunded(env, session, expectedUser, stripe, reconci
     session.mode !== "setup"
   )
     throw unsupported();
-  if (session.status !== "complete" || session.consent?.terms_of_service !== "accepted") throw pending();
+  if (
+    !saved.consent_at ||
+    !saved.consent_text ||
+    session.metadata.pixel_consent_version !== saved.consent_version
+  )
+    throw unsupported();
+  if (session.status !== "complete") throw pending();
   await withLock(db, id, async (row) => {
     if (row.finished) return;
     if (row.subscription_id && row.invoice_id) {
@@ -408,6 +421,7 @@ export async function completeFunded(env, session, expectedUser, stripe, reconci
         setup.usage !== "off_session" ||
         !sameId(row.customer_id, setup.customer) ||
         setup.metadata?.pixel_funded_root !== id ||
+        setup.metadata?.pixel_consent_version !== row.consent_version ||
         setup.payment_method_types?.length !== 1 ||
         setup.payment_method_types[0] !== "card"
       )
@@ -720,13 +734,16 @@ async function serviceSchedule(env, row, stripe, deleting = false, reconcile, al
     await refreshFirstInvoice(env, row, first, stripe);
     row.invoice_state = first.status;
   }
-  if (reconcile && row.invoice_state === "paid") await reconcile(env, row.subscription_id, row.user_id);
+  if (reconcile && row.invoice_state === "paid") {
+    await reconcile(env, row.subscription_id, row.user_id);
+    row = await byTerm(db, row.first_term);
+  }
   if (!row.renews) return trimSchedule(env, row, schedule, current, stripe);
   const tail = schedule.phases.at(-1);
   const updateNext = (when) =>
     sql(
       db,
-      "UPDATE game_stripe_funded SET current_end=?,next_check=? WHERE first_term=?",
+      "UPDATE game_stripe_funded SET current_end=?,next_check=CASE WHEN renews=0 AND stop_confirmed=0 THEN 0 ELSE ? END WHERE first_term=?",
       current.end_date * 1000,
       when,
       row.first_term,

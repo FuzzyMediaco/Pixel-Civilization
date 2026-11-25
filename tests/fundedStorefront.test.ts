@@ -1,3 +1,5 @@
+import { PIX_BILLING_CONSENT_VERSION } from "../src/game/pixBillingConsent.mjs";
+const billingConsent = { version: PIX_BILLING_CONSENT_VERSION, accepted: true };
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test, { type TestContext } from "node:test";
@@ -81,9 +83,13 @@ function storefront(t: TestContext) {
     mode: "setup",
     status: vendor.saved ? "complete" : "open",
     client_reference_id: vendor.owner,
-    metadata: { pixel_account: vendor.owner, pixel_funded_root: vendor.root, pixel_product: "pix_starter" },
+    metadata: {
+      pixel_account: vendor.owner,
+      pixel_consent_version: PIX_BILLING_CONSENT_VERSION,
+      pixel_funded_root: vendor.root,
+      pixel_product: "pix_starter",
+    },
     setup_intent: "seti_fixture",
-    consent: vendor.saved ? { terms_of_service: "accepted" } : null,
     url: "https://checkout.stripe.com/c/pay/fixture",
   });
   const charge = () => ({
@@ -133,7 +139,12 @@ function storefront(t: TestContext) {
         break;
       case "POST checkout/sessions":
         assert.equal(form.get("mode"), "setup");
-        assert.equal(form.get("consent_collection[terms_of_service]"), "required");
+        assert.equal(form.get("consent_collection[terms_of_service]"), null);
+        assert.equal(
+          form.get("setup_intent_data[metadata][pixel_consent_version]"),
+          PIX_BILLING_CONSENT_VERSION,
+        );
+        assert.match(form.get("custom_text[submit][message]")!, /US\$4\.99/);
         assert.equal(form.get("billing_address_collection"), "required");
         assert.equal(form.get("client_reference_id"), vendor.owner);
         assert.equal(
@@ -154,7 +165,7 @@ function storefront(t: TestContext) {
           customer,
           status: "succeeded",
           usage: "off_session",
-          metadata: { pixel_funded_root: vendor.root },
+          metadata: { pixel_funded_root: vendor.root, pixel_consent_version: PIX_BILLING_CONSENT_VERSION },
           payment_method_types: ["card"],
           payment_method: "pm_fixture",
         };
@@ -290,7 +301,7 @@ test("public purchase routes bind the first Pix invoice to the signed-in player 
   const { http, event, register, vendor, end, env, sql, draw } = storefront(t);
   const access = (cookie = "") => http("/api/commerce/access", cookie);
   const checkout = (cookie: string, productId = "pix_starter") =>
-    http("/api/commerce/checkout", cookie, { productId });
+    http("/api/commerce/checkout", cookie, { productId, billingConsent });
   const complete = (cookie: string) =>
     http("/api/commerce/checkout/complete", cookie, { sessionId: setupId });
   const guest = (await access()).body;
@@ -302,6 +313,22 @@ test("public purchase routes bind the first Pix invoice to the signed-in player 
   const owner = await register("owner"),
     other = await register("other");
   assert.equal((await checkout(owner.cookie, "pix_studio")).body.code, "pix_capacity");
+  for (const declined of [
+    undefined,
+    { accepted: false, version: PIX_BILLING_CONSENT_VERSION },
+    { accepted: true, version: "old" },
+  ]) {
+    assert.equal(
+      (
+        await http("/api/commerce/checkout", owner.cookie, {
+          productId: "pix_starter",
+          billingConsent: declined,
+        })
+      ).body.code,
+      "billing_consent_required",
+    );
+  }
+  assert.equal(vendor.setups, 0);
   const opened = await checkout(owner.cookie);
   assert.equal(opened.status, 200, JSON.stringify(opened.body));
   assert.equal(opened.body.url, "https://checkout.stripe.com/c/pay/fixture");
@@ -397,7 +424,10 @@ test("public purchase routes bind the first Pix invoice to the signed-in player 
 test("a delayed setup webhook rechecks cash before issuing the first invoice and can be retried", async (t) => {
   const { http, event, register, vendor } = storefront(t);
   const player = await register("delayed");
-  const opened = await http("/api/commerce/checkout", player.cookie, { productId: "pix_starter" });
+  const opened = await http("/api/commerce/checkout", player.cookie, {
+    productId: "pix_starter",
+    billingConsent,
+  });
   assert.equal(opened.status, 200);
   vendor.saved = true;
   // All three model routes are affordable, but the full $1.49 Starter term is not.

@@ -1,3 +1,4 @@
+import { PIX_BILLING_CONSENT_VERSION, pixBillingConsentText } from "../src/game/pixBillingConsent.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { openAccountDatabase } from "../src/server/localAccounts.mjs";
@@ -87,9 +88,15 @@ function simulation(t: any) {
         url: "https://checkout.stripe.com/c/pay/card",
         client_reference_id: user.id,
         status: "open",
-        metadata: { pixel_funded_root: root, pixel_product: sku.id, pixel_account: user.id },
+        metadata: {
+          pixel_funded_root: root,
+          pixel_consent_version: PIX_BILLING_CONSENT_VERSION,
+          pixel_product: sku.id,
+          pixel_account: user.id,
+        },
       };
-      assert.equal(form["consent_collection[terms_of_service]"], "required");
+      assert.equal(form["consent_collection[terms_of_service]"], undefined);
+      assert.equal(form["custom_text[submit][message]"], pixBillingConsentText(sku));
       return session;
     }
     if (path === "checkout/sessions/" + session?.id) return session;
@@ -102,7 +109,7 @@ function simulation(t: any) {
         status: "succeeded",
         usage: "off_session",
         customer,
-        metadata: { pixel_funded_root: root },
+        metadata: { pixel_funded_root: root, pixel_consent_version: PIX_BILLING_CONSENT_VERSION },
         payment_method: "pm_test",
         payment_method_types: ["card"],
       };
@@ -204,10 +211,13 @@ function simulation(t: any) {
       source: "sub_player",
     });
   }
-  const begin = () => startFunded(env, user, sku, price, stripe, async () => customer);
+  const begin = () =>
+    startFunded(env, user, sku, price, stripe, async () => customer, {
+      version: PIX_BILLING_CONSENT_VERSION,
+      accepted: true,
+    });
   const confirm = async () => {
     session.status = "complete";
-    session.consent = { terms_of_service: "accepted" };
     session.setup_intent = "seti_test";
     return completeFunded(env, session, user.id, stripe, reconcile, true);
   };
@@ -264,10 +274,15 @@ test("only the bound, completed, consented session can issue a tax-complete coll
     ...x.session(),
     id: "cs_other",
     status: "complete",
-    consent: { terms_of_service: "accepted" },
   };
   await assert.rejects(x.complete(forged), { code: "stripe_configuration" });
   await assert.rejects(x.complete({ ...x.session(), status: "complete" }), { code: "checkout_pending" });
+  await assert.rejects(
+    x.complete({ ...x.session(), metadata: { ...x.session().metadata, pixel_consent_version: "wrong" } }),
+    { code: "stripe_configuration" },
+  );
+  assert.equal(x.row().consent_price_cents, 499);
+  assert.equal(x.row().consent_text, pixBillingConsentText(productById("pix_starter")));
   assert.equal(x.schedule(), undefined);
   await x.confirm();
   const initial = await x.state();

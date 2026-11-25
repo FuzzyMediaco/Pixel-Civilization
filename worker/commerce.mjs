@@ -109,7 +109,7 @@ export async function commerceRequest(request, env) {
           tier?.reason === "wallet_capacity" ? "pix_capacity" : "billing_unavailable",
         );
       }
-      return json(await checkout(env, user, sku.id));
+      return json(await checkout(env, user, sku.id, body.billingConsent));
     }
     if (path === "checkout/complete") {
       requireStore(
