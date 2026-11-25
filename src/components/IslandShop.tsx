@@ -76,7 +76,10 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
       url.searchParams.delete("session_id");
       history.replaceState(history.state,"",url);
     };
-    if(outcome!=="complete"){finishReturn();return;}
+    if(outcome!=="complete"){
+      if(outcome==="manage") setKind("subscription");
+      finishReturn();return;
+    }
     const session=url.searchParams.get("session_id");
     if(!session){setMessage("The receipt link is missing its checkout number.");return;}
     if (!access.accountId || access.accountId !== currentPlayer()?.id) {
