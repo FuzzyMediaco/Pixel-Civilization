@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { productionPeriod } from "../game/periods";
+import { tourId } from "../game/periodTours";
 import { ELEMENT_BY_ID } from "../game/catalog";
 import { ERA_LABELS, eraElementName, type EraKey } from "../game/eraStyles";
 import { createRomePractice, dispatchPracticeTrain, followPracticeTrain, outletFlow, ROME_LESSONS, takeRomeAction, type RomeLesson } from "../handbook/romePractice";
@@ -10,17 +12,17 @@ export function RomeCourse({era,lessonId,onLesson,onAtlas,visible}:{
   era:EraKey; lessonId?:string; onLesson:(id:string)=>void; onAtlas:OpenModel; visible:boolean;
 }) {
   const lesson = ROME_LESSONS.find(item=>item.id===lessonId) ?? ROME_LESSONS[0];
-  return <section className="pc-course" aria-label="Rome practice islands">
-    <header className="pc-course-intro"><div><p className="pc-course-kicker">{ERA_LABELS[era]}</p><h1>Build a Roman district</h1>
+  return <section className="pc-course" aria-label="Time period practice islands">
+    <header className="pc-course-intro"><div><p className="pc-course-kicker">{ERA_LABELS[era]}</p><h1>{era.startsWith("rome-") ? "Build a Roman district" : "Build "+productionPeriod(era).places[1]}</h1>
       <p>Try a working street, railway, water channel and home upgrade on resettable practice islands.</p></div></header>
     <div className="pc-course-layout">
-      <nav className="pc-course-outline" aria-label="Rome exercises">{ROME_LESSONS.map((l,i)=><button key={l.id} type="button" aria-current={l===lesson ? "step" : undefined}
+      <nav className="pc-course-outline" aria-label="District exercises">{ROME_LESSONS.map((l,i)=><button key={l.id} type="button" aria-current={l===lesson ? "step" : undefined}
         onClick={()=>onLesson(l.id)}><span>{i+1}</span>{l.name}</button>)}</nav>
       <Practice key={lesson.id} era={era} lesson={lesson} onAtlas={onAtlas} visible={visible}/>
     </div>
-    <section className="pc-course-atlas"><h3>Explore the three pilot islands</h3><div>
+    <section className="pc-course-atlas"><h3>Explore the three islands</h3><div>
       {([["rome-starter","Starter street"],["rome-district","Working district"],["rome-skyline","Mature skyline"]] as const).map(([id,name])=>
-        <a className="pc-atlas-toggle-btn" key={id} href={"./index.html#"+new URLSearchParams({world:id,view:"0",era})} target="_blank" rel="noopener">{name} ↗</a>)}
+        <a className="pc-atlas-toggle-btn" key={id} href={"./index.html#"+new URLSearchParams({world:tourId(era,id==="rome-starter"?"starter":id==="rome-district"?"district":"skyline"),view:"0",era})} target="_blank" rel="noopener">{productionPeriod(era).places[id==="rome-starter"?0:id==="rome-district"?1:2]} · {name} ↗</a>)}
     </div></section>
   </section>;
 }

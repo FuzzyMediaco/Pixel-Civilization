@@ -4,23 +4,56 @@
   "main": "worker/index.mjs",
   "compatibility_date": "2026-11-22",
   "workers_dev": true,
-  "routes": [{ "pattern": "pixelcivilization.app", "custom_domain": true }],
+  "routes": [
+    {
+      "pattern": "pixelcivilization.app",
+      "custom_domain": true
+    }
+  ],
   "preview_urls": false,
   "keep_vars": true,
+  "triggers": {
+    "crons": [
+      "*/15 * * * *"
+    ]
+  },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
-  "ai": { "binding": "AI" },
+  "ai": {
+    "binding": "AI"
+  },
   "durable_objects": {
-    "bindings": [{ "name": "PIX_BUDGET", "class_name": "PixBudget" }]
+    "bindings": [
+      {
+        "name": "PIX_BUDGET",
+        "class_name": "PixBudget"
+      }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PixBudget"] }],
-  "d1_databases": [{
-    "binding": "GAME_ACCOUNTS",
-    "database_name": "pixel-civilization-accounts",
-    "database_id": "98601a49-3911-4f3a-b265-e572f58f255c",
-    "migrations_dir": "migrations"
-  }]
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "PixBudget"
+      ]
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "GAME_ACCOUNTS",
+      "database_name": "pixel-civilization-accounts",
+      "database_id": "98601a49-3911-4f3a-b265-e572f58f255c",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "STRIPE_PRICE_IDS": "{\"era_china\":\"price_1UfjVvKUWukQY91AsRPBR7gx\",\"era_egypt\":\"price_1UfjW2KUWukQY91AlaWlhLQy\",\"era_rome\":\"price_1UfjW3KUWukQY91AVgqbp8zn\",\"era_greece\":\"price_1UfjW5KUWukQY91A9lszH9lu\",\"era_medieval\":\"price_1UfjW6KUWukQY91AH6J8h1B4\",\"era_renaissance\":\"price_1UfjW7KUWukQY91AZ3mPGaSg\",\"era_wwii\":\"price_1UfjWHKUWukQY91AxP2HIkXv\",\"era_deco\":\"price_1UfjWIKUWukQY91AHbG6lcgN\",\"era_3027\":\"price_1UfjWJKUWukQY91ADu2jrpfM\",\"era_wasteland\":\"price_1UfjWKKUWukQY91A8lbdlHL9\",\"mode_survival\":\"price_1UfjWQKUWukQY91AFLHqNfKW\",\"mode_god\":\"price_1UfjWSKUWukQY91AaDUS4n3U\",\"pix_starter\":\"price_1UfjWTKUWukQY91A2KgZvyBz\",\"pix_builder\":\"price_1UfjWVKUWukQY91AquXuyrTs\",\"pix_studio\":\"price_1UfjWhKUWukQY91ApuQFWlnT\",\"pix_complete\":\"price_1UfjWiKUWukQY91A1VfYDo6X\"}",
+    "STRIPE_PORTAL_CONFIG": "bpc_1UfjX1KUWukQY91AEkJ2TsRI",
+    "STRIPE_TAX_READY": "true"
+  }
 }

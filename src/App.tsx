@@ -31,6 +31,9 @@ import { PlacementBar } from "./components/PlacementBar";
 import { QuickBuildRing } from "./components/QuickBuildRing";
 import { SelectionRing, type PendingConfirmAction } from "./components/SelectionRing";
 import { EraThumbnailContext } from "./components/ElementFavicon";
+import { islandProductAvailable, resumeAccessibleIsland } from "./game/islandLicenses";
+import { IslandShop, useStoreAccess } from "./components/IslandShop";
+import { productForMode, productForEra } from "./game/storeCatalog.mjs";
 import { EraPresentation, PeriodPicker } from "./components/PeriodPicker";
 import { eraStageTreatment } from "./game/eraStage";
 import { eraElementName, normalizeEra, type EraKey } from "./game/eraStyles";
@@ -189,14 +192,16 @@ const DEFAULT_HEIGHT: Record<NavSheet, SheetHeight> = {build: "peek", layers: "p
 const idleBrush = (b: BuildBrush): BuildBrush => ({...b, kind: "none", defId: undefined, movingElementId: undefined, movingGroupIds: undefined, groupDestination: undefined});
 
 export const App: React.FC = () => {
+  useStoreAccess();
+  const [shop,setShop]=useState<string|null>(()=>new URLSearchParams(location.search).has("purchase")?"":null);
+  const gate=(product:string|undefined)=>{if(islandProductAvailable(product))return true;setShop(product??"");return false;};
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<PixelWorldRenderer | null>(null);
 
-  const [gameState, setGameState] = useState<GameState>(() =>
-    unlockSky(resumeIsland(typeof location !== "undefined" ? location.hash : "")),
-  );
+  const [initialIsland]=useState(()=>resumeAccessibleIsland(location.hash));
+  const [gameState, setGameState] = useState<GameState>(() => unlockSky(initialIsland.city));
   const stateRef = useRef<GameState>(gameState);
-  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(() => lastActiveSlot(location.hash));
+  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(() => initialIsland.slot);
   const activeSave = useRef<{ index: number; name: string } | null>(null);
   if (activeSlotIndex !== null && activeSave.current === null) {
     const slot = loadSaveSlots()[activeSlotIndex];
@@ -275,7 +280,8 @@ export const App: React.FC = () => {
   const [previewEra, setPreviewEra] = useState<EraKey | null>(null);
   const [readyEra, setReadyEra] = useState<EraKey>("original");
   const [eraError, setEraError] = useState("");
-  const savedEra = normalizeEra(gameState.appearanceEra);
+  const storedEra = normalizeEra(gameState.appearanceEra);
+  const savedEra=gameState.exampleWorldId || islandProductAvailable(productForEra(storedEra)) ? storedEra : "original";
   const isPreviewing = sheet === "more" && morePage === "view";
   const requestedEra = isPreviewing ? previewEra ?? savedEra : savedEra;
   const displayedEra = requestedEra === readyEra ? readyEra : "original";
@@ -1262,7 +1268,19 @@ export const App: React.FC = () => {
   // Simulation loop (250ms tick, pauses active Survival timers when tab is hidden)
   useEffect(() => {
     let lastMs = performance.now(), lastSave=lastMs;
-    const flush=()=>saveActiveMode(stateRef.current);
+    let queuedSave: number | undefined;
+    const idleAvailable = typeof window.requestIdleCallback === "function";
+    const unqueue=()=>{
+      if(queuedSave===undefined)return;
+      if(idleAvailable)window.cancelIdleCallback(queuedSave);else window.clearTimeout(queuedSave);
+      queuedSave=undefined;
+    };
+    const flush=()=>{unqueue();return saveActiveMode(stateRef.current);};
+    const queueSave=()=>{
+      if(queuedSave!==undefined)return;
+      // Keep the five-second checkpoint off the simulation/render turn; page hide and island changes flush immediately.
+      queuedSave=idleAvailable ? window.requestIdleCallback(flush,{timeout:750}) : window.setTimeout(flush,0);
+    };
     const closeSave = () => { if (flush()) void autosync(); };
     const visibility=()=>{if(document.hidden)closeSave();};
     window.addEventListener("pagehide",closeSave);
@@ -1293,13 +1311,13 @@ export const App: React.FC = () => {
         next.elements.some((e) => e.animProgress > 0)
       ) {
         setGameState(next);
-        if(now-lastSave>=5000){saveActiveMode(next);lastSave=now;}
+        if(now-lastSave>=5000){queueSave();lastSave=now;}
       } else {
         rendererRef.current?.syncState(next, selectedIdsRef.current);
       }
     }, 250);
 
-    return () => {window.clearInterval(timer);window.removeEventListener("pagehide",closeSave);window.removeEventListener("pixel-save-before-switch",flush);document.removeEventListener("visibilitychange",visibility);};
+    return () => {unqueue();window.clearInterval(timer);window.removeEventListener("pagehide",closeSave);window.removeEventListener("pixel-save-before-switch",flush);document.removeEventListener("visibilitychange",visibility);};
   }, []);
 
   // Construction advances on active play time and shares the selected simulation speed.
@@ -1448,6 +1466,7 @@ export const App: React.FC = () => {
 
   // UI Handlers
   const handleSwitchMode = (mode: GameMode) => {
+    if (!gate(productForMode(mode))) return false;
     resetTools();
     if(!saveActiveMode(stateRef.current))return false;
     const loaded = unlockSky(loadModeState(mode));
@@ -1768,6 +1787,7 @@ export const App: React.FC = () => {
     resetTools();
     const slot = loadSaveSlots()[slotIndex];
     if (!slot || activeSave.current?.index === slotIndex) return;
+    if (!slot.state.exampleWorldId && !gate(productForMode(slot.state.mode))) return;
     if(!saveActiveMode(stateRef.current))return;
     const restored = unlockSky(cloneGameStateSnapshot(slot.state));
     pushToast(restored, "stage", `Loaded "${slot.name}"`, `Restored Slot #${slotIndex + 1} · ${restored.population.toLocaleString()} pop`);
@@ -1945,6 +1965,7 @@ export const App: React.FC = () => {
     catch{showToast({id:"snap",title:"Snapshot could not be saved",subtitle:"Free a save slot or browser storage, then try again.",tone:"alert"});return false;}
   };
   const activateSandbox=(s:GameState)=>{
+    if(!gate(productForMode("god")))return;
     if (!saveActiveMode(stateRef.current)) return;
     s.mode="god";s.gameOver=false;s.gameOverReason="";s.toasts=[];
     recomputeConnectivityAndMetrics(s);restoreIslandView(s);stateRef.current=s;setGameState(s);saveModeState(s);
@@ -1998,6 +2019,7 @@ export const App: React.FC = () => {
     commitState(draft => { draft.exampleViewpoint = index; });
   };
   const copyIsland=()=>{
+    if(!gate(productForMode("god")))return;
     const current=stateRef.current;if(!saveActiveMode(current))return;
     if(!snapshot(loadModeState("god")))return;
     const sandbox = cloneGameStateSnapshot(current);
@@ -2933,9 +2955,9 @@ export const App: React.FC = () => {
             simSpeed={simSpeed} onSimSpeed={(v)=>{trackDrawerAction("sim_speed",0.5);setSimSpeed(v);}}
             tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onStopTutorial={()=>stopTutorial(false)}/>
         ) : sheet==="more" ? (
-          <MoreSheet periodPicker={<PeriodPicker stage={gameState.currentStage} saved={savedEra} selected={requestedEra} ready={readyEra === requestedEra} error={eraError}
+          <MoreSheet onShop={()=>setShop("")} periodPicker={<PeriodPicker stage={gameState.currentStage} saved={savedEra} selected={requestedEra} locked={!gameState.exampleWorldId && !islandProductAvailable(productForEra(requestedEra))} ready={readyEra === requestedEra} error={eraError}
             originalNames={gameState.showOriginalNames === true} onSelect={setPreviewEra}
-            onApply={() => { commitState(draft => { draft.appearanceEra = requestedEra; }); setPreviewEra(null); }}
+            onApply={() => { if(!gameState.exampleWorldId && !gate(productForEra(requestedEra)))return; commitState(draft => { draft.appearanceEra = requestedEra; }); setPreviewEra(null); }}
             onOriginalNames={value => commitState(draft => { draft.showOriginalNames = value; })}/>} {...sheetProps} saveNow={()=>saveActiveMode(stateRef.current)} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount} slotCount={saveSlots.length}
             onSaves={()=>{trackDrawerAction("save_slots",0.5);setSheetState(null);setSlotError("");setSaveSlots(loadSaveSlots());setSavesModalOpen(true);}} onExamples={openExamples}
             onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"course"}});}}
@@ -2968,7 +2990,7 @@ export const App: React.FC = () => {
         onTrack={e=>{setRailSite(undefined);rendererRef.current?.focusElement(e.id);handleSelectBrushDef("train_tracks");}}/>}
       {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} currentMode={gameState.mode === "real" ? "real" : "god"} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
         error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
-      <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState} saveKey={islandSaveKey(gameState)} deviceError={deviceNotice || (saveError ? "Could not save to this device." : "")}
+      <SaveSlotsModal onShop={setShop} open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState} saveKey={islandSaveKey(gameState)} deviceError={deviceNotice || (saveError ? "Could not save to this device." : "")}
         onClose={() => setSavesModalOpen(false)} onAddSlot={handleAddSaveSlot} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
         onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}
         linkedWorlds={linkedWorlds} onImportWorld={handleImportWorld} onExportWorld={handleExportWorld}/>
@@ -3024,6 +3046,7 @@ export const App: React.FC = () => {
           </div>
         </GameDialog>
       )}
+      {shop!==null && <IslandShop initial={shop} onClose={()=>setShop(null)} saveNow={()=>saveActiveMode(stateRef.current)}/>}
     </main>
     </EraThumbnailContext.Provider>
     </EraPresentation.Provider>

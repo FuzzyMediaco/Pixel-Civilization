@@ -1,10 +1,15 @@
-import { ELEMENT_BY_ID, getElementLevelName } from "./catalog";
+import { ELEMENT_BY_ID, getElementLevelName, getMaxElementLevel } from "./catalog";
+import { FEATURED_TYPES, PERIODS, productionPeriod, type ProductionEra } from "./periods";
+import { ART_VARIANTS, productionArtFamily } from "./designs/periodArtCatalog";
 
-export const ERA_LABELS = {original:"Original", "rome-forum":"Rome · Forum City", "rome-aqueduct":"Rome · Aqueduct City"} as const;
-export type EraKey = keyof typeof ERA_LABELS;
-export type RomeDirection = Exclude<EraKey, "original">;
+export type RomeDirection = "rome-forum" | "rome-aqueduct";
+export type EraKey = "original" | "rome-forum" | ProductionEra;
+export const ERA_LABELS = {
+  original:"Original", ...Object.fromEntries(Object.entries(PERIODS).map(([key,value])=>[key,value.label])),
+  "rome-forum":"Rome · Forum City",
+} as Record<EraKey,string>;
 export type EraActivity = "active" | "idle";
-export const normalizeEra = (value: unknown): EraKey => value === "rome-forum" || value === "rome-aqueduct" ? value : "original";
+export const normalizeEra = (value: unknown): EraKey => typeof value === "string" && Object.hasOwn(ERA_LABELS,value) ? value as EraKey : "original";
 
 const families = {
   house: {
@@ -83,14 +88,34 @@ const entries = {
 
 export const ROME_PILOT_IDS: readonly string[] = Object.keys(entries);
 export interface RomeElementSpec {
-  name:string; family:RomeFamily; levels:readonly string[]; variants:readonly string[];
+  name:string; family:RomeFamily | ReturnType<typeof productionArtFamily>; levels:readonly string[]; variants:readonly string[];
   description:string; activity:string; aliases: readonly string[];
 }
 const specs = new Map<string,RomeElementSpec>(Object.entries(entries).map(([id,[family,name]]) => [
   id,{...families[family],family,name,aliases:[id.replaceAll("_"," "),name]},
 ]));
+const productionSpecs = new Map<string,RomeElementSpec>();
 export function eraElementSpec(id:string, era:unknown):RomeElementSpec | undefined {
-  return normalizeEra(era) === "original" ? undefined : specs.get(id);
+  const key=normalizeEra(era);
+  if(key==="original") return undefined;
+  if(key==="rome-forum" || (key==="rome-aqueduct" && specs.has(id))) return specs.get(id);
+  const def=ELEMENT_BY_ID[id];
+  if(!def) return undefined;
+  const cacheKey=key+"/"+id;
+  const cached=productionSpecs.get(cacheKey);
+  if(cached) return cached;
+  const period=productionPeriod(key);
+  const featured=FEATURED_TYPES.findIndex(type=>type===id);
+  const family=productionArtFamily(id);
+  let hash=0;
+  for(const char of id) hash=(hash*31+char.charCodeAt(0))>>>0;
+  const name=featured>=0 ? period.names[featured] : period.districts[hash%period.districts.length]+" "+def.name;
+  const levels=Array.from({length:getMaxElementLevel(id)},(_,i)=>name+" · "+getElementLevelName(def,i+1));
+  const activity=family==="market" ? families.market.activity : family==="station" ? families.station.activity :
+    family==="aqueduct" ? families.aqueduct.activity : family==="water" || family==="farm" ? families.water.activity :
+    def.isNetwork ? "Vehicles and services use the original connections." : "Service and maintenance use the island’s normal rules.";
+  const result={name,family,levels,variants:ART_VARIANTS[key],description:period.description,activity,aliases:[name,def.name,id.replaceAll("_"," ")]};
+  productionSpecs.set(cacheKey,result);return result;
 }
 export function eraElementName(id:string, era:unknown): string {
   return eraElementSpec(id,era)?.name ?? ELEMENT_BY_ID[id]?.name ?? id;

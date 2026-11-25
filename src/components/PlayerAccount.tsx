@@ -39,6 +39,7 @@ export function PlayerAccount({ saveNow, entry = false }: { saveNow: () => boole
   const [login, setLogin] = useState(false),
     [backups, setBackups] = useState<Recovery[]>([]);
   const [showRecovery, setShowRecovery] = useState(false);
+  const [deleteOpen,setDeleteOpen]=useState(false),[deletePassword,setDeletePassword]=useState("");
   useEffect(() => {
     const dialog = progress.current;
     if (busy && dialog && !dialog.open) dialog.showModal();
@@ -214,6 +215,15 @@ export function PlayerAccount({ saveNow, entry = false }: { saveNow: () => boole
               Sign out
             </button>
           </div>
+          <details open={deleteOpen} onToggle={e=>setDeleteOpen(e.currentTarget.open)}><summary>Delete account</summary>
+            {deleteOpen && <form className="player-auth" onSubmit={e=>{e.preventDefault();void act(async()=>{
+              const response=await fetch("/api/account/me",{method:"DELETE",credentials:"same-origin",headers:{"Content-Type":"application/json","X-Game-Account":user!.id},body:JSON.stringify({password:deletePassword})});
+              if(!response.ok){const body=await response.json().catch(()=>({}));throw Error(body.error??"Could not delete your account.");}
+              await signOut();
+            });}}><p>This permanently deletes your game account and cloud saves. Export any islands you want to keep. Manage your store subscription before deleting your account.</p>
+            <label>Confirm your password<input value={deletePassword} type="password" autoComplete="current-password" required onChange={e=>setDeletePassword(e.target.value)}/></label>
+            <button className="ui-btn" disabled={busy||!deletePassword}>Permanently delete my account</button></form>}
+          </details>
           {sync.conflicts.map((k) => (
             <div className="player-conflict" key={k}>
               <b>{saveLabel(k)}</b>

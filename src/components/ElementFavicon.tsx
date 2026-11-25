@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
-import { eraElementSpec, type EraKey } from "../game/eraStyles";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ROME_PILOT_IDS, eraElementSpec, type EraKey } from "../game/eraStyles";
 import { useEraArt } from "./useEraArt";
 import { isEraArtReady } from "../game/eraArtLoader";
 import { getMaxElementLevel, type CivElementDef } from "../game/catalog";
@@ -11,6 +11,7 @@ import { getVoxelStyleColor, packVoxKey, VOXEL_SIZE, VOXELS_PER_TILE } from "../
 
 const ISO_THUMB_CACHE = new Map<string, string>();
 export const EraThumbnailContext = createContext<EraKey>("original");
+export const hasBakedSheet=(id:string,era:EraKey)=>(era==="rome-forum" || era==="rome-aqueduct") && ROME_PILOT_IDS.includes(id);
 export const eraSheet = (id:string,era:EraKey) => "./handbook/era-pilot/models/"+era+"/"+id+".webp";
 
 export function EraSheetCell({id,era,level,variant,size,className,label,onError}:{
@@ -173,12 +174,38 @@ export function renderIsometricVoxelThumb(def: CivElementDef, level = 2, variant
   }
 }
 
+function PeriodIcon({def,era,level,variant,className}:{def:CivElementDef;era:EraKey;level:number;variant:number;className:string}) {
+  const host=useRef<HTMLSpanElement>(null);
+  const [visible,setVisible]=useState(false);
+  useEffect(()=>{
+    if(!host.current || typeof IntersectionObserver==="undefined") {
+      setVisible(true);
+      return;
+    }
+    const observer=new IntersectionObserver(([entry])=>{
+      if(entry.isIntersecting) {
+        setVisible(true);
+        observer.disconnect();
+      }
+    },{rootMargin:"100px"});
+    observer.observe(host.current);
+    return ()=>observer.disconnect();
+  },[]);
+  const {ready}=useEraArt(visible ? era : "original");
+  const image=useMemo(()=>visible && ready ? renderIsometricVoxelThumb(def,level,variant,0,72,era) : null,
+    [visible,ready,def,level,variant,era]);
+  return <span ref={host} aria-hidden="true" className={"element-favicon "+className} style={{width:36,height:36,display:"inline-grid"}}>
+    {image && <img alt="" width={36} height={36} src={image}/>}
+  </span>;
+}
+
 /** The same cached design illustration appears in the build palette and handbook. */
 export function ElementFavicon({ def, className = "", eager = false, era: override, level = 2, variant = 0 }: { def: CivElementDef; className?: string; eager?: boolean; era?: EraKey; level?: number; variant?: number }) {
   const inherited = useContext(EraThumbnailContext);
   const era = override ?? inherited;
   const themed = Boolean(eraElementSpec(def.id, era));
-  const source=themed ? eraSheet(def.id,era) : "./handbook/catalog/thumbs/"+def.id+".webp";
+  const baked=hasBakedSheet(def.id,era);
+  const source=baked ? eraSheet(def.id,era) : "./handbook/catalog/thumbs/"+def.id+".webp";
   const [failedFor,setFailedFor] = useState("");
   const imgFailed=source===failedFor;
   const {ready} = useEraArt(themed && imgFailed ? era : "original");
@@ -188,6 +215,7 @@ export function ElementFavicon({ def, className = "", eager = false, era: overri
     return renderIsometricVoxelThumb(def, level, variant, 0, 72, era);
   }, [def, imgFailed, themed, ready, era, level, variant]);
 
+  if (themed && !baked) return <PeriodIcon def={def} era={era} level={level} variant={variant} className={className}/>;
   if (themed && !imgFailed) {
     return <EraSheetCell id={def.id} era={era} level={level} variant={variant} size={36} className={"element-favicon "+className} onError={()=>setFailedFor(source)}/>;
   }

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { productionPeriod } from "./periods";
 import { STAGES } from "./catalog";
 import { normalizeEra } from "./eraStyles";
 import { PixelVox, buildVoxelGeometry, getPixelVoxelMaterial, TILE_SIZE } from "./voxelCore";
@@ -17,9 +18,13 @@ const phases = [
 ] as const;
 export function eraStageTreatment(value:unknown, stage:number) {
   const era=normalizeEra(value), level=Math.max(1,Math.min(20,Math.trunc(stage)||1));
-  const [name,cue]=phases[level-1];
-  return {era,level,name:era === "original" ? STAGES[level-1].name : name,
-    cue:era === "original" ? STAGES[level-1].note : cue};
+  if (era === "original") return {era,level,name:STAGES[level-1].name,cue:STAGES[level-1].note};
+  if (era === "rome-forum" || era === "rome-aqueduct") {
+    const [name,cue] = phases[level-1]; return {era,level,name,cue};
+  }
+  const period=productionPeriod(era);
+  const phasesOfMarker=["sets out the district’s first marker","frames the market entrance","marks the growing transit quarter","crowns the mature district gateway"];
+  return {era,level,name:period.stages[level-1],cue:`The ${period.emblem} ${phasesOfMarker[Math.floor((level-1)/5)]}.`};
 }
 const geometries = new Map<string,THREE.BufferGeometry>();
 /** Street furniture belongs to the district. It stays inside the parcel corner, clear of the centerline. */
@@ -29,7 +34,9 @@ export function drawStageMarker(group:THREE.Group, style:ReturnType<typeof eraSt
   const key=era + ":" + level;
   let geometry=geometries.get(key);
   if (!geometry) {
-    const v=new PixelVox(level), stone=era==="rome-forum"?"#dbcda6":"#ab694d", metal="#987547", paint=era==="rome-forum"?"#a23e39":"#435e54";
+    const period=productionPeriod(era);
+    const [stone,metal,paint]=era==="rome-forum" ? ["#dbcda6","#987547","#a23e39"] : period.materials;
+    const v=new PixelVox(level);
     v.box(-1,0,-1,1,1,1,stone);v.box(0,1,0,0,level<6?3:6,0,stone);
     if(level>=2)v.put(0,3,0,"#ede1bf");
     if(level>=3)v.put(0,2,1,paint);
@@ -50,6 +57,18 @@ export function drawStageMarker(group:THREE.Group, style:ReturnType<typeof eraSt
     if(level>=18)v.put(0,9,0,"#cca85c");
     if(level>=19)v.box(-2,9,0,-1,10,0,metal);
     if(level>=20){v.put(-3,11,0,"#879648");v.put(0,11,0,"#879648");}
+    const top=level<6 ? 4 : level<11 ? 7 : 11;
+    switch(period.emblem) {
+      case "lantern": v.box(-2,top,0,2,top,0,metal);v.box(-2,top-2,0,-1,top-1,1,paint);v.put(2,top+1,0,metal);break;
+      case "obelisk": v.box(-1,top-3,-1,1,top,1,stone);v.put(0,top+1,0,metal);break;
+      case "lyre": for(const x of [-2,2])v.box(x,top-1,0,x,top+1,0,metal);v.box(-1,top-2,0,1,top-2,0,paint);break;
+      case "pennon": v.box(0,top-2,0,0,top+2,0,metal);v.box(1,top,0,3,top+1,0,paint);break;
+      case "dome": v.box(-2,top,-1,2,top,1,stone);v.box(-1,top+1,-1,1,top+1,1,paint);v.put(0,top+2,0,metal);break;
+      case "signal": for(const y of [top-1,top+1])v.box(-2,y,0,1,y,0,paint);v.put(0,top+2,0,metal);break;
+      case "fan": for(let x=-2;x<=2;x++)v.box(x,top-1,0,x,top+2-Math.abs(x),0,paint);break;
+      case "orbit": for(const x of [-2,2])v.put(x,top+1,0,paint);v.box(-1,top,0,1,top,0,metal);v.box(-1,top+2,0,1,top+2,0,metal);break;
+      case "windmill": for(const n of [-2,-1,1,2]){v.put(n,top+n,0,metal);v.put(n,top-n,0,paint);}break;
+    }
     geometry=buildVoxelGeometry(v,.105);geometries.set(key,geometry);
   }
   const mesh=new THREE.Mesh(geometry,getPixelVoxelMaterial());

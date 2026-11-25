@@ -3,6 +3,8 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { Readable } from "node:stream";
+import { commerceRequest } from "../../worker/commerce.mjs";
+import { pixWithPlans } from "../../worker/pix-plans.mjs";
 import { accountRequest } from "../../worker/accounts.mjs";
 
 export function openAccountDatabase(filename) {
@@ -14,6 +16,18 @@ export function openAccountDatabase(filename) {
     if (!sqlite.prepare("PRAGMA user_version").get().user_version) {
       sqlite.exec(readFileSync(new URL("../../migrations/0001_game_accounts.sql", import.meta.url), "utf8"));
       sqlite.exec("PRAGMA user_version=1");
+    }
+    if (sqlite.prepare("PRAGMA user_version").get().user_version < 2) {
+      sqlite.exec(readFileSync(new URL("../../migrations/0002_store_and_pix.sql", import.meta.url),"utf8"));
+      sqlite.exec("PRAGMA user_version=2");
+    }
+    if (sqlite.prepare("PRAGMA user_version").get().user_version < 3) {
+      sqlite.exec(readFileSync(new URL("../../migrations/0003_store_checkout_slots.sql", import.meta.url),"utf8"));
+      sqlite.exec("PRAGMA user_version=3");
+    }
+    if (sqlite.prepare("PRAGMA user_version").get().user_version < 4) {
+      sqlite.exec(readFileSync(new URL("../../migrations/0004_existing_game_modes.sql", import.meta.url),"utf8"));
+      sqlite.exec("PRAGMA user_version=4");
     }
     sqlite.exec("COMMIT");
   } catch (error) {
@@ -63,7 +77,10 @@ export function createLocalAccounts(filename) {
         method: req.method, headers,
         ...(["GET", "HEAD"].includes(req.method) ? {} : { body: Readable.toWeb(req), duplex: "half" }),
       });
-      const response = await accountRequest(request, { GAME_ACCOUNTS: db });
+      const env={...process.env,GAME_ACCOUNTS:db},path=new URL(request.url).pathname;
+      const response=path.startsWith("/api/commerce/") ? await commerceRequest(request,env)
+        : path.startsWith("/api/pix/") ? await pixWithPlans(request,env,null)
+        : await accountRequest(request,env);
       res.writeHead(response.status, Object.fromEntries(response.headers));
       res.end(Buffer.from(await response.arrayBuffer()));
     },

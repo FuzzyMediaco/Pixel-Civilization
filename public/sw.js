@@ -3,12 +3,12 @@ const PAGES = new Map([
   ["/", "/"], ["/index.html", "/"],
   ["/field-guide", "/field-guide.html"], ["/field-guide.html", "/field-guide.html"],
   ["/handbook", "/handbook.html"], ["/handbook.html", "/handbook.html"],
-  ["/rome-review", "/rome-review.html"], ["/rome-review.html", "/rome-review.html"],
+  ["/eras","/eras.html"], ["/eras.html","/eras.html"], ["/rome-review", "/rome-review.html"], ["/rome-review.html", "/rome-review.html"],
   ["/gallery", "/gallery.html"], ["/gallery.html", "/gallery.html"],
   ["/downloads", "/downloads.html"], ["/downloads.html", "/downloads.html"],
 ]);
 const SHELL = [
-  ...new Set(PAGES.values()), "/site.webmanifest", "/favicon.ico",
+  ...new Set(PAGES.values()), "/ui/typography.css", "/ui/dm-sans-latin.woff2", "/site.webmanifest", "/favicon.ico",
   "/pwa-192x192.png", "/pwa-512x512.png", "/apple-touch-icon.png",
   /* compiled files */
 ];

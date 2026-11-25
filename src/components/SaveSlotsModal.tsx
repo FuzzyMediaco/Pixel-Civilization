@@ -5,6 +5,8 @@ import { MODE_TUTORIAL_LABELS } from "../game/tutorialFlows";
 import { syncState, watchSync } from "../game/accountSync";
 import { currentPlayer, isCloudSavePending, readPlayerItem, slotKey } from "../game/deviceSaves";
 import { type CivilizationSaveSlot, MAX_SAVE_SLOTS } from "../game/saveSlots";
+import { islandProductAvailable } from "../game/islandLicenses";
+import { productForEra, productForMode, productById } from "../game/storeCatalog.mjs";
 import { EraSelect } from "./PeriodPicker";
 import type { EraKey } from "../game/eraStyles";
 import { createInitialGameState } from "../game/simulation";
@@ -21,6 +23,7 @@ type Props = {
   currentState: GameState;
   saveKey: string;
   onClose: () => void;
+  onShop: (productId:string) => void;
   onExportWorld: (slotIndex?: number) => void;
   onImportWorld: (slotIndex: number, world: TransferWorld) => Promise<boolean>;
   linkedWorlds: TransferWorld[];
@@ -40,7 +43,7 @@ export function SaveSlotsModal({ open, ...props }: Props) {
 
 function SavedIslands({
   slots, activeSlotIndex, currentState, saveKey, error, deviceError, linkedWorlds,
-  onClose, onExportWorld, onImportWorld, onAddSlot, onSaveToSlot, onLoadSlot, onRenameSlot, onDeleteSlot,
+  onClose, onShop, onExportWorld, onImportWorld, onAddSlot, onSaveToSlot, onLoadSlot, onRenameSlot, onDeleteSlot,
 }: Omit<Props, "open">) {
   const sync = useSyncExternalStore(watchSync, syncState);
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -61,7 +64,7 @@ function SavedIslands({
   const [form, setForm] = useState<{ action: "create" | "name" | "rename" | "delete" | "replace"; index: number } | null>(null);
   const [name, setName] = useState("");
   const [newEra, setNewEra] = useState<EraKey>("original");
-  const [newMode, setNewMode] = useState<GameState["mode"]>("god");
+  const [newMode, setNewMode] = useState<GameState["mode"]>("real");
   const worlds = fileWorlds.length ? fileWorlds : linkedWorlds;
   const selectedWorld = worlds[worldIndex];
   const emptySlot = slots.findIndex(slot => slot === null);
@@ -117,6 +120,8 @@ function SavedIslands({
     setBusy(true);
     try {
       if (action === "create") {
+        const locked=[productForMode(newMode),productForEra(newEra)].find(id=>!islandProductAvailable(id));
+        if(locked){setMessage("Unlock "+productById(locked)?.label+" to use it on this island.");onShop(locked);return;}
         const slot = index >= 0 ? index : await onAddSlot();
         if (slot === undefined) return;
         const state = createInitialGameState(newMode);
@@ -162,7 +167,7 @@ function SavedIslands({
               setForm({ action: "name", index: emptySlot });
             }}><Plus size={16} aria-hidden="true" />{activeIsland ? "Make a copy" : "Name this island"}</button>}
             {canAdd && <button className="save-button" type="button" disabled={busy} onClick={()=>{
-              setName(""); setNewEra("original"); setNewMode(currentState.mode); setForm({action:"create",index:emptySlot});
+              setName(""); setNewEra("original"); setNewMode(islandProductAvailable(productForMode(currentState.mode))?currentState.mode:"real"); setForm({action:"create",index:emptySlot});
             }}><Plus size={16} aria-hidden="true"/> New island</button>}
           </section>
 

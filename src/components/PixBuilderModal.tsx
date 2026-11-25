@@ -1,3 +1,5 @@
+import {useStoreAccess} from "./IslandShop";
+import {currentPlayer} from "../game/deviceSaves";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Check,
@@ -36,7 +38,7 @@ import { GameDialog } from "./GameDialog";
 
 export type PixTab = "element" | "world" | "advise";
 
-type ModelProvider = "server" | "claude" | "chatgpt" | "grok";
+type ModelProvider = "free" | "anthropic" | "openai" | "gemini";
 
 interface PixAdviceAction {
   label: string;
@@ -54,12 +56,7 @@ interface PixAdviceResponse {
   actions: PixAdviceAction[];
 }
 
-const PROVIDERS: { id: ModelProvider; name: string; badge: string; connected: boolean }[] = [
-  { id: "server", name: "Pix AI", badge: "Connected", connected: true },
-  { id: "claude", name: "Claude", badge: "External slot", connected: false },
-  { id: "chatgpt", name: "ChatGPT", badge: "External slot", connected: false },
-  { id: "grok", name: "Grok", badge: "External slot", connected: false },
-];
+const providerNames:Record<ModelProvider,string>={free:"Free Pix",gemini:"Google Gemini",openai:"OpenAI",anthropic:"Anthropic Claude"};
 
 const ELEMENT_IDEAS = [
   "Rustic stone watermill bakery with a spinning wooden water wheel and chimney smoke",
@@ -107,7 +104,7 @@ export function PixBuilderModal({
 }) {
   const canPlace = state.mode !== "idle" && state.mode !== "manager";
   const [tab, setTab] = useState<PixTab>(canPlace ? initialTab : "advise");
-  const [provider, setProvider] = useState<ModelProvider>("server");
+  const [provider, setProvider] = useState<ModelProvider>("free");
   const [modelLabel, setModelLabel] = useState("Pix AI");
   const [serverConfigured, setServerConfigured] = useState<boolean | null>(null);
 
@@ -169,9 +166,17 @@ export function PixBuilderModal({
     return registerCustomElement(draftSpec, false);
   }, [draftSpec, previewRev]);
 
-  const activeProvider = PROVIDERS.find((p) => p.id === provider) ?? PROVIDERS[0];
+  const access=useStoreAccess();
+  const [consent,setConsent]=useState<Partial<Record<ModelProvider,boolean>>>({});
+  const activeProvider={name:providerNames[provider],connected:provider==="free" ? serverConfigured!==false : Boolean(access.plan && access.providers.includes(provider))};
+  const requestHeaders=()=>({"content-type":"application/json","X-Pix-Provider":provider,"Idempotency-Key":crypto.randomUUID(),...(currentPlayer()?{"X-Game-Account":currentPlayer()!.id}:{})});
+  const mayShare=(show:(message:string)=>void)=>{
+    if(consent[provider])return true;
+    show("Allow sharing with "+providerNames[provider]+" below the model selector to send this request.");return false;
+  };
 
   const requestElement = async (promptText: string, isRefinement: boolean) => {
+    if (!mayShare(setElError)) return;
     if (!activeProvider.connected) {
       setElError(`${activeProvider.name} is not connected here. Switch the model selector to ${modelLabel} to run Pix live.`);
       return;
@@ -184,7 +189,7 @@ export function PixBuilderModal({
     try {
       const resp = await fetch("/api/pix/element", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: requestHeaders(),
         body: JSON.stringify({
           prompt: clean,
           mode: state.mode,
@@ -220,10 +225,10 @@ export function PixBuilderModal({
     setElSuccess(null);
     try {
       let rawLevels: Record<string, unknown>[] | undefined;
-      if (activeProvider.connected) {
+      if (activeProvider.connected && mayShare(setElError)) {
         const resp = await fetch("/api/pix/element-levels", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: requestHeaders(),
           body: JSON.stringify({
             mode: state.mode,
             level5Design: draftSpec,
@@ -273,6 +278,7 @@ export function PixBuilderModal({
   };
 
   const requestWorldPlan = async (promptText: string) => {
+    if (!mayShare(setWorldError)) return;
     if (!activeProvider.connected) {
       setWorldError(`${activeProvider.name} is not connected here. Switch to ${modelLabel} to build with Pix.`);
       return;
@@ -285,7 +291,7 @@ export function PixBuilderModal({
     try {
       const resp = await fetch("/api/pix/world", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: requestHeaders(),
         body: JSON.stringify({
           prompt: clean,
           mode: state.mode,
@@ -313,6 +319,7 @@ export function PixBuilderModal({
   };
 
   const requestAdvice = async (questionText: string) => {
+    if (!mayShare(setAdvError)) return;
     if (!activeProvider.connected) {
       setAdvError(`${activeProvider.name} is not connected here. Switch to ${modelLabel} for live advice.`);
       return;
@@ -327,7 +334,7 @@ export function PixBuilderModal({
       ]);
       const resp = await fetch("/api/pix/advise", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: requestHeaders(),
         body: JSON.stringify({
           question: asked,
           mode: state.mode,
@@ -421,25 +428,14 @@ export function PixBuilderModal({
 
         <div className="pix-model-bar" role="group" aria-label="AI Model">
           <span className="pix-model-label">Model:</span>
-          {PROVIDERS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={"pix-model-btn" + (provider === p.id ? " is-active" : "") + (p.connected ? "" : " is-slot")}
-              aria-pressed={provider === p.id}
-              onClick={() => setProvider(p.id)}
-            >
-              <b>{p.connected ? modelLabel : p.name}</b>
-              <small>{p.connected && serverConfigured === false ? "Unavailable" : p.badge}</small>
-            </button>
-          ))}
+          {(Object.keys(providerNames) as ModelProvider[]).map(key=>(
+            <button key={key} type="button" className={"pix-model-btn"+(provider===key?" is-active":"")} aria-pressed={provider===key} onClick={()=>setProvider(key)}>
+              <b>{providerNames[key]}</b><small>{key==="free" ? modelLabel : !access.providers.includes(key) ? "Coming soon" : access.plan ? "Included" : "Pix subscription"}</small>
+            </button>))}
         </div>
-
-        {!activeProvider.connected && (
-          <div className="pix-notice">
-            {activeProvider.name} is listed as a multi-model selector slot. Select <strong>{modelLabel}</strong> above to run live Pix generations right now.
-          </div>
-        )}
+        {!activeProvider.connected && <p className="pix-notice">{providerNames[provider]} is currently unavailable for this account. View plans in More → Island Store.</p>}
+        {activeProvider.connected && <label className="pix-notice"><input type="checkbox" checked={Boolean(consent[provider])} onChange={e=>setConsent(values=>({...values,[provider]:e.target.checked}))}/> Allow {provider==="free" ? modelLabel : providerNames[provider]} to receive my prompt and the island details used for this request. You can turn sharing off here.</label>}
+        {provider!=="free" && access.plan && <p className="pix-notice">{access.usage.messages} of {access.usage.limit} messages used this period.</p>}
 
         <div className="pix-body">
           {tab === "element" && (

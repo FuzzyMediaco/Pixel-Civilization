@@ -1,3 +1,5 @@
+import { RenderLayout } from "./renderLayout";
+import { periodCar } from "./periodTransit";
 import { eraElementSpec, type EraKey } from "./eraStyles";
 import { presentationActivity, eraActiveSites } from "./eraActivity";
 import { eraStageTreatment, drawStageMarker } from "./eraStage";
@@ -190,6 +192,10 @@ function getVehicleGeometry(kind: RoadVehicleKind, variantSeed: number, era: Era
   const paintSet = ["red", "blue", "teal", "orange", "purple", "lime", "white", "sky"];
   const paint = paintSet[variantSeed % paintSet.length];
 
+  if(era!=="original" && !era.startsWith("rome-")) {
+    periodCar(v,era,kind,variantSeed);
+    const geometry=buildVoxelGeometry(v,.13);vehicleGeoCache.set(key,geometry);return geometry;
+  }
   if (era !== "original") {
     // The cart uses the same wheelbase and heading as the canonical road vehicle.
     const cargo = kind.includes("truck"), long = kind === "bus" ? 6 : 4;
@@ -287,6 +293,8 @@ function getVehicleGeometry(kind: RoadVehicleKind, variantSeed: number, era: Era
 }
 
 interface PlacedRenderEntry {
+  matchesFilter?: boolean;
+  smokeActive?: boolean;
   key: string;
   group: THREE.Group;
   wx: number;
@@ -316,6 +324,7 @@ export class PixelWorldRenderer {
 
   private callbacks: WorldCallbacks;
   private gameState: GameState;
+  private readonly renderLayout = new RenderLayout();
   private brush: BuildBrush = { kind: "none", level: 1, variantMode: -1, rotation: 0 };
   private selectedIds: string[] = [];
   private quickBuildTile: GridPoint | null = null;
@@ -488,6 +497,10 @@ export class PixelWorldRenderer {
   private smokeEmitters: { entryId: string; local: THREE.Vector3; kind: number; acc: number }[] = [];
   private blinkMesh: THREE.InstancedMesh | null = null;
   private blinkPhases: number[] = [];
+  private blinkStates = new Uint8Array();
+  private previouslyMovingBeacons = false;
+  private readonly smokeFade = new THREE.Color(0xe8ecf0);
+  private readonly smokePalette = PixelWorldRenderer.SMOKE_COLORS.map(color => new THREE.Color(color));
   private blinkKey = "";
   private fireEmitAccum = 0;
 
@@ -556,6 +569,9 @@ export class PixelWorldRenderer {
 
     // 2. Scene, Sky & Environment
     this.scene = new THREE.Scene();
+    // The scene and parcel container never move. Animated children still update normally.
+    this.scene.matrixAutoUpdate = false;
+    this.placedGroup.matrixAutoUpdate = false;
     this.farmActivity = new FarmActivityVisuals(this.scene, () => this.camera);
     this.mobilityVisuals = new MobilityVisuals(this.scene, getVehicleGeometry);
     this.scene.background = new THREE.Color(0xc2e9ff);
@@ -1293,12 +1309,13 @@ export class PixelWorldRenderer {
   private applySelectionFilterToEntry(entry: PlacedRenderEntry, el: PlacedElement): void {
     const def = ELEMENT_BY_ID[el.defId];
     const visibleMatch = !def || matchesSelectionFilter(def, this.selectionFilter);
-    const mat = visibleMatch ? getPixelVoxelMaterial() : getDimmedVoxelMaterial();
-    entry.group.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.userData?.isVoxelMesh) {
-        child.material = mat;
-      }
-    });
+    if (entry.matchesFilter !== visibleMatch) {
+      entry.matchesFilter = visibleMatch;
+      const mat = visibleMatch ? getPixelVoxelMaterial() : getDimmedVoxelMaterial();
+      entry.group.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.userData?.isVoxelMesh) child.material = mat;
+      });
+    }
     if (entry.disrepairBadge) {
       const status = maintenanceStatus(this.gameState, el);
       entry.disrepairBadge.visible = visibleMatch && (el.disrepair || status === "soon" || status === "due");
@@ -1352,49 +1369,22 @@ export class PixelWorldRenderer {
     const stageStyle = eraStageTreatment(this.appearanceEra, state.currentStage);
     const seenIds = new Set<string>();
 
-    const occupancy = buildOccupancyMap(state.elements);
+    let emittersChanged=this.renderLayout.update(state, (def, x, z) => this.getGroundElevationForElement(def, x, z));
+    let movingBeacons=false;
     for (const el of state.elements) {
       seenIds.add(el.id);
       const def = ELEMENT_BY_ID[el.defId];
-      if (!def) continue;
-
-      const connMask = def.isNetwork ? getNetworkConnMask(state.elements, el, occupancy,state) : 0;
-      const oddRot = el.rotation % 2 === 1;
-      const localSpanX = def.isNetwork || !oddRot ? el.spanX : el.spanZ;
-      const localSpanZ = def.isNetwork || !oddRot ? el.spanZ : el.spanX;
-      const worksSpan=state.infrastructure?.spans[tileKey(el.gx,el.gz)];
-      let terrainOverbuilt=false;
-      if(el.sculptsTerrain&&!def.isNetwork){
-        for(let dx=0;dx<el.spanX&&!terrainOverbuilt;dx++)for(let dz=0;dz<el.spanZ;dz++)if(occupancy.get(tileKey(el.gx+dx,el.gz+dz))?.id!==el.id){terrainOverbuilt=true;break;}
-      }
-      const pose = def.isNetwork ? { ...el, rotation: 0 } : el;
-      const edges = getParcelEdges(pose, occupancy, state).filter(e => !["road","rail","channel"].includes(e.kind));
-      const soils = def.domain === "land" ? getParcelSoils(state, pose) : undefined;
+      const parcel = this.renderLayout.parcels.get(el.id);
+      if (!def || !parcel) continue;
+      const {localSpanX,localSpanZ,connMask,worksSpan,terrainOverbuilt,worldSculpted,edges,soils,corridor,wx,wz,baseY}=parcel;
       const lighting = el.exteriorLighting ?? "auto";
-      const corridor=corridorArt(el,occupancy);
-      let hasFootprintVoxelOrCoast = false;
-      if (el.sculptsTerrain || stripsFlatGroundSlabInWorld(el.defId)) {
-        for (let dx = 0; dx < el.spanX && !hasFootprintVoxelOrCoast; dx++) {
-          for (let dz = 0; dz < el.spanZ; dz++) {
-            const k = tileKey(el.gx + dx, el.gz + dz);
-            if (state.infrastructure?.voxels?.[k] || (!el.sculptsTerrain && getTerrainCell(state, el.gx + dx, el.gz + dz).kind === "coast")) {
-              hasFootprintVoxelOrCoast = true;
-              break;
-            }
-          }
-        }
-      }
-      const worldSculpted = Boolean((el.sculptsTerrain || stripsFlatGroundSlabInWorld(el.defId)) && hasFootprintVoxelOrCoast);
       const spec = eraElementSpec(el.defId, this.appearanceEra);
       const eraActivity = spec && activeSites ? presentationActivity(state, el, spec.family, activeSites) : "idle";
       const marker = spec && (spec.family === "market" || spec.family === "station") ? stageStyle : undefined;
-      const renderKey = `${this.appearanceEra}|${eraActivity}|${marker?.level ?? ""}|${JSON.stringify(corridor)??""}|${terrainOverbuilt?"coexist":""}|${worldSculpted?"ws":""}|${worksSpan?.run??""}|${el.defId}|L${el.level}|V${el.variant}|${localSpanX}x${localSpanZ}|R${el.rotation}|C${connMask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}`;
-
+      const renderKey = [this.appearanceEra,eraActivity,marker?.level??"",parcel.key,el.level,el.variant,lighting].join("|");
       let entry = this.placedEntries.get(el.id);
-      const [wx, wz] = gridToWorldCenter(el.gx, el.gz, el.spanX, el.spanZ);
-      const baseY = this.getGroundElevationForElement(def, wx, wz);
-
       if (!entry || entry.key !== renderKey) {
+        emittersChanged=true;
         const wasAttackDowngrade = Boolean(
           entry &&
             this.gameState.activeAttack &&
@@ -1440,6 +1430,15 @@ export class PixelWorldRenderer {
         disconnectBadge.visible = false;
         group.add(disconnectBadge);
 
+        // Voxel meshes stay fixed in their local frames, including meshes beneath animated rotor pivots.
+        group.traverse(child => {
+          if (child.userData.isVoxelMesh || child === disrepairBadge || child === disconnectBadge) {
+            child.updateMatrix();
+            child.matrixAutoUpdate = false;
+          }
+        });
+        group.updateMatrix();
+        group.matrixAutoUpdate = false;
         this.placedGroup.add(group);
         entry = {
           key: renderKey,
@@ -1472,16 +1471,26 @@ export class PixelWorldRenderer {
         }
       } else {
         if (!state.mobility?.voyages[el.id]) {
-          entry.group.position.x = wx;
-          entry.group.position.z = wz;
+          const angle = def.isNetwork ? 0 : (el.rotation * Math.PI) / 2;
+          if (entry.group.position.x!==wx || entry.group.position.z!==wz || entry.group.rotation.y!==angle){
+            entry.group.position.x=wx;
+            entry.group.position.z=wz;
+            entry.group.rotation.y=angle;
+            entry.group.updateMatrix();
+          }
         }
         entry.group.userData.baseY = baseY;
-        if(!state.mobility?.voyages[el.id])entry.group.rotation.y = def.isNetwork ? 0 : (el.rotation * Math.PI) / 2;
         entry.wx = wx;
         entry.baseY = baseY;
         entry.wz = wz;
       }
 
+      const metadata=entry.group.userData;
+      if(metadata.smokePoints?.length){
+        const active=el.connected && !el.disrepair;
+        if(active!==entry.smokeActive){entry.smokeActive=active;emittersChanged=true;}
+      }
+      if(metadata.blinkers?.length && (el.animProgress>0 || metadata.bobOnWater || state.mobility?.voyages[el.id]))movingBeacons=true;
       this.applySelectionFilterToEntry(entry, el);
     }
 
@@ -1498,7 +1507,8 @@ export class PixelWorldRenderer {
     }
 
     this.refreshNetworkCache();
-    this.rebuildEmittersAndBeacons();
+    if(emittersChanged || movingBeacons || this.previouslyMovingBeacons)this.rebuildEmittersAndBeacons();
+    this.previouslyMovingBeacons=movingBeacons;
     this.farmActivity.syncHerds(state.elements, this.placedEntries);
     this.rebuildSelectionAndRadiusOverlays();
     this.updateHoverOverlay();
@@ -2527,30 +2537,7 @@ export class PixelWorldRenderer {
   }
 
   private resolveBuildingCollision(wx: number, wz: number, margin = 0.45): [number, number] {
-    let x = wx;
-    let z = wz;
-    for (let pass = 0; pass < 2; pass++) {
-      for (const el of this.gameState.elements) {
-        const def = ELEMENT_BY_ID[el.defId];
-        if (!def || def.isNetwork || def.passiveNature || def.domain !== "land") continue;
-        const minX = el.gx * TILE_SIZE - margin;
-        const maxX = (el.gx + el.spanX) * TILE_SIZE + margin;
-        const minZ = el.gz * TILE_SIZE - margin;
-        const maxZ = (el.gz + el.spanZ) * TILE_SIZE + margin;
-        if (x > minX && x < maxX && z > minZ && z < maxZ) {
-          const dLeft = x - minX;
-          const dRight = maxX - x;
-          const dTop = z - minZ;
-          const dBot = maxZ - z;
-          const m = Math.min(dLeft, dRight, dTop, dBot);
-          if (m === dLeft) x = minX;
-          else if (m === dRight) x = maxX;
-          else if (m === dTop) z = minZ;
-          else z = maxZ;
-        }
-      }
-    }
-    return [x, z];
+    return this.renderLayout.blockers.resolve(wx, wz, margin);
   }
 
   // ===================== ANIMATION & RENDER LOOP =====================
@@ -2601,6 +2588,7 @@ export class PixelWorldRenderer {
         }
       }
 
+      const previousY=grp.position.y, wasScaling=grp.scale.y!==1 || grp.scale.x!==1;
       const baseY = (grp.userData.baseY as number) || 0;
       if (grp.userData.bobOnWater) {
         grp.position.y = baseY + Math.sin(elapsed * 1.9 + el.gx * 0.7 + el.gz * 0.5) * 0.09;
@@ -2622,7 +2610,7 @@ export class PixelWorldRenderer {
         const sy = Math.max(0.2, 1 + bounce * amp);
         const sxz = Math.max(0.4, 1 - bounce * amp * 0.42);
         grp.scale.set(sxz, sy, sxz);
-      } else {
+      } else if (wasScaling) {
         grp.scale.set(1, 1, 1);
       }
 
@@ -2636,12 +2624,15 @@ export class PixelWorldRenderer {
         const turn=voyage.heading-grp.rotation.y;
         grp.rotation.y+=Math.atan2(Math.sin(turn),Math.cos(turn))*blend;
       }
+      if (voyage || previousY!==grp.position.y || el.animProgress>0.001 || wasScaling) grp.updateMatrix();
       if (entry.disrepairBadge?.visible) {
         entry.disrepairBadge.rotation.y = elapsed * 2.4;
         entry.disrepairBadge.rotation.x = Math.sin(elapsed * 3.2) * 0.35;
+        entry.disrepairBadge.updateMatrix();
       }
       if (entry.disconnectBadge?.visible) {
         entry.disconnectBadge.rotation.y = -elapsed * 1.8;
+        entry.disconnectBadge.updateMatrix();
       }
     }
 
@@ -2967,6 +2958,7 @@ export class PixelWorldRenderer {
     if (this.blinkMesh) {
       this.fxGroup.remove(this.blinkMesh);
       this.blinkMesh.dispose();
+      (this.blinkMesh.material as THREE.Material).dispose();
       this.blinkMesh = null;
     }
     if (beacons.length === 0) return;
@@ -2983,6 +2975,7 @@ export class PixelWorldRenderer {
     mesh.frustumCulled = false;
     mesh.userData.positions = beacons.map((b) => b.pos);
     this.blinkPhases = beacons.map(() => Math.random());
+    this.blinkStates = new Uint8Array(beacons.length).fill(2);
     this.fxGroup.add(mesh);
     this.blinkMesh = mesh;
   }
@@ -2992,13 +2985,17 @@ export class PixelWorldRenderer {
     if (this.blinkMesh) {
       const positions = this.blinkMesh.userData.positions as THREE.Vector3[];
       const m4 = new THREE.Matrix4();
+      let changed = false;
       for (let i = 0; i < positions.length; i++) {
         const on = (elapsed * 0.9 + this.blinkPhases[i]) % 1 < 0.42;
+        if (this.blinkStates[i] === Number(on)) continue;
+        this.blinkStates[i] = Number(on);
+        changed = true;
         const sc = on ? 0.26 : 0.001;
         m4.makeScale(sc, sc, sc).setPosition(positions[i]);
         this.blinkMesh.setMatrixAt(i, m4);
       }
-      this.blinkMesh.instanceMatrix.needsUpdate = true;
+      if (changed) this.blinkMesh.instanceMatrix.needsUpdate = true;
     }
 
     if (this.smokeEmitters.length === 0 && this.smokeParts.length === 0) {
@@ -3034,10 +3031,7 @@ export class PixelWorldRenderer {
       }
       if (em.acc > 3) em.acc = 0;
     }
-    const m4 = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    const sc = new THREE.Vector3();
-    const pos = new THREE.Vector3();
+    const matrices = mesh.instanceMatrix.array;
     const col = new THREE.Color();
     let n = 0;
     for (let i = this.smokeParts.length - 1; i >= 0; i--) {
@@ -3061,13 +3055,13 @@ export class PixelWorldRenderer {
       p.z += p.vz * dt;
       const grow = p.kind === 3 ? 1 - t : (0.6 + t * 2.4) * (t > 0.75 ? (1 - t) / 0.25 : 1);
       const s2 = p.size * Math.max(0.05, grow);
-      pos.set(p.x, p.y, p.z);
-      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), p.life * 0.6 + i);
-      sc.set(s2, s2, s2);
-      m4.compose(pos, q, sc);
-      mesh.setMatrixAt(n, m4);
-      col.setHex(PixelWorldRenderer.SMOKE_COLORS[p.kind] ?? 0xcccccc);
-      if (p.kind === 0) col.lerp(new THREE.Color(0xe8ecf0), t);
+      // These instances only rotate around Y and scale uniformly. Their other identity entries stay fixed.
+      const offset=n*16,angle=p.life*.6+i,cos=Math.cos(angle)*s2,sin=Math.sin(angle)*s2;
+      matrices[offset]=cos;matrices[offset+2]=-sin;matrices[offset+5]=s2;
+      matrices[offset+8]=sin;matrices[offset+10]=cos;
+      matrices[offset+12]=p.x;matrices[offset+13]=p.y;matrices[offset+14]=p.z;
+      col.copy(this.smokePalette[p.kind] ?? this.smokeFade);
+      if (p.kind === 0) col.lerp(this.smokeFade, t);
       mesh.setColorAt(n, col);
       n += 1;
     }

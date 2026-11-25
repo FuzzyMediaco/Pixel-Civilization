@@ -1,0 +1,512 @@
+import { readFileSync } from "node:fs";
+import { gzipSync } from "node:zlib";
+import test from "node:test";
+import assert from "node:assert/strict";
+import { generateKeyPairSync, createHmac } from "node:crypto";
+import { openAccountDatabase } from "../src/server/localAccounts.mjs";
+import { accountRequest } from "../worker/accounts.mjs";
+import { commerceRequest } from "../worker/commerce.mjs";
+import { reserveGeneration, pixWithPlans } from "../worker/pix-plans.mjs";
+import { recordPurchase } from "../worker/store-data.mjs";
+import { STORE_PRODUCTS, canUseProduct, productForEra, productForMode } from "../src/game/storeCatalog.mjs";
+
+const origin = "https://pixelcivilization.app";
+async function setup(vars: Record<string, unknown> = {}) {
+  const { db, sqlite } = openAccountDatabase(":memory:");
+  const env = { GAME_ACCOUNTS: db, ...vars };
+  const req = (path: string, method: string, cookie: string, body?: unknown, headers = {}) =>
+    new Request(origin + path, {
+      method,
+      headers: { "Content-Type": "application/json", Cookie: cookie, ...headers },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  const reg = await accountRequest(
+    req("/api/account/register", "POST", "", { email: "ada@example.com", password: "city password 9" }),
+    env,
+  );
+  const user = (await reg.json()).user.id,
+    cookie = reg.headers.get("set-cookie")!.split(";")[0];
+  const call = (path: string, body?: unknown, headers = {}) =>
+    commerceRequest(
+      req("/api/commerce/" + path, body === undefined ? "GET" : "POST", cookie, body, headers),
+      env,
+    );
+  return { db, sqlite, env, user, cookie, req, call };
+}
+function json(value: unknown) {
+  return Response.json(value);
+}
+test("sixteen products gate only premium modes and ten era packs, including both Rome directions", () => {
+  assert.equal(STORE_PRODUCTS.length, 16);
+  assert.equal(new Set(STORE_PRODUCTS.map((p) => p.id)).size, 16);
+  assert.equal(productForEra("rome-forum"), "era_rome");
+  assert.equal(productForEra("original"), undefined);
+  assert.equal(productForMode("manager"), undefined);
+  assert.equal(productForMode("god"), "mode_god");
+  const access = { accountId: "one", plan: "pix_complete", owned: [], validUntil: Date.now() + 5000 } as any;
+  assert.ok(
+    STORE_PRODUCTS.filter((p) => p.kind !== "subscription").every((p) => canUseProduct(access, p.id)),
+  );
+  assert.equal(canUseProduct({ ...access, validUntil: Date.now() - 10 }, "era_rome"), false);
+});
+test("native verification uses an authoritative Apple lookup, updates revocations, and never accepts a different account", async (t) => {
+  const key = generateKeyPairSync("ec", {
+    namedCurve: "P-256",
+    privateKeyEncoding: { format: "pem", type: "pkcs8" },
+    publicKeyEncoding: { format: "pem", type: "spki" },
+  });
+  const app = await setup({
+    APPLE_IAP_KEY: key.privateKey,
+    APPLE_IAP_KEY_ID: "test",
+    APPLE_IAP_ISSUER: "issuer",
+  });
+  t.after(() => app.sqlite.close());
+  let revoked = false,
+    owner = app.user;
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    assert.equal(url, "https://api.storekit.apple.com/inApps/v1/transactions/12345");
+    const claim = {
+      transactionId: "12345",
+      originalTransactionId: "12345",
+      appAccountToken: owner,
+      bundleId: "app.pixelcivilization.game",
+      productId: "era_rome",
+      environment: "Production",
+      purchaseDate: Date.now() - 3000,
+      ...(revoked ? { revocationDate: Date.now() } : {}),
+    };
+    return json({
+      signedTransactionInfo:
+        "header." + Buffer.from(JSON.stringify(claim)).toString("base64url") + ".signature",
+    });
+  });
+  const receipt = {
+    platform: "apple",
+    productId: "mode_god",
+    transactionId: "12345",
+    signedTransaction: "client-content-is-ignored",
+  };
+  assert.deepEqual((await (await app.call("purchase", receipt)).json()).owned, ["era_rome"]);
+  assert.deepEqual((await (await app.call("purchase", receipt)).json()).owned, ["era_rome"]);
+  revoked = true;
+  assert.deepEqual((await (await app.call("purchase", receipt)).json()).owned, []);
+  owner = crypto.randomUUID();
+  assert.equal((await app.call("purchase", receipt)).status, 403);
+  assert.equal((app.sqlite.prepare("SELECT COUNT(*) AS n FROM game_purchases").get() as any).n, 1);
+});
+test("Google restore acknowledges only after durable grant, binds the account, and honors cancellations", async (t) => {
+  const key = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    privateKeyEncoding: { format: "pem", type: "pkcs8" },
+    publicKeyEncoding: { format: "pem", type: "spki" },
+  });
+  const app = await setup({
+    GOOGLE_PLAY_SERVICE_ACCOUNT: JSON.stringify({
+      private_key: key.privateKey,
+      private_key_id: "fixture",
+      client_email: "test@example.test",
+    }),
+  });
+  t.after(() => app.sqlite.close());
+  let state = "PENDING",
+    acks = 0;
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    if (url === "https://oauth2.googleapis.com/token")
+      return json({ access_token: "test-token", expires_in: 3600 });
+    if (url.endsWith(":acknowledge")) {
+      assert.equal((app.sqlite.prepare("SELECT active FROM game_purchases").get() as any).active, 1);
+      acks++;
+      return new Response(null, { status: 204 });
+    }
+    assert.ok(url.includes("/app.pixelcivilization.game/purchases/productsv2/tokens/"));
+    return json({
+      purchaseStateContext: { purchaseState: state },
+      productLineItem: [{ productId: "era_deco", productOfferDetails: { refundableQuantity: 1 } }],
+      obfuscatedExternalAccountId: app.user,
+      purchaseCompletionTime: new Date(1700000000000).toISOString(),
+      acknowledgementState: "ACKNOWLEDGEMENT_STATE_PENDING",
+    });
+  });
+  const receipt = { platform: "google", productId: "era_deco", purchaseToken: "test-purchase-token" };
+  assert.equal((await app.call("purchase", receipt)).status, 409);
+  state = "PURCHASED";
+  assert.deepEqual((await (await app.call("purchase", receipt)).json()).owned, ["era_deco"]);
+  assert.equal(acks, 1);
+  state = "CANCELLED";
+  assert.deepEqual((await (await app.call("purchase", receipt)).json()).owned, []);
+});
+test("premium Pix authenticates, atomically reserves, settles reported provider usage and handles duplicate requests", async (t) => {
+  const app = await setup({ OPENAI_API_KEY: "unit-test-key" });
+  t.after(() => app.sqlite.close());
+  const now = Date.now(),
+    id = app.user;
+  const req = (requestId: string) =>
+    app.req(
+      "/api/pix/advise",
+      "POST",
+      app.cookie,
+      { question: "Improve my transit?", mode: "real" },
+      { "X-Pix-Provider": "openai", "Idempotency-Key": requestId },
+    );
+  assert.equal((await pixWithPlans(req("request-before-plan"), app.env, null)).status, 402);
+  await recordPurchase(app.db, {
+    store: "stripe",
+    key: "sub_fixture",
+    user: id,
+    product: "pix_starter",
+    active: true,
+    start: now - 10000,
+    end: now + 26 * 86400000,
+    checked: now,
+    next: now,
+    source: "sub_fixture",
+  });
+  // Actual endpoint expects metrics and player request; use the world endpoint with a simple sketch.
+  const draw = (requestId: string) =>
+    app.req(
+      "/api/pix/world",
+      "POST",
+      app.cookie,
+      { prompt: "Put a farm by the market", mode: "real" },
+      { "X-Pix-Provider": "openai", "Idempotency-Key": requestId },
+    );
+  const transport = t.mock.method(globalThis, "fetch", async () =>
+    json({
+      output: [{ content: [{ type: "output_text", text: JSON.stringify({ operations: [] }) }] }],
+      usage: {
+        input_tokens: 100,
+        output_tokens: 20,
+        input_tokens_details: { cached_tokens: 40, cache_write_tokens: 8 },
+      },
+    }),
+  );
+  assert.equal((await pixWithPlans(draw("request-once"), app.env, null)).status, 200);
+  const row = app.sqlite
+    .prepare("SELECT input_tokens,output_tokens,cost_micros,state FROM game_pix_usage")
+    .get() as any;
+  assert.deepEqual({ ...row }, { input_tokens: 100, output_tokens: 20, cost_micros: 17, state: "settled" });
+  assert.equal((await pixWithPlans(draw("request-once"), app.env, null)).status, 409);
+  assert.equal(transport.mock.callCount(), 1);
+  const grant = { product_id: "pix_starter", period_start: now - 10000, expires_at: now + 26 * 86400000 };
+  await Promise.allSettled(
+    Array.from({ length: 120 }, (_, i) =>
+      reserveGeneration(app.db, id, "batch" + i, grant, "openai", 1, now),
+    ),
+  );
+  assert.equal((app.sqlite.prepare("SELECT COUNT(*) AS n FROM game_pix_usage").get() as any).n, 100);
+  assert.equal((await pixWithPlans(draw("request-over-limit"), app.env, null)).status, 429);
+});
+test("Stripe requires tax readiness, verifies prices, requires a signed state change and handles a refund", async (t) => {
+  const app = await setup({
+    STRIPE_SECRET_KEY: "test-key",
+    STRIPE_WEBHOOK_SECRET: "test-webhook",
+    STRIPE_PORTAL_CONFIG: "bpc_fixture",
+    STRIPE_PRICE_IDS: '{"era_rome":"price_rome"}',
+  });
+  t.after(() => app.sqlite.close());
+  let complete = false,
+    refunded = false,
+    created = 0;
+  const session = () => ({
+    id: "cs_test_1234567890",
+    mode: "payment",
+    status: complete ? "complete" : "open",
+    url: "https://checkout.stripe.com/test",
+    payment_status: "paid",
+    customer: "cus_game",
+    metadata: { pixel_account: app.user, pixel_product: "era_rome" },
+    client_reference_id: app.user,
+    line_items: { data: [{ quantity: 1, price: { id: "price_rome" } }] },
+    expires_at: Math.floor(Date.now() / 1000) + 1000,
+    created: Math.floor(Date.now() / 1000),
+    payment_intent: {
+      id: "pi_test",
+      status: "succeeded",
+      latest_charge: { id: "ch_test", amount: 99, amount_refunded: refunded ? 99 : 0, refunded },
+    },
+  });
+  t.mock.method(globalThis, "fetch", async (url: string, opts: any) => {
+    const path = new URL(url).pathname;
+    if (path === "/v1/customers") return json({ id: "cus_game" });
+    if (path === "/v1/prices/price_rome")
+      return json({ active: true, currency: "usd", unit_amount: 99, type: "one_time" });
+    if (path === "/v1/checkout/sessions" && opts.method === "POST") {
+      assert.equal(opts.body.get("automatic_tax[enabled]"), "true");
+      assert.equal(opts.body.get("billing_address_collection"), "required");
+      created++;
+      return json(session());
+    }
+    if (path === "/v1/checkout/sessions" && opts.method === "GET") return json({ data: [session()] });
+    if (path === "/v1/checkout/sessions/cs_test_1234567890") return json(session());
+    if (path === "/v1/charges/ch_test")
+      return json({ id: "ch_test", payment_intent: "pi_test", customer: "cus_game" });
+    if (path === "/v1/invoice_payments") return json({ data: [] });
+    throw Error(path);
+  });
+  assert.equal((await app.call("checkout", { productId: "era_rome" })).status, 503);
+  Object.assign(app.env, { STRIPE_TAX_READY: "true" });
+  assert.equal((await app.call("checkout", { productId: "era_rome" })).status, 200);
+  assert.equal((await app.call("checkout", { productId: "era_rome" })).status, 200);
+  assert.equal(created, 1);
+  const fire = (type: string, obj: string, eventId: string, valid = true) => {
+    const body = JSON.stringify({ id: eventId, type, data: { object: { id: obj } } }),
+      time = Math.floor(Date.now() / 1000);
+    const mac = createHmac("sha256", valid ? "test-webhook" : "incorrect")
+      .update(time + "." + body)
+      .digest("hex");
+    return commerceRequest(
+      new Request(origin + "/api/commerce/stripe/webhook", {
+        method: "POST",
+        headers: { "Stripe-Signature": "t=" + time + ",v1=" + mac },
+        body,
+      }),
+      app.env,
+    );
+  };
+  complete = true;
+  assert.equal((await fire("checkout.session.completed", "cs_test_1234567890", "evt_1", false)).status, 400);
+  assert.deepEqual((await (await app.call("access")).json()).owned, []);
+  assert.equal((await fire("checkout.session.completed", "cs_test_1234567890", "evt_1")).status, 200);
+  assert.equal((await fire("checkout.session.completed", "cs_test_1234567890", "evt_1")).status, 200);
+  assert.deepEqual((await (await app.call("access")).json()).owned, ["era_rome"]);
+  refunded = true;
+  assert.equal((await fire("charge.refunded", "ch_test", "evt_2")).status, 200);
+  assert.deepEqual((await (await app.call("access")).json()).owned, []);
+});
+test("closing an account requires its password and removes online saves, entitlements, usage and sessions", async (t) => {
+  const app = await setup();
+  t.after(() => app.sqlite.close());
+  await recordPurchase(app.db, {
+    store: "apple",
+    key: "123",
+    user: app.user,
+    product: "era_deco",
+    active: true,
+    start: 1,
+    end: null,
+    checked: Date.now(),
+    next: Date.now() + 86400000,
+    source: "123",
+  });
+  const remove = (password: string) =>
+    accountRequest(app.req("/api/account/me", "DELETE", app.cookie, { password }), app.env);
+  assert.equal((await remove("wrong password")).status, 401);
+  assert.equal((await remove("city password 9")).status, 200);
+  for (const name of ["game_users", "game_sessions", "game_purchases"])
+    assert.equal((app.sqlite.prepare("SELECT COUNT(*) AS n FROM " + name).get() as any).n, 0);
+  assert.equal((await (await app.call("access")).json()).accountId, null);
+});
+
+test("paid Gemini and Claude settle their reported tokens, a rejected generation releases the reservation", async (t) => {
+  const app = await setup({ GEMINI_API_KEY: "test-gemini", ANTHROPIC_API_KEY: "test-claude" });
+  t.after(() => app.sqlite.close());
+  const now = Date.now();
+  await recordPurchase(app.db, {
+    store: "stripe",
+    key: "sub_models",
+    user: app.user,
+    product: "pix_studio",
+    active: true,
+    start: now - 20000,
+    end: now + 28 * 86400000,
+    checked: now,
+    next: now,
+    source: "sub_models",
+  });
+  let reject = false;
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    if (reject) return new Response("", { status: 429 });
+    if (url.includes("anthropic.com"))
+      return json({
+        content: [{ type: "tool_use", name: "city_response", input: { operations: [] } }],
+        usage: { input_tokens: 100, cache_read_input_tokens: 30, output_tokens: 10 },
+      });
+    return json({
+      candidates: [{ content: { parts: [{ text: JSON.stringify({ operations: [] }) }] } }],
+      usageMetadata: { promptTokenCount: 120, candidatesTokenCount: 25, thoughtsTokenCount: 5 },
+    });
+  });
+  for (const provider of ["gemini", "anthropic"]) {
+    const request = app.req(
+      "/api/pix/world",
+      "POST",
+      app.cookie,
+      { prompt: "Add roads" },
+      { "X-Pix-Provider": provider, "Idempotency-Key": "models-" + provider },
+    );
+    assert.equal((await pixWithPlans(request, app.env, null)).status, 200);
+  }
+  reject = true;
+  assert.equal(
+    (
+      await pixWithPlans(
+        app.req(
+          "/api/pix/world",
+          "POST",
+          app.cookie,
+          { prompt: "Add trees" },
+          { "X-Pix-Provider": "anthropic", "Idempotency-Key": "models-declined" },
+        ),
+        app.env,
+        null,
+      )
+    ).status,
+    502,
+  );
+  const rows = app.sqlite
+    .prepare("SELECT provider,state,cost_micros FROM game_pix_usage ORDER BY started_at")
+    .all()
+    .map((x) => ({ ...x }));
+  assert.deepEqual(rows, [
+    { provider: "gemini", state: "settled", cost_micros: 24 },
+    { provider: "anthropic", state: "settled", cost_micros: 153 },
+    { provider: "anthropic", state: "failed", cost_micros: 0 },
+  ]);
+});
+test("a subscription renewal switches the allowance to the actual new period and expires without further usage", async (t) => {
+  const app = await setup({
+    STRIPE_SECRET_KEY: "test",
+    STRIPE_WEBHOOK_SECRET: "renewal-secret",
+    STRIPE_PRICE_IDS: '{"pix_starter":"price_start","pix_builder":"price_build"}',
+  });
+  t.after(() => app.sqlite.close());
+  app.sqlite.prepare("INSERT INTO game_stripe_customers VALUES(?,?)").run(app.user, "cus_bill");
+  const now = Math.floor(Date.now() / 1000),
+    day = 86400;
+  let start = now - 28 * day,
+    end = now + 2 * day,
+    price = "price_start",
+    status = "active";
+  t.mock.method(globalThis, "fetch", async (url: string) => {
+    const path = new URL(url).pathname;
+    if (path.endsWith("subscriptions/sub_recurring"))
+      return json({
+        id: "sub_recurring",
+        customer: "cus_bill",
+        status,
+        items: { data: [{ price: { id: price }, current_period_start: start, current_period_end: end }] },
+        latest_invoice: { id: "in_new", status: "paid", amount_paid: 499 },
+      });
+    if (path.endsWith("invoice_payments"))
+      return json({ data: [{ status: "paid", payment: { payment_intent: "pi_month" } }] });
+    if (path.endsWith("payment_intents/pi_month"))
+      return json({ status: "succeeded", latest_charge: { amount: 499, amount_refunded: 0 } });
+    throw Error(path);
+  });
+  async function event(type: string, id: string) {
+    const obj = type.startsWith("invoice")
+      ? { parent: { subscription_details: { subscription: "sub_recurring" } } }
+      : { id: "sub_recurring" };
+    const body = JSON.stringify({ id: "evt_" + id, type, data: { object: obj } }),
+      time = Math.floor(Date.now() / 1000),
+      mac = createHmac("sha256", "renewal-secret")
+        .update(time + "." + body)
+        .digest("hex");
+    return commerceRequest(
+      new Request(origin + "/api/commerce/stripe/webhook", {
+        method: "POST",
+        headers: { "Stripe-Signature": "t=" + time + ",v1=" + mac },
+        body,
+      }),
+      app.env,
+    );
+  }
+  assert.equal((await event("customer.subscription.created", "created")).status, 200);
+  assert.equal((await (await app.call("access")).json()).usage.limit, 100);
+  app.sqlite
+    .prepare("INSERT INTO game_pix_usage VALUES(?,?,?,?,?,?,?,?,?)")
+    .run(app.user, "past-usage", (now - 10 * day) * 1000, "gemini", "fixture", "settled", 3, 4, 5);
+  assert.equal((await (await app.call("access")).json()).usage.messages, 1);
+  start = now - 100;
+  end = now + 30 * day;
+  price = "price_build";
+  assert.equal((await event("invoice.paid", "renewed")).status, 200);
+  const renewed = await (await app.call("access")).json();
+  assert.equal(renewed.plan, "pix_builder");
+  assert.equal(renewed.usage.limit, 350);
+  assert.equal(renewed.usage.messages, 0);
+  status = "canceled";
+  await event("customer.subscription.deleted", "deleted");
+  assert.equal((await (await app.call("access")).json()).plan, null);
+});
+test("signed offline lease is bound to the actual account and expires at the paid term", async (t) => {
+  const keys = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, [
+    "sign",
+    "verify",
+  ]);
+  const app = await setup({
+    STORE_LEASE_SIGNING_JWK: JSON.stringify(await crypto.subtle.exportKey("jwk", keys.privateKey)),
+  });
+  t.after(() => app.sqlite.close());
+  const now = Date.now();
+  await recordPurchase(app.db, {
+    store: "stripe",
+    key: "sub_lease",
+    user: app.user,
+    product: "pix_builder",
+    active: true,
+    start: now - 100,
+    end: now + 100000,
+    checked: now,
+    next: now,
+    source: "sub_lease",
+  });
+  const result = await (await app.call("access")).json(),
+    [head, body, sig] = result.lease.split(".");
+  assert.ok(
+    await crypto.subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      keys.publicKey,
+      Buffer.from(sig, "base64url"),
+      Buffer.from(head + "." + body),
+    ),
+  );
+  const grant = JSON.parse(Buffer.from(body, "base64url").toString());
+  assert.equal(grant.sub, app.user);
+  assert.equal(grant.plan, "pix_builder");
+  assert.ok(grant.exp * 1000 <= now + 100000);
+});
+test("a pre-rollout 1490-site God island and a named-only Survival island retain lifelong access; later uploads do not", async (t) => {
+  const app = await setup();
+  t.after(() => app.sqlite.close());
+  const now = Date.now();
+  function save(key: string, data: string) {
+    app.sqlite
+      .prepare(
+        "INSERT INTO game_saves(user_id,save_key,version,revision,updated_at,deleted) VALUES(?,?,1,'1-free',?,0)",
+      )
+      .run(app.user, key, now);
+    app.sqlite
+      .prepare("INSERT INTO game_save_chunks VALUES(?,?,'1-free',0,?)")
+      .run(app.user, key, gzipSync(data).toString("base64"));
+  }
+  save(
+    "pixel_civ_save_v1_god",
+    JSON.stringify({ mode: "god", elements: Array.from({ length: 1490 }, (_, id) => ({ id })) }),
+  );
+  save(
+    "pixel_civ_slot_3",
+    "pcgz1:" +
+      gzipSync(
+        JSON.stringify({
+          name: "Coastal City",
+          mode: "survival",
+          state: { mode: "survival", elements: [{ id: 1 }] },
+        }),
+      ).toString("base64"),
+  );
+  app.sqlite.exec("DROP TABLE game_legacy_mode_chunks; DROP TABLE game_legacy_mode_slots;");
+  app.sqlite.exec(
+    readFileSync(new URL("../migrations/0004_existing_game_modes.sql", import.meta.url), "utf8"),
+  );
+  app.sqlite
+    .prepare("UPDATE game_save_chunks SET payload=? WHERE save_key='pixel_civ_slot_3'")
+    .run(gzipSync("null").toString("base64"));
+  assert.deepEqual((await (await app.call("access")).json()).owned.sort(), ["mode_god", "mode_survival"]);
+  assert.equal((app.sqlite.prepare("SELECT COUNT(*) AS n FROM game_legacy_mode_slots").get() as any).n, 0);
+  app.sqlite.prepare("DELETE FROM game_purchases WHERE product_id='mode_survival'").run();
+  save("pixel_civ_save_v1_survival", JSON.stringify({ mode: "survival", elements: [] }));
+  assert.deepEqual((await (await app.call("access")).json()).owned, ["mode_god"]);
+  app.sqlite.prepare("UPDATE game_purchases SET checked_at=0 WHERE store='legacy'").run();
+  assert.deepEqual((await (await app.call("access")).json()).owned, ["mode_god"]);
+});

@@ -1,3 +1,5 @@
+import { periodCabin } from "./periodTransit";
+import { productionPeriod } from "./periods";
 import type { EraKey } from "./eraStyles";
 import { buildRailModel, isRollingStock } from "./railModels";
 import { railBodies, parkedBodies, type RailBody } from "./railMovement";
@@ -333,8 +335,9 @@ export function voyagePlacement(s: GameState, position: Point, submerged: boolea
 function periodVehicle(original:THREE.BufferGeometry, kind:string, era:EraKey) {
   original.computeBoundingBox();
   const bounds=original.boundingBox!, v=new PixelVox(17);
-  const stone=era==="rome-forum" ? "#dfcc9e" : "#ad7359";
-  const canopy=era==="rome-forum" ? "#ae4e46" : "#506e61";
+  const materials=productionPeriod(era).materials;
+  const stone=era==="rome-forum" ? "#dfcc9e" : materials[0];
+  const canopy=era==="rome-forum" ? "#ae4e46" : materials[2];
   const engine=/^rolling:(steam|diesel|electric|express|commuter)/.test(kind);
   const hull=kind === "ferry" || kind === "freight" || kind === "gondola";
   if (hull) {
@@ -359,6 +362,7 @@ function periodVehicle(original:THREE.BufferGeometry, kind:string, era:EraKey) {
     for(const z of [-5,-1,3])v.box(-3,6,z,3,6,z,stone);
     for(const z of [-3,2])v.box(-2,3,z,2,3,z,"#a46c44");
   }
+  periodCabin(v,era,hull,/freight|hopper|boxcar|tanker/.test(kind));
   const out=buildVoxelGeometry(v,.13);out.computeBoundingBox();
   const own=out.boundingBox!, a=own.getSize(new THREE.Vector3()), b=bounds.getSize(new THREE.Vector3());
   out.translate(-own.min.x,-own.min.y,-own.min.z);

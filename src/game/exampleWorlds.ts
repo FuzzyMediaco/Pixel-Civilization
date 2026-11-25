@@ -12,9 +12,10 @@ import {
   type PlacedElement,
 } from "./simulation";
 import { applyInfrastructureStroke, applyLandformPlacement, type InfrastructureTool } from "./terrain";
+import { PERIOD_TOURS, buildPeriodTour, type PeriodTourId } from "./periodTours";
 import { buildRomeFixture, ROME_WORLDS, type RomeWorldId } from "./romeFixtures";
 
-export type ExampleWorldId = "pelican-reach" | "copper-gorge" | "switchyard-city" | "meridian-fair" | RomeWorldId;
+export type ExampleWorldId = "pelican-reach" | "copper-gorge" | "switchyard-city" | "meridian-fair" | RomeWorldId | PeriodTourId;
 export type ExampleMode = "god" | "real";
 type Camera = { gx: number; gz: number; zoom: number };
 export type ExampleViewpoint = Camera & { name: string; tryThis: string };
@@ -224,6 +225,7 @@ export const EXAMPLE_WORLDS: readonly ExampleWorld[] = [
     ],
   },
   ...ROME_WORLDS,
+  ...PERIOD_TOURS.map(tour=>tour.world),
 ];
 type Tile = [number, number];
 export class District {
@@ -480,7 +482,8 @@ export function createExampleWorld(id: ExampleWorldId, mode: ExampleMode = "god"
     "rome-district": () => buildRomeFixture(new District("rome-district"), "rome-district", mode),
     "rome-skyline": () => buildRomeFixture(new District("rome-skyline"), "rome-skyline", mode),
   };
-  const city = factories[id]();
+  const tour=PERIOD_TOURS.find(item=>item.world.id===id);
+  const city=tour ? buildPeriodTour(new District(id),tour,mode) : factories[id as keyof typeof factories]();
   if (mode !== city.mode) {
     city.mode = mode;
     recomputeConnectivityAndMetrics(city);

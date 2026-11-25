@@ -6,15 +6,18 @@ import { App } from "./App";
 import { PlayerAccount } from "./components/PlayerAccount";
 import { prepareOfflineShell } from "./offlineShell";
 
-import {openDeviceSaves} from "./game/deviceSaves";
+import {currentPlayer,openDeviceSaves} from "./game/deviceSaves";
 import {autosync, bootAccountSync} from "./game/accountSync";
+import { readExampleRoute } from "./game/activeIsland";
+import { preserveExistingDeviceModes } from "./game/islandLicenses";
+import { fetchStoreAccess } from "./game/storeAccess";
 import {hydrateCustomElements} from "./game/customElements";
 
 const rootEl = document.getElementById("root");
 if (rootEl) {
   const root = createRoot(rootEl);
   const hosted = ["pixelcivilization.app", "pixel-civilization.fuzzymedia.workers.dev"].includes(location.hostname);
-  const needsAccount = hosted && !navigator.userAgent.includes("PixelCivilizationOffline");
+  const needsAccount = hosted && !readExampleRoute(location.hash) && !navigator.userAgent.includes("PixelCivilizationOffline");
   const readyToSave = () => true;
   const renderAccount = () => root.render(
     <main className="player-entry">
@@ -34,6 +37,11 @@ if (rootEl) {
       renderAccount();
       return;
     }
+    preserveExistingDeviceModes();
+    if (currentPlayer()) await fetchStoreAccess();
+    else void fetchStoreAccess();
+    window.addEventListener("online",fetchStoreAccess);
+    window.addEventListener("focus",fetchStoreAccess);
     hydrateCustomElements();
     window.addEventListener("online", autosync);
     document.addEventListener("visibilitychange", autosync);

@@ -49,7 +49,9 @@ import { CategoryFavicon } from "./CategoryFavicon";
 import { ERA_LABELS, normalizeEra, eraElementName, eraElementSpec, eraLevelName, type EraKey } from "../game/eraStyles";
 import { writeAtlasRoute, type UnifiedAtlasRoute } from "../handbook/atlasRoute";
 export type { AtlasTab, UnifiedAtlasRoute } from "../handbook/atlasRoute";
-import { ElementFavicon, EraThumbnailContext, eraSheet } from "./ElementFavicon";
+import { EraContactSheet } from "./EraContactSheet";
+import { PRODUCTION_ERAS } from "../game/periods";
+import { ElementFavicon, EraThumbnailContext } from "./ElementFavicon";
 import { BALANCED_EXPANSION_BY_ID, BALANCED_EXPANSION_ELEMENTS } from "../game/expansionBalancedCatalog";
 
 type Picture = { image: string; caption: string; alt: string; width: number; height: number };
@@ -158,9 +160,15 @@ const CATEGORY_OPTIONS: { id: BuildCategory; name: string }[] = Array.from(
     ALL_CATALOG.map((entry) => [entry.categoryName, { id: entry.category as BuildCategory, name: entry.categoryName }]),
   ).values(),
 );
+const eraSearchCache = new Map<string,string>();
 function eraSearch(id: string, era: EraKey) {
-  const spec = eraElementSpec(id,era === "original" ? "rome-forum" : era);
-  return spec ? [spec.name,...spec.aliases].join(" ") : "";
+  const key=era+":"+id;
+  const cached=eraSearchCache.get(key);
+  if(cached!==undefined)return cached;
+  const periods = era === "original" ? PRODUCTION_ERAS : [era];
+  const aliases=periods.map(period=>eraElementSpec(id,period)?.aliases.join(" ")??"").join(" ");
+  eraSearchCache.set(key,aliases);
+  return aliases;
 }
 
 const asset = (path: string) => "./" + path.replace(/^\//, "");
@@ -808,20 +816,7 @@ export function UnifiedAtlas({
                   </div>
                 </details>
 
-                <details className="pc-atlas-nest">
-                  <summary>
-                    <span>2D sprite sheet (all levels &amp; styles)</span>
-                  </summary>
-                  <div className="pc-atlas-nest-body">
-                    <div className="pc-atlas-sheet-wrap">
-                      <img
-                        src={spec ? eraSheet(selectedDef.id,era) : asset(selectedEntry.image)}
-                        alt={displayName(selectedDef.id) + " across levels from left to right and variants from top to bottom"}
-                        loading="lazy"
-                      />
-                    </div>
-                  </div>
-                </details>
+                <EraContactSheet def={selectedDef} era={spec?era:"original"} originalImage={asset(selectedEntry.image)} caption={displayName(selectedDef.id)+" across levels from left to right and variants from top to bottom"}/>
               </div>
 
               <aside className="pc-atlas-notes-col">

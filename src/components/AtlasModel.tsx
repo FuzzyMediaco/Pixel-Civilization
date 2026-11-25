@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { EraSheetCell, renderIsometricVoxelThumb } from "./ElementFavicon";
+import { EraSheetCell, hasBakedSheet, renderIsometricVoxelThumb } from "./ElementFavicon";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "../game/designs/index";
 import {
@@ -10,7 +10,7 @@ import {
 import { buildDesignAsset, buildPlacedGroupFromAsset } from "../game/voxelArchitect";
 import { getHandbookFrame } from "../game/handbookLayout";
 import { atlasPlots } from "../handbook/modelPlots";
-import { eraElementName, eraElementSpec, type EraKey } from "../game/eraStyles";
+import { eraElementName, type EraKey } from "../game/eraStyles";
 import { useEraArt } from "./useEraArt";
 import { TILE_SIZE, voxelNightUniform } from "../game/voxelCore";
 
@@ -47,7 +47,7 @@ export function AtlasModel({
   const {ready,failed,retry} = useEraArt(era);
   const illustrated = useMemo(() => ready && error ? renderIsometricVoxelThumb(def,level,variant,angle,300,era,active,joined) : null,[ready,error,def,level,variant,angle,era,active,joined]);
   const description = eraElementName(def.id,era) + ", level " + level + ", style " + (variant + 1);
-  const hasSheet=Boolean(eraElementSpec(def.id,era));
+  const hasSheet=hasBakedSheet(def.id,era);
   const viewer = useRef<{
     show: (d: CivElementDef, lv: number, v: number, isJoined: boolean, key: EraKey, active: boolean) => void;
     zoomBy: (factor: number) => void;
@@ -281,7 +281,7 @@ export function AtlasModel({
         </div>
       )}
       {ready && error && !illustrated && hasSheet && <EraSheetCell id={def.id} era={era} level={level} variant={variant} size={192} label={description}/>}
-      {error && !illustrated && !hasSheet && (
+      {error && !illustrated && !hasSheet && era==="original" && (
         <div
           className="pc-atlas-flat-fallback"
           style={{

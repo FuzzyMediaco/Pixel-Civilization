@@ -1,5 +1,6 @@
 import { AccountError, json, readJson } from "./account-http.mjs";
 // All persisted times are Unix milliseconds. Web, Android and desktop use same-origin cookies.
+import { cancelWebSubscriptions } from "./stripe-store.mjs";
 import { readSave, writeSave, listSaves } from "./saves.mjs";
 
 const DAY = 86_400_000;
@@ -35,7 +36,7 @@ function sessionToken(request) {
   return match?.[1];
 }
 
-async function currentSession(db, request) {
+export async function currentSession(db, request) {
   const token = sessionToken(request);
   if (!token) return null;
   const tokenHash = await digest(token);
@@ -126,6 +127,17 @@ export async function accountRequest(request, env) {
     const expected = request.headers.get("X-Game-Account");
     if (session && expected && session.user.id !== expected) {
       throw new AccountError(409, "The signed-in account changed.", "account_changed");
+    }
+    if (path === "me" && request.method === "DELETE") {
+      if (!session) throw new AccountError(401,"Sign in to delete your account.","unauthorized");
+      const body=await readJson(request,4096);
+      if (typeof body.password!=="string" || body.password.length>256) throw new AccountError(400,"Enter your account password.","invalid_password");
+      await countAttempts(db,request,session.user.email,"delete");
+      const row=await db.prepare("SELECT password_salt,password_hash FROM game_users WHERE id=?").bind(session.user.id).first();
+      if(!row || !matchesHash(await passwordHash(body.password,row.password_salt),row.password_hash)) throw new AccountError(401,"Password is incorrect.","invalid_credentials");
+      await cancelWebSubscriptions(env,session.user.id);
+      await db.prepare("DELETE FROM game_users WHERE id=?").bind(session.user.id).run();
+      return json({user:null,deleted:true},200,{"Set-Cookie":cookie("",0)});
     }
     if (path === "me") {
       requireMethod(request, "GET");

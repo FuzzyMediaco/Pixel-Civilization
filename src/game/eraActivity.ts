@@ -1,5 +1,5 @@
 import type { GameState, PlacedElement } from "./simulation";
-import type { EraActivity, RomeFamily } from "./eraStyles";
+import type { EraActivity, RomeElementSpec } from "./eraStyles";
 import { hydraulics } from "./terrain";
 
 export function eraActiveSites(state: GameState) {
@@ -12,7 +12,7 @@ export function eraActiveSites(state: GameState) {
   }
   return {passengers, deliveries, hydro: hydraulics(state)};
 }
-export function presentationActivity(state: GameState, site: PlacedElement, family: RomeFamily, sites: ReturnType<typeof eraActiveSites>): EraActivity {
+export function presentationActivity(state: GameState, site: PlacedElement, family: RomeElementSpec["family"], sites: ReturnType<typeof eraActiveSites>): EraActivity {
   if (site.disrepair || site.onFire) return "idle";
   if (family === "market") return sites.deliveries.has(site.id) ? "active" : "idle";
   if (family === "station") return sites.passengers.has(site.id) ? "active" : "idle";
