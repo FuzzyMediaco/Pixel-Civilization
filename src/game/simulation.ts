@@ -1391,6 +1391,11 @@ const HARBOR_IDS = new Set([
 /** Foot-traffic-only network pieces (cars stay off; villagers love them) */
 export const PEDESTRIAN_IDS = new Set(["paths", "walking_paths", "trails", "side_walks", "boardwalks"]);
 
+export function isUnconnectedBuilding(el: PlacedElement): boolean {
+  const def = ELEMENT_BY_ID[el.defId];
+  return !el.connected && def?.domain === "land" && !def.isNetwork && !def.passiveNature;
+}
+
 export function recomputeConnectivityAndMetrics(state: GameState): void {
   syncCatalogBridges(state);
   // Normalize old saves that predate protected sanctuaries.
@@ -1508,7 +1513,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (el.disrepair && state.mode !== "survival") m.recoveringBuildings += 1;
     if (el.onFire) m.burningCount += 1;
 
-    if (!def.isNetwork && !def.passiveNature && !el.connected && def.domain === "land") {
+    if (isUnconnectedBuilding(el)) {
       m.disconnectedBuildings += 1;
     }
 

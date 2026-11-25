@@ -11,6 +11,7 @@ import type { SelectionRingBox, SelectionRingProjection } from "../game/worldRen
 interface Props {
   state: GameState;
   focus: [number, number] | undefined;
+  buildingPulse?: { id: string; startedAt: number };
   draw: boolean;
   following?: string;
   onStopFollowing: () => void;
@@ -39,12 +40,12 @@ function paintTerrain(map: HTMLCanvasElement, state: GameState) {
   }
 }
 
-export function IslandMapFallback({ state, focus, draw, following, onStopFollowing, heatmap, startAt, onStroke, onTap, onInspect, ringTarget, onRingProjection }: Props) {
+export function IslandMapFallback({ state, focus, buildingPulse, draw, following, onStopFollowing, heatmap, startAt, onStroke, onTap, onInspect, ringTarget, onRingProjection }: Props) {
   const layer = useMemo(() => computeHeatmapCells(state, heatmap), [state, heatmap]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const data = useRef({ state, focus, draw, following, layer, startAt, onStroke, onTap, onInspect, ringTarget, onRingProjection });
+  const data = useRef({ state, focus, buildingPulse, draw, following, layer, startAt, onStroke, onTap, onInspect, ringTarget, onRingProjection });
   const changeZoom = useRef<(factor: number) => void>(() => {});
-  data.current = { state, focus, draw, following, layer, startAt, onStroke, onTap, onInspect, ringTarget, onRingProjection };
+  data.current = { state, focus, buildingPulse, draw, following, layer, startAt, onStroke, onTap, onInspect, ringTarget, onRingProjection };
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -64,6 +65,7 @@ export function IslandMapFallback({ state, focus, draw, following, onStopFollowi
     let gz = camera ? camera.target[2]/TILE_SIZE : (opening.startAt?.gz ?? 0);
     let focusSeen: Props["focus"];
     let suspendedFocus: Props["focus"];
+    let pulseSeen: Props["buildingPulse"];
     let drag: {id: number; x: number; y: number; moved: boolean; drawing: boolean} | undefined;
     let stroke: GridPoint[] = [];
     const pointAt = (event: PointerEvent): GridPoint => {
@@ -79,7 +81,7 @@ export function IslandMapFallback({ state, focus, draw, following, onStopFollowi
     };
     const paint = (time: number) => {
       const current = data.current;
-      const { state, focus, following } = current;
+      const { state, focus, following, buildingPulse } = current;
       const dt = Math.min(.06, (time-last)/1000);
       last = time;
       focusSeen = focus;
@@ -91,6 +93,14 @@ export function IslandMapFallback({ state, focus, draw, following, onStopFollowi
         const factor = 1 - Math.exp(-dt * 6);
         gx += (target[0] + .5 - gx) * factor;
         gz += (target[1] + .5 - gz) * factor;
+      }
+      const pulseAge = buildingPulse ? Math.max(0, time - buildingPulse.startedAt) : Infinity;
+      const pulseSite = pulseAge < 2400 && state.elements.find(el => el.id === buildingPulse?.id);
+      if (pulseSite && pulseSeen !== buildingPulse) {
+        pulseSeen = buildingPulse;
+        gx = pulseSite.gx + pulseSite.spanX / 2;
+        gz = pulseSite.gz + pulseSite.spanZ / 2;
+        zoom = Math.min(36, Math.min(canvas.clientWidth, canvas.clientHeight) / (Math.max(pulseSite.spanX, pulseSite.spanZ) + 4));
       }
       const cacheKey = (state.terrainVersion ?? 1) + ":" + (state.infrastructure?.stamp ?? "");
       if (terrainKey !== cacheKey) {
@@ -159,6 +169,18 @@ export function IslandMapFallback({ state, focus, draw, following, onStopFollowi
           ctx.fillRect(x + ew - size, y, size, size);
           ctx.strokeRect(x + ew - size, y, size, size);
         }
+      }
+      if (pulseSite) {
+        const progress = (pulseAge % 1200) / 1200;
+        const pad = 2 + progress * zoom * 0.4;
+        ctx.save();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = `rgba(255, 205, 92, ${1 - progress})`;
+        ctx.shadowColor = "#fbbf24";
+        ctx.shadowBlur = 9;
+        ctx.strokeRect(left + pulseSite.gx * zoom - pad, top + pulseSite.gz * zoom - pad,
+          pulseSite.spanX * zoom + pad * 2, pulseSite.spanZ * zoom + pad * 2);
+        ctx.restore();
       }
       const drawVehicle = (id:string,x:number,z:number,rail=false) => {
         const selected=id===following;

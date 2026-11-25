@@ -421,6 +421,13 @@ export class PixelWorldRenderer {
     new THREE.LineBasicMaterial({ transparent: true, opacity: 0.92 }));
   private selectionOutlines: THREE.LineSegments[] = [];
   private radiusRingMesh: THREE.Mesh | null = null;
+  private buildingPulseTarget?: { id: string; startedAt: number };
+  private buildingPulse = new THREE.Mesh(
+    new THREE.RingGeometry(0.87, 1, 4, 1, Math.PI / 4).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({
+      color: 0xffce61, transparent: true, depthTest: false, depthWrite: false, toneMapped: false, side: THREE.DoubleSide,
+    }),
+  );
 
   // Shared badge & particle geometries
   private unitCubeGeo = new THREE.BoxGeometry(1, 1, 1);
@@ -594,6 +601,9 @@ export class PixelWorldRenderer {
     this.groupOutline.visible = false;
     this.overlayGroup.add(this.groupOutline);
     this.overlayGroup.add(this.networkPreviewGroup);
+    this.buildingPulse.visible = false;
+    this.buildingPulse.renderOrder = 20;
+    this.overlayGroup.add(this.buildingPulse);
 
     this.bindEvents();
     this.syncState(initialState, []);
@@ -903,6 +913,8 @@ export class PixelWorldRenderer {
 
   /** Returns false for older or incomplete saves so the island can use its own starting view. */
   public restoreCameraView(view?: IslandCameraView): boolean {
+    this.buildingPulseTarget = undefined;
+    this.buildingPulse.visible = false;
     this.stopWatchingConstruction();
     this.followService();
     this.keysDown.clear();
@@ -984,7 +996,7 @@ export class PixelWorldRenderer {
   public stopWatchingConstruction(): void {
     this.constructionTarget = undefined;
   }
-  public focusElement(elementId: string): void {
+  public focusElement(elementId: string, pulse = false): void {
     this.stopWatchingConstruction();
     this.followService();
     const el = this.gameState.elements.find((e) => e.id === elementId);
@@ -999,11 +1011,43 @@ export class PixelWorldRenderer {
       this.walkYaw = Math.PI;
       this.walkPitch = -0.06;
     } else {
-      this.target.set(wx, lookY, wz);
-      this.spherical.radius = Math.max(9.5, Math.min(28, topY * 2.1 + el.spanX * 4.5));
+      if (pulse) {
+        // Frame the parcel and neighboring road tiles even in a narrow portrait viewport.
+        const parcelAndRoads = (Math.hypot(el.spanX, el.spanZ) + 3) * TILE_SIZE;
+        const viewportSpan = 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * Math.min(1, this.camera.aspect);
+        this.target.set(wx, (entry?.baseY ?? 0) + Math.max(0.6, topY * 0.4), wz);
+        this.spherical.radius = parcelAndRoads / viewportSpan + topY * 1.4;
+      } else {
+        this.target.set(wx, lookY, wz);
+        this.spherical.radius = Math.max(9.5, Math.min(28, topY * 2.1 + el.spanX * 4.5));
+      }
       this.spherical.phi = 1.02;
     }
     this.updateCameraTransform();
+    if (pulse) {
+      const startedAt = performance.now();
+      this.buildingPulseTarget = { id: elementId, startedAt };
+      this.updateBuildingPulse(startedAt);
+    }
+  }
+
+  private updateBuildingPulse(now: number): void {
+    const target = this.buildingPulseTarget;
+    if (!target) return;
+    const entry = this.placedEntries.get(target.id);
+    const elapsed = now - target.startedAt;
+    if (!entry || elapsed >= 2400) {
+      this.buildingPulse.visible = false;
+      this.buildingPulseTarget = undefined;
+      return;
+    }
+    const progress = (elapsed % 1200) / 1200;
+    const spread = 1 + progress * 0.15;
+    const footprint = TILE_SIZE * spread / Math.SQRT2;
+    this.buildingPulse.visible = true;
+    this.buildingPulse.position.set(entry.wx, entry.baseY + 0.35 + entry.topY * progress, entry.wz);
+    this.buildingPulse.scale.set(entry.spanX * footprint + 0.25, 1, entry.spanZ * footprint + 0.25);
+    this.buildingPulse.material.opacity = 0.9 * (1 - progress);
   }
 
   public setInfrastructureTool(tool:InfrastructureTool|null):void{
@@ -2488,6 +2532,7 @@ export class PixelWorldRenderer {
     if (this.disposed) return;
     const dt = Math.min(0.06, this.clock.getDelta());
     const elapsed = this.clock.elapsedTime;
+    this.updateBuildingPulse(performance.now());
 
     this.oceanUniforms.uTime.value = elapsed;
     this.engineering.animate(this.gameState);
@@ -4492,6 +4537,8 @@ export class PixelWorldRenderer {
     this.mobilityVisuals.dispose();
     this.groupOutline.geometry.dispose();
     this.groupOutline.material.dispose();
+    this.buildingPulse.geometry.dispose();
+    this.buildingPulse.material.dispose();
     this.renderer.dispose();
   }
 }

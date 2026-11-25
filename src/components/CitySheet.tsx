@@ -85,6 +85,7 @@ export function CitySheet({
   mutate,
   selected,
   onFocus,
+  onLocateUnconnected,
   onFix,
   onShowLayer,
   onShowPanel,
@@ -100,6 +101,7 @@ export function CitySheet({
   mutate: (fn: (s: GameState) => void) => void;
   selected?: PlacedElement;
   onFocus: (id: string) => void;
+  onLocateUnconnected: () => void;
   onFix: (fix: IssueFix) => void;
   onShowLayer: (layer: HeatmapKind) => void;
   onShowPanel: (p: "transit" | "money" | "people") => void;
@@ -223,16 +225,22 @@ export function CitySheet({
             )}
             {issues
               .filter((i) => i.severity !== "good" && i.id !== "growth_limit")
-              .map((i) => (
-                <ListRow
-                  key={i.id}
-                  icon={i.severity === "info" ? "ⓘ" : "⚠"}
-                  tone={i.severity === "critical" ? "bad" : i.severity === "warning" ? "warn" : undefined}
-                  title={i.title}
-                  subtitle={(i.deltaHappiness ? i.deltaHappiness + "% · " : "") + i.fixHint}
-                  trailing={trailing(i)}
-                />
-              ))}
+              .map((i) => {
+                const locate = i.id === "disconnected";
+                return (
+                  <ListRow
+                    key={i.id}
+                    icon={i.severity === "info" ? "ⓘ" : "⚠"}
+                    tone={i.severity === "critical" ? "bad" : i.severity === "warning" ? "warn" : undefined}
+                    title={i.title}
+                    subtitle={locate ? "Show on map · Build a road to connect it." : (i.deltaHappiness ? i.deltaHappiness + "% · " : "") + i.fixHint}
+                    onClick={locate ? onLocateUnconnected : undefined}
+                    trailing={locate
+                      ? <span className="ui-row-action-icon" aria-hidden="true"><Hammer size={14} /></span>
+                      : trailing(i)}
+                  />
+                );
+              })}
             {!problems.length && (
               <ListRow
                 icon="✓"

@@ -126,6 +126,7 @@ import {
   planRelocation,
   createInitialGameState,
   isNightTime,
+  isUnconnectedBuilding,
   launchIslandAttack,
   maintainAllElements,
   maintainElement,
@@ -363,6 +364,7 @@ export const App: React.FC = () => {
   const [followGrowth, setFollowGrowth] = useState(true);
   const [mapFallback, setMapFallback] = useState(false);
   const [mapFocus, setMapFocus] = useState<[number, number]>();
+  const [mapBuildingPulse, setMapBuildingPulse] = useState<{ id: string; startedAt: number }>();
   const followGrowthRef = useRef(true);
   followGrowthRef.current = followGrowth;
   const showAutoAction = useCallback((outcome: AutoStepOutcome) => {
@@ -410,6 +412,7 @@ export const App: React.FC = () => {
   const [autoSpin, setAutoSpin] = useState(false);
   const restoreIslandView = useCallback((state: GameState) => {
     setUiToasts([]);
+    setMapBuildingPulse(undefined);
     const world = rendererRef.current;
     if (!world) return;
     const restored = world.restoreCameraView(state.cameraView);
@@ -1883,6 +1886,27 @@ export const App: React.FC = () => {
       if (site) setMapFocus([site.gx,site.gz]);
     }
   };
+  const locateUnconnected = () => {
+    const site = stateRef.current.elements.find(isUnconnectedBuilding);
+    if (!site) return;
+    openSheet(null);
+    setSelectedIds([]);
+    setFollowedService(undefined);
+
+    const world = rendererRef.current;
+    if (world) {
+      if (cameraMode === "walk") {
+        setCameraMode("pan");
+        world.setCameraMode("pan");
+      }
+      setAutoSpin(false);
+      world.setAutoSpin(false);
+      world.focusElement(site.id, true);
+    } else {
+      setMapFocus(undefined);
+      setMapBuildingPulse({ id: site.id, startedAt: performance.now() });
+    }
+  };
   const snapshot=(s:GameState)=>{
     try{writePlayerItem("pixel_civ_lab_snapshot",JSON.stringify({...s,toasts:[]}));setHasSnapshot(true);return true;}
     catch{showToast({id:"snap",title:"Snapshot could not be saved",subtitle:"Free a save slot or browser storage, then try again.",tone:"alert"});return false;}
@@ -2414,7 +2438,7 @@ export const App: React.FC = () => {
   return (
     <main className={"island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]"+(showAlert?" has-alert":"")+(inFocusMenu?" has-focus-menu":"")+(ringOpen?" is-ring-open":"")}>
       {mapFallback
-        ? <IslandMapFallback key={gameState.mode + (gameState.exampleWorldId ?? "")} state={gameState} focus={gameState.mode === "idle" && !followGrowth ? undefined : mapFocus}
+        ? <IslandMapFallback key={gameState.mode + (gameState.exampleWorldId ?? "")} state={gameState} focus={gameState.mode === "idle" && !followGrowth ? undefined : mapFocus} buildingPulse={mapBuildingPulse}
             startAt={activeExample?.viewpoints[gameState.exampleViewpoint ?? -1] ?? activeExample?.camera}
             following={followedService} onStopFollowing={()=>setFollowedService(undefined)} heatmap={activeHeatmap} draw={Boolean(worksTool || brushDef || movingEl || brush.movingGroupIds)} onStroke={mapStroke} onTap={dismissMapPanel} onInspect={mapTile}
             ringTarget={showSelectionRing ? deletedAnchor ?? selected : undefined} onRingProjection={projectFallbackRing} />
@@ -2819,7 +2843,7 @@ export const App: React.FC = () => {
           <LayersSheet {...sheetProps} state={gameState} active={activeHeatmap} onSelect={l=>{setActiveHeatmap(l);if(l==="power")trackDrawerAction("heatmap_power",0.5);else if(l==="water")trackDrawerAction("heatmap_water",0.5);else if(l==="police")trackDrawerAction("heatmap_safety",0.5);else if(l==="traffic")trackDrawerAction("heatmap_traffic",0.5);if(l!=="none")notifyTutorial("pick_layer");}} onFix={openFix}/>
         ) : sheet==="city" ? (
           <CitySheet {...sheetProps} state={gameState} tab={cityTab} onTab={t=>{setCityTab(t);if(t==="transit")notifyTutorial("open_transit");}} mutate={editCity} selected={selected} onFocus={id=>{openSheet(null);focusSite(id);}}
-            onFix={openFix} onShowLayer={showLayer} onShowPanel={showPanel} onMaintainAll={()=>{trackDrawerAction("repair_all",0.5);handleMaintainAll();}}
+            onLocateUnconnected={locateUnconnected} onFix={openFix} onShowLayer={showLayer} onShowPanel={showPanel} onMaintainAll={()=>{trackDrawerAction("repair_all",0.5);handleMaintainAll();}}
             transitProps={{
               onPickDestination:id=>{setDispatchTarget(id);setSheetState(null);},
               onFollow:id=>{
