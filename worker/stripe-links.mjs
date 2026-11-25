@@ -221,7 +221,7 @@ export async function applyLinkEvent(db, env, event) {
     !links(env).size &&
     !(await db
       .prepare("SELECT 1 FROM game_link_tickets UNION ALL SELECT 1 FROM game_link_receipts LIMIT 1")
-      .first())
+      .bind().first())
   )
     return false;
   await db.batch([

@@ -231,6 +231,8 @@ test("Stripe requires tax readiness, verifies prices, requires a signed state ch
     if (path === "/v1/prices/price_rome")
       return json({ active: true, currency: "usd", unit_amount: 99, type: "one_time" });
     if (path === "/v1/checkout/sessions" && opts.method === "POST") {
+      assert.equal(opts.body.get("allowed_payment_method_types[0]"), "card");
+      assert.equal(opts.body.has("payment_method_types[0]"), false);
       assert.equal(opts.body.get("automatic_tax[enabled]"), "true");
       assert.equal(opts.body.get("billing_address_collection"), "required");
       created++;
@@ -665,13 +667,13 @@ test("Payment Links bind timed checkouts, permit one claim of direct purchases a
   assert.ok((await (await claim(rotated.id)).json()).owned.includes("era_rome"));
   app.sqlite.prepare("DELETE FROM game_users WHERE id=?").run(originalWon ? app.user : otherId);
   await event("checkout.session.completed", direct);
-  await event("charge.refunded", {
+  assert.equal((await event("charge.refunded", {
     id: "ch_afterdelete",
     payment_intent: direct.payment_intent,
     amount: 105,
     amount_refunded: 105,
     refunded: true,
-  });
+  })).status, 200);
   assert.equal((await (originalWon ? otherClaim : claim)(direct.id)).status, 403);
   assert.equal(
     (
@@ -681,4 +683,161 @@ test("Payment Links bind timed checkouts, permit one claim of direct purchases a
     ).n,
     0,
   );
+});
+
+test("Pix uses funded, verified gateway models with precise merchant costs and releases failed reservations", async (t) => {
+  const names = ["openai/gpt-6-luna", "anthropic/claude-haiku-4.5", "google/gemini-2.5-flash-lite"];
+  let balance = 1000,
+    reads = 0,
+    declined = false;
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    assert.equal(
+      url,
+      "https://api.cloudflare.com/client/v4/accounts/" +
+        "a".repeat(32) +
+        "/ai-gateway/billing/credit-balance",
+    );
+    assert.equal(new Headers(options.headers).get("Authorization"), "Bearer game-read-only-test");
+    reads++;
+    return json({ success: true, result: { balance } });
+  });
+  const calls: string[] = [];
+  const AI = {
+    async run(model: string, body: Record<string, unknown>, opts: any) {
+      calls.push(model);
+      assert.equal(opts.gateway.id, "pixel-civilization");
+      assert.equal(opts.gateway.collectLog, false);
+      assert.equal(opts.gateway.skipCache, true);
+      assert.equal(opts.returnRawResponse, true);
+      assert.equal(body.model, undefined);
+      assert.ok(opts.signal);
+      if (declined) return new Response(null, { status: 402 });
+      if (model === names[0]) {
+        assert.equal(body.store, false);
+        assert.match(String(body.input), /json/i);
+        return json({
+          output: [{ content: [{ type: "output_text", text: '{"operations":[]}' }] }],
+          usage: { input_tokens: 100, output_tokens: 20 },
+        });
+      }
+      if (model === names[1]) {
+        assert.ok(body.tool_choice);
+        return json({
+          content: [{ type: "tool_use", name: "city_response", input: { operations: [] } }],
+          usage: { input_tokens: 100, output_tokens: 20 },
+        });
+      }
+      assert.ok(body.generationConfig);
+      return json({
+        candidates: [{ content: { parts: [{ text: '{"operations":[]}' }] } }],
+        usageMetadata: { promptTokenCount: 100, candidatesTokenCount: 20 },
+      });
+    },
+  };
+  const app = await setup({
+    AI,
+    PIX_GATEWAY_ACCOUNT: "a".repeat(32),
+    PIX_GATEWAY_ID: "pixel-civilization",
+    PIX_GATEWAY_READ_TOKEN: "game-read-only-test",
+    PIX_GATEWAY_VERIFIED_MODELS: names.join(","),
+  });
+  t.after(() => app.sqlite.close());
+  const opts = app.env as Record<string, unknown>;
+  const status = async (env = opts) =>
+    (await (await pixWithPlans(app.req("/api/pix/status", "GET", ""), env, null)).json()).providers;
+  assert.deepEqual(await status(), ["openai", "anthropic", "gemini"]);
+  assert.deepEqual(await status(), ["openai", "anthropic", "gemini"]);
+  assert.equal(reads, 1);
+  assert.deepEqual(await status({ ...opts, PIX_GATEWAY_VERIFIED_MODELS: names[1] }), ["anthropic"]);
+  assert.deepEqual(await status({ ...opts, PIX_GATEWAY_READ_TOKEN: "", OPENAI_API_KEY: "test-key" }), [
+    "openai",
+  ]);
+  const now = Date.now();
+  await recordPurchase(app.db, {
+    store: "stripe",
+    key: "sub_gw",
+    user: app.user,
+    product: "pix_starter",
+    active: true,
+    start: now - 100,
+    end: now + 20 * 86400000,
+    checked: now,
+    next: now,
+    source: "test",
+  });
+  const draw = (provider: string, id: string, env = opts) =>
+    pixWithPlans(
+      app.req(
+        "/api/pix/world",
+        "POST",
+        app.cookie,
+        { prompt: "Add a park" },
+        { "X-Pix-Provider": provider, "Idempotency-Key": id },
+      ),
+      env,
+      null,
+    );
+  for (const provider of ["openai", "anthropic", "gemini"])
+    assert.equal((await draw(provider, "funded-pix-" + provider)).status, 200);
+  assert.deepEqual(calls, names);
+  const rows = app.sqlite
+    .prepare("SELECT model,cost_micros FROM game_pix_usage ORDER BY started_at, rowid")
+    .all()
+    .map((r) => ({ ...r }));
+  assert.deepEqual(rows, [
+    { model: names[0], cost_micros: 20 },
+    { model: names[1], cost_micros: 200 },
+    { model: names[2], cost_micros: 18 },
+  ]);
+  const bill = app.sqlite
+    .prepare("SELECT inference_micros,estimated_funding_fee_micros FROM game_pix_settled_costs WHERE model=?")
+    .get(names[1]);
+  assert.deepEqual({ ...bill }, { inference_micros: 200, estimated_funding_fee_micros: 10 });
+  assert.equal((await draw("openai", "funded-pix-openai")).status, 409);
+  assert.equal(calls.length, 3);
+  declined = true;
+  assert.equal((await draw("openai", "declined-gateway")).status, 502);
+  balance = 0;
+  assert.deepEqual(await status(), []);
+  assert.deepEqual(await status({ ...opts, OPENAI_API_KEY: "individual-test-key" }), ["openai"]);
+  const denied = await draw("gemini", "zero-credit-check");
+  assert.equal(denied.status, 503);
+  balance = 0.01;
+  assert.equal((await draw("anthropic", "low-credit-check", { ...opts })).status, 503);
+  assert.equal(calls.length, 4);
+});
+
+test("concurrent Pix requests from separate players share one prepaid gateway wallet", async (t) => {
+  const app = await setup();
+  t.after(() => app.sqlite.close());
+  const b = await accountRequest(
+    app.req("/api/account/register", "POST", "", {
+      email: "wallet@example.test",
+      password: "sample-game-wallet",
+    }),
+    app.env,
+  );
+  const other = (await b.json()).user.id,
+    now = Date.now();
+  const grant = { product_id: "pix_starter", period_start: now - 1000, expires_at: now + 86400000 };
+  const wallet = { checkedAt: now, availableMicros: 100000 };
+  const outcomes = await Promise.allSettled(
+    [app.user, other].map((user, i) =>
+      reserveGeneration(
+        app.db,
+        user,
+        "shared-wallet-" + i,
+        grant,
+        "anthropic",
+        60000,
+        now,
+        "anthropic/claude-haiku-4.5",
+        wallet,
+      ),
+    ),
+  );
+  assert.equal(outcomes.filter((r) => r.status === "fulfilled").length, 1);
+  const failed = outcomes.find((r) => r.status === "rejected");
+  assert.equal((failed as PromiseRejectedResult).reason.code, "provider_unavailable");
+  assert.equal((app.sqlite.prepare("SELECT COUNT(*) AS n FROM game_pix_usage").get() as any).n, 1);
 });

@@ -16,6 +16,20 @@ export interface StoreAccess {
   providers: string[];
   readyStores: string[];
   webSubscriptionsReady?: boolean;
+  pixBilling?: {
+    state: "setup_open" | "invoice_open" | "active" | "processing" | "revoked" | "ended";
+    productId?: string;
+    setupUrl?: string;
+    setupExpires?: number;
+    cancelPending?: boolean;
+    invoiceUrl?: string;
+    renews: boolean;
+    paidThrough: number | null;
+  } | null;
+  pixAdmission?: {
+    native: boolean;
+    tiers: Record<string, { available: boolean; reason: "available" | "wallet_capacity" | "providers_unavailable" | "billing_unavailable" }>;
+  };
   usage: { messages: number; spendMicros: number; limit: number; budgetMicros: number; periodEnd: number };
   validUntil: number;
 }

@@ -1,7 +1,19 @@
+import {
+  checkFundedPortal,
+  completeFunded,
+  fundedReady,
+  fundedSnapshot,
+  maintainFunded,
+  startFunded,
+  stopFunded,
+} from "./funded-subscriptions.mjs";
+import { activatePixTerm } from "./pix-funding.mjs";
 import { applyLinkEvent, claimLinkReceipt, linkCheckout, paymentLinksReady } from "./stripe-links.mjs";
 import { AccountError, json } from "./account-http.mjs";
 import { DAY, asId, recordPurchase, requireStore, utf8 } from "./store-data.mjs";
 import { productById } from "../src/game/storeCatalog.mjs";
+
+export const STRIPE_API_VERSION = "2026-09-30.endive";
 
 function prices(env) {
   try {
@@ -10,6 +22,13 @@ function prices(env) {
     return {};
   }
 }
+export function fundedSubscriptionBillingReady(env) {
+  return fundedReady(env, keyCheckoutReady(env), prices(env));
+}
+export { fundedSnapshot };
+export const stopPixRenewal = (env, user) => stopFunded(env, user, stripe);
+export const maintainPixBilling = (env) =>
+  maintainFunded(env, stripe, reconcileSubscription, fundedSubscriptionBillingReady(env));
 export function stripeAvailable(env) {
   return keyCheckoutReady(env) || paymentLinksReady(env);
 }
@@ -29,7 +48,7 @@ const escape = encodeURIComponent;
 const appUrl = (env) => env.STOREFRONT_ORIGIN || "https://pixelcivilization.app";
 async function stripe(env, path, form, idem) {
   requireStore(env.STRIPE_SECRET_KEY, 503, "Web purchases are currently unavailable.", "missing_stripe");
-  const headers = { Authorization: "Bearer " + env.STRIPE_SECRET_KEY, "Stripe-Version": "2026-09-30.endive" };
+  const headers = { Authorization: "Bearer " + env.STRIPE_SECRET_KEY, "Stripe-Version": STRIPE_API_VERSION };
   if (idem) headers["Idempotency-Key"] = idem;
   const res = await fetch("https://api.stripe.com/v1/" + path, {
     method: form ? "POST" : "GET",
@@ -70,7 +89,7 @@ async function customerFor(env, user) {
     .first();
   return row.customer_id;
 }
-export async function checkout(env, user, id) {
+export async function checkout(env, user, id, billingConsent) {
   const sku = productById(id),
     price = prices(env)[id];
   if (sku && sku.kind !== "subscription" && (!keyCheckoutReady(env) || !price))
@@ -81,8 +100,14 @@ export async function checkout(env, user, id) {
     "This item is not yet available for web purchase.",
     "unavailable_product",
   );
-  const customer = await customerFor(env, user),
-    subscription = sku.kind === "subscription";
+  const subscription = sku.kind === "subscription";
+  if (subscription)
+    requireStore(
+      fundedSubscriptionBillingReady(env),
+      503,
+      "Monthly checkout is currently unavailable.",
+      "billing_unavailable",
+    );
   const details = await stripe(env, "prices/" + escape(price));
   requireStore(
     details.active === true &&
@@ -97,8 +122,10 @@ export async function checkout(env, user, id) {
     "The checkout price is being updated. Try again soon.",
     "price_mismatch",
   );
+  if (subscription) return startFunded(env, user, sku, price, stripe, customerFor, billingConsent);
+  const customer = await customerFor(env, user);
   const db = env.GAME_ACCOUNTS,
-    scope = subscription ? "monthly" : sku.id,
+    scope = sku.id,
     now = Date.now(),
     origin = appUrl(env);
   const existing = await db
@@ -109,7 +136,6 @@ export async function checkout(env, user, id) {
     const previous = await stripe(env, "checkout/sessions/" + escape(existing.session_id));
     if (previous.status === "complete") {
       await reconcileSession(env, previous.id, user.id);
-      if (subscription) return portal(env, user);
       throw new AccountError(
         409,
         "This payment was submitted. Refresh your purchases before trying again.",
@@ -134,14 +160,14 @@ export async function checkout(env, user, id) {
   requireStore(slot, 409, "Checkout is opening. Please try again in a moment.", "checkout_pending");
   const form = {
     customer,
-    mode: subscription ? "subscription" : "payment",
+    mode: "payment",
     "line_items[0][price]": price,
     "line_items[0][quantity]": "1",
     "automatic_tax[enabled]": "true",
     billing_address_collection: "required",
     "customer_update[address]": "auto",
     "customer_update[name]": "auto",
-    "payment_method_types[0]": "card",
+    "allowed_payment_method_types[0]": "card",
     client_reference_id: user.id,
     "metadata[pixel_account]": user.id,
     "metadata[pixel_product]": sku.id,
@@ -149,8 +175,7 @@ export async function checkout(env, user, id) {
     cancel_url: origin + "/?purchase=canceled",
     integration_identifier: "pixel_civilization_pqxtsklm",
   };
-  if (subscription) form["subscription_data[metadata][pixel_account]"] = user.id;
-  else form["payment_intent_data[metadata][pixel_account]"] = user.id;
+  form["payment_intent_data[metadata][pixel_account]"] = user.id;
   // Store the server-created session before exposing its URL. A failed grant or response can be retried.
   const session = await stripe(env, "checkout/sessions", form, "pixel-checkout-" + ticket);
   const saved = await db
@@ -176,11 +201,16 @@ export async function portal(env, user) {
     "The game billing portal is currently unavailable.",
     "portal_unavailable",
   );
+  const managed = await fundedSnapshot(env.GAME_ACCOUNTS, user.id);
+  const configuration =
+    env.STRIPE_FUNDED_PORTAL_CONFIG || (managed && managed.state !== "ended")
+      ? await checkFundedPortal(env, stripe)
+      : env.STRIPE_PORTAL_CONFIG;
   return {
     url: (
       await stripe(env, "billing_portal/sessions", {
         customer: row.customer_id,
-        configuration: env.STRIPE_PORTAL_CONFIG,
+        configuration,
         return_url: appUrl(env) + "/?purchase=manage",
       })
     ).url,
@@ -194,8 +224,8 @@ async function userForCustomer(env, customer) {
       .first()
   )?.user_id;
 }
-async function charged(env, pi) {
-  if (!pi) return false;
+async function paymentState(env, pi) {
+  if (!pi) return "pending";
   const intent =
     typeof pi === "object"
       ? pi
@@ -204,17 +234,17 @@ async function charged(env, pi) {
     typeof intent.latest_charge === "object"
       ? intent.latest_charge
       : intent.latest_charge && (await stripe(env, "charges/" + escape(intent.latest_charge)));
-  if (!charge || intent.status !== "succeeded" || charge.refunded || charge.amount_refunded >= charge.amount)
-    return false;
+  if (!charge || intent.status !== "succeeded") return "pending";
+  if (charge.refunded || charge.amount_refunded >= charge.amount) return "reversed";
   if (charge.disputed) {
     const disputes = await stripe(env, "disputes?charge=" + escape(charge.id) + "&limit=10");
     if (
       !disputes.data.length ||
       disputes.data.some((d) => d.status !== "won" && d.status !== "warning_closed")
     )
-      return false;
+      return "reversed";
   }
-  return true;
+  return "paid";
 }
 export async function reconcileSession(env, id, expectedUser) {
   if (expectedUser && (await claimLinkReceipt(env.GAME_ACCOUNTS, id, expectedUser))) return;
@@ -235,6 +265,18 @@ export async function reconcileSession(env, id, expectedUser) {
   const user = await userForCustomer(env, session.customer);
   if (expectedUser)
     requireStore(user === expectedUser, 403, "Sign in to the account that opened checkout.", "receipt_owner");
+  if (session.mode === "setup") {
+    if (user)
+      await completeFunded(
+        env,
+        session,
+        expectedUser,
+        stripe,
+        reconcileSubscription,
+        fundedSubscriptionBillingReady(env),
+      );
+    return;
+  }
   if (
     !user ||
     session.client_reference_id !== user ||
@@ -256,7 +298,8 @@ export async function reconcileSession(env, id, expectedUser) {
     line.quantity !== 1
   )
     return;
-  const active = session.payment_status === "paid" && (await charged(env, session.payment_intent));
+  const active =
+    session.payment_status === "paid" && (await paymentState(env, session.payment_intent)) === "paid";
   if (!session.payment_intent) return;
   await recordPurchase(env.GAME_ACCOUNTS, {
     store: "stripe",
@@ -289,17 +332,23 @@ async function reconcileSubscription(env, id, expectedUser) {
   }
   let active = ["active", "trialing"].includes(sub.status);
   const invoice = sub.latest_invoice;
+  let reversed = false;
   if (active && invoice?.status !== "paid" && sub.status !== "trialing") active = false;
   if (active && invoice?.amount_paid > 0) {
     const payments = await stripe(env, "invoice_payments?invoice=" + escape(invoice.id) + "&limit=10");
     const paid = payments.data.filter((p) => p.status === "paid" && p.payment?.payment_intent);
     // This checkout accepts card payments. Check the latest paid invoice's live refund/dispute state.
     active = false;
-    for (const payment of paid)
-      if (await charged(env, payment.payment.payment_intent)) {
+    const states = [];
+    for (const payment of paid) {
+      const state = await paymentState(env, payment.payment.payment_intent);
+      states.push(state);
+      if (state === "paid") {
         active = true;
         break;
       }
+    }
+    reversed = states.length > 0 && states.every((state) => state === "reversed") && !payments.has_more;
   }
   const start = Number(item.current_period_start ?? sub.current_period_start) * 1000,
     end = Number(item.current_period_end ?? sub.current_period_end) * 1000;
@@ -309,6 +358,64 @@ async function reconcileSubscription(env, id, expectedUser) {
     "Stripe's billing period is unavailable.",
     "bad_period",
   );
+  const managedRoot = sub.metadata?.pixel_funded_root;
+  const binding = await env.GAME_ACCOUNTS.prepare(
+    "SELECT * FROM game_stripe_funded WHERE subscription_id=? OR first_term=? ORDER BY created_at DESC LIMIT 1",
+  )
+    .bind(id, managedRoot || "")
+    .first();
+  if (managedRoot || binding) {
+    requireStore(
+      binding &&
+        binding.first_term === managedRoot &&
+        binding.subscription_id === id &&
+        binding.user_id === user &&
+        binding.customer_id === asId(sub.customer) &&
+        binding.price_id === asId(item.price) &&
+        binding.product_id === skuForPrice(env, asId(item.price)),
+      503,
+      "Pix is confirming the funded billing period.",
+      "pix_term_mismatch",
+    );
+    const billedLine = invoice?.lines?.data?.find(
+      (line) =>
+        asId(line.pricing?.price_details?.price ?? line.price) === binding.price_id &&
+        line.quantity === 1 &&
+        line.period?.start * 1000 === start &&
+        line.period?.end * 1000 === end,
+    );
+    active = Boolean(
+      active &&
+        billedLine &&
+        invoice.status === "paid" &&
+        invoice.currency === "usd" &&
+        asId(invoice.customer) === binding.customer_id &&
+        asId(invoice.parent?.subscription_details?.subscription ?? invoice.subscription) === id &&
+        invoice.amount_paid >= binding.consent_price_cents &&
+        sub.status === "active",
+    );
+    if (active)
+      requireStore(
+        await activatePixTerm(env.GAME_ACCOUNTS, id, start, end),
+        503,
+        "Pix is confirming funding for this billing period.",
+        "pix_term_mismatch",
+      );
+    if (active || (billedLine && reversed)) {
+      await env.GAME_ACCOUNTS.prepare(
+        "UPDATE game_stripe_funded SET receipt_reversed=?,receipt_checked=?,renews=CASE WHEN ? THEN 0 ELSE renews END,next_check=CASE WHEN ? THEN 0 ELSE next_check END WHERE first_term=? AND receipt_checked<=?",
+      )
+        .bind(active ? 0 : 1, checked, reversed ? 1 : 0, reversed ? 1 : 0, binding.first_term, checked)
+        .run();
+    }
+    if (binding.invoice_id === invoice?.id && ["paid", "void", "uncollectible"].includes(invoice.status)) {
+      await env.GAME_ACCOUNTS.prepare(
+        "UPDATE game_stripe_funded SET invoice_state=?,invoice_url=NULL WHERE first_term=?",
+      )
+        .bind(invoice.status, binding.first_term)
+        .run();
+    }
+  }
   await recordPurchase(env.GAME_ACCOUNTS, {
     store: "stripe",
     key: id,
@@ -441,12 +548,19 @@ export async function cancelWebSubscriptions(env, user) {
     .bind(user)
     .first();
   if (!row) return;
+  requireStore(
+    env.STRIPE_SECRET_KEY,
+    503,
+    "Web billing could not be closed. Your account is still available.",
+    "stripe_unavailable",
+  );
+  await stopFunded(env, user, stripe, true);
   // Deleting a Stripe customer cancels their recurring subscriptions, including past due or pending ones.
   const response = await fetch("https://api.stripe.com/v1/customers/" + escape(row.customer_id), {
     method: "DELETE",
     headers: {
       Authorization: "Bearer " + env.STRIPE_SECRET_KEY,
-      "Stripe-Version": "2026-09-30.endive",
+      "Stripe-Version": STRIPE_API_VERSION,
     },
     signal: AbortSignal.timeout(12000),
   });
