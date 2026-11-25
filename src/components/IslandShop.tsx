@@ -25,8 +25,15 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
   const [listings,setListings]=useState<Listing[]>([]);
   const [busy,setBusy]=useState(false),[message,setMessage]=useState("");
   const [accountForm,setAccountForm]=useState(false);
+  const [externalBilling,setExternalBilling]=useState<{href:string;label:string}>();
+  function openWebBilling(address:string,label:string) {
+    const url=new URL(address);
+    if(url.protocol!=="https:" || !["checkout.stripe.com","billing.stripe.com"].includes(url.hostname)) throw Error("The billing link could not be verified.");
+    if(navigator.userAgent.includes("PixelCivilizationOffline")) setExternalBilling({href:url.href,label});
+    else location.assign(url.href);
+  }
   async function handle(task:()=>Promise<void>) {
-    if(busy)return;setBusy(true);setMessage("");
+    if(busy)return;setBusy(true);setMessage("");setExternalBilling(undefined);
     try {await task();}catch(error){setMessage(error instanceof Error?error.message:"The purchase could not be completed.");}
     finally {setBusy(false);}
   }
@@ -62,7 +69,7 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
       const receipt=await native.purchase(p.id,access.accountId);await deliver([receipt]);setMessage(p.label+" is in your library.");return;
     }
     if(storeEdition)throw Error("Update the app to connect to your device store.");
-    location.assign(await startWebCheckout(p.id));
+    openWebBilling(await startWebCheckout(p.id),"Continue to Stripe checkout");
   });
   return <GameDialog label="Island Store" className="island-modal pc-shop" onDismiss={onClose}>
     <header><div><h1>Island Store</h1><p>Original, Real, Idle and Manager are free. Explore every time period in the Atlas and sample islands.</p></div>
@@ -71,6 +78,7 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
     {accountForm && !access.accountId && <PlayerAccount saveNow={saveNow}/>}
     {kind==="subscription" && <p>Pix plans renew monthly. Each includes a message allowance and an AI usage budget. The first limit reached pauses paid messages until renewal. Includes are available while subscribed.</p>}
     {access.plan && <p role="status">{productById(access.plan)?.label} · {access.usage.messages} of {access.usage.limit} messages · {dollars(access.usage.spendMicros/10000)} of {dollars(access.usage.budgetMicros/10000)} AI usage this period.</p>}
+    {externalBilling && <p role="status" className="pc-shop-status"><a className="ui-btn" href={externalBilling.href}>{externalBilling.label} ↗</a></p>}
     {message && <p role="status" className="pc-shop-status">{message}</p>}
     <section className="pc-shop-grid" aria-label={kindNames[kind]}>{STORE_PRODUCTS.filter(p=>p.kind===kind).map(p=>{
       const listing=listings.find(l=>l.id===p.id), owned=canUseProduct(access,p.id);
@@ -87,7 +95,7 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
       </article>;
     })}</section>
     <footer>{native && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(!access.accountId){setAccountForm(true);return;}const receipts=await native.restore();await deliver(receipts);await fetchStoreAccess();setMessage("Your purchases have been checked.");})}>Restore purchases</button>}
-      {(native||(!storeEdition&&access.plan)) && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(native)await native.manage();else location.assign(await openBillingPortal());})}>Manage subscription</button>}
+      {(native||(!storeEdition&&access.plan)) && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(native)await native.manage();else openWebBilling(await openBillingPortal(),"Manage billing in your browser");})}>Manage subscription</button>}
       <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy</a><a href="/support.html" target="_blank" rel="noreferrer">Support</a>{native?.platform==="apple" && <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noreferrer">Apple terms of use</a>}
     </footer>
   </GameDialog>;

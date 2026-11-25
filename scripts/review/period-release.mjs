@@ -44,7 +44,7 @@ try {
     await page.goto(origin+"/eras.html?era=future-3027&size=starter");
     await page.locator("#play").click();
     await page.waitForFunction(()=>window.__pixelWorld?.appearanceEra==="future-3027" && window.__pixelWorld.gameState.elements.length>0);
-    await page.getByRole("navigation",{name:"Main",exact:true}).getByRole("button",{name:/^More/i}).click();
+    await page.getByRole("navigation",{name:"Main navigation",exact:true}).getByRole("button",{name:/^More/i}).click();
     await page.getByRole("button",{name:/Island Store/i}).first().click();
     const shop=page.getByRole("dialog",{name:/Island Store/i});
     await shop.waitFor();
