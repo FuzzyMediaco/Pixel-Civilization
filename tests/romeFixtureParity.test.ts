@@ -4,6 +4,7 @@ import { createExampleWorld, EXAMPLE_WORLDS } from "../src/game/exampleWorlds";
 import { ROME_WORLDS } from "../src/game/romeFixtures";
 import { islandSaveKey, readExampleRoute } from "../src/game/activeIsland";
 import { normalizeEra } from "../src/game/eraStyles";
+import { PRODUCTION_ERAS } from "../src/game/periods";
 import { recomputeConnectivityAndMetrics, stepSimulation, type GameState } from "../src/game/simulation";
 import { hydraulics, readWaterService } from "../src/game/terrain";
 import { getTravelNetwork, travelSignature } from "../src/game/travelNetwork";
@@ -42,7 +43,7 @@ test("Rome tours have separate save slots, stage bookmarks and working transport
   assert.equal(keys.size,3);
 });
 
-test("both Rome directions replay identically to Original through a save round trip, transport, water and economy", t => {
+test("all ten eras and the Forum pilot replay identically to Original through a save round trip, transport, water and economy", t => {
   const initial = createExampleWorld("rome-district","real");
   const initialPorts = initial.elements.filter(e=>e.defId==="train_depots" || e.defId==="train_stops")
     .map(e=>getTravelNetwork(initial).connectors(e,"rail"));
@@ -66,7 +67,7 @@ test("both Rome directions replay identically to Original through a save round t
     return canonical(state);
   }
   const expected=replay("original");
-  for(const era of ["rome-forum","rome-aqueduct"]) assert.deepEqual(replay(era),expected);
+  for(const era of ["rome-forum",...PRODUCTION_ERAS]) assert.deepEqual(replay(era),expected,era);
   assert.equal(normalizeEra(undefined),"original");
   assert.equal(normalizeEra("future-removed-pack"),"original");
 });

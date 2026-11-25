@@ -1,6 +1,7 @@
 import {dividedCarriageway} from "./designs/carriageways";
-import { currentRomeArt } from "./eraArtLoader";
-import { eraElementSpec, normalizeEra } from "./eraStyles";
+import { currentRomeArt, currentProductionArt } from "./eraArtLoader";
+import { eraElementSpec, normalizeEra, ROME_PILOT_IDS, type RomeFamily } from "./eraStyles";
+const romanPilot = new Set(ROME_PILOT_IDS);
 import {CARRIAGEWAY_TAPER_START,corridorTransform} from "./roadCorridors";
 import {VEHICLE_ROADS} from "./roadStandards";
 import {paintRoadStage} from "./designs/roadStages";
@@ -62,14 +63,18 @@ export function buildDesignVoxels(
   c.worldSculpted = appearance.worldSculpted;
   try {
     const era = normalizeEra(appearance.era);
-    const spec = eraElementSpec(def.id,era);
+    const roman = era === "rome-forum" || era === "rome-aqueduct";
+    const spec = roman && romanPilot.has(def.id) ? eraElementSpec(def.id,era) : undefined;
+    const production = currentProductionArt(era);
     const rome = currentRomeArt();
     const buildOriginal = () => {
       design.build(c);
       if (VEHICLE_ROADS.has(def.id)) paintRoadStage(c);
     };
-    if (rome && spec && era !== "original") {
-      rome.buildRome(c,era,spec.family,appearance.eraActivity ?? "idle",buildOriginal);
+    if (rome && spec && (era === "rome-forum" || era === "rome-aqueduct")) {
+      rome.buildRome(c,era,spec.family as RomeFamily,appearance.eraActivity ?? "idle",buildOriginal);
+    } else if (production) {
+      production.engine.buildProduction(c,production.ink,def,appearance.eraActivity === "active",buildOriginal);
     } else buildOriginal();
   } catch (err) {
     console.error(`Design build failed for ${def.id} L${lv} V${variant}`, err);
@@ -86,7 +91,11 @@ export function buildCorridorVoxels(id:string, level:number, variant:number, mas
   if (!appearance.corridor) return undefined;
   const deck=dividedCarriageway(id,level,variant,mask,appearance.corridor);
   const era=normalizeEra(appearance.era);
-  if(era !== "original" && eraElementSpec(id,era)) currentRomeArt()?.paveCorridor(deck,era,variant);
+  if((era === "rome-forum" || era === "rome-aqueduct") && romanPilot.has(id)) currentRomeArt()?.paveCorridor(deck,era,variant);
+  else {
+    const pack=currentProductionArt(era);
+    if(pack)pack.engine.pavePeriod(deck,pack.ink,variant,level);
+  }
   return deck;
 }
 
@@ -215,9 +224,10 @@ export function getOrBuildElementAsset(
   const def = ELEMENT_BY_ID[elementId];
   const clampedLv = Math.max(1, Math.min(getMaxElementLevel(elementId), level | 0));
   const clampedVar = ((variant | 0) % 4 + 4) % 4;
-  const themed = currentRomeArt() && eraElementSpec(elementId,appearance.era);
+  const era = normalizeEra(appearance.era);
+  const themed = Boolean(currentProductionArt(era)) || (era === "rome-forum" && currentRomeArt() && romanPilot.has(elementId));
   const styleKey = themed ? `${appearance.era}:${appearance.eraActivity ?? "idle"}` : "original";
-  const key = `${styleKey}|${appearance.corridor?JSON.stringify(appearance.corridor):""}|${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
+  const key = `${styleKey}|${appearance.worldSculpted ? "sculpted" : "model"}|${appearance.corridor?JSON.stringify(appearance.corridor):""}|${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
   if (def && (appearance.edges?.length || appearance.soils?.length || (appearance.lighting && appearance.lighting !== "auto"))) {
     const asset = buildDesignAsset(def, clampedLv, clampedVar, spanX, spanZ, connMask, appearance);
     asset.siteSpecific = true;

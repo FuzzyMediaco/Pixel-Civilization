@@ -2,7 +2,7 @@
 import { createCanvas } from "@napi-rs/canvas";
 import {guideCarriagewayVoxels} from "../src/game/designs/carriageways.ts";
 import {roadWidth} from "../src/game/roadStandards.ts";
-import { buildDesignVoxels } from "../src/game/voxelArchitect.ts";
+import { buildDesignVoxels, buildCorridorVoxels } from "../src/game/voxelArchitect.ts";
 import { buildCritterPens, critterModel, CRITTER_UNIT, restingCritters } from "../src/game/critterModels.ts";
 import { getVoxelStyleColor, packVoxKey, VOXEL_SIZE } from "../src/game/voxelCore.ts";
 import {ELEMENT_BY_ID, getMaxElementLevel, getStandardFootprintForLevel} from "../src/game/catalog.ts";
@@ -10,7 +10,8 @@ import {ELEMENT_BY_ID, getMaxElementLevel, getStandardFootprintForLevel} from ".
 export function voxels(id, level, variant, mask, edges = [], appearance = {}) {
   const def = ELEMENT_BY_ID[id],
     lv = Math.min(level, getMaxElementLevel(id));
-  if(!appearance.era&&mask===undefined&&roadWidth(id)>1)return guideCarriagewayVoxels(id,lv,variant);
+  if(mask===undefined && roadWidth(id)>1)
+    return guideCarriagewayVoxels(id,lv,variant,art=>buildCorridorVoxels(id,lv,variant,10,{...appearance,corridor:art}));
   const [width, depth] = getStandardFootprintForLevel(def, lv);
   const c = buildDesignVoxels(def, lv, variant, width, depth, mask ?? (def.isNetwork ? 5 : 0), { ...appearance, edges });
   const map = c.v.v;

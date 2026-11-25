@@ -85,30 +85,48 @@ function waterSequence() {
   return {title:"Water at the baths",instance:"Porta Fluminis · spring aqueduct",frames:[before,during,after]};
 }
 const sequences=[freightSequence(),railSequence(),waterSequence()];
-const output=path.resolve("docs/review/rome-pilot");
-fs.mkdirSync(output,{recursive:true});
-const plate=createCanvas(1040,835),ctx=plate.getContext("2d");
-function label(text,x,y,size,bold=false,color="#25372d") {
-  ctx.font=(bold?"bold ":"")+size+"px Arial";ctx.fillStyle=color;ctx.fillText(text,x,y);
-}
-ctx.fillStyle="#faf6eb";ctx.fillRect(0,0,plate.width,plate.height);
-label("Rome in operation",25,38,32,true);
-label("Three moments from each game system, rendered from the saved measurements below each model.",26,66,15);
-sequences.forEach((row,r)=>{
-  const y=87+r*247;
-  ctx.fillStyle="#e8e5d8";ctx.fillRect(25,y,990,1);
-  label(row.title,26,y+26,20,true);
-  label(row.instance,26,y+47,13);
-  const meshes=row.frames.map(f=>faces(voxels(f.baseId,f.level,f.variant,undefined,[],{era:f.era,eraActivity:f.activity})));
-  const common=Math.min(...meshes.map(m=>Math.min(250/(m.maxU-m.minU),123/(m.maxV-m.minV))));
-  row.frames.forEach((frame,i)=>{
-    const x=25+i*339;
-    ctx.fillStyle="#e6ede6";ctx.fillRect(x,y+58,314,135);
-    ctx.drawImage(raster(meshes[i],common,314,true,135,true),x,y+58);
-    label(frame.label,x,y+214,16,true);
-    label(frame.caption+"  ·  "+frame.seconds+"s",x,y+235,13);
+import { PRODUCTION_ERAS, PERIODS } from "../../src/game/periods.ts";
+function operationPlate(title,era) {
+  const plate=createCanvas(1040,835),ctx=plate.getContext("2d");
+  function label(text,x,y,size,bold=false,color="#25372d") {
+    ctx.font=(bold?"bold ":"")+size+"px Arial";ctx.fillStyle=color;ctx.fillText(text,x,y);
+  }
+  ctx.fillStyle="#faf6eb";ctx.fillRect(0,0,plate.width,plate.height);
+  label(title,25,38,32,true);
+  label("Three moments from each game system, rendered from the saved measurements below each model.",26,66,15);
+  sequences.forEach((row,r)=>{
+    const y=87+r*247;
+    ctx.fillStyle="#e8e5d8";ctx.fillRect(25,y,990,1);
+    label(row.title,26,y+26,20,true);
+    label(row.instance,26,y+47,13);
+    const meshes=row.frames.map(f=>faces(voxels(f.baseId,f.level,f.variant,undefined,[],{era:era??f.era,eraActivity:f.activity})));
+    const common=Math.min(...meshes.map(m=>Math.min(250/(m.maxU-m.minU),123/(m.maxV-m.minV))));
+    row.frames.forEach((frame,i)=>{
+      const x=25+i*339;
+      ctx.fillStyle="#e6ede6";ctx.fillRect(x,y+58,314,135);
+      ctx.drawImage(raster(meshes[i],common,314,true,135,true),x,y+58);
+      label(frame.label,x,y+214,16,true);
+      label(frame.caption+"  ·  "+frame.seconds+"s",x,y+235,13);
+    });
   });
-});
-fs.writeFileSync(path.join(output,"events.json"),JSON.stringify(sequences,null,2)+"\n");
-fs.writeFileSync(path.join(output,"events.webp"),plate.encodeSync("webp",93));
+  return plate.encodeSync("webp",93);
+}
+if(process.argv.includes("--all-periods")){
+  const output=path.resolve("docs/review/period-production/operations");
+  fs.mkdirSync(output,{recursive:true});
+  fs.writeFileSync(path.join(output,"receipts.json"),JSON.stringify(sequences,null,2)+"\n");
+  for(const era of PRODUCTION_ERAS){
+    await loadEraArt(era);
+    for(const row of sequences){
+      const [before,during]=row.frames.map(frame=>voxels(frame.baseId,frame.level,frame.variant,undefined,[],{era,eraActivity:frame.activity}));
+      assert.ok(before.size!==during.size||[...before].some(([key,style])=>during.get(key)!==style),era+":"+row.title);
+    }
+    fs.writeFileSync(path.join(output,era+".webp"),operationPlate(PERIODS[era].label+" in operation",era));
+  }
+}else{
+  const output=path.resolve("docs/review/rome-pilot");
+  fs.mkdirSync(output,{recursive:true});
+  fs.writeFileSync(path.join(output,"events.json"),JSON.stringify(sequences,null,2)+"\n");
+  fs.writeFileSync(path.join(output,"events.webp"),operationPlate("Rome in operation"));
+}
 for(const row of sequences)console.log(row.title,row.frames.map(f=>[f.seconds,f.activity,f.caption]));

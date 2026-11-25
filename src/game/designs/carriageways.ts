@@ -112,11 +112,12 @@ export function guideCarriageway(id: string, station: number): CorridorArt {
   const width = roadWidth(id);
   return { axis: "x", width, minus: width, plus: width, station };
 }
-export function guideCarriagewayVoxels(id: string, level: number, variant: number) {
+export function guideCarriagewayVoxels(id: string, level: number, variant: number,
+  build: (art:CorridorArt)=>PixelVox = art => dividedCarriageway(id,level,variant,10,art)) {
   const vox = new Map<number, number>();
   for (let station = 0; station < 3; station++) {
     const art = guideCarriageway(id, station),
-      piece = dividedCarriageway(id, level, variant, 10, art);
+      piece = build(art);
     for (const [k, style] of piece.v) {
       const x = ((k >>> 20) & 1023) - 512,
         y = ((k >>> 10) & 1023) - 512,

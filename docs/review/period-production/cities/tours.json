@@ -1,0 +1,569 @@
+[
+  {
+    "era": "ancient-china",
+    "world": "ancient-china-starter",
+    "sites": 17,
+    "layout": "215a89637ace4155fd1f152d9c7319795fa92b5da406683797642bc3ea6e7aeb",
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 1,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "ancient-china",
+    "world": "ancient-china-district",
+    "sites": 98,
+    "layout": "59c92e274980c07f018b0b3ca4ed0c029f1b5bce57cc9626085daf0d3efbc170",
+    "camera": {
+      "radius": 64,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 8,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "ancient-china",
+    "world": "ancient-china-skyline",
+    "sites": 162,
+    "layout": "e48d7c4e7e4328c5bf64ddbc67ad686b4f122558219bbcadc8702a9a951182b0",
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ]
+    },
+    "stage": 20,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "ancient-egypt",
+    "world": "ancient-egypt-starter",
+    "sites": 17,
+    "layout": "997371e8ed86186a3e966bd37eca2584ecf519825d538c6ac8650d05612df158",
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 1,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "ancient-egypt",
+    "world": "ancient-egypt-district",
+    "sites": 98,
+    "layout": "65bc07bd4a17cef0051775837c5f4b01ab6ed3495224fa4f8480a94551f3b451",
+    "camera": {
+      "radius": 64,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 8,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "ancient-egypt",
+    "world": "ancient-egypt-skyline",
+    "sites": 160,
+    "layout": "855942f1a398e7da80191a4755598bf1cd1d27e2bb866d7af4e982842fa8e35e",
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ]
+    },
+    "stage": 20,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "ancient-greece",
+    "world": "ancient-greece-starter",
+    "sites": 16,
+    "layout": "688cf0937c1abd6f05573d30cbdb1f8aecd262734e86a1b9d00760aa3cd2b352",
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 1,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "ancient-greece",
+    "world": "ancient-greece-district",
+    "sites": 96,
+    "layout": "ae40ab925762b69f2390fe1de3cf8178985a6a1a5afbcca941fe8c871cd834ea",
+    "camera": {
+      "radius": 64,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 8,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "ancient-greece",
+    "world": "ancient-greece-skyline",
+    "sites": 161,
+    "layout": "5baf5c90403895fc96e450b8e04150882c63f3b80c36c8a9ca01e13e736a1a5e",
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ]
+    },
+    "stage": 20,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "medieval-europe",
+    "world": "medieval-europe-starter",
+    "sites": 17,
+    "layout": "5818ed17c9d3db377d113bea6366e947858b64c367d3138a1eefd2cc7abd37ab",
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 1,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "medieval-europe",
+    "world": "medieval-europe-district",
+    "sites": 98,
+    "layout": "400af4341d3a6e43646102b0a181f2c83974d68d3f6d1c31e2f7313797b1008d",
+    "camera": {
+      "radius": 64,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 8,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "medieval-europe",
+    "world": "medieval-europe-skyline",
+    "sites": 162,
+    "layout": "0811cdc686952c851a726500161f7ebc5ac0d612475f026828b5f90959d075be",
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ]
+    },
+    "stage": 20,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "renaissance-italy",
+    "world": "renaissance-italy-starter",
+    "sites": 17,
+    "layout": "215a89637ace4155fd1f152d9c7319795fa92b5da406683797642bc3ea6e7aeb",
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 1,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "renaissance-italy",
+    "world": "renaissance-italy-district",
+    "sites": 98,
+    "layout": "02edbc00340823a73a140639561b5fa6011a6e680258e63f3d1da0acb1ebaeb7",
+    "camera": {
+      "radius": 64,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 8,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "renaissance-italy",
+    "world": "renaissance-italy-skyline",
+    "sites": 162,
+    "layout": "84a565d729ba1eb337517f730a357ebd0e8b2d3a22553b78b8f7441c7cb4fcdf",
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ]
+    },
+    "stage": 20,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "world-war-ii",
+    "world": "world-war-ii-starter",
+    "sites": 17,
+    "layout": "997371e8ed86186a3e966bd37eca2584ecf519825d538c6ac8650d05612df158",
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 1,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "world-war-ii",
+    "world": "world-war-ii-district",
+    "sites": 96,
+    "layout": "8c77dc8ce2df0325d22f0b34aa12bb0435e6d6e758b9a178fbb9c463e8d2c75c",
+    "camera": {
+      "radius": 64,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 8,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "world-war-ii",
+    "world": "world-war-ii-skyline",
+    "sites": 161,
+    "layout": "afcd953b70bd3476fe101e442ee1e4a2a9478730ce7873719ae424c225dd7aba",
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ]
+    },
+    "stage": 20,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "art-deco",
+    "world": "art-deco-starter",
+    "sites": 17,
+    "layout": "7c8cd663f235c16ab622e2c51ea518d85aea5256ca9136ede7c2725c6d622839",
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 1,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "art-deco",
+    "world": "art-deco-district",
+    "sites": 99,
+    "layout": "d51d21df0264f00d298891c755b91886d6c66b16d91639870d5bbe95735d53d6",
+    "camera": {
+      "radius": 64,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 8,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "art-deco",
+    "world": "art-deco-skyline",
+    "sites": 163,
+    "layout": "b8e4a80343ddfe5e8409bfab112066d6b105886dff3da595e87faad6af196742",
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ]
+    },
+    "stage": 20,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "future-3027",
+    "world": "future-3027-starter",
+    "sites": 17,
+    "layout": "b136eff6be5ee45063870e2d0cc423e96de88619b80002914a58f032ad87f58f",
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 1,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "future-3027",
+    "world": "future-3027-district",
+    "sites": 97,
+    "layout": "088a1f144f8d0debaac27111f8a1973079a46ee6672bdfb16b88f1adeee7221e",
+    "camera": {
+      "radius": 64,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 8,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "future-3027",
+    "world": "future-3027-skyline",
+    "sites": 161,
+    "layout": "575b715c57efd8dbc66038f7d3639b31cdcbff6e34380835ce82a5d5cc2ea9cc",
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ]
+    },
+    "stage": 20,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "post-apocalyptic",
+    "world": "post-apocalyptic-starter",
+    "sites": 17,
+    "layout": "215a89637ace4155fd1f152d9c7319795fa92b5da406683797642bc3ea6e7aeb",
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 1,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "post-apocalyptic",
+    "world": "post-apocalyptic-district",
+    "sites": 99,
+    "layout": "bd4d1e05757eb9b5ea16dd39a7ca1a0bf9816ba5473c76bca7662eb75ef2a7f2",
+    "camera": {
+      "radius": 64,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ]
+    },
+    "stage": 8,
+    "dimensions": [
+      720,
+      438
+    ]
+  },
+  {
+    "era": "post-apocalyptic",
+    "world": "post-apocalyptic-skyline",
+    "sites": 164,
+    "layout": "49177a00774d112acc42fd691911e8381fb83c0326657a4d01f4cb089a332447",
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ]
+    },
+    "stage": 20,
+    "dimensions": [
+      720,
+      438
+    ]
+  }
+]
