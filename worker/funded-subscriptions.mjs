@@ -166,17 +166,20 @@ export async function fundedSnapshot(db, user) {
       user,
       Date.now(),
     ).first());
-  const state = r.finished
-    ? "ended"
-    : grant
-      ? "active"
-      : r.invoice_state === "open" && r.invoice_url
-        ? "invoice_open"
-        : "processing";
+  let state = "processing";
+  if (r.finished) state = "ended";
+  else if (grant) state = "active";
+  else if (r.receipt_reversed) state = "revoked";
+  else if (r.invoice_state === "open" && invoiceUrl(r.invoice_url)) state = "invoice_open";
+  else if (r.renews && r.setup_session && r.setup_url && !r.create_started && r.setup_expires > Date.now())
+    state = "setup_open";
   return {
     state,
     renews: !r.finished && Boolean(r.renews),
     paidThrough: grant?.expires_at ?? null,
+    ...(state === "setup_open"
+      ? { setupUrl: r.setup_url, productId: r.product_id, setupExpires: r.setup_expires }
+      : {}),
     ...(state === "invoice_open" ? { invoiceUrl: r.invoice_url } : {}),
     cancelPending: !r.finished && !r.renews && !r.stop_confirmed,
   };

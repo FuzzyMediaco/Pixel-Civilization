@@ -222,8 +222,8 @@ async function userForCustomer(env, customer) {
       .first()
   )?.user_id;
 }
-async function charged(env, pi) {
-  if (!pi) return false;
+async function paymentState(env, pi) {
+  if (!pi) return "pending";
   const intent =
     typeof pi === "object"
       ? pi
@@ -232,17 +232,17 @@ async function charged(env, pi) {
     typeof intent.latest_charge === "object"
       ? intent.latest_charge
       : intent.latest_charge && (await stripe(env, "charges/" + escape(intent.latest_charge)));
-  if (!charge || intent.status !== "succeeded" || charge.refunded || charge.amount_refunded >= charge.amount)
-    return false;
+  if (!charge || intent.status !== "succeeded") return "pending";
+  if (charge.refunded || charge.amount_refunded >= charge.amount) return "reversed";
   if (charge.disputed) {
     const disputes = await stripe(env, "disputes?charge=" + escape(charge.id) + "&limit=10");
     if (
       !disputes.data.length ||
       disputes.data.some((d) => d.status !== "won" && d.status !== "warning_closed")
     )
-      return false;
+      return "reversed";
   }
-  return true;
+  return "paid";
 }
 export async function reconcileSession(env, id, expectedUser) {
   if (expectedUser && (await claimLinkReceipt(env.GAME_ACCOUNTS, id, expectedUser))) return;
@@ -296,7 +296,8 @@ export async function reconcileSession(env, id, expectedUser) {
     line.quantity !== 1
   )
     return;
-  const active = session.payment_status === "paid" && (await charged(env, session.payment_intent));
+  const active =
+    session.payment_status === "paid" && (await paymentState(env, session.payment_intent)) === "paid";
   if (!session.payment_intent) return;
   await recordPurchase(env.GAME_ACCOUNTS, {
     store: "stripe",
@@ -329,17 +330,23 @@ async function reconcileSubscription(env, id, expectedUser) {
   }
   let active = ["active", "trialing"].includes(sub.status);
   const invoice = sub.latest_invoice;
+  let reversed = false;
   if (active && invoice?.status !== "paid" && sub.status !== "trialing") active = false;
   if (active && invoice?.amount_paid > 0) {
     const payments = await stripe(env, "invoice_payments?invoice=" + escape(invoice.id) + "&limit=10");
     const paid = payments.data.filter((p) => p.status === "paid" && p.payment?.payment_intent);
     // This checkout accepts card payments. Check the latest paid invoice's live refund/dispute state.
     active = false;
-    for (const payment of paid)
-      if (await charged(env, payment.payment.payment_intent)) {
+    const states = [];
+    for (const payment of paid) {
+      const state = await paymentState(env, payment.payment.payment_intent);
+      states.push(state);
+      if (state === "paid") {
         active = true;
         break;
       }
+    }
+    reversed = states.length > 0 && states.every((state) => state === "reversed") && !payments.has_more;
   }
   const start = Number(item.current_period_start ?? sub.current_period_start) * 1000,
     end = Number(item.current_period_end ?? sub.current_period_end) * 1000;
@@ -392,6 +399,13 @@ async function reconcileSubscription(env, id, expectedUser) {
         "Pix is confirming funding for this billing period.",
         "pix_term_mismatch",
       );
+    if (active || (billedLine && reversed)) {
+      await env.GAME_ACCOUNTS.prepare(
+        "UPDATE game_stripe_funded SET receipt_reversed=?,receipt_checked=?,renews=CASE WHEN ? THEN 0 ELSE renews END,next_check=CASE WHEN ? THEN 0 ELSE next_check END WHERE first_term=? AND receipt_checked<=?",
+      )
+        .bind(active ? 0 : 1, checked, reversed ? 1 : 0, reversed ? 1 : 0, binding.first_term, checked)
+        .run();
+    }
     if (binding.invoice_id === invoice?.id && ["paid", "void", "uncollectible"].includes(invoice.status)) {
       await env.GAME_ACCOUNTS.prepare(
         "UPDATE game_stripe_funded SET invoice_state=?,invoice_url=NULL WHERE first_term=?",

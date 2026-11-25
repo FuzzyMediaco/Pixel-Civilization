@@ -255,6 +255,11 @@ test("only the bound, completed, consented session can issue a tax-complete coll
   x.cfg.features.subscription_update.enabled = false;
   await x.begin();
   assert.equal(x.ledger()[0].state, "held");
+  const setup = await x.state();
+  assert.equal(setup?.state, "setup_open");
+  assert.equal(setup?.setupUrl, x.session().url);
+  assert.equal(setup?.productId, "pix_starter");
+  assert.ok(setup?.setupExpires > Date.now());
   const forged = {
     ...x.session(),
     id: "cs_other",
