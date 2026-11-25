@@ -220,7 +220,7 @@ export function PlayerAccount({ saveNow, entry = false }: { saveNow: () => boole
               const response=await fetch("/api/account/me",{method:"DELETE",credentials:"same-origin",headers:{"Content-Type":"application/json","X-Game-Account":user!.id},body:JSON.stringify({password:deletePassword})});
               if(!response.ok){const body=await response.json().catch(()=>({}));throw Error(body.error??"Could not delete your account.");}
               await signOut();
-            });}}><p>This permanently deletes your game account and cloud saves. Export any islands you want to keep. Manage your store subscription before deleting your account.</p>
+            });}}><p>This permanently deletes your game account and cloud saves. Export any islands you want to keep. Cancel any mobile subscription in its store. Deleting this game account permanently removes its purchases. Apple and Google purchases stay tied to this account and cannot transfer to a new one.</p>
             <label>Confirm your password<input value={deletePassword} type="password" autoComplete="current-password" required onChange={e=>setDeletePassword(e.target.value)}/></label>
             <button className="ui-btn" disabled={busy||!deletePassword}>Permanently delete my account</button></form>}
           </details>

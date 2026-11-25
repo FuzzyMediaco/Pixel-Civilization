@@ -15,6 +15,7 @@ export interface StoreAccess {
   plan: string | null;
   providers: string[];
   readyStores: string[];
+  webSubscriptionsReady?: boolean;
   usage: { messages: number; spendMicros: number; limit: number; budgetMicros: number; periodEnd: number };
   validUntil: number;
 }

@@ -48,6 +48,7 @@ try {
     await page.getByRole("button",{name:/Island Store/i}).first().click();
     const shop=page.getByRole("dialog",{name:/Island Store/i});
     await shop.waitFor();
+    assert.equal(await shop.evaluate(node=>getComputedStyle(node).backgroundColor),"rgb(250, 249, 241)");
     await shop.getByRole("button",{name:"Pix plans",exact:true}).click();
     assert.match(await shop.innerText(),/99\.99/);
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

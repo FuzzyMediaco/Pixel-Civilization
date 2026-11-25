@@ -25,10 +25,12 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
   const [listings,setListings]=useState<Listing[]>([]);
   const [busy,setBusy]=useState(false),[message,setMessage]=useState("");
   const [accountForm,setAccountForm]=useState(false);
+  const [receiptAttempt,retryReceipt]=useState(0);
+  const [receiptPending,setReceiptPending]=useState(false);
   const [externalBilling,setExternalBilling]=useState<{href:string;label:string}>();
   function openWebBilling(address:string,label:string) {
     const url=new URL(address);
-    if(url.protocol!=="https:" || !["checkout.stripe.com","billing.stripe.com"].includes(url.hostname)) throw Error("The billing link could not be verified.");
+    if(url.protocol!=="https:" || !["checkout.stripe.com","buy.stripe.com","billing.stripe.com"].includes(url.hostname)) throw Error("The billing link could not be verified.");
     if(navigator.userAgent.includes("PixelCivilizationOffline")) setExternalBilling({href:url.href,label});
     else location.assign(url.href);
   }
@@ -55,13 +57,40 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
     return ()=>window.removeEventListener("pixel-store-purchases-updated",pending);
   },[native,access.accountId]);
   useEffect(()=>{
-    const url=new URL(location.href), outcome=url.searchParams.get("purchase");
-    if(!outcome || (outcome==="complete" && !currentPlayer()))return;
-    const id=url.searchParams.get("session_id");
-    if(outcome==="complete" && id)void finishWebCheckout(id).then(()=>setMessage("Purchase verified. Your library is ready.")).catch(err=>setMessage(err.message));
-    else if(outcome==="canceled")setMessage("Checkout closed.");
-    url.searchParams.delete("purchase");url.searchParams.delete("session_id");history.replaceState(history.state,"",url);
-  },[access.accountId]);
+    const url=new URL(location.href);
+    const outcome=url.searchParams.get("purchase");
+    if(!outcome)return;
+    const finishReturn=()=>{
+      url.searchParams.delete("purchase");
+      url.searchParams.delete("session_id");
+      history.replaceState(history.state,"",url);
+    };
+    if(outcome!=="complete"){finishReturn();return;}
+    const session=url.searchParams.get("session_id");
+    if(!session){setMessage("The receipt link is missing its checkout number.");return;}
+    if(!access.accountId || access.accountId!==currentPlayer()?.id)return;
+    let stopped=false;
+    let retryTimer:number|undefined;
+    let checks=0;
+    async function check() {
+      try {
+        await finishWebCheckout(session!);
+        if(stopped)return;
+        setReceiptPending(false);
+        setMessage("Your purchase has been checked. Your library is up to date.");
+        finishReturn();
+      } catch(error) {
+        if(stopped)return;
+        setReceiptPending(true);
+        if((error as {code?:string}).code==="checkout_pending") {
+          setMessage("Waiting for Stripe to confirm your payment. You can keep playing.");
+          if(++checks<6)retryTimer=window.setTimeout(check,Math.min(1000*2**checks,15000));
+        } else setMessage(error instanceof Error?error.message:"Try checking your receipt again.");
+      }
+    }
+    void check();
+    return ()=>{stopped=true;window.clearTimeout(retryTimer);};
+  },[access.accountId,receiptAttempt]);
   const purchase=(p:StoreProduct)=>handle(async()=>{
     if(!access.accountId){setAccountForm(true);return;}
     if(!saveNow()){throw Error("Save your island before opening checkout.");}
@@ -71,7 +100,7 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
     if(storeEdition)throw Error("Update the app to connect to your device store.");
     openWebBilling(await startWebCheckout(p.id),"Continue to Stripe checkout");
   });
-  return <GameDialog label="Island Store" className="island-modal pc-shop" onDismiss={onClose}>
+  return <GameDialog label="Island Store" className="pc-shop" onDismiss={onClose}>
     <header><div><h1>Island Store</h1><p>Original, Real, Idle and Manager are free. Explore every time period in the Atlas and sample islands.</p></div>
       <button className="ui-btn" onClick={onClose} aria-label="Close store">Close</button></header>
     <nav aria-label="Store categories">{(Object.keys(kindNames) as StoreProduct["kind"][]).map(k=><button key={k} type="button" className="ui-btn" aria-pressed={k===kind} onClick={()=>setKind(k)}>{kindNames[k]}</button>)}</nav>
@@ -79,10 +108,11 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
     {kind==="subscription" && <p>Pix plans renew monthly. Each includes a message allowance and an AI usage budget. The first limit reached pauses paid messages until renewal. Includes are available while subscribed.</p>}
     {access.plan && <p role="status">{productById(access.plan)?.label} · {access.usage.messages} of {access.usage.limit} messages · {dollars(access.usage.spendMicros/10000)} of {dollars(access.usage.budgetMicros/10000)} AI usage this period.</p>}
     {externalBilling && <p role="status" className="pc-shop-status"><a className="ui-btn" href={externalBilling.href}>{externalBilling.label} ↗</a></p>}
+    {receiptPending && <button className="ui-btn" type="button" onClick={()=>retryReceipt(n=>n+1)}>Check purchase again</button>}
     {message && <p role="status" className="pc-shop-status">{message}</p>}
     <section className="pc-shop-grid" aria-label={kindNames[kind]}>{STORE_PRODUCTS.filter(p=>p.kind===kind).map(p=>{
       const listing=listings.find(l=>l.id===p.id), owned=canUseProduct(access,p.id);
-      const available=(!storeEdition||Boolean(native)) && access.readyStores.includes(native?.platform??"stripe") && (!native||Boolean(listing)) && (p.kind!=="subscription"||access.providers.length>=3);
+      const available=(!storeEdition||Boolean(native)) && access.readyStores.includes(native?.platform??"stripe") && (!native||Boolean(listing)) && (p.kind!=="subscription"||(access.providers.length>=3 && (native || access.webSubscriptionsReady!==false)));
       const price=listing?.price??dollars(p.usdCents);
       return <article key={p.id} data-featured={p.id===initial}>
         {p.era && <img alt="" src={tourImage(p.era,"skyline")} loading="lazy"/>}
