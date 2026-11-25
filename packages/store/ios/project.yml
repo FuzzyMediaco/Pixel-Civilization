@@ -15,10 +15,16 @@ targets:
     sources:
       - path: Game
         excludes: [Info.plist]
+      - path: Typography
+        type: folder
+        buildPhase: resources
       - path: ../generated/web
         name: web
         type: folder
         buildPhase: resources
+    configFiles:
+      Debug: ../generated/version.xcconfig
+      Release: ../generated/version.xcconfig
     dependencies:
       - package: swift-nio
         product: NIOCore
@@ -32,7 +38,6 @@ targets:
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1,2"
         IPHONEOS_DEPLOYMENT_TARGET: "16.0"
-        MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: Game/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

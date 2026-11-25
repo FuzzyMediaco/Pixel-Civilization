@@ -6,7 +6,12 @@ on:
         description: Which native builds to run
         type: choice
         default: all
-        options: [all, play, apple-archive, apple-simulators]
+        options: [all, play, apple-archive, apple-simulators, apple-phone, apple-tablet, apple-purchases]
+      simulator_runner:
+        description: Standard Mac runner for simulator checks
+        type: choice
+        default: macos-26-intel
+        options: [macos-26-intel, macos-26]
       web_edition:
         description: Published web edition SHA-256 to include unchanged
         required: false
@@ -14,6 +19,7 @@ on:
   pull_request:
     paths:
       - 'packages/store/**'
+      - 'packages/version.txt'
       - '.github/workflows/mobile-stores.yml'
       - 'src/game/storeCatalog.mjs'
 concurrency:
@@ -29,6 +35,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: 24}
       - uses: oven-sh/setup-bun@v2
+      - name: Verify Swift source encoding before scheduling Mac builds
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for source in Path("packages/store/ios").rglob("*.swift"):
+              source.read_text(encoding="utf-8")
+          PY
       - run: bun install --frozen-lockfile && node --test packages/store/tests/bridge.test.mjs && node packages/store/catalog.mjs
       - name: Prepare the reviewed web edition
         env:
@@ -78,10 +91,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: {name: Pixel-Civilization-Play-Bundle, path: 'packages/store/android/build/outputs/bundle/release/*.aab'}
   apple-simulators:
-    if: ${{ !inputs.native_target || inputs.native_target == 'all' || inputs.native_target == 'apple-simulators' }}
+    if: ${{ !inputs.native_target || inputs.native_target == 'all' || contains(fromJSON('["apple-simulators", "apple-phone", "apple-tablet", "apple-purchases"]'), inputs.native_target) }}
     needs: web
-    runs-on: macos-26
+    runs-on: ${{ inputs.simulator_runner || 'macos-26-intel' }}
     timeout-minutes: 85
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -95,13 +110,13 @@ jobs:
           brew install xcodegen
           python3 packages/store/ios/check-simulator.py compile
       - name: Render and capture the game on iPhone
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' && (!inputs.native_target || contains(fromJSON('["all", "apple-simulators", "apple-phone"]'), inputs.native_target)) }}
         run: python3 packages/store/ios/check-simulator.py phone
       - name: Render and capture the game on iPad
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' && (!inputs.native_target || contains(fromJSON('["all", "apple-simulators", "apple-tablet"]'), inputs.native_target)) }}
         run: python3 packages/store/ios/check-simulator.py tablet
       - name: Test StoreKit products, account association, and restoration
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' && (!inputs.native_target || contains(fromJSON('["all", "apple-simulators", "apple-purchases"]'), inputs.native_target)) }}
         run: python3 packages/store/ios/check-simulator.py purchases
       - uses: actions/upload-artifact@v4
         if: always()
@@ -116,6 +131,8 @@ jobs:
     needs: web
     runs-on: macos-26-intel
     timeout-minutes: 50
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -133,6 +150,7 @@ jobs:
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO
           app="build/PixelCivilization.xcarchive/Products/Applications/PixelCivilization.app"
           test "$(plutil -extract CFBundleIdentifier raw "$app/Info.plist")" = app.pixelcivilization.game
+          test "$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")" = "$(cat ../../version.txt)"
           lipo "$app/PixelCivilization" -verify_arch arm64
           node ../verify-folder.mjs "$app/web"
           ditto -c -k --keepParent build/PixelCivilization.xcarchive build/PixelCivilization-device-unsigned.zip
