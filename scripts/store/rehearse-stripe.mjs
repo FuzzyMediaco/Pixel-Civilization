@@ -345,8 +345,6 @@ async function rehearse(key, hosted) {
     assert.equal((await api("invoices/" + unpaid.bill.id)).status, "void");
     checks.unpaidInvoiceVoided = true;
     const first = await setup("paid", hosted);
-    safeHost((await portal(env, first.user)).url, ["billing.stripe.com"]);
-    checks.restrictedPortalSession = true;
     if (hosted) {
       console.error("Review the TEST tax total and pay the first invoice on Stripe.\n" + first.invoiceUrl);
       await poll(
@@ -371,6 +369,46 @@ async function rehearse(key, hosted) {
     checks.hostedSetupAndPayment = hosted
       ? "completed by operator"
       : "hosted session created and expired; actual card SetupIntent and invoice paid through API";
+    const portalUrl = safeHost((await portal(env, first.user)).url, ["billing.stripe.com"]);
+    checks.restrictedPortalSession = true;
+    const customerPath = "customers/" + first.binding.customer_id;
+    const previousCard = id((await api(customerPath)).invoice_settings?.default_payment_method);
+    assert.ok(previousCard);
+    let replacement;
+    if (hosted) {
+      console.error(
+        "Use the TEST billing portal to add another Stripe test card and set it as the default.\n" +
+          portalUrl,
+      );
+      replacement = await poll(
+        "Hosted card replacement",
+        async () => {
+          const current = id((await api(customerPath)).invoice_settings?.default_payment_method);
+          return current && current !== previousCard && current;
+        },
+        16 * 60000,
+        2500,
+      );
+    } else {
+      const method = await api("payment_methods", {
+        type: "card",
+        "card[token]": "tok_visa",
+        ...tag,
+        "metadata[pixel_role]": "replacement",
+      });
+      const saved = await api("setup_intents", {
+        customer: first.binding.customer_id,
+        payment_method: method.id,
+        confirm: "true",
+        usage: "off_session",
+        "allowed_payment_method_types[0]": "card",
+        ...tag,
+      });
+      assert.equal(saved.status, "succeeded");
+      replacement = id(saved.payment_method);
+      assert.notEqual(replacement, previousCard);
+      await api(customerPath, { "invoice_settings[default_payment_method]": replacement });
+    }
     const end = first.schedule.phases[0].end_date;
     await advance(end - 2 * 86400);
     credits = 100;
@@ -425,6 +463,10 @@ async function rehearse(key, hosted) {
       payments.data.find((p) => p.status === "paid" && p.payment?.payment_intent)?.payment.payment_intent,
     );
     assert.ok(pi, "Expected an actual card PaymentIntent for the renewal invoice");
+    assert.equal(id((await api("payment_intents/" + pi)).payment_method), replacement);
+    checks.renewalUsedReplacementCard = hosted
+      ? "changed through hosted portal"
+      : "changed through Stripe test API";
     const refund = await api("refunds", { payment_intent: pi, ...tag });
     await poll("Stripe test refund", async () => (await api("refunds/" + refund.id)).status === "succeeded");
     await poll("Refunded grant revocation", async () => (await service(first.user)).state === "revoked");
