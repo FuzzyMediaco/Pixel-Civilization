@@ -19,6 +19,8 @@ final class GameController: UIViewController, WKNavigationDelegate {
     private let server = LocalGameServer()
     private let store = IslandStore()
     private var game: WKWebView!
+    private var startupCheck: DispatchWorkItem?
+    private var retriedEmptyPage = false
     override func viewDidLoad() {
         super.viewDidLoad()
         #if DEBUG
@@ -74,10 +76,33 @@ final class GameController: UIViewController, WKNavigationDelegate {
         if url.scheme == "https" && action.navigationType == .linkActivated { UIApplication.shared.open(url) }
         decisionHandler(.cancel)
     }
-    #if DEBUG
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        if let scene = StoreTourCapture.requested { StoreTourCapture.waitForScene(in:webView, scene:scene) }
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        startupCheck?.cancel()
     }
-    #endif
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        #if DEBUG
+        if let scene = StoreTourCapture.requested { StoreTourCapture.waitForScene(in:webView, scene:scene) }
+        #endif
+        guard let page = webView.url, page.host == "127.0.0.1", ["", "/", "/index.html"].contains(page.path) else { return }
+        // A first launch can finish navigation while WebKit's storage service
+        // is starting. Reload only an empty shell, never a mounted island.
+        let check = DispatchWorkItem { [weak self, weak webView] in
+            guard let self, let webView, webView.url == page else { return }
+            webView.evaluateJavaScript("document.readyState === 'complete' && document.querySelector('#root')?.childElementCount === 0") { value, _ in
+                guard value as? Bool == true, webView.url == page, self.view.window != nil else { return }
+                if !self.retriedEmptyPage {
+                    self.retriedEmptyPage = true
+                    webView.reload()
+                } else if self.presentedViewController == nil {
+                    let prompt = UIAlertController(title: "Your island is still opening", message: "You can reopen the game using the island saved on this device.", preferredStyle: .alert)
+                    prompt.addAction(UIAlertAction(title: "Reopen island", style: .default) { _ in webView.reload() })
+                    prompt.addAction(UIAlertAction(title: "Keep waiting", style: .cancel))
+                    self.present(prompt, animated: true)
+                }
+            }
+        }
+        startupCheck = check
+        DispatchQueue.main.asyncAfter(deadline: .now() + 45, execute: check)
+    }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { webView.reload() }
 }

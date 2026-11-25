@@ -66,6 +66,7 @@ enum StoreTourCapture {
                     window.__pixelCaptureMenu = menu;
                 }
                 return {scene,renderer,foreground,fonts,fixture,era,frame,sites,colors,menu,controls:!!more,
+                        documentState:document.readyState,rootChildren:document.querySelector('#root')?.childElementCount ?? -1,
                         ready:!!(foreground && fonts && (handbook || (visiblePage && menu === 'passed')))};
             })()
             """

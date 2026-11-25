@@ -6,7 +6,7 @@ on:
         description: Which native builds to run
         type: choice
         default: all
-        options: [all, play, apple-archive, apple-simulators]
+        options: [all, play, apple-archive, apple-simulators, apple-phone, apple-tablet, apple-purchases]
       simulator_runner:
         description: Standard Mac runner for simulator checks
         type: choice
@@ -84,7 +84,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: {name: Pixel-Civilization-Play-Bundle, path: 'packages/store/android/build/outputs/bundle/release/*.aab'}
   apple-simulators:
-    if: ${{ !inputs.native_target || inputs.native_target == 'all' || inputs.native_target == 'apple-simulators' }}
+    if: ${{ !inputs.native_target || inputs.native_target == 'all' || contains(fromJSON('["apple-simulators", "apple-phone", "apple-tablet", "apple-purchases"]'), inputs.native_target) }}
     needs: web
     runs-on: ${{ inputs.simulator_runner || 'macos-26-intel' }}
     timeout-minutes: 85
@@ -101,13 +101,13 @@ jobs:
           brew install xcodegen
           python3 packages/store/ios/check-simulator.py compile
       - name: Render and capture the game on iPhone
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' && (!inputs.native_target || contains(fromJSON('["all", "apple-simulators", "apple-phone"]'), inputs.native_target)) }}
         run: python3 packages/store/ios/check-simulator.py phone
       - name: Render and capture the game on iPad
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' && (!inputs.native_target || contains(fromJSON('["all", "apple-simulators", "apple-tablet"]'), inputs.native_target)) }}
         run: python3 packages/store/ios/check-simulator.py tablet
       - name: Test StoreKit products, account association, and restoration
-        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' && (!inputs.native_target || contains(fromJSON('["all", "apple-simulators", "apple-purchases"]'), inputs.native_target)) }}
         run: python3 packages/store/ios/check-simulator.py purchases
       - uses: actions/upload-artifact@v4
         if: always()

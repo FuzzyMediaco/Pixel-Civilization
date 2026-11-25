@@ -33,9 +33,27 @@ def device(family):
 
 
 def boot(udid):
-    sim("bootstatus", udid, "-b", timeout=420)
+    try:
+        sim("bootstatus", udid, "-b", timeout=600)
+    except subprocess.TimeoutExpired:
+        # Installation of runtime services can outlive the first progress reader.
+        # Give the existing boot a chance to finish before starting it over.
+        try:
+            sim("bootstatus", udid, "-b", timeout=240)
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+            restart(udid)
+    except subprocess.CalledProcessError:
+        restart(udid)
     subprocess.run(["open", "-a", "Simulator", "--args", "-CurrentDeviceUDID", udid], timeout=45, check=True)
     sim("status_bar", udid, "override", "--time", "9:41", "--batteryState", "charged", "--batteryLevel", "100")
+
+
+def restart(udid):
+    # A hosted Mac can lose launchd before the game is installed. Recover the
+    # one requested device; never erase it or reset other simulator devices.
+    print("Restarting the simulator after CoreSimulator failed to boot", flush=True)
+    sim("shutdown", udid, timeout=120, check=False)
+    sim("bootstatus", udid, "-b", timeout=600)
 
 
 def stop(udid):
@@ -57,7 +75,9 @@ def capture(family, udid):
         output.mkdir(parents=True, exist_ok=True)
         fingerprints = set()
         failures = []
-        for scene in ("street", "skyline", "guide"):
+        retrying = set()
+        scenes = ["street", "skyline", "guide"]
+        for scene in scenes:
             print("Rendering", family, scene, flush=True)
             marker = data / "Library/Caches" / ("PixelStoreCapture-" + scene)
             for old in (marker, marker.with_suffix(".json"), marker.with_suffix(".png")):
@@ -96,6 +116,14 @@ def capture(family, udid):
                 shutil.copyfile(marker.with_suffix(".png"), output / (scene + "-webkit-diagnostic.png"))
             if has_image:
                 print("Captured playable", family, scene, flush=True)
+            elif scene not in retrying:
+                retrying.add(scene)
+                scenes.append(scene)
+                if screen.exists():
+                    shutil.copyfile(screen, output / (scene + "-first-attempt.png"))
+                if details.exists():
+                    shutil.copyfile(details, output / (scene + "-first-attempt.json"))
+                print("Retrying the failed scene after the other scenes", family, scene, flush=True)
             else:
                 failures.append(scene)
                 print("Full device capture failed for", family, scene, flush=True)
