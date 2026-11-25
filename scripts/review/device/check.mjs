@@ -31,6 +31,12 @@ try {
   await page.reload();
   await page.getByText("Previous results are available below.").waitFor();
   assert.equal(JSON.parse(await page.locator("#json").inputValue()).runs.length,11);
+  await page.locator("#repeats").selectOption("3");
+  await page.getByRole("button",{name:"Start review",exact:true}).click();
+  await page.getByRole("button",{name:"Stop",exact:true}).click();
+  await page.waitForFunction(()=>document.getElementById("bar").hidden&&JSON.parse(document.getElementById("json").value).state==="incomplete");
+  const stopped=JSON.parse(await page.locator("#json").inputValue());
+  assert.equal(stopped.expectedSamples,33);assert.ok(stopped.runs.length<33);
   assert.deepEqual(errors,[]);
   console.log(JSON.stringify({release:report.release,complete:report.runs.length,frames:report.runs.reduce((a,r)=>a+r.frames,0),fixture:report.fixture,hardware:"desktop Chromium"}));
 } finally {await browser.close();}
