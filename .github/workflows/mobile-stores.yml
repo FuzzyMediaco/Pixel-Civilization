@@ -1,0 +1,85 @@
+name: Mobile store builds
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'packages/store/**'
+      - '.github/workflows/mobile-stores.yml'
+      - 'src/game/storeCatalog.mjs'
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile && npm run build
+      - uses: actions/upload-artifact@v4
+        with: {name: mobile-web, path: dist, retention-days: 3}
+  play:
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: mobile-web, path: dist}
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: 21}
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.13'}
+      - run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Load existing upload key for manual releases
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_KEY: ${{ secrets.PIXEL_ANDROID_KEYSTORE_BASE64 }}
+          KEY_PASSWORD: ${{ secrets.PIXEL_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$RELEASE_KEY" ] && [ -n "$KEY_PASSWORD" ]; then
+            printf '%s' "$RELEASE_KEY" | base64 --decode > "$RUNNER_TEMP/upload.p12"
+            echo "PIXEL_ANDROID_KEYSTORE=$RUNNER_TEMP/upload.p12" >> "$GITHUB_ENV"
+          fi
+      - name: Build and inspect bundle
+        env:
+          PIXEL_KEYSTORE_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.PIXEL_KEYSTORE_PASSWORD || '' }}
+        run: |
+          gradle -p packages/store/android bundleRelease
+          bundle=$(find packages/store/android/build/outputs/bundle -name '*.aab' -print -quit)
+          node packages/store/verify-bundle.mjs "$bundle"
+          if [ -n "${PIXEL_ANDROID_KEYSTORE:-}" ]; then jarsigner -verify "$bundle"; fi
+      - uses: actions/upload-artifact@v4
+        with: {name: Pixel-Civilization-Play-Bundle, path: 'packages/store/android/build/outputs/bundle/release/*.aab'}
+  apple:
+    needs: web
+    runs-on: macos-26
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: mobile-web, path: dist}
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - run: node packages/store/prepare.mjs
+      - name: Build and run the game on iPhone and iPad
+        run: |
+          brew install xcodegen
+          bash packages/store/ios/run-simulator.sh
+      - name: Archive for iOS devices
+        run: |
+          cd packages/store/ios
+          xcodebuild archive -project PixelCivilization.xcodeproj -scheme PixelCivilization \
+            -destination 'generic/platform=iOS' -archivePath build/PixelCivilization.xcarchive \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO
+          ditto -c -k --keepParent build/PixelCivilization.xcarchive build/PixelCivilization-device-unsigned.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Pixel-Civilization-Apple-Review
+          path: |
+            packages/store/ios/build/*-screens/
+            packages/store/ios/build/PixelCivilization-device-unsigned.zip
+          if-no-files-found: warn

@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application' version '8.13.2'
+}
+def signingPath = System.getenv('PIXEL_ANDROID_KEYSTORE')
+def signingPassword = System.getenv('PIXEL_KEYSTORE_PASSWORD')
+android {
+    namespace 'app.pixelcivilization.game'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'app.pixelcivilization.game'
+        minSdk 26
+        targetSdk 36
+        versionCode = (System.getenv('PIXEL_BUILD_NUMBER') ?: (System.currentTimeMillis().intdiv(60000)).toString()).toInteger()
+        versionName = (System.getenv('PIXEL_MARKETING_VERSION') ?: '1.0.0')
+    }
+    signingConfigs {
+        if (signingPath && signingPassword) {
+            upload {
+                storeFile file(signingPath)
+                storePassword signingPassword
+                keyAlias 'pixel-civilization'
+                keyPassword signingPassword
+                storeType 'PKCS12'
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (signingPath && signingPassword) signingConfig signingConfigs.upload
+        }
+    }
+    sourceSets.main.assets.srcDirs = ['../generated/web']
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+tasks.register('prepareStoreAssets', Exec) {
+    inputs.dir('../../../dist')
+    inputs.files('../prepare.mjs', '../bridge.js')
+    outputs.dir('../generated/web')
+    commandLine 'node', '../prepare.mjs'
+}
+tasks.named('preBuild').configure { dependsOn('prepareStoreAssets') }
+dependencies {
+    implementation 'com.android.billingclient:billing:8.3.0'
+    implementation 'androidx.webkit:webkit:1.14.0'
+}

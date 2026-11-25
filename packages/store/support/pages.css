@@ -1,0 +1,20 @@
+@import "../../../src/styles/interface.css";
+* { box-sizing:border-box; }
+body { margin:0; background:var(--ui-paper,#faf9f1); color:var(--ui-ink,#19392f); font:16px/1.55 var(--ui-font,"DM Sans",system-ui,sans-serif); }
+main { max-width:760px; margin:auto; padding:24px max(18px,4vw) 40px; }
+header, footer { padding:14px 0; }
+header a { font-weight:750; }
+h1 { margin:20px 0; font-size:clamp(2.2rem,7vw,3.4rem); line-height:1.05; }
+h2 { margin:24px 0 4px; font-size:1.35rem; }
+p { margin:8px 0 15px; }
+a { color:var(--ui-green,#235944); }
+footer { display:flex; flex-wrap:wrap; gap:16px; margin-top:26px; border-top:1px solid var(--ui-line,#cfd8c9); }
+form { max-width:440px; }
+form[hidden] { display:none; }
+label { display:grid; gap:4px; margin:10px 0; font-weight:600; }
+input, button { min-height:44px; border:1px solid var(--ui-line,#cfd8c9); border-radius:8px; padding:8px 12px; background:var(--ui-card,#fffef9); color:inherit; font:inherit; }
+button { font-weight:650; cursor:pointer; }
+button.delete { background:#943b31; color:white; }
+label.check { grid-template-columns:auto 1fr; align-items:center; }
+input[type=checkbox] { min-height:0; width:19px; height:19px; }
+:focus-visible { outline:3px solid var(--ui-green,#235944); outline-offset:2px; }
