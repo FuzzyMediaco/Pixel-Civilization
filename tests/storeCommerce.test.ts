@@ -231,6 +231,8 @@ test("Stripe requires tax readiness, verifies prices, requires a signed state ch
     if (path === "/v1/prices/price_rome")
       return json({ active: true, currency: "usd", unit_amount: 99, type: "one_time" });
     if (path === "/v1/checkout/sessions" && opts.method === "POST") {
+      assert.equal(opts.body.get("allowed_payment_method_types[0]"), "card");
+      assert.equal(opts.body.has("payment_method_types[0]"), false);
       assert.equal(opts.body.get("automatic_tax[enabled]"), "true");
       assert.equal(opts.body.get("billing_address_collection"), "required");
       created++;

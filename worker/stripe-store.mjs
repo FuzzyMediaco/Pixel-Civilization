@@ -165,7 +165,7 @@ export async function checkout(env, user, id, billingConsent) {
     billing_address_collection: "required",
     "customer_update[address]": "auto",
     "customer_update[name]": "auto",
-    "payment_method_types[0]": "card",
+    "allowed_payment_method_types[0]": "card",
     client_reference_id: user.id,
     "metadata[pixel_account]": user.id,
     "metadata[pixel_product]": sku.id,
