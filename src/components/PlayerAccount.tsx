@@ -171,8 +171,7 @@ export function PlayerAccount({ saveNow, entry = false }: { saveNow: () => boole
       {device && <p role="alert">{device}</p>}
       {!cloudAvailable() && (
         <p>
-          Account sync is available in the installed apps and on the hosted
-          game.
+          This browser keeps a local copy. Sign in to sync islands in the installed editions or at pixelcivilization.app.
         </p>
       )}
       {!entry && user && (

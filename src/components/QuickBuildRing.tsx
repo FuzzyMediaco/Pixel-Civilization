@@ -1,3 +1,4 @@
+import { usePeriodNames } from "./PeriodPicker";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowDown,
@@ -158,6 +159,7 @@ export function QuickBuildRing({
 }) {
   const ringRef = useRef<HTMLDivElement>(null);
   const readyRef = useRef(false);
+  const { name: periodName } = usePeriodNames();
   const [hoveredTitle, setHoveredTitle] = useState<string | null>(null);
 
   const isSculpt = mode === "sculpt";
@@ -362,11 +364,11 @@ export function QuickBuildRing({
                       type="button"
                       className={"ui-ring-btn is-qb-node is-qb-el" + (!item.canAfford ? " is-unaffordable" : "")}
                       disabled={!item.canAfford}
-                      aria-label={`Build ${item.def.name} (${priceText})`}
-                      title={`${item.def.name} · ${priceText}`}
-                      onMouseEnter={() => setHoveredTitle(item.def.name)}
+                      aria-label={`Build ${periodName(item.def.id)} (${priceText})`}
+                      title={`${periodName(item.def.id)} · ${priceText}`}
+                      onMouseEnter={() => setHoveredTitle(periodName(item.def.id))}
                       onMouseLeave={() => setHoveredTitle(null)}
-                      onFocus={() => setHoveredTitle(item.def.name)}
+                      onFocus={() => setHoveredTitle(periodName(item.def.id))}
                       onBlur={() => setHoveredTitle(null)}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -431,11 +433,11 @@ export function QuickBuildRing({
                         type="button"
                         className={"ui-ring-btn is-qb-node is-qb-el" + (!item.canAfford ? " is-unaffordable" : "")}
                         disabled={!item.canAfford}
-                        aria-label={`Build ${item.def.name} (${priceText})`}
-                        title={`${item.def.name} · ${priceText}`}
-                        onMouseEnter={() => setHoveredTitle(item.def.name)}
+                        aria-label={`Build ${periodName(item.def.id)} (${priceText})`}
+                        title={`${periodName(item.def.id)} · ${priceText}`}
+                        onMouseEnter={() => setHoveredTitle(periodName(item.def.id))}
                         onMouseLeave={() => setHoveredTitle(null)}
-                        onFocus={() => setHoveredTitle(item.def.name)}
+                        onFocus={() => setHoveredTitle(periodName(item.def.id))}
                         onBlur={() => setHoveredTitle(null)}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -543,13 +545,13 @@ export function QuickBuildRing({
                       disabled={disabled}
                       aria-label={
                         disabled && statusReason
-                          ? `${item.def.name} (${statusReason})`
-                          : `Build ${item.def.name} (${priceText})`
+                          ? `${periodName(item.def.id)} (${statusReason})`
+                          : `Build ${periodName(item.def.id)} (${priceText})`
                       }
-                      title={statusReason ? `${item.def.name} · ${statusReason}` : `${item.def.name} · ${priceText}`}
-                      onMouseEnter={() => setHoveredTitle(item.def.name)}
+                      title={statusReason ? `${periodName(item.def.id)} · ${statusReason}` : `${periodName(item.def.id)} · ${priceText}`}
+                      onMouseEnter={() => setHoveredTitle(periodName(item.def.id))}
                       onMouseLeave={() => setHoveredTitle(null)}
-                      onFocus={() => setHoveredTitle(item.def.name)}
+                      onFocus={() => setHoveredTitle(periodName(item.def.id))}
                       onBlur={() => setHoveredTitle(null)}
                       onClick={(e) => {
                         e.stopPropagation();

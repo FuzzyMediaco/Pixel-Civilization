@@ -7,6 +7,8 @@ import { getTerrainCell, type Material } from "./terrain";
 import type { GameState } from "./simulation";
 
 export interface ParcelAppearance {
+  era?: import("./eraStyles").EraKey;
+  eraActivity?: import("./eraStyles").EraActivity;
   corridor?: import("./roadCorridors").CorridorArt;
   edges?: readonly ParcelEdge[];
   /** Local row-major tile materials, blank when the entire site uses default grass. */

@@ -5,6 +5,8 @@ import { readPlayerItem, writePlayerItem } from "../game/deviceSaves";
 import { applyCourseAction, COURSE, makeCourseIsland, tileAt } from "../handbook/course";
 import { ElementFavicon } from "./ElementFavicon";
 import "./course.css";
+import type { EraKey } from "../game/eraStyles";
+import { RomeCourse } from "./RomeCourse";
 
 type Phase = "ready" | "demonstrated" | "practice" | "complete";
 const STORAGE = "pixel_civ_course_checks_v1";
@@ -16,16 +18,19 @@ const progress = (): string[] => {
   } catch { return []; }
 };
 
-export function CoursePanel({ lessonId, onLesson, onAtlas, onRead, onTour }: {
+export function CoursePanel({ lessonId, onLesson, onAtlas, onRead, onTour, era="original", visible=true }: {
+  era?: EraKey;
+  visible?: boolean;
   lessonId?: string;
   onLesson: (id: string) => void;
-  onAtlas: (id: string) => void;
+  onAtlas: (id: string,level?:number,variant?:number,lesson?:string) => void;
   onRead: (chapter: string) => void;
   onTour?: (tour: NonNullable<(typeof COURSE)[number]["tour"]>) => void;
 }) {
   const lesson = COURSE.find(item => item.id === lessonId) ?? COURSE[0];
   const index = COURSE.indexOf(lesson);
   const [completed,setCompleted] = useState(progress);
+  if (era !== "original") return <RomeCourse era={era} lessonId={lessonId} onLesson={onLesson} onAtlas={onAtlas} visible={visible}/>;
   return (
     <section className="pc-course" aria-label="Island Builder Course">
       <header className="pc-course-intro">

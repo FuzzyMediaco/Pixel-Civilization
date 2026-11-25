@@ -320,8 +320,13 @@ test("competing freight trains share real stocks; unloading moves meals and unst
   assert.equal(b.rail!.contract!.loaded, 6);
   assert.equal(grower.food, 0);
   for (const train of [a, b]) {
+    const load = train.rail!.contract!.loaded;
     freightCall(s, train, cargoB, net);
+    assert.equal(train.rail!.contract!.unloadedHere, load);
     freightCall(s, train, cargoA, net);
+    freightCall(s, train, cargoB, net);
+    assert.equal(train.rail!.contract!.unloadedHere, 0);
+    assert.equal(train.rail!.contract!.delivered, load);
   }
   assert.equal(siteOf(s, shop).food, 28);
   assert.equal(s.railYard!.received![shop.id].grain, 28);

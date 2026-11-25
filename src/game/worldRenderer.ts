@@ -1,3 +1,6 @@
+import { eraElementSpec, type EraKey } from "./eraStyles";
+import { presentationActivity, eraActiveSites } from "./eraActivity";
+import { eraStageTreatment, drawStageMarker } from "./eraStage";
 import { editedCoastline } from "./coastline";
 import { GRID_SIZE, GRID_HALF } from "./mapBounds";
 import { patrolPosition } from "./policeDispatch";
@@ -178,8 +181,8 @@ interface VoxelParticle {
 
 const vehicleGeoCache = new Map<string, THREE.BufferGeometry>();
 
-function getVehicleGeometry(kind: RoadVehicleKind, variantSeed: number): THREE.BufferGeometry {
-  const key = `${kind}_${variantSeed % 4}`;
+function getVehicleGeometry(kind: RoadVehicleKind, variantSeed: number, era: EraKey = "original"): THREE.BufferGeometry {
+  const key = `${era}_${kind}_${variantSeed % 4}`;
   const cached = vehicleGeoCache.get(key);
   if (cached) return cached;
 
@@ -187,6 +190,25 @@ function getVehicleGeometry(kind: RoadVehicleKind, variantSeed: number): THREE.B
   const paintSet = ["red", "blue", "teal", "orange", "purple", "lime", "white", "sky"];
   const paint = paintSet[variantSeed % paintSet.length];
 
+  if (era !== "original") {
+    // The cart uses the same wheelbase and heading as the canonical road vehicle.
+    const cargo = kind.includes("truck"), long = kind === "bus" ? 6 : 4;
+    const trim = era === "rome-forum" ? "#ad7748" : "#9d5541";
+    v.box(-2,1,-long,2,1,long-2,"#775136");
+    for (const x of [-2,2]) {
+      v.box(x,2,-long,x,3,long-2,trim);
+      for (const z of [-long+1,long-3]) { v.box(x,0,z-1,x,2,z+1,"#544135"); v.put(x,1,z,"#ba9360"); }
+    }
+    if (cargo) { v.box(-1,2,-3,1,4,-2,"#c28652"); v.box(-1,2,0,1,3,1,"#bb945e"); }
+    else {
+      for (const x of [-2,2]) for (const z of [-long+1,long-3]) v.put(x,4,z,"#614739");
+      v.box(-2,5,-long+1,2,5,long-3,variantSeed%2 ? "#e2c995" : "#b8614c");
+    }
+    v.box(0,1,long-1,0,1,long+2,"#6c4b39"); v.box(-1,1,long+1,1,3,long+4,"#916744");
+    v.box(0,3,long+3,1,4,long+5,"#775338");
+    for (const x of [-1,1]) for(const z of [long+1,long+4]) v.put(x,0,z,"#4f4036");
+    const geometry = buildVoxelGeometry(v, 0.13); vehicleGeoCache.set(key, geometry); return geometry;
+  }
   switch (kind) {
     case "sports_car": {
       const spCol = ["red", "yellow", "cyan", "orange"][variantSeed % 4];
@@ -1302,11 +1324,22 @@ export class PixelWorldRenderer {
     this.islandGroup.clear();
     this.coastlineTexture?.dispose();
   }
+  private appearanceEra: EraKey = "original";
+  private readonly reduceMotion = typeof window !== "undefined" ? window.matchMedia?.("(prefers-reduced-motion: reduce)") : undefined;
+  public setAppearanceEra(era: EraKey): void {
+    if (era === this.appearanceEra) return;
+    this.appearanceEra = era;
+    this.ghostKey = "";
+    this.mobilityVisuals.setAppearanceEra(era);
+    for (const car of this.trafficAgents) car.mesh.geometry = getVehicleGeometry(car.kind, car.id % 8, era);
+    this.syncState(this.gameState, this.selectedIds);
+    this.setBrush(this.brush);
+  }
   public syncState(state: GameState, selectedIds: string[]): void {
     this.gameState = state;
     if(this.renderedGeography!==(state.terrainVersion??1)){this.clearGeography();this.buildIslandAndOcean();}
     this.selectedIds = selectedIds;
-    this.engineering.sync(state);
+    this.engineering.sync(state, this.appearanceEra);
     const coastalStamp=(state.terrainVersion??1)+"/"+(state.infrastructure?.stamp??state.infrastructure?.revision??0);
     if(coastalStamp!==this.coastalStamp && this.coastlineTexture && this.naturalCoastline){
       this.coastalStamp=coastalStamp;
@@ -1315,6 +1348,8 @@ export class PixelWorldRenderer {
     }
     this.activeTravel = state.mobility || state.projectOps?.calls.length || state.crimeIncidents?.some(i=>i.policeOriginId) ? getTravelNetwork(state) : undefined;
 
+    const activeSites = this.appearanceEra === "original" ? undefined : eraActiveSites(state);
+    const stageStyle = eraStageTreatment(this.appearanceEra, state.currentStage);
     const seenIds = new Set<string>();
 
     const occupancy = buildOccupancyMap(state.elements);
@@ -1350,7 +1385,10 @@ export class PixelWorldRenderer {
         }
       }
       const worldSculpted = Boolean((el.sculptsTerrain || stripsFlatGroundSlabInWorld(el.defId)) && hasFootprintVoxelOrCoast);
-      const renderKey = `${JSON.stringify(corridor)??""}|${terrainOverbuilt?"coexist":""}|${worldSculpted?"ws":""}|${worksSpan?.run??""}|${el.defId}|L${el.level}|V${el.variant}|${localSpanX}x${localSpanZ}|R${el.rotation}|C${connMask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}`;
+      const spec = eraElementSpec(el.defId, this.appearanceEra);
+      const eraActivity = spec && activeSites ? presentationActivity(state, el, spec.family, activeSites) : "idle";
+      const marker = spec && (spec.family === "market" || spec.family === "station") ? stageStyle : undefined;
+      const renderKey = `${this.appearanceEra}|${eraActivity}|${marker?.level ?? ""}|${JSON.stringify(corridor)??""}|${terrainOverbuilt?"coexist":""}|${worldSculpted?"ws":""}|${worksSpan?.run??""}|${el.defId}|L${el.level}|V${el.variant}|${localSpanX}x${localSpanZ}|R${el.rotation}|C${connMask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}`;
 
       let entry = this.placedEntries.get(el.id);
       const [wx, wz] = gridToWorldCenter(el.gx, el.gz, el.spanX, el.spanZ);
@@ -1378,7 +1416,7 @@ export class PixelWorldRenderer {
           localSpanX,
           localSpanZ,
           connMask,
-          { edges, soils, lighting, corridor, worldSculpted },
+          { edges, soils, lighting, corridor, worldSculpted, era: this.appearanceEra, eraActivity },
         );
         const group = buildPlacedGroupFromAsset(asset, false);
         group.position.set(wx, baseY, wz);
@@ -1386,6 +1424,7 @@ export class PixelWorldRenderer {
         if(terrainOverbuilt||worksSpan && !worksSpan.run.startsWith("junction-")) group.traverse(o=>{if(o instanceof THREE.Mesh)o.visible=false;});
         group.userData.elementId = el.id;
         group.userData.baseY = baseY;
+        if (marker) drawStageMarker(group, marker, localSpanX, localSpanZ);
 
         // Disrepair amber badge
         const disrepairBadge = new THREE.Mesh(this.unitCubeGeo, this.wrenchMat);
@@ -1813,7 +1852,7 @@ export class PixelWorldRenderer {
       if (prior?.key===key && prior.original===entry.group) {keep.add(site.id);continue;}
       if(prior) this.removeCurbPreview(site.id);
       const soils=getParcelSoils(this.gameState,site);
-      const asset=getOrBuildElementAsset(site.defId,site.level,site.variant,site.spanX,site.spanZ,mask,{soils});
+      const asset=getOrBuildElementAsset(site.defId,site.level,site.variant,site.spanX,site.spanZ,mask,{soils,era:this.appearanceEra});
       const ghost=buildPlacedGroupFromAsset(asset,true,true);
       ghost.position.copy(entry.group.position);
       this.curbPreviews.set(site.id,{key,original:entry.group,ghost,wasVisible:entry.group.visible});
@@ -1908,7 +1947,7 @@ export class PixelWorldRenderer {
       const baseY = this.getGroundElevationForElement(def, wx, wz);
       const pose = { gx: pt.gx, gz: pt.gz, defId: def.id, roadAxis: plan.roadAxis, spanX: plan.spanX, spanZ: plan.spanZ };
       const bounds = roadBounds(pose);
-      const asset = getOrBuildElementAsset(def.id, plan.level, variant, plan.spanX, plan.spanZ, mask, { corridor: corridorArt(pose, occ) });
+      const asset = getOrBuildElementAsset(def.id, plan.level, variant, plan.spanX, plan.spanZ, mask, { corridor: corridorArt(pose, occ), era:this.appearanceEra });
       const ghost = buildPlacedGroupFromAsset(asset, true, plan.valid);
       ghost.position.set(wx, baseY + 0.04, wz);
       this.networkPreviewGroup.add(ghost);
@@ -2097,7 +2136,7 @@ export class PixelWorldRenderer {
         this.overlayGroup.remove(this.ghostGroup);
         releaseParcelGeometry(this.ghostGroup);
       }
-      const asset = getOrBuildElementAsset(def.id, level, variant, localSpanX, localSpanZ, mask, { edges, soils, lighting, corridor });
+      const asset = getOrBuildElementAsset(def.id, level, variant, localSpanX, localSpanZ, mask, { edges, soils, lighting, corridor, era:this.appearanceEra });
       this.ghostGroup = buildPlacedGroupFromAsset(asset, true, chk.valid);
       this.overlayGroup.add(this.ghostGroup);
       this.ghostKey = wantedGhostKey;
@@ -2321,7 +2360,7 @@ export class PixelWorldRenderer {
         (e) => (e.id === gate.siteId || e.id === trip.destination.siteId) && ELEMENT_BY_ID[e.defId].military,
       );
       const kind = military && id % 3 === 0 ? "military_truck" : kinds[id % kinds.length];
-      const mesh = new THREE.Mesh(getVehicleGeometry(kind, id % 8), getPixelVoxelMaterial());
+      const mesh = new THREE.Mesh(getVehicleGeometry(kind, id % 8, this.appearanceEra), getPixelVoxelMaterial());
       mesh.castShadow = !this.isSoftwareGl;
       mesh.position.set(x, this.streetHeight(x, z, !!gate.dx) + VOXEL_SIZE + 0.02, z);
       mesh.rotation.y = Math.atan2(points[1].x - points[0].x, points[1].z - points[0].z);
@@ -2552,7 +2591,9 @@ export class PixelWorldRenderer {
       const grp = entry.group;
 
       const rotorList = grp.userData.rotorList as { pivot: THREE.Group; axis: "x" | "y" | "z"; speed: number; wind: boolean }[] | undefined;
-      if (rotorList) {
+      const animateEraDetail = this.appearanceEra === "original" ||
+        (!this.reduceMotion?.matches && this.camera.position.distanceToSquared(grp.position) < 120 * 120);
+      if (rotorList && animateEraDetail) {
         const windMul = 0.45 + (this.gameState.windSpeed ?? 1.0) * 0.75;
         const powered = el.connected && !el.disrepair && !el.onFire ? 1 : 0.15;
         for (const r of rotorList) {

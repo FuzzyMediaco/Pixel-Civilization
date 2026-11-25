@@ -4,6 +4,7 @@ import "../index.css";
 import "./game/designs/index";
 import { App } from "./App";
 import { PlayerAccount } from "./components/PlayerAccount";
+import { prepareOfflineShell } from "./offlineShell";
 
 import {openDeviceSaves} from "./game/deviceSaves";
 import {autosync, bootAccountSync} from "./game/accountSync";
@@ -45,8 +46,4 @@ if (rootEl) {
   });
 }
 
-if (typeof window !== "undefined" && "serviceWorker" in navigator && import.meta.env.PROD && !navigator.userAgent.includes("PixelCivilizationOffline")) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => undefined);
-  });
-}
+void prepareOfflineShell();

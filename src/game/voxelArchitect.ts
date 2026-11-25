@@ -1,4 +1,6 @@
 import {dividedCarriageway} from "./designs/carriageways";
+import { currentRomeArt } from "./eraArtLoader";
+import { eraElementSpec, normalizeEra } from "./eraStyles";
 import {CARRIAGEWAY_TAPER_START,corridorTransform} from "./roadCorridors";
 import {VEHICLE_ROADS} from "./roadStandards";
 import {paintRoadStage} from "./designs/roadStages";
@@ -59,8 +61,16 @@ export function buildDesignVoxels(
   c.parcelEdges = appearance.edges;
   c.worldSculpted = appearance.worldSculpted;
   try {
-    design.build(c);
-    if(VEHICLE_ROADS.has(def.id))paintRoadStage(c);
+    const era = normalizeEra(appearance.era);
+    const spec = eraElementSpec(def.id,era);
+    const rome = currentRomeArt();
+    const buildOriginal = () => {
+      design.build(c);
+      if (VEHICLE_ROADS.has(def.id)) paintRoadStage(c);
+    };
+    if (rome && spec && era !== "original") {
+      rome.buildRome(c,era,spec.family,appearance.eraActivity ?? "idle",buildOriginal);
+    } else buildOriginal();
   } catch (err) {
     console.error(`Design build failed for ${def.id} L${lv} V${variant}`, err);
     c.v.box(-c.hx + 2, 0, -c.hz + 2, c.hx - 2, 6, c.hz - 2, "magenta");
@@ -69,6 +79,15 @@ export function buildDesignVoxels(
   applyParcelAppearance(c, appearance, spanX, spanZ);
   clampVoxToFootprint(c.v, c.hx, c.hz);
   return c;
+}
+
+/** High-resolution road surface shared by the island, orbit model and illustrated fallback. */
+export function buildCorridorVoxels(id:string, level:number, variant:number, mask:number, appearance:ParcelAppearance) {
+  if (!appearance.corridor) return undefined;
+  const deck=dividedCarriageway(id,level,variant,mask,appearance.corridor);
+  const era=normalizeEra(appearance.era);
+  if(era !== "original" && eraElementSpec(id,era)) currentRomeArt()?.paveCorridor(deck,era,variant);
+  return deck;
 }
 
 export function buildDesignAsset(
@@ -102,7 +121,10 @@ export function buildDesignAsset(
     return geometry;
   };
   const corridor=appearance.corridor;
-  const baseGeo = corridor ? mesh(dividedCarriageway(def.id,lv,variant,connMask,corridor),.5):mesh(c.v);
+  let baseGeo: THREE.BufferGeometry;
+  if(corridor) {
+    baseGeo = mesh(buildCorridorVoxels(def.id,lv,variant,connMask,appearance)!, .5);
+  } else baseGeo = mesh(c.v);
   if (groundShift) baseGeo.translate(0, groundShift, 0);
   baseGeo.computeBoundingBox();
   let topY = baseGeo.boundingBox?.max.y ?? 1;
@@ -193,7 +215,9 @@ export function getOrBuildElementAsset(
   const def = ELEMENT_BY_ID[elementId];
   const clampedLv = Math.max(1, Math.min(getMaxElementLevel(elementId), level | 0));
   const clampedVar = ((variant | 0) % 4 + 4) % 4;
-  const key = `${appearance.corridor?JSON.stringify(appearance.corridor):""}|${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
+  const themed = currentRomeArt() && eraElementSpec(elementId,appearance.era);
+  const styleKey = themed ? `${appearance.era}:${appearance.eraActivity ?? "idle"}` : "original";
+  const key = `${styleKey}|${appearance.corridor?JSON.stringify(appearance.corridor):""}|${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
   if (def && (appearance.edges?.length || appearance.soils?.length || (appearance.lighting && appearance.lighting !== "auto"))) {
     const asset = buildDesignAsset(def, clampedLv, clampedVar, spanX, spanZ, connMask, appearance);
     asset.siteSpecific = true;

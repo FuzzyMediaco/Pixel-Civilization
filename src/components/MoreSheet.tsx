@@ -51,6 +51,7 @@ export function MoreSheet({
   slotCount,
   onSaves,
   onExamples,
+  periodPicker,
   onOpenHandbook,
   onOpenPixBuilder,
   onChangeMode,
@@ -72,6 +73,7 @@ export function MoreSheet({
   slotCount: number;
   onSaves: () => void;
   onExamples: () => void;
+  periodPicker: React.ReactNode;
   onOpenHandbook: () => void;
   onOpenPixBuilder?: () => void;
   onChangeMode: (m: GameMode) => void;
@@ -172,6 +174,7 @@ export function MoreSheet({
               Weather &amp; clock run automatically outside God mode.
             </p>
           )}
+          {periodPicker}
           {view}
         </>
       )}

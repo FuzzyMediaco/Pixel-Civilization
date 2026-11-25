@@ -248,6 +248,65 @@
             "height": 660
           }
         ]
+      },
+      {
+        "id": "rome-starter",
+        "world": "rome-starter",
+        "title": "Via delle Vigne",
+        "summary": "Practice street access on a farm lane with two courtyard homes and a market.",
+        "steps": [
+          "At The vineyard street, open Details on the two homes and compare their levels. The road links both front doors to the market.",
+          "At The open parcel, place a house beside the road. Inspect its access, then use Undo to try another position."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/rome-starter.webp",
+            "caption": "The courtyard homes and market share a single street with the farm.",
+            "alt": "A short road with tiled homes, farmland and an open building parcel.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "rome-district",
+        "world": "rome-district",
+        "title": "Porta Fluminis",
+        "summary": "Follow the water supply and the passenger railway through a working riverside district.",
+        "steps": [
+          "At The market block, look for street entrances to the homes, market and baths.",
+          "Visit The bridge and spring. Inspect the raised aqueduct and trace the water around the bend from the hillside to the baths.",
+          "At The passenger railway, open City → Transit and follow a train between the two stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/rome-district.webp",
+            "caption": "The riverside crossing links two streets beside the district’s aqueduct and passenger railway.",
+            "alt": "A river crossing, settled market block and rail corridor in Porta Fluminis.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "rome-skyline",
+        "world": "rome-skyline",
+        "title": "Colonia Alta",
+        "summary": "Compare four apartment designs beneath a hilltop observatory, then follow the streets down to the quay.",
+        "steps": [
+          "At The hilltop skyline, find the observatory and the housing below it. In More → View, switch between the two Roman appearances and compare the same plots.",
+          "At The four insulae, inspect an apartment. Open its model in the Atlas and step through the four designs.",
+          "Choose Crossing to the quay, then follow the street across the bridge and back toward the apartment district."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/rome-skyline.webp",
+            "caption": "The elevated observatory looks over the apartment quarter and its route down to the water.",
+            "alt": "Dense Roman housing, an observatory on the hill and a road toward the river.",
+            "width": 720,
+            "height": 438
+          }
+        ]
       }
     ]
   },

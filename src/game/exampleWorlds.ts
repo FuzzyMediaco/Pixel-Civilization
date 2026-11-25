@@ -12,8 +12,9 @@ import {
   type PlacedElement,
 } from "./simulation";
 import { applyInfrastructureStroke, applyLandformPlacement, type InfrastructureTool } from "./terrain";
+import { buildRomeFixture, ROME_WORLDS, type RomeWorldId } from "./romeFixtures";
 
-export type ExampleWorldId = "pelican-reach" | "copper-gorge" | "switchyard-city" | "meridian-fair";
+export type ExampleWorldId = "pelican-reach" | "copper-gorge" | "switchyard-city" | "meridian-fair" | RomeWorldId;
 export type ExampleMode = "god" | "real";
 type Camera = { gx: number; gz: number; zoom: number };
 export type ExampleViewpoint = Camera & { name: string; tryThis: string };
@@ -222,9 +223,10 @@ export const EXAMPLE_WORLDS: readonly ExampleWorld[] = [
       view("Tomorrow Quay", 13, 6, 70, "Watch a rocket and the paired teleportation depots. Follow the ferry from the quay to the ocean habitat."),
     ],
   },
+  ...ROME_WORLDS,
 ];
 type Tile = [number, number];
-class District {
+export class District {
   readonly state = createInitialGameState("god");
   constructor(
     readonly id: ExampleWorldId,
@@ -472,7 +474,12 @@ function pelicanReach() {
   return d.finish(85000, 9.2, 19);
 }
 export function createExampleWorld(id: ExampleWorldId, mode: ExampleMode = "god"): GameState {
-  const factories = { "pelican-reach": pelicanReach, "copper-gorge": copperGorge, "switchyard-city": switchyardCity, "meridian-fair": meridianFair };
+  const factories = {
+    "pelican-reach": pelicanReach, "copper-gorge": copperGorge, "switchyard-city": switchyardCity, "meridian-fair": meridianFair,
+    "rome-starter": () => buildRomeFixture(new District("rome-starter"), "rome-starter", mode),
+    "rome-district": () => buildRomeFixture(new District("rome-district"), "rome-district", mode),
+    "rome-skyline": () => buildRomeFixture(new District("rome-skyline"), "rome-skyline", mode),
+  };
   const city = factories[id]();
   if (mode !== city.mode) {
     city.mode = mode;

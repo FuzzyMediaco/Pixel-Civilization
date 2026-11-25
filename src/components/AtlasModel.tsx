@@ -1,19 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { renderIsometricVoxelThumb } from "./ElementFavicon";
+import { EraSheetCell, renderIsometricVoxelThumb } from "./ElementFavicon";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "../game/designs/index";
 import {
-  ELEMENT_BY_ID,
   getMaxElementLevel,
-  getStandardFootprintForLevel,
   type CivElementDef,
 } from "../game/catalog";
-import { guideCarriageway } from "../game/designs/carriageways";
 import { buildDesignAsset, buildPlacedGroupFromAsset } from "../game/voxelArchitect";
 import { getHandbookFrame } from "../game/handbookLayout";
-import { getGuideVariant, getNeighborPreview } from "../game/connectionPreview";
-import { roadWidth } from "../game/roadStandards";
+import { atlasPlots } from "../handbook/modelPlots";
+import { eraElementName, eraElementSpec, type EraKey } from "../game/eraStyles";
+import { useEraArt } from "./useEraArt";
 import { TILE_SIZE, voxelNightUniform } from "../game/voxelCore";
 
 export interface AtlasModelProps {
@@ -22,6 +20,8 @@ export interface AtlasModelProps {
   variant: number;
   night: boolean;
   joined: boolean;
+  era?: EraKey;
+  active?: boolean;
   onStatic?: (value: boolean) => void;
   className?: string;
 }
@@ -32,16 +32,28 @@ export function AtlasModel({
   variant,
   night,
   joined,
+  era = "original",
+  active = false,
   onStatic,
   className = "",
 }: AtlasModelProps) {
   const mount = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
   const [angle, setAngle] = useState(0);
-  const illustrated = useMemo(() => error ? renderIsometricVoxelThumb(def,level,variant,angle,300) : null,[error,def,level,variant,angle]);
-  const description = def.name + ", level " + level + ", style " + (variant + 1);
+  const [paused,setPaused] = useState(false);
+  const pauseRef = useRef(false);
+  pauseRef.current = paused;
+  const [hasMotion,setHasMotion] = useState(false);
+  const {ready,failed,retry} = useEraArt(era);
+  const illustrated = useMemo(() => ready && error ? renderIsometricVoxelThumb(def,level,variant,angle,300,era,active,joined) : null,[ready,error,def,level,variant,angle,era,active,joined]);
+  const description = eraElementName(def.id,era) + ", level " + level + ", style " + (variant + 1);
+  const hasSheet=Boolean(eraElementSpec(def.id,era));
   const viewer = useRef<{
-    show: (d: CivElementDef, lv: number, v: number, isJoined: boolean) => void;
+    show: (d: CivElementDef, lv: number, v: number, isJoined: boolean, key: EraKey, active: boolean) => void;
+    zoomBy: (factor: number) => void;
+    orbit: (radians: number) => void;
+    reset: () => void;
+    replay: () => void;
     light: (dark: boolean) => void;
   } | null>(null);
 
@@ -60,12 +72,14 @@ export function AtlasModel({
     const canvas = renderer.domElement;
     const onContextLost = (ev: Event) => {
       ev.preventDefault();
+      host.dataset.modelReady="false";
       setError(true);
       onStatic?.(true);
     };
     const onContextRestored = () => {
       setError(false);
       onStatic?.(false);
+      draw=true;
     };
     canvas.addEventListener("webglcontextlost", onContextLost);
     canvas.addEventListener("webglcontextrestored", onContextRestored);
@@ -97,12 +111,16 @@ export function AtlasModel({
     const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 240);
     const controls = new OrbitControls(camera, canvas);
     controls.enablePan = false;
-    controls.enableZoom = false;
+    controls.enableZoom = true;
+    controls.minZoom = 0.5;
+    controls.maxZoom = 3;
     controls.maxPolarAngle = Math.PI * 0.48;
     controls.minPolarAngle = Math.PI * 0.12;
 
     let model: THREE.Group | undefined;
     let radius = 10;
+    let previousSelection = "";
+    let nightMode = false;
     let draw = true;
     const changed = () => {
       draw = true;
@@ -134,61 +152,59 @@ export function AtlasModel({
     };
 
     viewer.current = {
-      show(d, lv, v, isJoined) {
+      show(d, lv, v, isJoined, key, running) {
+        host.dataset.modelReady="false";
+        host.dataset.modelSelection=[key,d.id,lv,v+1,isJoined ? "joined" : "single"].join("/");
         clear();
-        const plots = isJoined ? getNeighborPreview(d.id, lv) : [];
-        if (plots.length) {
-          model = new THREE.Group();
-          const rotors = [];
-          for (const [idx, plot] of plots.entries()) {
-            const { el, mask, edges } = plot;
-            const pDef = ELEMENT_BY_ID[el.defId];
-            const [sx, sz] = getStandardFootprintForLevel(pDef, el.level);
-            const asset = buildDesignAsset(pDef, el.level, getGuideVariant(d.id, el.defId, v, idx), sx, sz, mask, {
-              edges,
-            });
-            const group = buildPlacedGroupFromAsset(asset);
-            group.position.set((el.gx + el.spanX * 0.5) * TILE_SIZE, 0, (el.gz + el.spanZ * 0.5) * TILE_SIZE);
-            group.rotation.y = pDef.isNetwork ? 0 : (el.rotation * Math.PI) / 2;
-            model.add(group);
-            rotors.push(...(group.userData.rotorList ?? []));
-          }
-          model.userData.rotorList = rotors;
-        } else if (roadWidth(d.id) > 1) {
-          model = new THREE.Group();
-          for (let i = 0; i < 3; i++) {
-            const part = buildPlacedGroupFromAsset(
-              buildDesignAsset(d, lv, v, 1, 1, 10, { corridor: guideCarriageway(d.id, i) }),
-            );
-            part.position.x = (i - 1) * TILE_SIZE;
-            model.add(part);
-          }
-        } else {
-          const [sx, sz] = getStandardFootprintForLevel(d, lv);
-          model = buildPlacedGroupFromAsset(buildDesignAsset(d, lv, v, sx, sz, d.isNetwork ? 5 : 0));
+        model = new THREE.Group();
+        const rotors = [];
+        for (const plot of atlasPlots(d,lv,v,key,isJoined,running)) {
+          const [sx,sz] = plot.span;
+          const group = buildPlacedGroupFromAsset(buildDesignAsset(plot.def,plot.level,plot.variant,sx,sz,plot.mask,plot.appearance));
+          group.position.set(plot.x*TILE_SIZE,0,plot.z*TILE_SIZE);
+          group.rotation.y = plot.rotation * Math.PI / 2;
+          model.add(group);
+          rotors.push(...(group.userData.rotorList ?? []));
         }
+        model.userData.rotorList = rotors;
+        setHasMotion(rotors.length > 0);
         scene.add(model);
         const bounds = new THREE.Box3().setFromObject(model);
         const center = bounds.getCenter(new THREE.Vector3());
         const size = bounds.getSize(new THREE.Vector3());
-        radius = Math.max(
+        const selection = [d.id,lv,v,isJoined].join(":");
+        if (previousSelection !== selection) radius = Math.max(
           1.2,
           Math.hypot(size.x, size.z) * 0.54,
           size.y * 0.55 + Math.hypot(size.x, size.z) * 0.23,
         );
         const direction = camera.position.clone().sub(controls.target);
         if (direction.lengthSq() < 1) direction.set(1.05, 0.88, 1.3);
-        if (plots.length) {
-          const side = plots[0].edges.find((e) => e.neighbor === plots[1].el.defId)?.side;
-          direction.set(side === "left" ? -1.05 : 1.05, 0.95, side === "back" ? -1.3 : 1.3);
-        }
+        previousSelection = selection;
         camera.position.copy(center).addScaledVector(direction.normalize(), 95);
         controls.target.copy(center);
         controls.update();
         resize();
       },
+      zoomBy(factor) {
+        camera.zoom = THREE.MathUtils.clamp(camera.zoom * factor, controls.minZoom, controls.maxZoom);
+        camera.updateProjectionMatrix(); draw = true;
+      },
+      orbit(radians) {
+        const offset=camera.position.clone().sub(controls.target).applyAxisAngle(new THREE.Vector3(0,1,0),radians);
+        camera.position.copy(controls.target).add(offset);controls.update();draw=true;
+      },
+      reset() {
+        camera.zoom = 1;
+        camera.position.copy(controls.target).add(new THREE.Vector3(1.05,.88,1.3).normalize().multiplyScalar(95));
+        controls.update(); resize();
+      },
+      replay() {
+        for (const part of model?.userData.rotorList ?? []) part.pivot.rotation[part.axis] = 0;
+        draw = true;
+      },
       light(dark) {
-        voxelNightUniform.value = dark ? 1 : 0;
+        nightMode = dark;
         sky.color.setHex(dark ? 0xabbfff : 0xfff9e9);
         sky.intensity = dark ? 0.62 : 1.95;
         sun.color.setHex(dark ? 0xb2cdff : 0xffefd9);
@@ -203,11 +219,17 @@ export function AtlasModel({
       if (typeof document !== "undefined" && document.hidden) return;
       const dt = Math.min(0.1, (now - previous) / 1000);
       previous = now;
-      if (!reduced.matches && model?.userData.rotorList?.length) {
+      if (!reduced.matches && !pauseRef.current && model?.userData.rotorList?.length) {
         for (const part of model.userData.rotorList) part.pivot.rotation[part.axis] += dt * part.speed;
         draw = true;
       }
-      if (draw) renderer.render(scene, camera);
+      if (draw) {
+        const worldLighting = voxelNightUniform.value;
+        voxelNightUniform.value = nightMode ? 1 : 0;
+        renderer.render(scene, camera);
+        if(model) host.dataset.modelReady="true";
+        voxelNightUniform.value = worldLighting;
+      }
       draw = false;
     });
 
@@ -224,25 +246,31 @@ export function AtlasModel({
       sun.shadow.dispose();
       renderer.dispose();
       canvas.remove();
-      voxelNightUniform.value = 0;
+
     };
   }, []);
 
   useEffect(() => {
-    viewer.current?.show(def, level, variant, joined);
-  }, [def, level, variant, joined]);
+    if (ready) viewer.current?.show(def, level, variant, joined, era, active);
+    else if (mount.current) mount.current.dataset.modelReady="false";
+  }, [ready,def, level, variant, joined, era, active]);
 
   useEffect(() => {
     viewer.current?.light(night);
   }, [night]);
 
   return (
+    <>
     <div
       ref={mount}
       className={"pc-atlas-viewport" + (error ? " is-static" : "") + (className ? " " + className : "")}
       role={error ? "group" : "img"}
       aria-label={description}
+      aria-busy={!ready && !failed}
     >
+      {!ready && <div className="pc-model-loading" role="status">{failed
+        ? <>{hasSheet && <EraSheetCell id={def.id} era={era} level={level} variant={variant} size={144} label={description}/>}<button type="button" onClick={retry}>Retry interactive artwork</button></>
+        : "Loading time-period artwork…"}</div>}
       {error && illustrated && (
         <div className="pc-atlas-illustrated">
           <img src={illustrated} alt={description + ", angle " + (angle + 1) + " of four"} />
@@ -252,7 +280,8 @@ export function AtlasModel({
           </div>
         </div>
       )}
-      {error && !illustrated && (
+      {ready && error && !illustrated && hasSheet && <EraSheetCell id={def.id} era={era} level={level} variant={variant} size={192} label={description}/>}
+      {error && !illustrated && !hasSheet && (
         <div
           className="pc-atlas-flat-fallback"
           style={{
@@ -262,5 +291,19 @@ export function AtlasModel({
         />
       )}
     </div>
+    <div className="pc-model-controls" aria-label="Model controls">
+      {!error && <>
+        <button type="button" onClick={() => viewer.current?.zoomBy(1.25)} aria-label="Zoom in">＋</button>
+        <button type="button" onClick={() => viewer.current?.zoomBy(0.8)} aria-label="Zoom out">−</button>
+        <button type="button" onClick={() => viewer.current?.orbit(-Math.PI/4)} aria-label="Rotate model left">↶</button>
+        <button type="button" onClick={() => viewer.current?.orbit(Math.PI/4)} aria-label="Rotate model right">↷</button>
+      </>}
+      <button type="button" onClick={() => {setAngle(0);viewer.current?.reset();}}>Reset view</button>
+      {!error && hasMotion && <>
+        <button type="button" aria-pressed={paused} onClick={() => setPaused(!paused)}>{paused ? "Resume motion" : "Pause motion"}</button>
+        <button type="button" onClick={() => {setPaused(false);viewer.current?.replay();}}>Replay motion</button>
+      </>}
+    </div>
+    </>
   );
 }

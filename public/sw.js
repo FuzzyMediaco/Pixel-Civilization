@@ -3,6 +3,7 @@ const PAGES = new Map([
   ["/", "/"], ["/index.html", "/"],
   ["/field-guide", "/field-guide.html"], ["/field-guide.html", "/field-guide.html"],
   ["/handbook", "/handbook.html"], ["/handbook.html", "/handbook.html"],
+  ["/rome-review", "/rome-review.html"], ["/rome-review.html", "/rome-review.html"],
   ["/gallery", "/gallery.html"], ["/gallery.html", "/gallery.html"],
   ["/downloads", "/downloads.html"], ["/downloads.html", "/downloads.html"],
 ]);

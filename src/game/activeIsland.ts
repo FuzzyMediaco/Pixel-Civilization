@@ -1,3 +1,4 @@
+import { normalizeEra } from "./eraStyles";
 import { readPlayerItem, writePlayerItems } from "./deviceSaves";
 import { cloneGameStateSnapshot, loadSaveSlots } from "./saveSlots";
 import { isSaveSlotIndex } from "./saveSlotLimits";
@@ -89,6 +90,8 @@ export function resumeIsland(hash = ""): GameState {
     }
     city.exampleReturnMode =
       origin === "real" || origin === "survival" || origin === "idle" || origin === "manager" ? origin : "god";
+    const era = new URLSearchParams(hash.slice(1)).get("era");
+    if (era != null && requested.id.startsWith("rome-")) city.appearanceEra = normalizeEra(era);
     return city;
   }
   if (last.startsWith("slot-")) {

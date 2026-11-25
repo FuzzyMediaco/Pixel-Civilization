@@ -339,6 +339,9 @@ export interface GameEventToast {
 }
 
 export interface GameState {
+  /** Saved visual preference; simulation rules always use canonical element IDs. */
+  appearanceEra?: string;
+  showOriginalNames?: boolean;
   railYard?: import("./railOperations").RailState;
   faith?: FaithRecord;
   exampleWorldId?: import("./exampleWorlds").ExampleWorldId;

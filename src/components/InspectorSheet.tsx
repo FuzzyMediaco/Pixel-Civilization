@@ -1,3 +1,5 @@
+import { eraLevelName } from "../game/eraStyles";
+import { usePeriodNames } from "./PeriodPicker";
 import React, { useState } from "react";
 import {
   AlertCircle,
@@ -77,7 +79,8 @@ export function InspectorSheet({
   const ready = upgradeReadiness(state, el);
   const short = charges && !atMax && state.money < cost;
   const blocked = !atMax && (short || !ready.ready);
-  const levelName = getElementLevelName(def, el.level);
+  const { nameEra, name: periodName } = usePeriodNames();
+  const levelName = eraLevelName(def.id, el.level, nameEra);
   const next = atMax ? undefined : getElementLevelName(def, el.level + 1);
   const nextSize = !atMax && !def.isNetwork ? " (" + getStandardFootprintForLevel(def, el.level + 1).join("×") + ")" : "";
   const isRail = RAIL_SITES.includes(def.id);
@@ -102,11 +105,11 @@ export function InspectorSheet({
       onClose={onClose}
       closeLabel="Close details"
       scrollKey={tab}
-      title={def.name}
+      title={periodName(def.id)}
       header={
         <InspectorCard
           def={def}
-          title={def.name + " · Lv " + el.level}
+          title={periodName(def.id) + " · Lv " + el.level}
           subtitle={levelName + (next ? " → Lv " + (el.level + 1) + nextSize : " · Max")}
           badges={
             <span className="ui-tags ui-icard-badges" role="group" aria-label="Status">

@@ -24,7 +24,7 @@ function prepareOfflineAssets(): Plugin {
       const workerPath = path.join(output, "sw.js");
       const worker = fs.readFileSync(workerPath, "utf8")
         .replace('"pixel-civ-shell-dev"', JSON.stringify("pixel-civ-shell-" + edition))
-        .replace("/* compiled files */", compiled.map(name => JSON.stringify("/assets/" + name)).join(","));
+        .replace("/* compiled files */", compiled.filter(name => !name.startsWith("romePilot-")).map(name => JSON.stringify("/assets/" + name)).join(","));
       fs.writeFileSync(workerPath, worker);
     },
   };
@@ -44,7 +44,7 @@ export default defineConfig({
     outDir: "dist",
     target: "es2022",
     sourcemap: false,
-    rolldownOptions: { input: { island: "index.html", guide: "field-guide.html", handbook: "handbook.html", gallery: "gallery.html", downloads: "downloads.html" } },
+    rolldownOptions: { input: { island: "index.html", guide: "field-guide.html", handbook: "handbook.html", gallery: "gallery.html", downloads: "downloads.html", romeReview: "rome-review.html" } },
     emptyOutDir: true,
   },
 });

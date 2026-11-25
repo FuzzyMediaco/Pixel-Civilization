@@ -58,3 +58,28 @@
 .pc-atlas-illustrated { width:100%; display:grid; justify-items:center; padding:8px; }
 .pc-atlas-illustrated img { width:min(65%,280px); height:auto; image-rendering:pixelated; }
 .pc-atlas-illustrated button { color:#1c3e31; min-height:36px; cursor:pointer; }
+.pc-era-strip,.pc-era-comparison,.pc-model-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.pc-era-strip { padding:8px 14px; border-bottom:1px solid #d4ddd2; color:#294233; background:#f6f7ed; font-size:13px; }
+.pc-era-strip label { display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px; font-weight:650; max-width:100%; }
+.pc-era-strip select,.pc-course-content select { max-width:100%; border:1px solid #afc1b0; border-radius:8px; padding:5px 7px; font:inherit; color:#193b2d; background:white; min-height:36px; }
+.pc-era-strip a,.pc-course-atlas a { color:#20533c; }
+.pc-model-controls { padding:6px 12px 10px; }
+.pc-era-comparison { padding:7px 12px; color:inherit; font-size:13px; }
+.pc-era-comparison button,.pc-model-controls button,.pc-model-loading button { min-height:36px; padding:4px 10px; font:inherit; font-size:13px; color:#1a3e30; background:#fffff5; border:1px solid #bac9b8; border-radius:8px; cursor:pointer; }
+.pc-model-controls button:first-child,.pc-model-controls button:nth-child(2) { min-width:36px; }
+.pc-model-loading { position:absolute; inset:0; display:grid; place-items:center; background:#e9eee0; color:#234532; }
+.pc-era-comparison button:disabled { opacity:.5; cursor:default; }
+.pc-practice-scene { display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:10px; background:#f1f4e9; border:1px solid #d2decf; border-radius:12px; }
+.pc-practice-scene img { width:min(42%,175px); height:auto; image-rendering:pixelated; }
+.pc-practice-scene>div { flex:1; min-width:min(150px,100%); }
+.pc-practice-scene small { display:block; }
+.pc-practice-track { position:relative; padding-top:24px; margin:12px 0; }
+.pc-practice-rail { height:4px; background:#738278; margin:0 5%; }
+.pc-practice-engine { position:absolute; top:10px; transform:translateX(-50%); color:#9b462c; font-size:20px; }
+.pc-practice-stations { display:flex; justify-content:space-between; gap:5px; font-size:12px; }
+@media(max-width:480px) {
+  .pc-era-strip { padding:6px 8px; }
+  .pc-atlas-root .pc-atlas-stage .pc-model-controls button,.pc-era-comparison button { min-height:40px; }
+  .pc-atlas-root .pc-atlas-nest-body .pc-atlas-level-grid { grid-template-columns:repeat(auto-fit,minmax(70px,1fr)); }
+  .pc-course-content, .pc-course-layout, .pc-atlas-stage-col, .pc-atlas-detail-grid { min-width:0; }
+}

@@ -1,3 +1,5 @@
+import { eraElementName } from "../game/eraStyles";
+import { usePeriodNames } from "./PeriodPicker";
 import React, { useMemo, useRef } from "react";
 import { Search, X } from "lucide-react";
 import {
@@ -94,6 +96,7 @@ export function BuildSheet({
   onHeight: (h: SheetHeight) => void;
   onClose: () => void;
 }) {
+  const { era, name: periodName } = usePeriodNames();
   const inputRef = useRef<HTMLInputElement>(null);
   const god = state.mode === "god";
   const charges = buildingCharges(state);
@@ -114,6 +117,7 @@ export function BuildSheet({
       return list.filter(
         (d) =>
           d.name.toLowerCase().includes(q) ||
+          eraElementName(d.id, era).toLowerCase().includes(q) ||
           d.id.toLowerCase().includes(q) ||
           d.description.toLowerCase().includes(q) ||
           d.category.includes(q),
@@ -128,7 +132,7 @@ export function BuildSheet({
     if (activeCat === "starter") list = list.filter((d) => d.isStarter);
     else if (activeCat !== "all") list = list.filter((d) => d.category === activeCat);
     return list;
-  }, [state, god, wealth, query, activeCat, fix]);
+  }, [state, god, wealth, query, activeCat, fix, era]);
 
   const lockedCount = useMemo(() => {
     if (god || activeCat === "suggested" || activeCat === "custom" || searching) return 0;
@@ -249,7 +253,7 @@ export function BuildSheet({
                   aria-pressed={selected}
                   disabled={poor}
                   aria-label={
-                    d.name +
+                    periodName(d.id) +
                     (stat ? ", " + stat : "") +
                     ", " +
                     (cost ? "$" + cost.toLocaleString() : "Free") +
@@ -258,7 +262,7 @@ export function BuildSheet({
                   onClick={() => onPick(d.id)}
                 >
                   <ElementFavicon def={d} eager={i < 12} />
-                  <b>{d.name}</b>
+                  <b>{periodName(d.id)}</b>
                   {stat && <small>{stat}</small>}
                   <span className={"ui-cost" + (poor ? " is-bad" : "")}>
                     {cost ? "$" + cost.toLocaleString() : "Free"}

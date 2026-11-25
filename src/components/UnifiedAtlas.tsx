@@ -25,6 +25,7 @@ import {
   getMaxElementLevel,
   getStandardFootprintForLevel,
 } from "../game/catalog";
+import { elementLevelStats, roadCapacity } from "../game/cityDynamics";
 import designStyles from "../game/designStyles.json";
 import { getGuidePartner, getNeighborPreview } from "../game/connectionPreview";
 import { DESIGNS } from "../game/designs/registry";
@@ -45,22 +46,11 @@ import { CoursePanel } from "./CoursePanel";
 import { AtlasModel } from "./AtlasModel";
 import type { BuildCategory } from "./BuildSheet";
 import { CategoryFavicon } from "./CategoryFavicon";
-import { ElementFavicon } from "./ElementFavicon";
+import { ERA_LABELS, normalizeEra, eraElementName, eraElementSpec, eraLevelName, type EraKey } from "../game/eraStyles";
+import { writeAtlasRoute, type UnifiedAtlasRoute } from "../handbook/atlasRoute";
+export type { AtlasTab, UnifiedAtlasRoute } from "../handbook/atlasRoute";
+import { ElementFavicon, EraThumbnailContext, eraSheet } from "./ElementFavicon";
 import { BALANCED_EXPANSION_BY_ID, BALANCED_EXPANSION_ELEMENTS } from "../game/expansionBalancedCatalog";
-
-export type AtlasTab = "atlas" | "chapters" | "islands" | "course";
-
-export interface UnifiedAtlasRoute {
-  tab: AtlasTab;
-  elementId?: string;
-  courseLesson?: string;
-  level?: number;
-  variant?: number; // 1..4
-  section?: string;
-  lesson?: string;
-  query?: string;
-  category?: string;
-}
 
 type Picture = { image: string; caption: string; alt: string; width: number; height: number };
 type Lesson = {
@@ -103,7 +93,8 @@ const STAT_LABELS: Record<string, string> = {
   fireRadius: "Fire radius",
   military: "Defense",
   income: "Income",
-  nuisanceRadius: "Nuisance",
+  nuisanceRadius: "Nuisance radius", powerDraw:"Power demand", waterDraw:"Water demand",
+  pollution:"Pollution", upkeep:"Upkeep", trips:"Trips generated", roadCapacity:"Road capacity",
 };
 
 const DOMAINS: Record<string, string> = {
@@ -167,10 +158,15 @@ const CATEGORY_OPTIONS: { id: BuildCategory; name: string }[] = Array.from(
     ALL_CATALOG.map((entry) => [entry.categoryName, { id: entry.category as BuildCategory, name: entry.categoryName }]),
   ).values(),
 );
+function eraSearch(id: string, era: EraKey) {
+  const spec = eraElementSpec(id,era === "original" ? "rome-forum" : era);
+  return spec ? [spec.name,...spec.aliases].join(" ") : "";
+}
+
 const asset = (path: string) => "./" + path.replace(/^\//, "");
 const money = (n: number) => "$" + n.toLocaleString("en");
 const clampInt = (val: number | undefined, lo: number, hi: number, fallback: number) =>
-  typeof val === "number" && Number.isInteger(val) && val >= lo && val <= hi ? val : fallback;
+  typeof val === "number" && Number.isFinite(val) ? Math.min(hi,Math.max(lo,Math.round(val))) : Math.min(hi,Math.max(lo,fallback));
 
 function findParentSectionId(chapterId: string): string {
   return HANDBOOK_SECTIONS.find((sec) => sec.chapterIds.includes(chapterId))?.id ?? HANDBOOK_SECTIONS[0].id;
@@ -178,9 +174,13 @@ function findParentSectionId(chapterId: string): string {
 
 function parseExternalRoute(route?: Partial<UnifiedAtlasRoute>): UnifiedAtlasRoute {
   const validId = route?.elementId && ELEMENT_BY_ID[route.elementId] ? route.elementId : undefined;
-  const maxLv = validId ? Math.max(5, getMaxElementLevel(validId)) : 5;
+  const maxLv = validId ? getMaxElementLevel(validId) : 5;
   return {
     tab: validId ? "atlas" : route?.tab ?? "course",
+    era: normalizeEra(route?.era),
+    returnChapter:route?.returnChapter,
+    returnLesson:route?.returnLesson,
+    originalNames:route?.originalNames ?? false,
     elementId: validId,
     courseLesson: route?.courseLesson,
     level: clampInt(route?.level, 1, maxLv, validId ? Math.min(3, maxLv) : 3),
@@ -217,6 +217,13 @@ export function UnifiedAtlas({
       return {};
     }
   });
+  const era = normalizeEra(route.era);
+  const displayName = (id: string) => route.originalNames ? ELEMENT_BY_ID[id]?.name ?? id : eraElementName(id,era);
+  const [previewActive,setPreviewActive] = useState(false);
+  const [compare,setCompare] = useState(false);
+  const lastSent = useRef("");
+  const lastModel = useRef<Pick<UnifiedAtlasRoute,"elementId"|"level"|"variant"> | undefined>(undefined);
+  if(route.tab==="atlas") lastModel.current=route.elementId ? {elementId:route.elementId,level:route.level,variant:route.variant} : undefined;
   const [night, setNight] = useState(false);
   const [joined, setJoined] = useState(false);
   const [staticImage, setStaticImage] = useState(false);
@@ -241,7 +248,10 @@ export function UnifiedAtlas({
   useEffect(() => {
     if (initialRoute) {
       const parsed = parseExternalRoute(initialRoute);
+      if (lastSent.current === JSON.stringify(parsed)) return;
       setRoute(parsed);
+      if (parsed.elementId && (parsed.level !== initialRoute.level || parsed.variant !== initialRoute.variant))
+        onChangeRoute?.(parsed);
       setJoined(false);
       if (parsed.section) {
         setOpenSectionId(findParentSectionId(parsed.section));
@@ -249,6 +259,8 @@ export function UnifiedAtlas({
       }
     }
   }, [
+    initialRoute?.era,
+    initialRoute?.originalNames,
     initialRoute?.tab,
     initialRoute?.courseLesson,
     initialRoute?.elementId,
@@ -256,6 +268,8 @@ export function UnifiedAtlas({
     initialRoute?.variant,
     initialRoute?.section,
     initialRoute?.lesson,
+    initialRoute?.query,
+    initialRoute?.category,
   ]);
 
   const toggleCheck = (key: string) => {
@@ -274,17 +288,24 @@ export function UnifiedAtlas({
     const next: UnifiedAtlasRoute = { ...route, ...patch };
     if (patch.tab && patch.tab !== "atlas") next.elementId = undefined;
     if (patch.elementId && patch.elementId !== route.elementId) {
-      const maxLv = Math.max(5, getMaxElementLevel(patch.elementId));
+      const maxLv = getMaxElementLevel(patch.elementId);
       next.level = clampInt(patch.level, 1, maxLv, Math.min(3, maxLv));
       next.variant = clampInt(patch.variant, 1, 4, 1);
     }
+    if (route.tab === "chapters" && next.tab === "atlas" && next.elementId) {
+      next.returnChapter = activeChapter?.id; next.returnLesson = activeLesson?.id;
+    }
+    lastSent.current = JSON.stringify(parseExternalRoute(next));
     setRoute(next);
     onChangeRoute?.(next);
     if (patch.section) {
       setOpenSectionId(findParentSectionId(patch.section));
       setOpenChapterId(patch.section);
     }
-    if (patch.elementId !== undefined) setJoined(false);
+    if (patch.elementId !== undefined && patch.elementId !== route.elementId) {
+      setJoined(false); setPreviewActive(false); setCompare(false);
+    }
+    if (patch.era) setCompare(false);
     if (scrollTop) {
       const host = bodyRef.current?.closest(".ui-guide-modal") ?? bodyRef.current;
       host?.scrollTo(0, 0);
@@ -298,11 +319,11 @@ export function UnifiedAtlas({
     return ALL_CATALOG.filter((entry) => {
       if (categoryFilter && entry.categoryName !== categoryFilter) return false;
       if (!q) return true;
-      return (entry.name + " " + entry.id + " " + entry.categoryName + " " + entry.usage + " " + entry.description)
+      return (eraSearch(entry.id,era) + " " + entry.name + " " + entry.id + " " + entry.categoryName + " " + entry.usage + " " + entry.description)
         .toLowerCase()
         .includes(q);
     });
-  }, [query, categoryFilter]);
+  }, [query, categoryFilter, era]);
 
   const globalMatches = useMemo(() => {
     const raw = globalSearch.trim().toLowerCase();
@@ -334,7 +355,7 @@ export function UnifiedAtlas({
 
     const elements = ALL_CATALOG
       .filter((entry) =>
-        matchesAll(`${entry.name} ${entry.id} ${entry.categoryName} ${entry.usage} ${entry.description} ${entry.growth}`),
+        matchesAll(`${eraSearch(entry.id,era)} ${entry.name} ${entry.id} ${entry.categoryName} ${entry.usage} ${entry.description} ${entry.growth}`),
       )
       .slice(0, 10);
 
@@ -347,12 +368,12 @@ export function UnifiedAtlas({
       totalLessons: lessons.length,
       elements,
       totalElements: ALL_CATALOG.filter((entry) =>
-        matchesAll(`${entry.name} ${entry.id} ${entry.categoryName} ${entry.usage} ${entry.description} ${entry.growth}`),
+        matchesAll(`${eraSearch(entry.id,era)} ${entry.name} ${entry.id} ${entry.categoryName} ${entry.usage} ${entry.description} ${entry.growth}`),
       ).length,
       islands,
       total: lessons.length + islands.length + elements.length,
     };
-  }, [globalSearch, playbookMode]);
+  }, [globalSearch, playbookMode, era]);
 
   const selectedEntry = useMemo(
     () => (route.elementId ? ALL_CATALOG.find((row) => row.id === route.elementId) : undefined),
@@ -360,15 +381,20 @@ export function UnifiedAtlas({
   );
   const selectedDef = selectedEntry ? ELEMENT_BY_ID[selectedEntry.id] : undefined;
   const selectedDesign = selectedEntry ? DESIGNS[selectedEntry.id] : undefined;
-  const maxLevels = selectedEntry ? Math.max(5, getMaxElementLevel(selectedEntry.id)) : 5;
+  const spec = selectedEntry ? eraElementSpec(selectedEntry.id,era) : undefined;
+  const maxLevels = selectedEntry ? getMaxElementLevel(selectedEntry.id) : 5;
   const level = clampInt(route.level, 1, maxLevels, 3);
   const playableLevel = selectedEntry ? Math.min(level, getMaxElementLevel(selectedEntry.id)) : 1;
+  const statsAt = (lv:number):Record<string,number> => selectedDef
+    ? {...elementLevelStats(selectedDef,lv),roadCapacity:roadCapacity(selectedDef,lv)} : {};
+  const beforeStats = statsAt(Math.max(1,level-1));
+  const levelStats = Object.entries(statsAt(level)).filter(([key,value])=> key !== "level" && value !== 0 && Number.isFinite(value));
   const variantZero = clampInt(route.variant, 1, 4, 1) - 1;
-  const styleNames = selectedEntry
+  const styleNames = spec?.variants ?? (selectedEntry
     ? designStyles[selectedEntry.id as keyof typeof designStyles] ??
       BALANCED_EXPANSION_BY_ID[selectedEntry.id]?.styleNames ??
       ["Style A", "Style B", "Style C", "Style D"]
-    : ["Style A", "Style B", "Style C", "Style D"];
+    : ["Style A", "Style B", "Style C", "Style D"]);
   const partnerDef = selectedEntry ? ELEMENT_BY_ID[getGuidePartner(selectedEntry.id)] : undefined;
   const joins = useMemo(() => {
     if (!selectedEntry || !partnerDef) return [];
@@ -414,6 +440,7 @@ export function UnifiedAtlas({
   };
 
   const stageName = (lv: number) => {
+    if (selectedDef && spec && !route.originalNames) return eraLevelName(selectedDef.id,lv,era);
     if (!selectedDef || !selectedDesign) return "Level " + lv;
     return lv > getMaxElementLevel(selectedDef.id) ? selectedDesign.levels[lv - 1] : getElementLevelName(selectedDef, lv);
   };
@@ -421,7 +448,7 @@ export function UnifiedAtlas({
   const showGlobalResults = Boolean(globalMatches && (searchFocused || globalSearch.trim().length > 0));
 
   return (
-    <div ref={bodyRef} className="pc-atlas-root is-compact">
+    <EraThumbnailContext.Provider value={era}><div ref={bodyRef} className="pc-atlas-root is-compact">
       <header className="pc-atlas-topbar">
         <div className="pc-atlas-brand" title="Atlas & Handbook">
           <BookOpen size={15} aria-hidden="true" />
@@ -442,7 +469,7 @@ export function UnifiedAtlas({
           <button
             type="button"
             aria-pressed={route.tab === "atlas"}
-            onClick={() => updateRoute({ tab: "atlas", elementId: route.tab === "atlas" ? undefined : route.elementId }, true)}
+            onClick={() => updateRoute({ tab: "atlas", elementId:undefined, ...(route.tab === "atlas" ? {} : lastModel.current) }, true)}
           >
             <Compass size={13} aria-hidden="true" />
             <span>Atlas</span>
@@ -466,6 +493,14 @@ export function UnifiedAtlas({
           </a>
         )}
       </header>
+
+      <div className="pc-era-strip">
+        <label>Time period <select aria-label="Handbook time period" value={era} onChange={event => updateRoute({era:normalizeEra(event.target.value)})}>
+          {Object.entries(ERA_LABELS).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
+        </select></label>
+        {era !== "original" && <label><input type="checkbox" checked={!!route.originalNames} onChange={event=>updateRoute({originalNames:event.target.checked})}/> Show original names</label>}
+        {route.tab === "atlas" && route.elementId && <a href={"./handbook.html#" + writeAtlasRoute(route)} target="_blank" rel="noopener" aria-label="Open shareable Atlas link">Shareable link ↗</a>}
+      </div>
 
       {/* Global Handbook Search (Playbook lessons, Atlas elements & Islands) */}
       <div className="pc-hb-search-wrap">
@@ -589,7 +624,7 @@ export function UnifiedAtlas({
                             <img src={asset(entry.thumbnail)} alt="" loading="lazy" />
                           )}
                           <span>
-                            <strong>{entry.name}</strong>
+                            <strong>{displayName(entry.id)}</strong>
                             <small>{entry.categoryName}</small>
                           </span>
                         </button>
@@ -633,15 +668,17 @@ export function UnifiedAtlas({
       </div>
 
       <div className="pc-atlas-main">
+        {route.tab === "atlas" && route.returnChapter && <button type="button" className="pc-course-back" onClick={() => updateRoute({tab:"chapters",section:route.returnChapter,lesson:route.returnLesson,returnChapter:undefined,returnLesson:undefined},true)}>Back to field guide lesson</button>}
         {route.tab !== "course" && route.courseLesson && <button className="pc-course-back" type="button" onClick={() => updateRoute({tab:"course"},true)}>Back to course lesson</button>}
-        {route.tab === "course" ? (
-          <CoursePanel lessonId={route.courseLesson}
+        {(route.tab === "course" || route.courseLesson) && <div hidden={route.tab !== "course"}>
+          <CoursePanel era={era} visible={route.tab === "course"} lessonId={route.courseLesson}
             onLesson={courseLesson => updateRoute({tab:"course",courseLesson},true)}
-            onAtlas={elementId => updateRoute({tab:"atlas",elementId,courseLesson:route.courseLesson ?? "frontage"},true)}
+            onAtlas={(elementId,lv = 1,v = 1,lesson) => updateRoute({tab:"atlas",elementId,level:lv,variant:v,courseLesson:lesson ?? route.courseLesson ?? "frontage"},true)}
             onRead={section => updateRoute({tab:"chapters",section,lesson:undefined,courseLesson:route.courseLesson ?? "frontage"},true)}
             onTour={onPlayWorld ? tour => onPlayWorld(tour.world,"god",tour.view) : undefined} />
-        ) : route.tab === "atlas" && selectedEntry && selectedDef && selectedDesign ? (
-          <section className="pc-atlas-detail" aria-label={selectedEntry.name}>
+        </div>}
+        {route.tab === "course" ? null : route.tab === "atlas" && selectedEntry && selectedDef && selectedDesign ? (
+          <section className="pc-atlas-detail" aria-label={displayName(selectedEntry.id)}>
             <div className="pc-atlas-crumb-bar">
               <button
                 type="button"
@@ -679,7 +716,8 @@ export function UnifiedAtlas({
                           ? frontageWidth(selectedEntry.id)
                           : getStandardFootprintForLevel(selectedDef, level).join("×")}
                       </p>
-                      <h1>{selectedEntry.name}</h1>
+                      <h1>{displayName(selectedEntry.id)}</h1>
+                      {spec && <p className="pc-atlas-prose">{route.originalNames ? spec.name : selectedEntry.name} · {ERA_LABELS[era]}</p>}
                     </div>
                     {!staticImage && (
                       <button
@@ -697,6 +735,8 @@ export function UnifiedAtlas({
 
                   <AtlasModel
                     def={selectedDef}
+                    era={compare ? "original" : era}
+                    active={previewActive}
                     level={playableLevel}
                     variant={variantZero}
                     night={night}
@@ -704,9 +744,13 @@ export function UnifiedAtlas({
                     onStatic={setStaticImage}
                   />
 
+                  {spec && <div className="pc-era-comparison">
+                    <button type="button" aria-pressed={compare} onClick={() => setCompare(!compare)}>{compare ? "Return to " + ERA_LABELS[era] : "Compare Original"}</button>
+                    <span role="status">Viewing {compare ? "Original" : ERA_LABELS[era]} · Lv {level} · {String.fromCharCode(65+variantZero)}</span>
+                  </div>}
                   <div className="pc-atlas-stage-foot">
                     <div className="pc-atlas-style-caption">
-                      <strong>{styleNames[variantZero]}</strong>
+                      <strong>{compare ? "Original artwork" : styleNames[variantZero]}</strong>
                       <span>{staticImage ? "Illustrated angles" : "Drag to orbit 360°"}</span>
                     </div>
                     <div className="pc-atlas-variants" role="group" aria-label="Visual style">
@@ -736,7 +780,13 @@ export function UnifiedAtlas({
                     </small>
                   </summary>
                   <div className="pc-atlas-nest-body">
-                    <p className="pc-atlas-prose">{selectedEntry.growth}</p>
+                    {spec && <p className="pc-atlas-prose">{spec.description}</p>}
+                    {!spec && <p className="pc-atlas-prose">{selectedEntry.growth}</p>}
+                    {spec && <p className="pc-atlas-note">Original level name · {getElementLevelName(selectedDef,level)}</p>}
+                    <div className="pc-era-comparison" role="group" aria-label="Step through levels">
+                      <button type="button" disabled={level === 1} onClick={() => updateRoute({level:level-1})}>Previous level</button>
+                      <button type="button" disabled={level === maxLevels} onClick={() => updateRoute({level:level+1})}>Next level</button>
+                    </div>
                     {level > playableLevel && (
                       <p className="pc-atlas-note">
                         Legacy level matches level {playableLevel} footprint in new cities.
@@ -765,8 +815,8 @@ export function UnifiedAtlas({
                   <div className="pc-atlas-nest-body">
                     <div className="pc-atlas-sheet-wrap">
                       <img
-                        src={asset(selectedEntry.image)}
-                        alt={selectedEntry.name + " in all levels and styles"}
+                        src={spec ? eraSheet(selectedDef.id,era) : asset(selectedEntry.image)}
+                        alt={displayName(selectedDef.id) + " across levels from left to right and variants from top to bottom"}
                         loading="lazy"
                       />
                     </div>
@@ -779,26 +829,27 @@ export function UnifiedAtlas({
                   <summary><span>On the island</span></summary>
                   <div className="pc-atlas-nest-body">
                     <p className="pc-atlas-prose">{selectedEntry.description}</p>
+                    {spec && <p className="pc-atlas-prose">{spec.activity}</p>}
+                    {spec && ["train_stops","aqueduct","water_treatment_plant","grocery_store","spaceport"].includes(selectedEntry.id) &&
+                      <button type="button" aria-pressed={previewActive} className="pc-atlas-toggle-btn" onClick={() => setPreviewActive(!previewActive)}>{previewActive ? "Preview idle state" : "Preview active state"}</button>}
                     <p className="pc-atlas-prose">{getGuideUsage(selectedEntry.id, joins[0], selectedEntry.description)}</p>
                   </div>
                 </details>
 
-                {Object.keys(selectedEntry.stats).length > 0 && (
+                {levelStats.length > 0 && (
                   <details className="pc-atlas-nest" open>
-                    <summary><span>Level-1 stats</span></summary>
+                    <summary><span>Level {level} · game stats</span></summary>
                     <div className="pc-atlas-nest-body">
+                      <p className="pc-atlas-note">{level>1 ? "Base values compared with level "+(level-1)+"." : "Base values before local service and neighbor effects."}</p>
                       <dl className="pc-atlas-facts">
-                        {Object.entries(selectedEntry.stats)
-                          .filter(([, n]) => n !== undefined)
-                          .map(([key, n]) => (
-                            <React.Fragment key={key}>
-                              <dt>{STAT_LABELS[key] ?? key}</dt>
-                              <dd>
-                                {n! > 0 ? "+" : ""}
-                                {n}
-                              </dd>
-                            </React.Fragment>
-                          ))}
+                        {levelStats.map(([key,value])=>(
+                          <React.Fragment key={key}>
+                            <dt>{STAT_LABELS[key] ?? key}</dt>
+                            <dd>{value.toLocaleString(undefined,{maximumFractionDigits:2})}
+                              {level>1 && beforeStats[key]!==value && <small> (was {beforeStats[key]?.toLocaleString(undefined,{maximumFractionDigits:2})})</small>}
+                            </dd>
+                          </React.Fragment>
+                        ))}
                       </dl>
                     </div>
                   </details>
@@ -811,20 +862,20 @@ export function UnifiedAtlas({
                       {joins.length > 0 && (
                         <p className="pc-atlas-meta-line" style={{ marginBottom: 8 }}>
                           {(joined ? "Joined with " : "Auto-links with ") +
-                            partnerDef.name +
+                            displayName(partnerDef.id) +
                             " · " +
                             joins.map((kind) => EDGE_LABELS[kind]).join(", ")}
                         </p>
                       )}
                       <div className="pc-atlas-inline-btns">
-                        {!staticImage && (
+                        {(
                           <button
                             type="button"
                             className="pc-atlas-toggle-btn"
                             aria-pressed={joined}
                             onClick={() => setJoined((j) => !j)}
                           >
-                            {joined ? "Show alone" : "Beside " + partnerDef.name}
+                            {joined ? "Show alone" : "Beside " + displayName(partnerDef.id)}
                           </button>
                         )}
                         <button
@@ -832,7 +883,7 @@ export function UnifiedAtlas({
                           className="pc-atlas-toggle-btn"
                           onClick={() => updateRoute({ elementId: partnerDef.id, level: 3, variant: 1 }, true)}
                         >
-                          Inspect {partnerDef.name} →
+                          Inspect {displayName(partnerDef.id)} →
                         </button>
                       </div>
                     </div>
@@ -937,7 +988,7 @@ export function UnifiedAtlas({
                     ) : (
                       <img src={asset(entry.thumbnail)} alt="" loading="lazy" />
                     )}
-                    <strong>{entry.name}</strong>
+                    <strong>{displayName(entry.id)}</strong>
                     <span className="pc-atlas-tile-meta">
                       {entry.cost ? money(entry.cost) : "Free"} · {entry.isStarter ? "Start" : "S" + entry.stage}
                     </span>
@@ -1327,6 +1378,6 @@ export function UnifiedAtlas({
           </section>
         )}
       </div>
-    </div>
+    </div></EraThumbnailContext.Provider>
   );
 }
