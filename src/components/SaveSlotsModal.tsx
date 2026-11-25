@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { ArrowRight, Cloud, Download, Ellipsis, HardDrive, Plus, Upload, X } from "lucide-react";
+import { ArrowRight, Cloud, Download, Ellipsis, HardDrive, Plus, Upload, Users, X } from "lucide-react";
 import { GameDialog } from "./GameDialog";
 import { MODE_TUTORIAL_LABELS } from "../game/tutorialFlows";
 import { syncState, watchSync } from "../game/accountSync";
@@ -18,6 +18,7 @@ type Props = {
   currentState: GameState;
   saveKey: string;
   onClose: () => void;
+  onSharedIslands?: () => void;
   onExportWorld: (slotIndex?: number) => void;
   onImportWorld: (slotIndex: number, world: TransferWorld) => Promise<boolean>;
   linkedWorlds: TransferWorld[];
@@ -37,7 +38,7 @@ export function SaveSlotsModal({ open, ...props }: Props) {
 
 function SavedIslands({
   slots, activeSlotIndex, currentState, saveKey, error, deviceError, linkedWorlds,
-  onClose, onExportWorld, onImportWorld, onAddSlot, onSaveToSlot, onLoadSlot, onRenameSlot, onDeleteSlot,
+  onClose, onSharedIslands, onExportWorld, onImportWorld, onAddSlot, onSaveToSlot, onLoadSlot, onRenameSlot, onDeleteSlot,
 }: Omit<Props, "open">) {
   const sync = useSyncExternalStore(watchSync, syncState);
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -134,6 +135,7 @@ function SavedIslands({
             <X size={20} aria-hidden="true" />
           </button>
         </header>
+        {onSharedIslands && <button type="button" className="shared-saves-link" onClick={onSharedIslands}><Users size={16} /> Shared Islands</button>}
         <div className="save-body">
           <section className="save-current" aria-label="Current island">
             <div className="save-current-title">

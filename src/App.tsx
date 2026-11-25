@@ -24,6 +24,7 @@ import { settleStreetFacing } from "./game/streetFacing";
 import { GameDialog } from "./components/GameDialog";
 import { SaveSlotsModal } from "./components/SaveSlotsModal";
 import { ViewEnvPanel, type ViewEnvTab } from "./components/ViewEnvPanel";
+import { SharedIslandsLobby } from "./components/SharedIslandsLobby";
 import { BottomNav, type NavSheet } from "./components/BottomNav";
 import { AlertPill, Hud, type HudStat } from "./components/Hud";
 import { BuildSheet, type BuildCategory } from "./components/BuildSheet";
@@ -246,6 +247,7 @@ export const App: React.FC = () => {
     history.replaceState(null, "", "#" + route.toString());
   }, [gameState.exampleWorldId, gameState.mode, activeSlotIndex]);
 
+  const [sharedLobby, setSharedLobby] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedIdsRef = useRef<string[]>(selectedIds);
   selectedIdsRef.current = selectedIds;
@@ -2160,6 +2162,7 @@ export const App: React.FC = () => {
       placing ||
       railSite ||
       examplesOpen ||
+      sharedLobby ||
       savesModalOpen ||
       guideModal ||
       pixModal.open ||
@@ -2404,6 +2407,14 @@ export const App: React.FC = () => {
   const currentStageMeta = STAGES[Math.max(0, Math.min(STAGES.length - 1, gameState.currentStage - 1))];
   const autoVisibleNav: NavSheet[] | undefined = activeTutorialStep?.visibleNav
     ?? (gameState.mode === "idle" || gameState.mode === "manager" ? ["layers", "city", "more"] : undefined);
+
+  const openSharedIslands = () => {
+    if (!saveActiveMode(stateRef.current)) return;
+    setSheetState(null);
+    setSavesModalOpen(false);
+    setSaveSlots(loadSaveSlots());
+    setSharedLobby(true);
+  };
 
   const activeSheetKey = showInspector && selected && selectedDef
     ? `inspector:${selected.id}`
@@ -2874,7 +2885,7 @@ export const App: React.FC = () => {
             tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onStopTutorial={()=>stopTutorial(false)}/>
         ) : sheet==="more" ? (
           <MoreSheet {...sheetProps} saveNow={()=>saveActiveMode(stateRef.current)} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount} slotCount={saveSlots.length}
-            onSaves={()=>{trackDrawerAction("save_slots",0.5);setSheetState(null);setSlotError("");setSaveSlots(loadSaveSlots());setSavesModalOpen(true);}} onExamples={openExamples}
+            onSaves={()=>{trackDrawerAction("save_slots",0.5);setSheetState(null);setSlotError("");setSaveSlots(loadSaveSlots());setSavesModalOpen(true);}} onExamples={openExamples} onSharedIslands={location.protocol === "file:" ? undefined : openSharedIslands}
             onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"course"}});}}
             onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
             onChangeMode={m=>{trackDrawerAction("game_mode",0.5);stopTutorial(false);if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={()=>{stopTutorial(false);copyIsland();}}
@@ -2906,9 +2917,10 @@ export const App: React.FC = () => {
       {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} currentMode={gameState.mode === "real" ? "real" : "god"} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
         error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
       <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState} saveKey={islandSaveKey(gameState)} deviceError={deviceNotice || (saveError ? "Could not save to this device." : "")}
-        onClose={() => setSavesModalOpen(false)} onAddSlot={handleAddSaveSlot} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
+        onClose={() => setSavesModalOpen(false)} onSharedIslands={location.protocol === "file:" ? undefined : openSharedIslands} onAddSlot={handleAddSaveSlot} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
         onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}
         linkedWorlds={linkedWorlds} onImportWorld={handleImportWorld} onExportWorld={handleExportWorld}/>
+      {sharedLobby && <SharedIslandsLobby state={gameState} saves={saveSlots} onClose={() => setSharedLobby(false)} />}
       {guideModal && <GuideModal modal={guideModal} currentMode={gameState.mode} onChange={setGuideModal} onClose={() => setGuideModal(null)}
         onPlayWorld={visitExample}/>}
       {pixModal.open && (
