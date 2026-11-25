@@ -783,10 +783,14 @@ test("Pix uses funded, verified gateway models with precise merchant costs and r
     .all()
     .map((r) => ({ ...r }));
   assert.deepEqual(rows, [
-    { model: names[0], cost_micros: 21 },
-    { model: names[1], cost_micros: 210 },
-    { model: names[2], cost_micros: 19 },
+    { model: names[0], cost_micros: 20 },
+    { model: names[1], cost_micros: 200 },
+    { model: names[2], cost_micros: 18 },
   ]);
+  const bill = app.sqlite
+    .prepare("SELECT inference_micros,estimated_funding_fee_micros FROM game_pix_settled_costs WHERE model=?")
+    .get(names[1]);
+  assert.deepEqual({ ...bill }, { inference_micros: 200, estimated_funding_fee_micros: 10 });
   assert.equal((await draw("openai", "funded-pix-openai")).status, 409);
   assert.equal(calls.length, 3);
   declined = true;

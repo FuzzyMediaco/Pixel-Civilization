@@ -14,7 +14,7 @@ function verifiedModels(env) {
   return new Set((env.PIX_GATEWAY_VERIFIED_MODELS || "").split(",").map((value) => value.trim()));
 }
 
-export async function gatewayAccess(env) {
+export async function gatewayAccess(env, force = false) {
   const verified = verifiedModels(env);
   if (
     !env.AI?.run ||
@@ -25,7 +25,7 @@ export async function gatewayAccess(env) {
   )
     return null;
   const cached = balances.get(env);
-  if (cached && cached.expires > Date.now()) return cached.result;
+  if (!force && cached && cached.expires > Date.now()) return cached.result;
   // This read-only token only checks credit availability. The Worker binding authenticates inference.
   const checkedAt = Date.now();
   const result = await (async () => {
@@ -77,9 +77,4 @@ export function checkGatewayBudget(access, costMicros) {
     "Pix is waiting for its gateway credits to be replenished.",
     "provider_unavailable",
   );
-}
-
-// The merchant pays a five-percent funding fee in addition to the provider's inference charge.
-export function fundedCost(micros, viaGateway) {
-  return Math.ceil(viaGateway ? (micros * 105) / 100 : micros);
 }

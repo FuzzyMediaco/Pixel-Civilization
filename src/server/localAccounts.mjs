@@ -33,6 +33,9 @@ export function openAccountDatabase(filename) {
       sqlite.exec(readFileSync(new URL("../../migrations/0005_payment_links.sql", import.meta.url), "utf8"));
       sqlite.exec("PRAGMA user_version=5");
     }
+    if (!sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='game_pix_funded_terms'").get()) {
+      sqlite.exec(readFileSync(new URL("../../migrations/0007_pix_funded_terms.sql", import.meta.url), "utf8"));
+    }
     sqlite.exec("COMMIT");
   } catch (error) {
     sqlite.exec("ROLLBACK");

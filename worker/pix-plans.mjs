@@ -3,7 +3,6 @@ import {
   gatewayAccess,
   gatewayCanRun,
   checkGatewayBudget,
-  fundedCost,
   invalidateGatewayBalance,
   runGateway,
 } from "./pix-gateway.mjs";
@@ -160,12 +159,7 @@ export async function reserveGeneration(
     WHERE model IN (?,?,?) AND state!='failed' AND (state='reserved' OR started_at>=?)`;
   const gatewayWhere = gateway ? " AND (" + gatewaySum + ")+?<=?" : "";
   const gatewayParams = gateway
-    ? [
-        ...Object.values(GATEWAY_MODELS),
-        gateway.checkedAt - 120000,
-        worst,
-        fundedCost(gateway.availableMicros, true),
-      ]
+    ? [...Object.values(GATEWAY_MODELS), gateway.checkedAt - 120000, worst, gateway.availableMicros]
     : [];
   const row = await db
     .prepare(
@@ -210,7 +204,7 @@ export async function reserveGeneration(
         .bind(...Object.values(GATEWAY_MODELS), gateway.checkedAt - 120000)
         .first();
       requireStore(
-        row.committed + worst <= fundedCost(gateway.availableMicros, true),
+        row.committed + worst <= gateway.availableMicros,
         503,
         "Pix is waiting for available gateway credits.",
         "provider_unavailable",
@@ -266,7 +260,7 @@ async function paidClient(env, request, provider) {
         requestId,
         grant,
         provider,
-        fundedCost(worst, viaGateway),
+        worst,
         Date.now(),
         viaGateway ? GATEWAY_MODELS[provider] : config.model,
         access,
@@ -320,7 +314,7 @@ async function paidClient(env, request, provider) {
           cached * (config.cached ?? config.input) +
           written * (config.cacheWrite ?? config.input) +
           result.output * config.output;
-        await settle("settled", fundedCost(cost, viaGateway), result.input, result.output);
+        await settle("settled", Math.ceil(cost), result.input, result.output);
       }
       const data = typeof result.raw === "string" ? JSON.parse(result.raw) : result.raw;
       requireStore(

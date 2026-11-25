@@ -10,6 +10,8 @@ function prices(env) {
     return {};
   }
 }
+// Enabled by the term-bounded Stripe Billing lifecycle when it is installed.
+export function fundedSubscriptionBillingReady(_env) { return false; }
 export function stripeAvailable(env) {
   return keyCheckoutReady(env) || paymentLinksReady(env);
 }
