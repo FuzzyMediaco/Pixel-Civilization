@@ -52,13 +52,8 @@ final class GameController: UIViewController, WKNavigationDelegate {
                 self.game.configuration.websiteDataStore.httpCookieStore.setCookie(cookie) {
                     var start = LocalGameServer.origin
                     #if DEBUG
-                    let args = ProcessInfo.processInfo.arguments
-                    if let index = args.firstIndex(of:"-storeTour"), index + 1 < args.count {
-                        let routes = ["street":"/#world=rome-starter&era=original&mode=real&view=0",
-                                      "skyline":"/#world=rome-skyline&era=original&mode=real&view=0",
-                                      "guide":"/handbook.html"]
-                        if let route = routes[args[index+1]], let target = URL(string:route,relativeTo:start) { start = target }
-                    }
+                    if let scene = StoreTourCapture.requested, let route = StoreTourCapture.routes[scene],
+                       let target = URL(string:route, relativeTo:start) { start = target }
                     #endif
                     self.game.load(URLRequest(url:start))
                 }
@@ -75,5 +70,10 @@ final class GameController: UIViewController, WKNavigationDelegate {
         if url.scheme == "https" && action.navigationType == .linkActivated { UIApplication.shared.open(url) }
         decisionHandler(.cancel)
     }
+    #if DEBUG
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if let scene = StoreTourCapture.requested { StoreTourCapture.waitForScene(in:webView, scene:scene) }
+    }
+    #endif
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { webView.reload() }
 }

@@ -12,7 +12,7 @@ on:
       - '.github/workflows/mobile-stores.yml'
       - 'src/game/storeCatalog.mjs'
 concurrency:
-  group: mobile-stores-${{ github.ref }}
+  group: mobile-stores-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.sha || 'pr' }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -71,33 +71,64 @@ jobs:
           if [ -n "${PIXEL_ANDROID_KEYSTORE:-}" ]; then jarsigner -verify "$bundle"; fi
       - uses: actions/upload-artifact@v4
         with: {name: Pixel-Civilization-Play-Bundle, path: 'packages/store/android/build/outputs/bundle/release/*.aab'}
-  apple:
+  apple-simulators:
     needs: web
-    runs-on: macos-26-intel
-    timeout-minutes: 95
+    runs-on: macos-26
+    timeout-minutes: 85
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: {name: mobile-web, path: dist}
       - uses: actions/setup-node@v4
         with: {node-version: 24}
-      - run: node packages/store/prepare.mjs && node packages/store/catalog.mjs
-      - name: Build and run the game on iPhone and iPad
+      - name: Build game and StoreKit tests
+        id: compile
         run: |
+          node packages/store/prepare.mjs && node packages/store/catalog.mjs
           brew install xcodegen
-          bash packages/store/ios/run-simulator.sh
-      - name: Archive for iOS devices
-        run: |
-          cd packages/store/ios
-          xcodebuild archive -project PixelCivilization.xcodeproj -scheme PixelCivilization \
-            -destination 'generic/platform=iOS' -archivePath build/PixelCivilization.xcarchive \
-            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO
-          ditto -c -k --keepParent build/PixelCivilization.xcarchive build/PixelCivilization-device-unsigned.zip
+          python3 packages/store/ios/check-simulator.py compile
+      - name: Render and capture the game on iPhone
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        run: python3 packages/store/ios/check-simulator.py phone
+      - name: Render and capture the game on iPad
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        run: python3 packages/store/ios/check-simulator.py tablet
+      - name: Test StoreKit products, account association, and restoration
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        run: python3 packages/store/ios/check-simulator.py purchases
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Pixel-Civilization-Apple-Review
+          name: Pixel-Civilization-Apple-Simulator-Review
           path: |
             packages/store/ios/build/*-screens/
-            packages/store/ios/build/PixelCivilization-device-unsigned.zip
+            packages/store/ios/build/storekit-result.json
           if-no-files-found: warn
+  apple-archive:
+    needs: web
+    runs-on: macos-26-intel
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: mobile-web, path: dist}
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - name: Archive and verify the iOS device build
+        run: |
+          node packages/store/prepare.mjs && node packages/store/catalog.mjs
+          brew install xcodegen
+          cd packages/store/ios
+          xcodegen generate
+          xcodebuild archive -project PixelCivilization.xcodeproj -scheme PixelCivilization \
+            -destination 'generic/platform=iOS' -archivePath build/PixelCivilization.xcarchive \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO
+          app="build/PixelCivilization.xcarchive/Products/Applications/PixelCivilization.app"
+          test "$(plutil -extract CFBundleIdentifier raw "$app/Info.plist")" = app.pixelcivilization.game
+          lipo -verify_arch arm64 "$app/PixelCivilization"
+          node ../verify-folder.mjs "$app/web"
+          ditto -c -k --keepParent build/PixelCivilization.xcarchive build/PixelCivilization-device-unsigned.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pixel-Civilization-Apple-Device-Archive
+          path: packages/store/ios/build/PixelCivilization-device-unsigned.zip
