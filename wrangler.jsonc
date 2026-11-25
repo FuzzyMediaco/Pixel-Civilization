@@ -21,7 +21,18 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "run_worker_first": [
-      "/api/*"
+      "/api/*",
+      "/account-deletion",
+      "/downloads",
+      "/eras",
+      "/field-guide",
+      "/gallery",
+      "/handbook",
+      "/handbook/era-pilot/benchmark",
+      "/",
+      "/privacy",
+      "/rome-review",
+      "/support"
     ]
   },
   "ai": {
