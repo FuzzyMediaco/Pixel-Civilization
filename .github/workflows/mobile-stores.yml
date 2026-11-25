@@ -1,6 +1,11 @@
 name: Mobile store builds
 on:
   workflow_dispatch:
+    inputs:
+      web_edition:
+        description: Published web edition SHA-256 to include unchanged
+        required: false
+        type: string
   pull_request:
     paths:
       - 'packages/store/**'
@@ -19,7 +24,16 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: 24}
       - uses: oven-sh/setup-bun@v2
-      - run: bun install --frozen-lockfile && node --test packages/store/tests/bridge.test.mjs && node packages/store/catalog.mjs && npm run build
+      - run: bun install --frozen-lockfile && node --test packages/store/tests/bridge.test.mjs && node packages/store/catalog.mjs
+      - name: Prepare the reviewed web edition
+        env:
+          WEB_EDITION: ${{ inputs.web_edition }}
+        run: |
+          if [ -n "$WEB_EDITION" ]; then
+            node packages/store/fetch-published.mjs "$WEB_EDITION" dist
+          else
+            npm run build
+          fi
       - uses: actions/upload-artifact@v4
         with: {name: mobile-web, path: dist, retention-days: 3}
   play:

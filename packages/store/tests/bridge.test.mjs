@@ -7,7 +7,7 @@ const source=await readFile(new URL("../bridge.js",import.meta.url),"utf8");
 function load(receiver,main=true) {
   const window={...receiver};
   window.top=main ? window : {};
-  vm.runInNewContext(source,{window,setTimeout,clearTimeout,Promise,Map,JSON,Object,Error,String});
+  vm.runInNewContext(source,{window,setTimeout,clearTimeout,Promise,Map,JSON,Object,Error,String,URL,Event});
   return window.pixelStore;
 }
 test("browser and embedded third-party frames have no purchase bridge",()=>{
@@ -46,4 +46,22 @@ test("Apple receives the account token and explicitly finishes verified receipts
   await store.finish(item);
   await store.manage();
   assert.deepEqual(calls.map(c=>c.action),["purchase","pending","finish","manage"]);
+});
+
+test("local sample links close the store and open within the app window",()=>{
+  let click;
+  const opened=[];
+  let dismissed=0;
+  const location={origin:"https://pixelcivilization.app",href:"https://pixelcivilization.app/",assign:href=>opened.push(href)};
+  load({PixelBilling:{},document:{addEventListener:(type,handler)=>{if(type==="click")click=handler;}},location});
+  function tap(href){
+    let captured=false;
+    const link={href,closest:()=>({requestClose:()=>dismissed++})};
+    click({target:{closest:()=>link},button:0,preventDefault:()=>{captured=true;}});
+    return captured;
+  }
+  assert.equal(tap("https://apps.apple.com/account/subscriptions"),false);
+  assert.equal(tap("./#world=ancient-china-starter"),true);
+  assert.deepEqual(opened,["https://pixelcivilization.app/#world=ancient-china-starter"]);
+  assert.equal(dismissed,1);
 });

@@ -2,6 +2,21 @@
   const apple = window.webkit?.messageHandlers?.pixelBilling;
   const google = window.PixelBilling;
   if (window.top !== window || (!apple && !google)) return;
+  // Native store editions have one game window. Keep local tours and guides
+  // inside it and dismiss their originating dialog before changing islands.
+  window.document?.addEventListener("click", event => {
+    const link = event.target.closest?.("a[target='_blank'][href]");
+    if (!link || event.defaultPrevented || event.button !== 0) return;
+    const destination = new URL(link.href, window.location.href);
+    if (destination.origin !== window.location.origin) return;
+    event.preventDefault();
+    const dialog = link.closest("dialog[open]");
+    if (dialog) {
+      if (typeof dialog.requestClose === "function") dialog.requestClose();
+      else if (dialog.dispatchEvent(new Event("cancel", {cancelable:true}))) dialog.close();
+    }
+    window.location.assign(destination.href);
+  });
   const pending = new Map();
   let next = 0;
   const respond = message => {
