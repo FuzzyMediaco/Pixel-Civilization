@@ -176,7 +176,7 @@ export class MobilityVisuals {
     mesh.scale.setScalar(submerged ? 0.9 : 0.92 + 0.12 * Math.sin(clock * 2.5));
     return mesh;
   }
-  update(s: GameState, dt: number, nav?: TravelNetwork) {
+  update(s: GameState, dt: number, nav?: TravelNetwork, clock = s.activePlaySec) {
     this.used.clear();
     if(nav&&nav!==this.trackMap){
       this.trackMap=nav;this.switches=s.elements.filter(e=>nav.canUse(e.gx,e.gz,"rail")&&[[0,1],[0,-1],[1,0],[-1,0]].filter(([dx,dz])=>nav.canUse(e.gx+dx,e.gz+dz,"rail")).length>=3);
@@ -204,7 +204,7 @@ export class MobilityVisuals {
       const xx = (fx + 0.5) * TILE_SIZE - curb * Math.cos(l.heading),
         zz = (fz + 0.5) * TILE_SIZE + curb * Math.sin(l.heading);
       if(l.mode==="rail"){
-        const bodies=railBodies(l),r=l.rail!,t=s.activePlaySec;
+        const bodies=railBodies(l),r=l.rail!,t=clock;
         if(r.contract)for(const id of [r.contract.pickup,r.contract.drop]){
           const site=nav?.byId.get(id);if(!site)continue;
           const fx=site.gx+site.spanX*.35,fz=site.gz+site.spanZ*.60;
@@ -248,7 +248,7 @@ export class MobilityVisuals {
         }
       }else this.draw(l.id, l.mode, l.depot, xx, y + 0.12, zz, l.heading, dt).userData.serviceId = l.id;
       if (water && l.path.length > 1 && l.dwell <= 0 && !l.blocked && !/waiting|following/i.test(l.status)) {
-        this.trail(l.id, l.depot, xx, zz, y, l.heading, l.mode === "gondola" ? 1 : 1.85, false, dt, s.activePlaySec).userData.serviceId = l.id;
+        this.trail(l.id, l.depot, xx, zz, y, l.heading, l.mode === "gondola" ? 1 : 1.85, false, dt, clock).userData.serviceId = l.id;
       }
       if (l.at && l.dwell > 0 && l.mode !== "freight" && l.rail?.service!=="freight") {
         const stop = s.elements.find((e) => e.id === l.at);
@@ -257,7 +257,7 @@ export class MobilityVisuals {
           cz = (stop.gz + stop.spanZ * 0.5) * TILE_SIZE;
         const n = Math.min(4, l.riders.reduce((m, r) => m + r.count, 0) + Number(l.delivered > 0));
         for (let i = 0; i < n; i++) {
-          const t = (s.activePlaySec * 0.75 + i * 0.23) % 1;
+          const t = (clock * 0.75 + i * 0.23) % 1;
           this.draw(
             l.id + "-rider" + i,
             "passenger",
@@ -275,7 +275,7 @@ export class MobilityVisuals {
       if (voyage.dwell > 0 || !voyage.path.length || !["Under way", "Submerged"].includes(voyage.status)) continue;
       const point = voyagePlacement(s, voyage.position, false, nav);
       this.trail(voyage.origin, voyage.origin, point.x, point.z, point.y, voyage.heading, 2.0,
-        voyage.status === "Submerged", dt, s.activePlaySec);
+        voyage.status === "Submerged", dt, clock);
     }
     for (const a of getProjectActors(s)) {
       const cell = getTerrainCell(s, Math.floor(a.gx), Math.floor(a.gz));

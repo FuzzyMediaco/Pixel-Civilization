@@ -11,7 +11,7 @@
  * - Strictly NO roaming tanks!
  */
 import * as THREE from "three";
-import type { GameState } from "./simulation";
+import type { GameState, PlacedElement } from "./simulation";
 import { isWaterTile } from "./simulation";
 import { TILE_SIZE } from "./voxelCore";
 
@@ -437,7 +437,7 @@ export class PatrolCraftManager {
     }
   }
 
-  public update(state: GameState, dt: number, elapsed: number): void {
+  public update(state: GameState, dt: number, elapsed: number, occupancy: Map<string, PlacedElement> | PlacedElement[] = state.elements): void {
     this.syncTimer += dt;
     if (this.syncTimer >= 1.5) {
       this.syncTimer = 0;
@@ -500,7 +500,7 @@ export class PatrolCraftManager {
       // Nudge slightly seaward if a peninsula reaches this tile so ships never clip land
       const gx = Math.round(x / TILE_SIZE);
       const gz = Math.round(z / TILE_SIZE);
-      if (!isWaterTile(state.elements, gx, gz, state)) {
+      if (!isWaterTile(occupancy, gx, gz, state)) {
         r += 18;
         x = s.centerX + Math.cos(s.angle) * r;
         z = s.centerZ + Math.sin(s.angle) * r;

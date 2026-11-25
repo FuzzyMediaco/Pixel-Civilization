@@ -1,52 +1,11 @@
+import { plans, maxTerm, capacitySql, capacityParams } from "./pix-capacity.mjs";
 import { enabledModels } from "./pix-plans.mjs";
-import { STORE_PRODUCTS, productById } from "../src/game/storeCatalog.mjs";
-import { GATEWAY_MODELS, gatewayAccess } from "./pix-gateway.mjs";
-import { DAY, requireStore } from "./store-data.mjs";
+import { productById } from "../src/game/storeCatalog.mjs";
+import { gatewayAccess } from "./pix-gateway.mjs";
+import { requireStore } from "./store-data.mjs";
 
-const plans = STORE_PRODUCTS.filter((product) => product.kind === "subscription");
-const catalogRows = plans.map(() => "(?,?)").join(",");
-const catalogParams = plans.flatMap((p) => [p.id, p.budgetMicros]);
 const setupWindow = 30 * 60000;
-const maxTerm = 32 * DAY;
 const capacityMessage = "This Pix plan is at capacity. Your card has not been charged.";
-
-// All values use millionths of a US dollar of provider inference. The merchant pays the top-up fee separately.
-// Managed periods hold the remaining allowance. Pre-existing receipts also count even when no
-// checkout reservation exists. Near-simultaneous inferences may not yet appear in Cloudflare's balance.
-const capacitySql = `WITH bounds(now,observed,wallet,ignore_id) AS (VALUES(?,?,?,?)),
-  plans(product_id,budget) AS (VALUES ${catalogRows}),
-  managed AS (
-    SELECT COALESCE(SUM(CASE WHEN t.state='active' THEN MAX(0,t.budget_micros-(
-      SELECT COALESCE(SUM(u.cost_micros),0) FROM game_pix_usage u WHERE u.user_id=t.user_id
-        AND u.started_at>=t.period_start AND u.started_at<t.period_end AND u.state='settled'
-    )) ELSE t.budget_micros END),0) AS held
-    FROM game_pix_funded_terms t,bounds b WHERE t.id!=b.ignore_id AND (
-      (t.state='held' AND t.hold_until>b.now) OR t.state='committed' OR (t.state='active' AND t.period_end>b.now))
-  ), legacy AS (
-    SELECT COALESCE(SUM(MAX(0,plans.budget-CASE WHEN p.expires_at-p.period_start<=${maxTerm} THEN (
-      SELECT COALESCE(SUM(u.cost_micros),0) FROM game_pix_usage u WHERE u.user_id=p.user_id
-        AND u.started_at>=p.period_start AND u.started_at<p.expires_at AND u.state='settled'
-    ) ELSE 0 END)),0) AS held
-    FROM game_purchases p JOIN plans ON plans.product_id=p.product_id CROSS JOIN bounds b
-    WHERE p.active=1 AND p.expires_at>b.now AND NOT EXISTS(
-      SELECT 1 FROM game_pix_funded_terms t WHERE p.store='stripe' AND t.subscription_id=p.receipt_key
-        AND t.user_id=p.user_id AND t.product_id=p.product_id AND t.period_start=p.period_start AND t.period_end=p.expires_at
-        AND t.state IN ('committed','active'))
-  ), recent AS (
-    SELECT COALESCE(SUM(u.cost_micros),0) AS spent FROM game_pix_usage u,bounds b
-    WHERE u.model IN (?,?,?) AND u.state='settled' AND u.started_at>=b.observed-120000
-  ), capacity AS (SELECT b.wallet-managed.held-legacy.held-recent.spent AS available FROM bounds b,managed,legacy,recent)
-`;
-function params(access, now, ignore = "") {
-  return [
-    now,
-    access?.checkedAt ?? now,
-    access?.availableMicros ?? 0,
-    ignore,
-    ...catalogParams,
-    ...Object.values(GATEWAY_MODELS),
-  ];
-}
 function planFor(id) {
   const product = productById(id);
   requireStore(product?.kind === "subscription", 400, "Unknown Pix membership.", "bad_product");
@@ -82,7 +41,7 @@ export async function pixAdmission(env, user, providers, billingReady) {
     access
       ? db
           .prepare(capacitySql + "SELECT available FROM capacity")
-          .bind(...params(access, now))
+          .bind(...capacityParams(access, now))
           .first()
       : null,
     user ? openInitial(db, user) : null,
@@ -126,7 +85,7 @@ export async function reservePixCheckout(env, user, productId) {
       AND NOT EXISTS(SELECT 1 FROM game_purchases p JOIN plans ON plans.product_id=p.product_id WHERE p.user_id=? AND p.active=1 AND p.expires_at>?)`,
       )
       .bind(
-        ...params(access, now),
+        ...capacityParams(access, now),
         id,
         user,
         productId,
@@ -175,7 +134,7 @@ export async function commitPixCheckout(env, id, user, productId) {
     AND (SELECT available FROM capacity)>=? AND NOT EXISTS(SELECT 1 FROM game_purchases p JOIN plans ON plans.product_id=p.product_id
       WHERE p.user_id=? AND p.active=1 AND p.expires_at>?)`,
     )
-    .bind(...params(access, now, id), id, user, plan.budgetMicros, user, now)
+    .bind(...capacityParams(access, now, id), id, user, plan.budgetMicros, user, now)
     .run();
   row = await select();
   requireStore(row && ["committed", "active"].includes(row.state), 409, capacityMessage, "pix_capacity");
@@ -237,7 +196,7 @@ export async function reservePixRenewal(env, user, productId, subscriptionId, st
         SELECT 1 FROM game_pix_funded_terms WHERE user_id=? AND product_id=? AND subscription_id=? AND period_end=? AND state='active')`,
       )
       .bind(
-        ...params(access, now),
+        ...capacityParams(access, now),
         crypto.randomUUID(),
         user,
         productId,

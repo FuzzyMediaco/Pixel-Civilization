@@ -67,21 +67,29 @@ export async function activeGrants(db, user, now = Date.now()) {
   const rows = await db
     .prepare(
       `SELECT product_id,period_start,expires_at,checked_at,store FROM game_purchases
-    WHERE user_id=? AND active=1 AND (expires_at IS NULL OR expires_at>?) AND (store NOT IN ('apple','google') OR checked_at>?)`,
+    WHERE user_id=? AND active=1 AND (expires_at IS NULL OR expires_at>?) AND (store NOT IN ('apple','google') OR checked_at>?)
+    UNION ALL SELECT 'pix_complete',NULL,NULL,NULL,'complimentary' FROM game_complimentary_access WHERE user_id=?`,
     )
-    .bind(user, now, now - 2 * DAY)
+    .bind(user, now, now - 2 * DAY, user)
     .all();
   const permanent = rows.results.filter((r) => productById(r.product_id)?.kind !== "subscription");
   const plans = rows.results
     .filter((r) => productById(r.product_id)?.kind === "subscription")
     .sort(
       (a, b) =>
+        Number(b.store === "complimentary") - Number(a.store === "complimentary") ||
         productById(b.product_id).usdCents - productById(a.product_id).usdCents ||
         b.expires_at - a.expires_at,
     );
   return { owned: [...new Set(permanent.map((r) => r.product_id))], plan: plans[0] };
 }
 export function usageWindow(grant, now = Date.now()) {
+  if (grant.store === "complimentary") {
+    const date = new Date(now);
+    const year = date.getUTCFullYear(),
+      month = date.getUTCMonth();
+    return [Date.UTC(year, month, 1), Date.UTC(year, month + 1, 1)];
+  }
   // Use the actual paid billing anniversary. The Google startTime can refer to the first signup.
   const end = grant.expires_at,
     date = new Date(end);
@@ -122,6 +130,7 @@ export async function signAccess(env, snapshot) {
       sub: snapshot.accountId,
       owned: snapshot.owned,
       plan: snapshot.plan,
+      ...(snapshot.complimentary && { complimentary: true }),
       exp: Math.floor(snapshot.validUntil / 1000),
     },
     key,

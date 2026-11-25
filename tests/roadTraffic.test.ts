@@ -6,6 +6,7 @@ import { ELEMENT_BY_ID, getStandardFootprintForLevel } from "../src/game/catalog
 import { getRoadTripNetwork, roadTripPoints, trafficFleetTarget } from "../src/game/roadTraffic";
 import {
   createInitialGameState,
+  buildOccupancyMap,
   recomputeConnectivityAndMetrics,
   type GameState,
   type PlacedElement,
@@ -55,6 +56,7 @@ function trafficView(s: GameState) {
   const view = Object.assign(Object.create(PixelWorldRenderer.prototype), {
     gameState: s,
     trafficGroup: new Group(),
+    renderLayout: { occupancy: buildOccupancyMap(s.elements) },
     trafficAgents: [],
     streets: new Map(),
     carClock: 0,

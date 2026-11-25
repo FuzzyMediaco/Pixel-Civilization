@@ -97,6 +97,7 @@ export interface StreetControl {
 export interface Infrastructure {
   revision: number;
   stamp?: string;
+  coastlineStamp?: string;
   cells: Record<string, TerrainCell>;
   /** Sparse 16x16 (0.25m pitch) per-tile voxel column overrides. Optional for legacy save compatibility. */
   voxels?: Record<string, VoxelTilePatch>;
@@ -185,9 +186,11 @@ const newMap = (): Infrastructure => ({
   undo: [],
 });
 export const ensureInfrastructure = (state: GameState) => (state.infrastructure ??= newMap());
-function changed(i: Infrastructure) {
+function changed(i: Infrastructure, terrainChanged = false) {
+  const previousCoastline = i.coastlineStamp ?? i.stamp ?? String(i.revision);
   i.revision += 1;
   i.stamp = i.revision.toString(36) + "." + Math.random().toString(36).slice(2, 9);
+  i.coastlineStamp = terrainChanged ? i.stamp : previousCoastline;
 }
 export function setFacilityControl(
   state: GameState,
@@ -1013,7 +1016,7 @@ export function applyInfrastructureStroke(
     });
     accountCoastalWater(state, before);
     transfer(state, "treasury", "outside", plan.cost, "Public works");
-    changed(i);
+    changed(i, true);
     i.undo.push({
       before: [...before.values()],
       after: [...before.keys()].map((k) => capture(i, k)),
@@ -1185,7 +1188,7 @@ export function applyInfrastructureStroke(
   }
   if (newCells.size || tool.kind === "erase") accountCoastalWater(state, before);
   transfer(state, "treasury", "outside", plan.cost, "Public works");
-  changed(i);
+  changed(i, newCells.size > 0 || tool.kind === "erase");
   i.undo.push({
     before: [...before.values()],
     after: [...before.keys()].map((k) => capture(i, k)),
@@ -1222,7 +1225,7 @@ export function undoInfrastructure(state: GameState): boolean {
   for (const c of edit.before) restore(i, c);
   transfer(state, "outside", "treasury", edit.cost, "Public works refund");
   i.undo.pop();
-  changed(i);
+  changed(i, true);
   return true;
 }
 
@@ -1907,7 +1910,7 @@ export function applyLandformPlacement(state: GameState, e: PlacedElement) {
   const before = new Map<string, Change>();
   for (const k of plan.touchedTiles) before.set(k, capture(i, k));
   accountCoastalWater(state, before);
-  changed(i);
+  changed(i, true);
 }
 
 function damBanks(state: GameState, x: number, z: number): boolean {

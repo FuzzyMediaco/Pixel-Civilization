@@ -12,6 +12,7 @@ export interface StoreProduct {
 export interface StoreAccess {
   accountId: string | null;
   owned: string[];
+  complimentary?: boolean;
   plan: string | null;
   providers: string[];
   readyStores: string[];

@@ -9,6 +9,7 @@ import { patrolPosition } from "./policeDispatch";
 import { getTravelNetwork, travelSignature, type TravelNetwork } from "./travelNetwork";
 import { advanceCarSegment, departureInterval, getRoadTripNetwork, roadTripPoints, trafficFleetTarget, type RoadTrip, type RoadTripNetwork, type TripPoint } from "./roadTraffic";
 import { FarmActivityVisuals } from "./farmActivity";
+import { ChimneyPlumes, type ChimneyOutlet } from "./chimneyPlumes";
 import { MobilityVisuals, voyagePlacement } from "./mobilityVisuals";
 import { PatrolCraftManager } from "./patrolCraft";
 import * as THREE from "three";
@@ -40,7 +41,7 @@ import {
 } from "./simulation";
 import { TempleLights } from "./faithVisuals";
 import { EngineeringView, VOXEL_EARTH, VOXEL_EARTH_SIDE, maskOceanFragment } from "./engineeringView";
-import { elevationFromMargin, getTerrainCell, planInfrastructureStroke, registerRoadDemand, roadPortOpen, roadTravelOpen, surfaceTravelHeight, tileKey, type InfrastructureTool, type GridPoint } from "./terrain";
+import { SEA, elevationFromMargin, getTerrainCell, planInfrastructureStroke, registerRoadDemand, roadPortOpen, roadTravelOpen, surfaceTravelHeight, tileKey, type InfrastructureTool, type GridPoint } from "./terrain";
 import { VOXELS_PER_TILE, VOXEL_PITCH, effectiveVoxelRadius, isVoxelSculptTool, sampleTerrainAt, worldToVoxel } from "./voxelTerrain";
 import { detectCoastRotation, getTerrainInteractionProfile, stripsFlatGroundSlabInWorld } from "./terrainInteraction";
 import { networkRoadProfile } from "./designs/networks";
@@ -294,6 +295,8 @@ function getVehicleGeometry(kind: RoadVehicleKind, variantSeed: number, era: Era
 
 interface PlacedRenderEntry {
   matchesFilter?: boolean;
+  sampledProgress?: number;
+  progressAt?: number;
   smokeActive?: boolean;
   key: string;
   group: THREE.Group;
@@ -308,6 +311,19 @@ interface PlacedRenderEntry {
   lastLevel: number;
   disrepairBadge?: THREE.Mesh;
   disconnectBadge?: THREE.Mesh;
+}
+
+// The parcel layer stays at the scene origin. Buildings share fixed world transforms between edits.
+class ParcelLayer extends THREE.Group {
+  readonly animated = new Map<string, { el: PlacedElement; entry: PlacedRenderEntry }>();
+
+  override updateMatrixWorld(force?: boolean): void {
+    if (force || this.matrixWorldNeedsUpdate) {
+      super.updateMatrixWorld(force);
+      return;
+    }
+    for (const { entry } of this.animated.values()) entry.group.updateMatrixWorld();
+  }
 }
 
 export class PixelWorldRenderer {
@@ -353,7 +369,7 @@ export class PixelWorldRenderer {
   private worksStroke:GridPoint[]=[];
   private worksAnchor:GridPoint|null=null;
   private islandGroup = new THREE.Group();
-  private placedGroup = new THREE.Group();
+  private placedGroup = new ParcelLayer();
   private overlayGroup = new THREE.Group();
   private heatmapGroup = new THREE.Group();
   private trafficGroup = new THREE.Group();
@@ -365,6 +381,7 @@ export class PixelWorldRenderer {
 
   private coastlineTexture?:THREE.DataTexture;
   private naturalCoastline?:Uint8Array;
+  private naturalTide?:Uint8Array;
   private coastalStamp="";
   private renderedGeography?:number;
   private oceanUniforms = { uTime: { value: 0 }, uDaylight: { value: 1 } };
@@ -492,15 +509,11 @@ export class PixelWorldRenderer {
   /** Road deck height (m) per tile for bridges / overpasses so vehicles ride on top */
   private streets = new Map<string, { base: number; profile: ReturnType<typeof networkRoadProfile> }>();
   // Pooled smoke / steam particles & blinking beacons
-  private smokeMesh: THREE.InstancedMesh | null = null;
-  private smokeParts: { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; max: number; size: number; kind: number }[] = [];
-  private smokeEmitters: { entryId: string; local: THREE.Vector3; kind: number; acc: number }[] = [];
+  private readonly plumes = new ChimneyPlumes();
   private blinkMesh: THREE.InstancedMesh | null = null;
   private blinkPhases: number[] = [];
   private blinkStates = new Uint8Array();
   private previouslyMovingBeacons = false;
-  private readonly smokeFade = new THREE.Color(0xe8ecf0);
-  private readonly smokePalette = PixelWorldRenderer.SMOKE_COLORS.map(color => new THREE.Color(color));
   private blinkKey = "";
   private fireEmitAccum = 0;
 
@@ -538,8 +551,15 @@ export class PixelWorldRenderer {
   private lastRingProjectionKey = "";
   private projVec = new THREE.Vector3();
 
-  private clock = new THREE.Clock();
-  private fencePixel = new Uint8Array(4);
+  private frameAt = performance.now();
+  private elapsed = 0;
+  private serviceClock = 0;
+  private nextShadowAt = 0;
+  private readonly resetFrameTime = () => { this.frameAt = performance.now(); };
+  private frameWindowSeconds = 0;
+  private frameWindowCount = 0;
+  private resolutionChangeAt = 0;
+  private desktopPointer = window.matchMedia("(pointer: fine)");
 
   constructor(canvas: HTMLCanvasElement, initialState: GameState, callbacks: WorldCallbacks) {
     this.canvas = canvas;
@@ -566,6 +586,7 @@ export class PixelWorldRenderer {
     this.renderer.toneMappingExposure = 0.97;
     this.renderer.shadowMap.enabled = !this.isSoftwareGl;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.autoUpdate = false;
 
     // 2. Scene, Sky & Environment
     this.scene = new THREE.Scene();
@@ -627,6 +648,7 @@ export class PixelWorldRenderer {
     this.scene.add(this.patrolCraft.root);
     this.scene.add(this.weatherGroup);
     this.scene.add(this.fxGroup);
+    this.fxGroup.add(this.plumes.mesh);
 
     // Cursor outline
     const boxEdges = new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1));
@@ -854,20 +876,25 @@ export class PixelWorldRenderer {
     landMesh.receiveShadow = !this.isSoftwareGl;
     this.islandGroup.add(landMesh);
 
-    // High-resolution shoreline distance map (768x768 = 1m/texel, quantized to 0.25m voxels in ocean shader)
+    // Bilinear shoreline distance at one meter per texel.
     const coastRes = GRID_SIZE * 4;
     const coast = new Uint8Array(coastRes * coastRes);
+    const tide = new Uint8Array(coast.length);
     const worldMin = -GRID_HALF * TILE_SIZE;
     const stepM = size / coastRes;
+    // Sample the same voxel centers as editedCoastline so untouched tiles never need resampling.
+    const sampleOffset = (Math.floor(stepM / VOXEL_PITCH / 2) + 0.5) * VOXEL_PITCH;
     for (let z = 0; z < coastRes; z++) {
-      const wz = worldMin + (z + 0.5) * stepM;
+      const wz = worldMin + z * stepM + sampleOffset;
       for (let x = 0; x < coastRes; x++) {
-        const wx = worldMin + (x + 0.5) * stepM;
+        const wx = worldMin + x * stepM + sampleOffset;
         const margin = islandMarginAtWorld(wx, wz, version);
         coast[z * coastRes + x] = Math.round(THREE.MathUtils.clamp((margin + 36) / 48, 0, 1) * 255);
+        tide[z * coastRes + x] = Number(SEA - elevationFromMargin(margin) > 0.02);
       }
     }
     this.naturalCoastline = coast;
+    this.naturalTide = tide;
     this.coastalStamp = "";
     this.coastlineTexture = new THREE.DataTexture(coast, coastRes, coastRes, THREE.RedFormat);
     this.coastlineTexture.minFilter = this.coastlineTexture.magFilter = THREE.LinearFilter;
@@ -903,10 +930,8 @@ export class PixelWorldRenderer {
         void main() {
           vec2 vWorksXZ=vWorldPos.xz;
           ${maskOceanFragment}
-          // Native 0.25m voxel ocean lattice!
-          vec2 vCell = floor(vWorldPos.xz / 0.25);
-          vec2 pix = (vCell + 0.5) * 0.25;
-          float m = islandMargin(pix);
+          vec2 water = vWorldPos.xz;
+          float m = islandMargin(water);
 
           float shallows = clamp((m + 24.0) / 24.0, 0.0, 1.0);
 
@@ -914,15 +939,19 @@ export class PixelWorldRenderer {
           vec3 shallowCol = vec3(0.24, 0.75, 0.88);
           vec3 col = mix(deepCol, shallowCol, shallows);
 
-          // Crisp 0.25m voxel water checker micro-shimmer
-          float voxCk = mod(vCell.x + vCell.y, 2.0);
-          col *= mix(1.0, 0.968, voxCk);
+          // Long wind-driven ripples. Fade unresolved crests at island-wide zoom.
+          float along = dot(water, vec2(0.63, 0.12));
+          float across = dot(water, vec2(-0.42, 2.16));
+          float bend = sin(along * 0.78 + across * 0.43);
+          float phase = across + bend * 0.68 - uTime * 1.5;
+          float resolved = 1.0 - smoothstep(0.4, 2.6, fwidth(phase));
+          float crest = smoothstep(0.56, 1.0, sin(phase)) * smoothstep(0.05, 0.92, sin(along + bend + uTime * 0.29));
+          col += resolved * crest * vec3(0.045, 0.053, 0.044);
 
-          // Crisp 0.25m voxel seafoam ribbon lapping the 0.25m stepped beach
-          float shoreBand = abs(m + 1.85 + sin(uTime * 2.1 + pix.x * 0.2 + pix.y * 0.17) * 0.55);
-          if (shoreBand < 0.72) {
-            col = vec3(0.94, 0.99, 1.0);
-          }
+          float shoreBand = abs(m + 1.85 + sin(uTime * 1.55 + dot(water, vec2(0.2, 0.17))) * 0.55);
+          float aa = clamp(fwidth(m) * 0.5, 0.12, 2.5);
+          float foam = (1.0 - smoothstep(max(0.0, 0.67 - aa), 0.67 + aa, shoreBand)) / max(1.0, aa);
+          col = mix(col, vec3(0.94, 0.99, 1.0), foam * 0.91);
 
           float distFade = clamp(length(vWorldPos.xz) / 620.0, 0.0, 1.0);
           col = mix(col, vec3(0.80, 0.93, 1.0), distFade * 0.75);
@@ -1330,6 +1359,17 @@ export class PixelWorldRenderer {
         def!.domain === "land" &&
         !el.connected;
     }
+    const group = entry.group;
+    const dynamic = group.userData.rotorList?.length || group.userData.bobOnWater ||
+      this.gameState.mobility?.voyages[el.id] || el.animProgress > .001 ||
+      group.scale.x !== 1 || group.scale.y !== 1 || group.position.y !== entry.baseY ||
+      entry.disrepairBadge?.visible || entry.disconnectBadge?.visible;
+    if (dynamic) {
+      this.placedGroup.animated.set(el.id, {el, entry});
+    } else {
+      this.placedGroup.animated.delete(el.id);
+      if (group.matrixWorldNeedsUpdate) group.updateMatrixWorld();
+    }
   }
 
   private clearGeography(){
@@ -1357,10 +1397,10 @@ export class PixelWorldRenderer {
     if(this.renderedGeography!==(state.terrainVersion??1)){this.clearGeography();this.buildIslandAndOcean();}
     this.selectedIds = selectedIds;
     this.engineering.sync(state, this.appearanceEra);
-    const coastalStamp=(state.terrainVersion??1)+"/"+(state.infrastructure?.stamp??state.infrastructure?.revision??0);
+    const coastalStamp=(state.terrainVersion??1)+"/"+(state.infrastructure?.coastlineStamp??state.infrastructure?.stamp??state.infrastructure?.revision??0);
     if(coastalStamp!==this.coastalStamp && this.coastlineTexture && this.naturalCoastline){
       this.coastalStamp=coastalStamp;
-      this.coastlineTexture.image.data=editedCoastline(state,this.naturalCoastline);
+      this.coastlineTexture.image.data=editedCoastline(state,this.naturalCoastline,this.naturalTide);
       this.coastlineTexture.needsUpdate=true;
     }
     this.activeTravel = state.mobility || state.projectOps?.calls.length || state.crimeIncidents?.some(i=>i.policeOriginId) ? getTravelNetwork(state) : undefined;
@@ -1485,6 +1525,10 @@ export class PixelWorldRenderer {
         entry.wz = wz;
       }
 
+      if (entry.sampledProgress !== el.animProgress) {
+        entry.sampledProgress = el.animProgress;
+        entry.progressAt = this.elapsed;
+      }
       const metadata=entry.group.userData;
       if(metadata.smokePoints?.length){
         const active=el.connected && !el.disrepair;
@@ -1503,11 +1547,14 @@ export class PixelWorldRenderer {
         this.placedGroup.remove(entry.group);
         releaseParcelGeometry(entry.group);
         this.placedEntries.delete(id);
+        this.placedGroup.animated.delete(id);
       }
     }
 
     this.refreshNetworkCache();
-    if(emittersChanged || movingBeacons || this.previouslyMovingBeacons)this.rebuildEmittersAndBeacons();
+    if(emittersChanged) this.nextShadowAt = 0;
+    if(emittersChanged) this.rebuildSmokeOutlets();
+    if(emittersChanged || movingBeacons || this.previouslyMovingBeacons) this.rebuildBeacons();
     this.previouslyMovingBeacons=movingBeacons;
     this.farmActivity.syncHerds(state.elements, this.placedEntries);
     this.rebuildSelectionAndRadiusOverlays();
@@ -2363,7 +2410,7 @@ export class PixelWorldRenderer {
         )
       )
         continue;
-      const points = roadTripPoints(trip,buildOccupancyMap(state.elements));
+      const points = roadTripPoints(trip,this.renderLayout.occupancy);
       const id = this.carSequence++;
       const kinds: RoadVehicleKind[] = ["sedan", "mini_cooper", "truck", "sports_car", "sedan", "cybertruck"];
       const military = state.elements.some(
@@ -2544,24 +2591,59 @@ export class PixelWorldRenderer {
 
   private scheduleNextFrame(): void {
     if (this.disposed) return;
-    if (this.isSoftwareGl) {
-      const gl = this.renderer.getContext();
-      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.fencePixel);
-      // Yield between software-rendered frames so the simulation and touch controls stay responsive.
-      window.setTimeout(() => this.tick(), document.hidden ? 250 : 32);
-    } else {
+    if (!this.isSoftwareGl) {
       window.requestAnimationFrame(() => this.tick());
+      return;
     }
+    // Keep a single software-rendered frame in flight without synchronously reading the GPU.
+    const gl = this.renderer.getContext() as WebGL2RenderingContext;
+    const fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    if (fence) gl.flush();
+    const next = () => {
+      if (fence && !this.disposed && gl.clientWaitSync(fence, 0, 0) === gl.TIMEOUT_EXPIRED) {
+        window.requestAnimationFrame(next);
+        return;
+      }
+      if (fence) gl.deleteSync(fence);
+      if (!this.disposed) this.tick();
+    };
+    window.requestAnimationFrame(next);
+  }
+
+  private tuneDesktopResolution(dt: number): void {
+    if (!this.desktopPointer.matches || !dt) return;
+    this.frameWindowSeconds += Math.min(.1, dt);
+    this.frameWindowCount++;
+    if (this.frameWindowSeconds < 1.5) return;
+    const frameMs = 1000 * this.frameWindowSeconds / this.frameWindowCount;
+    this.frameWindowSeconds = 0;
+    this.frameWindowCount = 0;
+    const w = window.innerWidth, h = window.innerHeight;
+    const native = this.isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+    const floor = Math.min(native, Math.max(.6, Math.min(.85, Math.sqrt(950_000 / (w * h)))));
+    const current = this.renderer.getPixelRatio();
+    let next = current;
+    if (frameMs > 22) next = Math.max(floor, current * .85);
+    else if (frameMs < 18 && this.elapsed - this.resolutionChangeAt > 30) next = Math.min(native, current / .85);
+    if (Math.abs(current - next) < .01) return;
+    // Only the 3D buffer changes. The DOM, pointer coordinates and camera retain their CSS size.
+    this.renderer.setDrawingBufferSize(w, h, next);
+    this.resolutionChangeAt = this.elapsed;
   }
 
   private tick(): void {
     if (this.disposed) return;
-    const dt = Math.min(0.06, this.clock.getDelta());
-    const elapsed = this.clock.elapsedTime;
+    const now = performance.now();
+    const dt = document.hidden ? 0 : Math.min(0.25, (now - this.frameAt) / 1000);
+    this.frameAt = now;
+    const elapsed = this.elapsed += dt;
+    this.serviceClock += dt * (this.gameState.playSpeed ?? 1);
+    this.tuneDesktopResolution(dt);
     this.updateBuildingPulse(performance.now());
 
-    this.oceanUniforms.uTime.value = elapsed;
-    this.engineering.animate(this.gameState);
+    const waterTime = this.reduceMotion?.matches ? 0 : elapsed;
+    this.oceanUniforms.uTime.value = waterTime;
+    this.engineering.animate(this.gameState, waterTime);
     this.templeLights.update(this.gameState, this.placedEntries, elapsed);
     this.handleKeyboardNavigation(dt);
     if (this.constructionTarget && !this.activePointers.size && !this.keysDown.size && !this.following && this.cameraMode !== "walk") {
@@ -2572,9 +2654,7 @@ export class PixelWorldRenderer {
     }
 
     // Animate rotors, boats bobbing, merge/place squash-stretch, and badges
-    for (const el of this.gameState.elements) {
-      const entry = this.placedEntries.get(el.id);
-      if (!entry) continue;
+    for (const {el, entry} of this.placedGroup.animated.values()) {
       const grp = entry.group;
 
       const rotorList = grp.userData.rotorList as { pivot: THREE.Group; axis: "x" | "y" | "z"; speed: number; wind: boolean }[] | undefined;
@@ -2596,15 +2676,18 @@ export class PixelWorldRenderer {
         grp.position.y = baseY;
       }
 
-      // New construction rises out of the ground; upgrades & merges squash-stretch
-      if (el.animProgress > 0.001 && el.animKind === "place" && entry.isBuilding) {
-        const t = 1 - el.animProgress; // 0 -> 1
+      // Interpolate between simulation snapshots so construction rises smoothly on each rendered frame.
+      const progress = el.animProgress > 0
+        ? Math.max(0, el.animProgress - (elapsed - (entry.progressAt ?? elapsed)) * (this.gameState.playSpeed ?? 1) * 1.9)
+        : 0;
+      if (progress > 0.001 && el.animKind === "place" && entry.isBuilding) {
+        const t = 1 - progress; // 0 -> 1
         const c1 = 1.70158;
         const c3 = c1 + 1;
         const ease = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
         grp.scale.set(1, Math.max(0.03, ease), 1);
-      } else if (el.animProgress > 0.001) {
-        const t = 1 - el.animProgress; // 0 -> 1
+      } else if (progress > 0.001) {
+        const t = 1 - progress; // 0 -> 1
         const bounce = Math.sin(t * Math.PI * 2.2) * Math.exp(-t * 3.2);
         const amp = el.animKind === "merge" ? 0.38 : 0.22;
         const sy = Math.max(0.2, 1 + bounce * amp);
@@ -2636,7 +2719,7 @@ export class PixelWorldRenderer {
       }
     }
 
-    this.mobilityVisuals.update(this.gameState, dt, this.activeTravel);
+    this.mobilityVisuals.update(this.gameState, dt, this.activeTravel, this.serviceClock);
     if (this.following && this.cameraMode !== "walk") {
       const p = this.mobilityVisuals.position(this.following) ?? this.placedEntries.get(this.following)?.group.position;
       if (p) {
@@ -2670,9 +2753,10 @@ export class PixelWorldRenderer {
     }
 
     // Smoke plumes, steam & blinking beacons
-    this.stepSmokeAndBeacons(dt, elapsed);
-    this.farmActivity.animateHerds(dt);
-    this.patrolCraft.update(this.gameState, dt, elapsed);
+    this.plumes.update(elapsed, (this.gameState.windSpeed ?? 1) * 0.9, this.isSoftwareGl);
+    this.stepBeacons(elapsed);
+    this.farmActivity.animateHerds(elapsed);
+    this.patrolCraft.update(this.gameState, dt, elapsed, this.renderLayout.occupancy);
 
     // Fire voxels, destruction rubble & celebration particles
     this.emitFireVoxels(dt);
@@ -2698,7 +2782,7 @@ export class PixelWorldRenderer {
         p.vz *= 0.72;
       }
       const fade = 1 - p.life / p.maxLife;
-      p.mesh.scale.multiplyScalar(fade > 0.3 ? 0.995 : 0.92);
+      p.mesh.scale.multiplyScalar(Math.pow(fade > 0.3 ? 0.995 : 0.92, dt * 60));
     }
 
     // Expanding ground shockwave crater rings from destroyed buildings
@@ -2718,6 +2802,11 @@ export class PixelWorldRenderer {
       (sw.mesh.material as THREE.MeshBasicMaterial).opacity = (1 - prog) * 0.85;
     }
 
+    // This light is anchored to the island. Moving the camera does not change its shadow map.
+    if (this.renderer.shadowMap.enabled && elapsed >= this.nextShadowAt) {
+      this.renderer.shadowMap.needsUpdate = true;
+      this.nextShadowAt = elapsed + (this.gameState.elements.length >= 350 ? 0.15 : 0);
+    }
     this.renderer.render(this.scene, this.camera);
     this.projectSelectionRing();
     this.scheduleNextFrame();
@@ -2915,38 +3004,25 @@ export class PixelWorldRenderer {
 
   // ===================== SMOKE PLUMES & BLINKING BEACONS =====================
 
-  private static SMOKE_COLORS = [0xb7bcc4, 0xf4f8fb, 0x4b4f58, 0xffa040];
-  private static SMOKE_MAX = 700;
-
-  private ensureSmokeMesh(): THREE.InstancedMesh {
-    if (this.smokeMesh) return this.smokeMesh;
-    const mat = new THREE.MeshLambertMaterial({ transparent: true, opacity: 0.82, depthWrite: false });
-    const mesh = new THREE.InstancedMesh(this.unitCubeGeo, mat, PixelWorldRenderer.SMOKE_MAX);
-    mesh.count = 0;
-    mesh.frustumCulled = false;
-    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    this.fxGroup.add(mesh);
-    this.smokeMesh = mesh;
-    return mesh;
+  private rebuildSmokeOutlets(): void {
+    const outlets: ChimneyOutlet[] = [];
+    for (const [id, entry] of this.placedEntries) {
+      if (!entry.smokeActive) continue;
+      const points = entry.group.userData.smokePoints as [number, number, number, ChimneyOutlet["kind"]][];
+      points.forEach(([x, y, z, kind], index) => {
+        outlets.push({ id: id + ":" + index, group: entry.group, local: new THREE.Vector3(x, y, z), kind });
+      });
+    }
+    this.plumes.setOutlets(outlets);
   }
 
-  private rebuildEmittersAndBeacons(): void {
-    const kinds: Record<string, number> = { smoke: 0, steam: 1, dark: 2, spark: 3 };
-    this.smokeEmitters = [];
+  private rebuildBeacons(): void {
     const beacons: { pos: THREE.Vector3; col: string }[] = [];
     for (const el of this.gameState.elements) {
       const entry = this.placedEntries.get(el.id);
       if (!entry) continue;
-      const pts = (entry.group.userData.smokePoints as [number, number, number, string][]) ?? [];
-      const active = el.connected && !el.disrepair;
-      if (active) {
-        for (const [x, y, z, k] of pts) {
-          this.smokeEmitters.push({ entryId: el.id, local: new THREE.Vector3(x, y, z), kind: kinds[k] ?? 0, acc: Math.random() });
-        }
-      }
       const bl = (entry.group.userData.blinkers as [number, number, number, string][]) ?? [];
       if (bl.length) {
-        entry.group.updateMatrixWorld(true);
         for (const [x, y, z, c] of bl) {
           beacons.push({ pos: entry.group.localToWorld(new THREE.Vector3(x, y, z)), col: c });
         }
@@ -2980,7 +3056,7 @@ export class PixelWorldRenderer {
     this.blinkMesh = mesh;
   }
 
-  private stepSmokeAndBeacons(dt: number, elapsed: number): void {
+  private stepBeacons(elapsed: number): void {
     // Beacons: crisp on/off blink, a little desynchronised
     if (this.blinkMesh) {
       const positions = this.blinkMesh.userData.positions as THREE.Vector3[];
@@ -2998,76 +3074,6 @@ export class PixelWorldRenderer {
       if (changed) this.blinkMesh.instanceMatrix.needsUpdate = true;
     }
 
-    if (this.smokeEmitters.length === 0 && this.smokeParts.length === 0) {
-      if (this.smokeMesh) this.smokeMesh.count = 0;
-      return;
-    }
-    const mesh = this.ensureSmokeMesh();
-    const wind = (this.gameState.windSpeed ?? 1) * 0.9;
-    const budget = PixelWorldRenderer.SMOKE_MAX;
-    const rate = this.isSoftwareGl ? 1.2 : 2.6;
-    const tmp = new THREE.Vector3();
-    for (const em of this.smokeEmitters) {
-      em.acc += dt * rate * (em.kind === 1 ? 1.3 : em.kind === 3 ? 2.5 : 1);
-      while (em.acc >= 1 && this.smokeParts.length < budget) {
-        em.acc -= 1;
-        const entry = this.placedEntries.get(em.entryId);
-        if (!entry) break;
-        tmp.copy(em.local);
-        entry.group.localToWorld(tmp);
-        const spark = em.kind === 3;
-        this.smokeParts.push({
-          x: tmp.x + (Math.random() - 0.5) * 0.2,
-          y: tmp.y,
-          z: tmp.z + (Math.random() - 0.5) * 0.2,
-          vx: (Math.random() - 0.5) * (spark ? 1.6 : 0.3),
-          vy: spark ? 1.2 + Math.random() * 1.4 : 0.9 + Math.random() * 0.5,
-          vz: (Math.random() - 0.5) * (spark ? 1.6 : 0.3),
-          life: 0,
-          max: spark ? 0.6 + Math.random() * 0.4 : em.kind === 1 ? 2.4 + Math.random() : 3.4 + Math.random() * 1.4,
-          size: spark ? 0.09 : em.kind === 1 ? 0.42 : 0.34,
-          kind: em.kind,
-        });
-      }
-      if (em.acc > 3) em.acc = 0;
-    }
-    const matrices = mesh.instanceMatrix.array;
-    const col = new THREE.Color();
-    let n = 0;
-    for (let i = this.smokeParts.length - 1; i >= 0; i--) {
-      const p = this.smokeParts[i];
-      p.life += dt;
-      if (p.life >= p.max) {
-        this.smokeParts[i] = this.smokeParts[this.smokeParts.length - 1];
-        this.smokeParts.pop();
-        continue;
-      }
-      const t = p.life / p.max;
-      if (p.kind === 3) {
-        p.vy -= 3.5 * dt;
-      } else {
-        p.vx += wind * 0.35 * dt;
-        p.vz += wind * 0.18 * dt;
-        p.vy *= 1 - dt * 0.25;
-      }
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.z += p.vz * dt;
-      const grow = p.kind === 3 ? 1 - t : (0.6 + t * 2.4) * (t > 0.75 ? (1 - t) / 0.25 : 1);
-      const s2 = p.size * Math.max(0.05, grow);
-      // These instances only rotate around Y and scale uniformly. Their other identity entries stay fixed.
-      const offset=n*16,angle=p.life*.6+i,cos=Math.cos(angle)*s2,sin=Math.sin(angle)*s2;
-      matrices[offset]=cos;matrices[offset+2]=-sin;matrices[offset+5]=s2;
-      matrices[offset+8]=sin;matrices[offset+10]=cos;
-      matrices[offset+12]=p.x;matrices[offset+13]=p.y;matrices[offset+14]=p.z;
-      col.copy(this.smokePalette[p.kind] ?? this.smokeFade);
-      if (p.kind === 0) col.lerp(this.smokeFade, t);
-      mesh.setColorAt(n, col);
-      n += 1;
-    }
-    mesh.count = n;
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   }
 
   private createCriminalGroup() {
@@ -4015,6 +4021,22 @@ export class PixelWorldRenderer {
     }
   };
 
+  private hoverAt(x: number, y: number) {
+    const prevVoxel = this.hoverVoxel;
+    const g = this.computePointerGrid(x, y);
+    const voxelChanged =
+      Boolean(this.worksTool && isVoxelSculptTool(this.worksTool)) &&
+      ((!prevVoxel && Boolean(this.hoverVoxel)) ||
+        (Boolean(prevVoxel) && !this.hoverVoxel) ||
+        (prevVoxel && this.hoverVoxel && (prevVoxel[0] !== this.hoverVoxel[0] || prevVoxel[1] !== this.hoverVoxel[1])));
+    if (this.hoverGrid?.[0] !== g?.[0] || this.hoverGrid?.[1] !== g?.[1] || voxelChanged) {
+      this.hoverGrid = g;
+      this.updateHoverOverlay();
+    }
+
+    return g;
+  }
+
   private onPointerMove = (e: PointerEvent) => {
     if (this.activePointers.has(e.pointerId)) {
       this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -4085,19 +4107,11 @@ export class PixelWorldRenderer {
       return;
     }
 
-    const prevVoxel = this.hoverVoxel;
-    const g = this.computePointerGrid(e.clientX, e.clientY);
-    const voxelChanged =
-      Boolean(this.worksTool && isVoxelSculptTool(this.worksTool)) &&
-      ((!prevVoxel && Boolean(this.hoverVoxel)) ||
-        (Boolean(prevVoxel) && !this.hoverVoxel) ||
-        (prevVoxel && this.hoverVoxel && (prevVoxel[0] !== this.hoverVoxel[0] || prevVoxel[1] !== this.hoverVoxel[1])));
-    if (!this.hoverGrid || !g || this.hoverGrid[0] !== g[0] || this.hoverGrid[1] !== g[1] || voxelChanged) {
-      this.hoverGrid = g;
-      this.updateHoverOverlay();
+    const hasTool = this.brush.kind !== "none" || Boolean(this.worksTool) || this.bulkSelectMode;
+    if (!this.isPointerDown) {
+      if (hasTool && e.target === this.canvas) this.hoverAt(e.clientX, e.clientY);
+      return;
     }
-
-    if (!this.isPointerDown) return;
 
     const dx = e.clientX - this.lastPointerPos.x;
     const dy = e.clientY - this.lastPointerPos.y;
@@ -4127,6 +4141,11 @@ export class PixelWorldRenderer {
       this.updateCameraTransform();
       return;
     }
+
+    // Camera gestures never need to raymarch the terrain. Editing strokes still sample each event.
+    const isStroke = this.bulkSelectMode || this.worksStroke.length > 0 ||
+      (this.brush.kind === "place" && this.brush.defId && ELEMENT_BY_ID[this.brush.defId]?.isNetwork);
+    const g = isStroke ? this.hoverAt(e.clientX, e.clientY) : null;
 
     // Bulk draw-to-select brush sweep (Manhattan interpolated so fast drags never miss a road tile)
     if (this.bulkSelectMode && this.pointerButton === 0 && !this.cancelPendingOnTap && g) {
@@ -4334,6 +4353,10 @@ export class PixelWorldRenderer {
     this.isPointerDown = false;
     this.lastPaintedGrid = null;
 
+    if (this.isDraggingCamera && e.pointerType !== "touch" && (this.brush.kind !== "none" || this.worksTool)) {
+      this.camera.updateMatrixWorld();
+      this.hoverAt(e.clientX, e.clientY);
+    }
     if (this.pointerPanOverride) {
       this.pointerPanOverride = false;
       this.pendingTouchStart = null;
@@ -4529,6 +4552,7 @@ export class PixelWorldRenderer {
     window.addEventListener("keyup", this.onKeyUp);
     window.addEventListener("blur", this.onWindowBlur);
     window.addEventListener("resize", this.onResize);
+    document.addEventListener("visibilitychange", this.resetFrameTime);
   }
 
   public dispose(): void {
@@ -4539,6 +4563,7 @@ export class PixelWorldRenderer {
     this.clearGeography();
     this.engineering.dispose();
     this.templeLights.dispose();
+    this.plumes.dispose();
     this.disposed = true;
     this.canvas.removeEventListener("pointerdown", this.onPointerDown);
     window.removeEventListener("pointermove", this.onPointerMove);
@@ -4550,6 +4575,7 @@ export class PixelWorldRenderer {
     window.removeEventListener("keyup", this.onKeyUp);
     window.removeEventListener("blur", this.onWindowBlur);
     window.removeEventListener("resize", this.onResize);
+    document.removeEventListener("visibilitychange", this.resetFrameTime);
     this.unitCubeGeo.dispose();
     this.wrenchMat.dispose();
     this.disconnectMat.dispose();
