@@ -38,7 +38,7 @@ final class IslandStartupStatus: UIView {
     required init?(coder: NSCoder) { return nil }
 
     func show(reopening: Bool) {
-        message.text = reopening ? "Reopening your island…" : "Opening your island…"
+        message.text = reopening ? "Reopening your islandâ€¦" : "Opening your islandâ€¦"
         accessibilityLabel = message.text
         isHidden = false
         spinner.startAnimating()
