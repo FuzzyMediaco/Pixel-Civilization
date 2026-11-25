@@ -7,6 +7,11 @@ on:
         type: choice
         default: all
         options: [all, play, apple-archive, apple-simulators]
+      simulator_runner:
+        description: Standard Mac runner for simulator checks
+        type: choice
+        default: macos-26-intel
+        options: [macos-26-intel, macos-26]
       web_edition:
         description: Published web edition SHA-256 to include unchanged
         required: false
@@ -14,6 +19,7 @@ on:
   pull_request:
     paths:
       - 'packages/store/**'
+      - 'packages/version.txt'
       - '.github/workflows/mobile-stores.yml'
       - 'src/game/storeCatalog.mjs'
 concurrency:
@@ -80,7 +86,7 @@ jobs:
   apple-simulators:
     if: ${{ !inputs.native_target || inputs.native_target == 'all' || inputs.native_target == 'apple-simulators' }}
     needs: web
-    runs-on: macos-26
+    runs-on: ${{ inputs.simulator_runner || 'macos-26-intel' }}
     timeout-minutes: 85
     steps:
       - uses: actions/checkout@v4
@@ -133,6 +139,7 @@ jobs:
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO
           app="build/PixelCivilization.xcarchive/Products/Applications/PixelCivilization.app"
           test "$(plutil -extract CFBundleIdentifier raw "$app/Info.plist")" = app.pixelcivilization.game
+          test "$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")" = "$(cat ../../version.txt)"
           lipo "$app/PixelCivilization" -verify_arch arm64
           node ../verify-folder.mjs "$app/web"
           ditto -c -k --keepParent build/PixelCivilization.xcarchive build/PixelCivilization-device-unsigned.zip

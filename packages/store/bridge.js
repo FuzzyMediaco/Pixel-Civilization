@@ -43,10 +43,13 @@
       } catch (error) { respond({id, error:String(error)}); }
     });
   }
+  // Native auto-renewals stay closed until each term can reserve its funding.
+  const oneTime = id => typeof id === "string" && /^(era|mode)_[a-z0-9]+$/.test(id);
   Object.defineProperty(window, "pixelStore", {value:Object.freeze({
     platform: apple ? "apple" : "google",
-    products: ids => call("products", ids),
-    purchase: (productId, accountToken) => call("purchase", productId, accountToken),
+    products: ids => call("products", ids.filter(oneTime)),
+    purchase: (productId, accountToken) => oneTime(productId) ? call("purchase", productId, accountToken)
+      : Promise.reject(new Error("Monthly Pix purchases on mobile are currently closed.")),
     pending: () => call("pending"),
     restore: () => call("restore"),
     finish: receipt => call("finish", receipt),

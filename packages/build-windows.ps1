@@ -1,6 +1,7 @@
 [CmdletBinding()]param(
     [string]$WebDirectory = "dist",
     [string]$OutputDirectory = "portable",
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$VersionName = (Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot "version.txt")).Trim(),
     [string]$WebViewSdk = $env:PIXEL_WEBVIEW_SDK
 )
 $ErrorActionPreference = "Stop"
@@ -25,9 +26,25 @@ try {
     Copy-Item -LiteralPath "$sdk/runtimes/win-x64/native/WebView2Loader.dll" -Destination $app
     Get-ChildItem $sdk -File | Where-Object Name -match 'LICENSE|NOTICE' | Copy-Item -Destination $app
     Copy-Item -LiteralPath "$PSScriptRoot/windows/Read me.txt" -Destination $app
+    $assemblyVersion="$VersionName.0"
+    $manifest=[xml](Get-Content -Raw -LiteralPath "$PSScriptRoot/windows/app.manifest")
+    $identity=$manifest.DocumentElement.SelectSingleNode("*[local-name()='assemblyIdentity']")
+    $identity.SetAttribute("version",$assemblyVersion)
+    $manifestFile=Join-Path $work "app.manifest"
+    $manifest.Save($manifestFile)
+    $metadata=@"
+using System.Reflection;
+[assembly: AssemblyTitle("Pixel Civilization")]
+[assembly: AssemblyProduct("Pixel Civilization")]
+[assembly: AssemblyVersion("$assemblyVersion")]
+[assembly: AssemblyFileVersion("$assemblyVersion")]
+[assembly: AssemblyInformationalVersion("$VersionName")]
+"@
+    $metadataFile=Join-Path $work "ReleaseVersion.cs"
+    Set-Content -LiteralPath $metadataFile -Value $metadata -Encoding UTF8
     $compiler="$env:WINDIR/Microsoft.NET/Framework64/v4.0.30319/csc.exe"
     $sources=(Get-ChildItem "$PSScriptRoot/windows" -Filter "*.cs" -File).FullName
-    & $compiler /nologo /target:winexe /platform:x64 "/out:$app/Pixel Civilization.exe" "/win32icon:$PSScriptRoot/../public/favicon.ico" "/win32manifest:$PSScriptRoot/windows/app.manifest" /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll "/r:$app/Microsoft.Web.WebView2.Core.dll" "/r:$app/Microsoft.Web.WebView2.WinForms.dll" @sources
+    & $compiler /nologo /target:winexe /platform:x64 "/out:$app/Pixel Civilization.exe" "/win32icon:$PSScriptRoot/../public/favicon.ico" "/win32manifest:$manifestFile" /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll "/r:$app/Microsoft.Web.WebView2.Core.dll" "/r:$app/Microsoft.Web.WebView2.WinForms.dll" $metadataFile @sources
     if ($LASTEXITCODE -ne 0) {throw "Windows build failed."}
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip=Join-Path $work "release.zip"

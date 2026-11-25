@@ -25,6 +25,7 @@ await writeFile(out+"/PixelCivilization.storekit",JSON.stringify(fixture,null,2)
 const products=STORE_PRODUCTS.map(p=>({id:p.id,name:p.label,priceUSD:(p.usdCents/100).toFixed(2),
   appleType:p.kind==="subscription"?"AUTO_RENEWABLE_SUBSCRIPTION":"NON_CONSUMABLE",
   playType:p.kind==="subscription"?"SUBS":"INAPP",
+  nativePublication:p.kind==="subscription"?"hold-until-renewals-funded":"eligible-for-review",
   ...(p.kind==="subscription"?{period:"P1M",appleGroup:"Pix",playBasePlan:"monthly",maxMessages:p.messages,includes:p.includes}:{}),
   description:localize(p)[0].description}));
 await writeFile(out+"/store-products.json",JSON.stringify(products,null,2)+"\n");

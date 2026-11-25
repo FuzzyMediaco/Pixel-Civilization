@@ -31,14 +31,17 @@ final class IslandStore: NSObject, WKScriptMessageHandlerWithReply {
                 switch action {
                 case "products":
                     guard let ids = args.first as? [String] else { throw StoreIssue.invalid }
-                    let products = try await Product.products(for: Array(ids.prefix(64)))
-                    replyHandler(products.map { ["id":$0.id,"price":$0.displayPrice,"type":$0.type == .autoRenewable ? "subs" : "inapp"] },nil)
+                    let offered = ids.filter { $0.hasPrefix("era_") || $0.hasPrefix("mode_") }
+                    let items = try await Product.products(for: Array(offered.prefix(64)))
+                    replyHandler(items.filter { $0.type == .nonConsumable }.map { ["id":$0.id,"price":$0.displayPrice,"type":"inapp"] },nil)
                 case "purchase":
                     guard !buying, args.count == 2, let sku = args[0] as? String, let raw = args[1] as? String,
                           let account = UUID(uuidString:raw) else { throw StoreIssue.invalid }
+                    guard sku.hasPrefix("era_") || sku.hasPrefix("mode_") else { throw StoreIssue.renewalsClosed }
                     buying = true
                     defer { buying = false }
                     guard let item = try await Product.products(for:[sku]).first else { throw StoreIssue.unavailable }
+                    guard item.type == .nonConsumable else { throw StoreIssue.renewalsClosed }
                     let result = try await item.purchase(options:[.appAccountToken(account)])
                     switch result {
                     case .success(let verification):
@@ -81,10 +84,11 @@ final class IslandStore: NSObject, WKScriptMessageHandlerWithReply {
     }
 }
 private enum StoreIssue: LocalizedError {
-    case invalid, unavailable, pending, cancelled, unverified
+    case invalid, unavailable, pending, cancelled, unverified, renewalsClosed
     var errorDescription: String? {
         switch self {
         case .invalid: return "Invalid App Store request."
+        case .renewalsClosed: return "Monthly Pix purchases on mobile are currently closed."
         case .unavailable: return "The App Store could not open this item. Refresh the store and try again."
         case .pending: return "Your purchase is pending. Use Restore Purchases after Apple confirms payment."
         case .cancelled: return "Purchase canceled."
