@@ -665,13 +665,13 @@ test("Payment Links bind timed checkouts, permit one claim of direct purchases a
   assert.ok((await (await claim(rotated.id)).json()).owned.includes("era_rome"));
   app.sqlite.prepare("DELETE FROM game_users WHERE id=?").run(originalWon ? app.user : otherId);
   await event("checkout.session.completed", direct);
-  await event("charge.refunded", {
+  assert.equal((await event("charge.refunded", {
     id: "ch_afterdelete",
     payment_intent: direct.payment_intent,
     amount: 105,
     amount_refunded: 105,
     refunded: true,
-  });
+  })).status, 200);
   assert.equal((await (originalWon ? otherClaim : claim)(direct.id)).status, 403);
   assert.equal(
     (

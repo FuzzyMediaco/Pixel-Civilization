@@ -45,19 +45,33 @@ Web purchases use Stripe-hosted Checkout and an account-specific link to the hos
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Server-side Stripe API key and signing secret for this application's endpoint |
 | `STRIPE_PAYMENT_LINKS` | JSON object mapping each one-time SKU to its dedicated Stripe Payment Link ID and buy.stripe.com URL. |
 | `STRIPE_PRICE_IDS` | JSON object mapping each catalog ID to its Stripe Price ID |
-| `STRIPE_PORTAL_CONFIG` | Dedicated Stripe portal configuration for the four Pix products |
+| `STRIPE_PORTAL_CONFIG` | Game-specific management portal for web customers |
+| `STRIPE_FUNDED_PORTAL_CONFIG` | Dedicated Pix portal with invoice history and card replacement. Disable price changes, cancellation, pauses and public login. |
+| `STRIPE_FUNDED_BILLING_READY` | The operator sets `true` only after validating the complete prepaid-term flow in a separately configured Stripe test environment. An absent value keeps new monthly billing and future extensions closed. |
 | `STRIPE_TAX_READY` | Set to `true` once the merchant's tax setup has been confirmed. Checkout requires automatic tax and billing address collection. |
 | `STOREFRONT_ORIGIN` | Absolute return origin. Defaults to https://pixelcivilization.app. |
 | `GOOGLE_PLAY_SERVICE_ACCOUNT` | Play-authorized Android Publisher service-account JSON |
 | `APPLE_IAP_KEY`, `APPLE_IAP_KEY_ID`, `APPLE_IAP_ISSUER` | App Store Server API signing credentials |
 | `ANDROID_APP_ID`, `IOS_APP_ID` | Store identifiers. Each defaults to `app.pixelcivilization.game`. |
-| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` | Paid providers. The web subscription sale becomes available when all three are configured. |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` | Optional direct provider credentials. Web Pix enrollment also requires all three verified prepaid gateway models, wallet capacity and Stripe billing readiness. |
 | `STORE_LEASE_SIGNING_JWK` | Private P-256 signing JWK in Worker secrets |
 | `VITE_STORE_LEASE_PUBLIC_JWK` | Optional build-time override for the bundled public verification key. The browser verifies account-bound offline leases for up to seven days and through the paid term. |
 
 Apply D1 migrations 0002 through 0004 before deploying the billing Worker. The existing account database and session cookie provide identity. For test environments, use separate credentials, database, webhook secret and app origin. In an isolated native review environment set `APPLE_STORE_ENV=Sandbox` or `GOOGLE_PLAY_ALLOW_TEST_PURCHASES=true` for their corresponding sandbox purchases.
 
-The live web publisher is SLF Media Group. The game uses dedicated Stripe customers and prices. The server key needs write access for customers, Checkout Sessions and Customer Portal sessions and read access to prices, subscriptions, invoices and invoice payments, payment intents, charges and disputes. Save it directly to the encrypted Worker setting. The restricted key and webhook signing secret have separate purposes.
+SLF Media Group publishes the web game. Store the restricted API key and webhook signing secret in separate encrypted Worker settings. The application uses the following Stripe API resources under `/v1`.
+
+| Restricted-key permission | Calls made by the game |
+| --- | --- |
+| Customers · write | Create game customers, set their verified default payment method, delete on account closure |
+| Checkout Sessions · write | Create a setup or one-time session, retrieve/list sessions and expire abandoned sessions |
+| Customer Portal · write | Read the dedicated portal configuration and create account-scoped portal sessions |
+| Subscription Schedules · write | Create, list and retrieve schedules, update their phases, cancel a schedule using `POST /subscription_schedules/:id/cancel` |
+| Invoices · write | List/retrieve invoices, `POST /invoices/:id/finalize` and `POST /invoices/:id/void` |
+| Setup Intents · read | `GET /setup_intents/:id` to verify the bound customer's completed off-session, card-only setup |
+| Subscriptions, Prices, Invoice Payments, Payment Intents, Charges and Disputes · read | Verify the exact SKU, paid term, settled card charge, refund or dispute |
+
+The stored card is selected using Customers Write. Editing product catalogs, issuing refunds, deleting payments and broad account-admin access are outside this runtime key's role.
 
 Configure Stripe to send Checkout completion, successful delayed payments, subscription creation/update/deletion, invoice paid/payment failed, charge refunds, and dispute creation/closure to `/api/commerce/stripe/webhook`. The handler verifies the signature on the raw body, tolerates redelivery, retrieves the current payment or subscription from Stripe and records the result against a mapped customer. A fully refunded or disputed card charge removes its benefit. A new paid period can restore access. [Stripe Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment) · [Subscription webhooks](https://docs.stripe.com/billing/subscriptions/webhooks)
 
@@ -108,4 +122,16 @@ The store reports affordability per tier. It counts existing subscriber obligati
 
 A renewal requires a separately reserved, contiguous month. Stripe's cancellation date must already protect the billing boundary. The processor may extend it only after the new month has been fully backed. With no funds for that extension, the current month remains playable and the next month is not charged. The payment integration must independently enforce this remote stop date even when the game is offline. Public reusable subscription Payment Links and native recurring enrollment cannot enforce this contract and stay closed. Native purchase restoration remains available.
 
-An operator can verify admission without charging anyone by reading `GET /api/commerce/access`. `pixAdmission.tiers` distinguishes an available plan, wallet capacity, provider connectivity and online billing readiness. `webSubscriptionsReady` is true only when at least one plan can accept a new checkout. The funding module keeps paid checkout disabled until the compatible term-bounded Stripe integration is deployed.
+An operator can verify admission without charging anyone by reading `GET /api/commerce/access`. `pixAdmission.tiers` distinguishes an available plan, wallet capacity, provider connectivity and online billing readiness. `webSubscriptionsReady` is true only when at least one plan can accept a new checkout. To activate checkout, apply migrations through 0008 and verify the operator checklist below. The mobile storefronts keep new monthly enrollment closed.
+
+### Monthly checkout and renewal
+
+A signed-in player selects a Pix plan in the Island Store. The store displays an unchecked, plan-specific authorization naming SLF Media Group, the price and monthly timing, applicable tax, the separately paid first invoice and the way to stop renewals. The server records the accepted text, version, price and timestamp against that account and funding reservation. Stripe Checkout repeats the disclosure while collecting the card and billing address. The default Stripe card-use notice and card authentication are preserved. [Stripe’s guidance on saving cards for future charges](https://docs.stripe.com/payments/save-and-reuse#compliance) Saving the card has no charge. The server verifies the exact Checkout Session, SetupIntent, account, customer and consent. It pins the plan's provider budget, then creates a single-month Stripe Subscription Schedule with `end_behavior=cancel`. The player reviews the first tax-calculated invoice on Stripe and explicitly pays it. Pix unlocks when the signed receipt and matching paid card charge reconcile to that funded month. Closing the browser leaves the invoice accessible in the store.
+
+The quarter-hour reconciliation job checks for renewal within the final three days. It extends the finite schedule by exactly one calendar month only after reserving that month's full allowance. A later renewal uses the customer's current saved card and automatic tax. Without a new reservation, the original Stripe cutoff takes effect even during an application outage. **Stop Pix renewal** in the store removes the upcoming phase and preserves the current paid term. Before the first payment, Stop also voids the open invoice. **Manage billing** opens invoice history and card replacement. The dedicated Stripe portal disables subscription updates, reactivation, pauses, cancellations and public login. Deleting the game account cancels managed schedules and verifies that every outstanding draft or open invoice can no longer collect before removing the account. [Stripe subscription schedules](https://docs.stripe.com/billing/subscriptions/subscription-schedules) · [Hosted invoices](https://docs.stripe.com/invoicing/hosted-invoice-page) · [Customer portal](https://docs.stripe.com/customer-management)
+
+### Operator verification before enabling monthly sales
+
+1. In a separate Stripe test environment, configure the four recurring catalog prices, the dedicated customer portal, tax setup and signing secret. Target that same environment's API key and webhook endpoint. Use an isolated accounts database and test wallet. Enable `STRIPE_FUNDED_BILLING_READY` there for the rehearsal.
+2. Complete the card setup, review the exact tax-inclusive invoice, pay it with Stripe's test card and verify the account gets exactly its own plan. Exercise card replacement, replayed events, refund, insufficient funds for renewal, a funded renewal, cancellation and account deletion. Confirm on Stripe that the last funded phase ends in cancellation and unpaid invoices are void.
+3. Before enabling the live flag, independently verify production tax registration, real price identifiers, the plan-specific authorization shown to the player, portal restrictions, all three prepaid providers, funding headroom and webhook delivery. Enabling the flag permits new real monthly invoices at the selected catalog price. No purchase occurs solely by changing the flag. Disabling it prevents new authorizations. A month already reserved and scheduled on Stripe remains collectible until canceled in the game.
