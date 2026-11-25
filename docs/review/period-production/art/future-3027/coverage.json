@@ -1,0 +1,259 @@
+{
+  "era": "future-3027",
+  "sourceSha256": "f72692e8a5fc3f1cd944172410257feb3afbe4c7079d138559aceb27a1b6c457",
+  "types": 294,
+  "levels": 1534,
+  "cells": 6136,
+  "empty": [],
+  "identicalVariants": [],
+  "identicalLevels": [],
+  "pages": [
+    {
+      "file": "01.webp",
+      "first": "ferry_landings",
+      "last": "solar_panels"
+    },
+    {
+      "file": "02.webp",
+      "first": "grocery_store",
+      "last": "shops"
+    },
+    {
+      "file": "03.webp",
+      "first": "tiny_homes",
+      "last": "large_homes"
+    },
+    {
+      "file": "04.webp",
+      "first": "apartments",
+      "last": "mansions"
+    },
+    {
+      "file": "05.webp",
+      "first": "skyscrapers",
+      "last": "groves_of_olives"
+    },
+    {
+      "file": "06.webp",
+      "first": "plantations",
+      "last": "shoe_stores"
+    },
+    {
+      "file": "07.webp",
+      "first": "cheesesteak_restaurants",
+      "last": "banks"
+    },
+    {
+      "file": "08.webp",
+      "first": "malls",
+      "last": "factories"
+    },
+    {
+      "file": "09.webp",
+      "first": "coal_powerplants",
+      "last": "hydro_electric_power_plants"
+    },
+    {
+      "file": "10.webp",
+      "first": "geothermal_power_plants",
+      "last": "water_places"
+    },
+    {
+      "file": "11.webp",
+      "first": "canals",
+      "last": "water_tile"
+    },
+    {
+      "file": "12.webp",
+      "first": "dirt_roads",
+      "last": "two_lane_roads"
+    },
+    {
+      "file": "13.webp",
+      "first": "pretty_roads",
+      "last": "stone_bridges"
+    },
+    {
+      "file": "14.webp",
+      "first": "boardwalks",
+      "last": "freeways"
+    },
+    {
+      "file": "15.webp",
+      "first": "over_passes",
+      "last": "city_offices"
+    },
+    {
+      "file": "16.webp",
+      "first": "post_offices",
+      "last": "courthouses"
+    },
+    {
+      "file": "17.webp",
+      "first": "government_buildings",
+      "last": "prisons"
+    },
+    {
+      "file": "18.webp",
+      "first": "military_base",
+      "last": "churches"
+    },
+    {
+      "file": "19.webp",
+      "first": "graveyards",
+      "last": "temples"
+    },
+    {
+      "file": "20.webp",
+      "first": "lds_temples",
+      "last": "ship_building_areas"
+    },
+    {
+      "file": "21.webp",
+      "first": "shipyards",
+      "last": "plants"
+    },
+    {
+      "file": "22.webp",
+      "first": "shrubs",
+      "last": "rivers"
+    },
+    {
+      "file": "23.webp",
+      "first": "sand",
+      "last": "redwood_trees"
+    },
+    {
+      "file": "24.webp",
+      "first": "mountains",
+      "last": "alligators"
+    },
+    {
+      "file": "25.webp",
+      "first": "large_landmarks",
+      "last": "the_london_eye"
+    },
+    {
+      "file": "26.webp",
+      "first": "the_great_pyramids",
+      "last": "open_pit_mine"
+    },
+    {
+      "file": "27.webp",
+      "first": "terraced_glasshouses",
+      "last": "maritime_college"
+    },
+    {
+      "file": "28.webp",
+      "first": "pumped_storage_station",
+      "last": "teleportation_depot"
+    },
+    {
+      "file": "29.webp",
+      "first": "materials_foundry",
+      "last": "preschool"
+    },
+    {
+      "file": "30.webp",
+      "first": "country_schoolhouse",
+      "last": "community_college"
+    },
+    {
+      "file": "31.webp",
+      "first": "university",
+      "last": "grain_farm"
+    },
+    {
+      "file": "32.webp",
+      "first": "dairy_farm",
+      "last": "vineyard"
+    },
+    {
+      "file": "33.webp",
+      "first": "rice_farm",
+      "last": "orchard_block"
+    },
+    {
+      "file": "34.webp",
+      "first": "grazing_pasture",
+      "last": "greenhouse_bay"
+    },
+    {
+      "file": "35.webp",
+      "first": "stonehenge",
+      "last": "great_wall"
+    },
+    {
+      "file": "36.webp",
+      "first": "angkor_wat",
+      "last": "emergency_dispatch"
+    },
+    {
+      "file": "37.webp",
+      "first": "k9_police_unit",
+      "last": "traffic_precinct"
+    },
+    {
+      "file": "38.webp",
+      "first": "riot_command_center",
+      "last": "army_signal_corps"
+    },
+    {
+      "file": "39.webp",
+      "first": "army_logistics_depot",
+      "last": "naval_coast_guard_base"
+    },
+    {
+      "file": "40.webp",
+      "first": "naval_destroyer_dock",
+      "last": "naval_minesweeper"
+    },
+    {
+      "file": "41.webp",
+      "first": "naval_hospital_ship",
+      "last": "awacs_radar_base"
+    },
+    {
+      "file": "42.webp",
+      "first": "drone_recon_base",
+      "last": "coffee_roastery"
+    },
+    {
+      "file": "43.webp",
+      "first": "retro_diner",
+      "last": "cinema_theater"
+    },
+    {
+      "file": "44.webp",
+      "first": "bowling_alley",
+      "last": "art_gallery"
+    },
+    {
+      "file": "45.webp",
+      "first": "jazz_club",
+      "last": "seafood_pier"
+    },
+    {
+      "file": "46.webp",
+      "first": "rowhouse_duplex",
+      "last": "harbor_tugboat"
+    },
+    {
+      "file": "47.webp",
+      "first": "coastal_corvette",
+      "last": "spring_house"
+    },
+    {
+      "file": "48.webp",
+      "first": "tidal_sluice",
+      "last": "zen_shrine"
+    },
+    {
+      "file": "49.webp",
+      "first": "meditation_pavilion",
+      "last": "solar_spire_arcology"
+    }
+  ],
+  "renderedSourceSha256": "29506657ba52b3c8a2f1539e72e7d64c0ef4df9dbc810fd80aad9fcee971dbfb",
+  "sourceNormalization": "Trailing blank line removed from periodWorks.ts after the full render."
+}

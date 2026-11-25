@@ -1,0 +1,199 @@
+[
+  {
+    "title": "Grain to the market",
+    "instance": "Switchyard City · Orchard Valley",
+    "frames": [
+      {
+        "label": "Freight en route",
+        "caption": "10 grain aboard the train",
+        "seconds": 61,
+        "id": "orchard-rail-0-0-49",
+        "baseId": "grocery_store",
+        "level": 1,
+        "variant": 0,
+        "era": "rome-forum",
+        "activity": "idle",
+        "data": {
+          "railway": "Harvest Freight",
+          "source": "orchard-rail-0-0-48",
+          "drop": "orchard-rail-0-0-47",
+          "trainAt": "orchard-rail-0-0-46",
+          "loaded": 10,
+          "received": 0,
+          "unloadedHere": 0,
+          "marketFood": 30.604880098610494
+        }
+      },
+      {
+        "label": "Unloading",
+        "caption": "10 grain received at the market",
+        "seconds": 75,
+        "id": "orchard-rail-0-0-49",
+        "baseId": "grocery_store",
+        "level": 1,
+        "variant": 0,
+        "era": "rome-forum",
+        "activity": "active",
+        "data": {
+          "railway": "Harvest Freight",
+          "source": "orchard-rail-0-0-48",
+          "drop": "orchard-rail-0-0-47",
+          "trainAt": "orchard-rail-0-0-47",
+          "loaded": 0,
+          "received": 10,
+          "unloadedHere": 10,
+          "marketFood": 38.316408207082034
+        }
+      },
+      {
+        "label": "Unloading ends",
+        "caption": "10 grain in its delivery record",
+        "seconds": 80,
+        "id": "orchard-rail-0-0-49",
+        "baseId": "grocery_store",
+        "level": 1,
+        "variant": 0,
+        "era": "rome-forum",
+        "activity": "idle",
+        "data": {
+          "railway": "Harvest Freight",
+          "source": "orchard-rail-0-0-48",
+          "drop": "orchard-rail-0-0-47",
+          "trainAt": "orchard-rail-0-0-47",
+          "loaded": 0,
+          "received": 10,
+          "unloadedHere": 10,
+          "marketFood": 32.10726748095025
+        }
+      }
+    ]
+  },
+  {
+    "title": "Passengers on the local",
+    "instance": "Porta Fluminis · eastern platform",
+    "frames": [
+      {
+        "label": "Before arrival",
+        "caption": "Platform awaiting the train",
+        "seconds": 12,
+        "id": "rome-district/train_stops/2,5",
+        "baseId": "train_stops",
+        "level": 2,
+        "variant": 3,
+        "era": "rome-aqueduct",
+        "activity": "idle",
+        "data": {
+          "railway": "Local passenger",
+          "boardedNow": 0,
+          "passengersOnTrain": 16,
+          "dwellRemaining": 0
+        }
+      },
+      {
+        "label": "Boarding",
+        "caption": "14 riders boarded this train",
+        "seconds": 17,
+        "id": "rome-district/train_stops/2,5",
+        "baseId": "train_stops",
+        "level": 2,
+        "variant": 3,
+        "era": "rome-aqueduct",
+        "activity": "active",
+        "data": {
+          "trainAt": "rome-district/train_stops/2,5",
+          "railway": "Local passenger",
+          "boardedNow": 14,
+          "passengersOnTrain": 14,
+          "dwellRemaining": 4
+        }
+      },
+      {
+        "label": "Boarding ends",
+        "caption": "14 riders aboard the train",
+        "seconds": 21,
+        "id": "rome-district/train_stops/2,5",
+        "baseId": "train_stops",
+        "level": 2,
+        "variant": 3,
+        "era": "rome-aqueduct",
+        "activity": "idle",
+        "data": {
+          "trainAt": "rome-district/train_stops/2,5",
+          "railway": "Local passenger",
+          "boardedNow": 0,
+          "passengersOnTrain": 14,
+          "dwellRemaining": 0
+        }
+      }
+    ]
+  },
+  {
+    "title": "Water at the baths",
+    "instance": "Porta Fluminis · spring aqueduct",
+    "frames": [
+      {
+        "label": "Connected",
+        "caption": "13 potable water delivered",
+        "seconds": 12,
+        "id": "rome-district/water_treatment_plant/2,-1",
+        "baseId": "water_treatment_plant",
+        "level": 2,
+        "variant": 2,
+        "era": "rome-aqueduct",
+        "activity": "active",
+        "data": {
+          "freshwater": 13,
+          "potable": 13,
+          "irrigation": 13,
+          "stored": 0,
+          "outlet": [
+            3,
+            -2
+          ]
+        }
+      },
+      {
+        "label": "Outlet removed",
+        "caption": "0 potable water delivered",
+        "seconds": 12,
+        "id": "rome-district/water_treatment_plant/2,-1",
+        "baseId": "water_treatment_plant",
+        "level": 2,
+        "variant": 2,
+        "era": "rome-aqueduct",
+        "activity": "idle",
+        "data": {
+          "freshwater": 0,
+          "potable": 0,
+          "irrigation": 0,
+          "stored": 0,
+          "outlet": [
+            3,
+            -2
+          ]
+        }
+      },
+      {
+        "label": "Undo restores outlet",
+        "caption": "13 potable water delivered",
+        "seconds": 12,
+        "id": "rome-district/water_treatment_plant/2,-1",
+        "baseId": "water_treatment_plant",
+        "level": 2,
+        "variant": 2,
+        "era": "rome-aqueduct",
+        "activity": "active",
+        "data": {
+          "freshwater": 13,
+          "potable": 13,
+          "irrigation": 13,
+          "stored": 0,
+          "outlet": [
+            3,
+            -2
+          ]
+        }
+      }
+    ]
+  }
+]

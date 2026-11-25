@@ -129,12 +129,7 @@ export async function startServer(customPort?: number) {
       return;
     }
 
-    if (urlPath.startsWith("/api/pix/")) {
-      const { handlePixApi } = await import("./src/server/pixApi.ts");
-      if (await handlePixApi(req, res, urlPath)) return;
-    }
-
-    if (urlPath.startsWith("/api/account/")) {
+    if (["/api/pix/","/api/account/","/api/commerce/"].some(prefix=>urlPath.startsWith(prefix))) {
       try {
         const { createLocalAccounts } = await import("./src/server/localAccounts.mjs");
         localAccounts ??= createLocalAccounts(process.env.PIXEL_ACCOUNT_DB_PATH ?? path.join(__dirname, "data", "accounts.sqlite"));

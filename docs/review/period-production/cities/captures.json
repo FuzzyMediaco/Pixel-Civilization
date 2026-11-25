@@ -1,0 +1,1652 @@
+[
+  {
+    "era": "original",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "original/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-china",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "ancient-china/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-egypt",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "ancient-egypt/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "rome-aqueduct/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-greece",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "ancient-greece/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "medieval-europe",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "medieval-europe/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "renaissance-italy",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "renaissance-italy/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "world-war-ii",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "world-war-ii/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "art-deco",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "art-deco/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "future-3027",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "future-3027/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "post-apocalyptic",
+    "fixture": "rome-starter",
+    "view": "street",
+    "file": "post-apocalyptic/street.webp",
+    "layout": "8e0cc6e15795fb6f0caf394fde49b21983a6f38c85ba7d7f16591eaf4e0f3472",
+    "sites": 15,
+    "camera": {
+      "radius": 29,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 1,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "original",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "original/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "original",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "original/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "original",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "original/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-china",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "ancient-china/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-china",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "ancient-china/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-china",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "ancient-china/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-egypt",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "ancient-egypt/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-egypt",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "ancient-egypt/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-egypt",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "ancient-egypt/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "rome-aqueduct/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "rome-aqueduct/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "rome-aqueduct/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-greece",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "ancient-greece/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-greece",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "ancient-greece/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-greece",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "ancient-greece/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "medieval-europe",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "medieval-europe/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "medieval-europe",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "medieval-europe/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "medieval-europe",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "medieval-europe/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "renaissance-italy",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "renaissance-italy/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "renaissance-italy",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "renaissance-italy/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "renaissance-italy",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "renaissance-italy/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "world-war-ii",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "world-war-ii/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "world-war-ii",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "world-war-ii/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "world-war-ii",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "world-war-ii/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "art-deco",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "art-deco/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "art-deco",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "art-deco/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "art-deco",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "art-deco/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "future-3027",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "future-3027/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "future-3027",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "future-3027/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "future-3027",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "future-3027/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "post-apocalyptic",
+    "fixture": "rome-district",
+    "view": "district",
+    "file": "post-apocalyptic/district.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "post-apocalyptic",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "file": "post-apocalyptic/crossing.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 38,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        34,
+        0.6,
+        -6
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "post-apocalyptic",
+    "fixture": "rome-district",
+    "view": "dusk",
+    "file": "post-apocalyptic/dusk.webp",
+    "layout": "1b45fbc676a6dc29c36cc2ba64ab39e2e0fc5b86ec4dd7639ba5006bb00df716",
+    "sites": 93,
+    "camera": {
+      "radius": 66,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        2
+      ],
+      "fov": 44
+    },
+    "hour": 18.8,
+    "stage": 8,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "original",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "original/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "original",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "original/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-china",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "ancient-china/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-china",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "ancient-china/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-egypt",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "ancient-egypt/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-egypt",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "ancient-egypt/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "rome-aqueduct/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "rome-aqueduct/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-greece",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "ancient-greece/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "ancient-greece",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "ancient-greece/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "medieval-europe",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "medieval-europe/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "medieval-europe",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "medieval-europe/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "renaissance-italy",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "renaissance-italy/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "renaissance-italy",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "renaissance-italy/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "world-war-ii",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "world-war-ii/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "world-war-ii",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "world-war-ii/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "art-deco",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "art-deco/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "art-deco",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "art-deco/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "future-3027",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "future-3027/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "future-3027",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "future-3027/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "post-apocalyptic",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "file": "post-apocalyptic/skyline.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  },
+  {
+    "era": "post-apocalyptic",
+    "fixture": "rome-skyline",
+    "view": "silhouette",
+    "file": "post-apocalyptic/silhouette.webp",
+    "layout": "3ed8c5d633c53f8cfbab02c18ab5febafc873c0ff93c8c7cda6417043fa5b5fd",
+    "sites": 156,
+    "camera": {
+      "radius": 82,
+      "theta": 0.68,
+      "phi": 0.89,
+      "target": [
+        -2,
+        0.6,
+        -2
+      ],
+      "fov": 44
+    },
+    "hour": 14,
+    "stage": 20,
+    "dimensions": [
+      800,
+      487
+    ]
+  }
+]

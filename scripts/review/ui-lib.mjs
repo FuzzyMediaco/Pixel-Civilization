@@ -1,11 +1,24 @@
 // Shared helpers for the UI review screenshots (read-only review tooling).
 import fs from "node:fs";
+import { createHash, X509Certificate } from "node:crypto";
 import path from "node:path";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 export const { chromium } = (() => {
   try { return require("playwright"); } catch { return require("playwright-core"); }
 })();
+// A throwaway, loopback-only TLS origin can exercise preview access without contacting the public site.
+export function localPreviewArgs(origin) {
+  const file = process.env.PERIOD_QA_CERT;
+  if (!file) return [];
+  const url = new URL(origin);
+  if (url.protocol !== "https:" || url.hostname !== "pixel-civilization-rome-preview.fuzzymedia.workers.dev" || !url.port) {
+    throw new Error("PERIOD_QA_CERT requires the preview host and an explicit local HTTPS port");
+  }
+  const key = new X509Certificate(fs.readFileSync(file)).publicKey.export({type:"spki",format:"der"});
+  return ["--no-proxy-server", "--host-resolver-rules=MAP " + url.hostname + " 127.0.0.1",
+    "--ignore-certificate-errors-spki-list=" + createHash("sha256").update(key).digest("base64")];
+}
 export const PORT = process.env.GALLERY_PORT ?? "5311";
 export const OUT = process.env.OUT ?? path.resolve("scratchpad", "review_ui");
 export const PHONE = { viewport: { width: 430, height: 930 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };

@@ -1,3 +1,4 @@
+import { usePeriodNames } from "./PeriodPicker";
 import React, { useEffect, useRef } from "react";
 import {
   ArrowUp,
@@ -84,6 +85,7 @@ export function SelectionRing({
   onUndo: () => void;
   onOpenDetails: () => void;
 }) {
+  const { name: periodName } = usePeriodNames();
   const ringRef = useRef<HTMLDivElement>(null);
   const readyRef = useRef(false);
   const activeKey = pendingConfirm
@@ -240,7 +242,7 @@ export function SelectionRing({
   if (isIdle) {
     actions.push({
       id: "more",
-      label: `Inspect ${def.name} stats`,
+      label: `Inspect ${periodName(def.id)} stats`,
       icon: <MoreHorizontal size={19} strokeWidth={2.4} aria-hidden="true" />,
       tone: "primary",
       onClick: onOpenDetails,
@@ -255,7 +257,7 @@ export function SelectionRing({
     });
     actions.push({
       id: "more",
-      label: `${def.name} details & stats`,
+      label: `${periodName(def.id)} details & stats`,
       icon: <MoreHorizontal size={19} strokeWidth={2.4} aria-hidden="true" />,
       onClick: onOpenDetails,
     });
@@ -286,7 +288,7 @@ export function SelectionRing({
 
     actions.push({
       id: "delete",
-      label: `Delete ${def.name}`,
+      label: `Delete ${periodName(def.id)}`,
       icon: <Trash2 size={18} strokeWidth={2.25} aria-hidden="true" />,
       tone: "danger",
       onClick: onDemolish,
@@ -310,7 +312,7 @@ export function SelectionRing({
 
     actions.push({
       id: "move",
-      label: `Move ${def.name}`,
+      label: `Move ${periodName(def.id)}`,
       icon: <Move size={18} strokeWidth={2.25} aria-hidden="true" />,
       onClick: onMove,
     });
@@ -353,7 +355,7 @@ export function SelectionRing({
 
     actions.push({
       id: "more",
-      label: `${def.name} details & actions`,
+      label: `${periodName(def.id)} details & actions`,
       icon: <MoreHorizontal size={19} strokeWidth={2.4} aria-hidden="true" />,
       onClick: onOpenDetails,
     });
@@ -368,7 +370,7 @@ export function SelectionRing({
       className="ui-ring"
       data-ready="false"
       role="toolbar"
-      aria-label={`Quick Edit ${def.name}`}
+      aria-label={`Quick Edit ${periodName(def.id)}`}
     >
       <div key={el.id} className="ui-ring-cluster">
         {orderedActions.map((action, idx) => {

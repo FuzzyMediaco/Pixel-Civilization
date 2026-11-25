@@ -1,0 +1,26 @@
+{
+  "A": {
+    "era": "rome-aqueduct",
+    "view": "skyline"
+  },
+  "B": {
+    "era": "original",
+    "view": "street"
+  },
+  "C": {
+    "era": "rome-forum",
+    "view": "skyline"
+  },
+  "D": {
+    "era": "rome-forum",
+    "view": "street"
+  },
+  "E": {
+    "era": "rome-aqueduct",
+    "view": "street"
+  },
+  "F": {
+    "era": "original",
+    "view": "skyline"
+  }
+}

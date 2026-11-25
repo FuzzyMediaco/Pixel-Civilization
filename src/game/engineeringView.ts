@@ -1,7 +1,9 @@
+import type { EraKey } from "./eraStyles";
 import { sharesOceanSurface } from "./coastline";
 import { GRID_SIZE, GRID_HALF, cellIndex } from "./mapBounds";
 import { TILE_SIZE } from "./voxelCore";
 import {bridgeDetails} from "./bridgeWorks";
+import { productionPeriod } from "./periods";
 import * as THREE from "three";
 import {
   DIRECTIONS,
@@ -169,9 +171,12 @@ export class EngineeringView {
     });
     g.clear();
   }
-  sync(state: GameState) {
+  sync(state: GameState, era:EraKey="original") {
+    const roman=era!=="original", forum=era==="rome-forum";
+    const materials=roman ? productionPeriod(era).materials.map(color=>Number.parseInt(color.slice(1),16)) : [];
+    const [masonry,edge,signal]=materials;
     const infra = state.infrastructure;
-    const stamp =
+    const stamp = era + "|" +
       (state.terrainVersion ?? 1) +
       "|" +
       (infra?.stamp ?? infra?.revision ?? 0) +
@@ -672,8 +677,8 @@ export class EngineeringView {
         h = duct.height,
         r = hydro.runs.get(k)!,
         ground = getTerrainCell(state, gx, gz);
-      const stone = [0xd9c292, 0x8a8a8d, 0xbb966e, 0x8e9278][duct.style % 4],
-        trim = [0xb19a77, 0x626670, 0x9e5a4d, 0x647361][duct.style % 4];
+      const stone = roman ? (forum ? 0xd6c69e : masonry) : [0xd9c292, 0x8a8a8d, 0xbb966e, 0x8e9278][duct.style % 4],
+        trim = roman ? (forum ? 0xab7953 : edge) : [0xb19a77, 0x626670, 0x9e5a4d, 0x647361][duct.style % 4];
       const pts = DIRECTIONS.map(([dx, dz]) => infra.conduits[tileKey(gx + dx, gz + dz)]);
       const lower = ground.elevation;
       // Each connected arm supplies half an arcade, so each shared pier supports two arches.
@@ -877,8 +882,15 @@ export class EngineeringView {
           0.51,
           0.24,
           width,
-          s.mode === "foot" ? (n % 3 === 0 ? 0xc4aa86 : 0xd0bb99) : 0x535c61,
+          roman ? (forum ? 0xd6c5a3 : masonry) : s.mode === "foot" ? (n % 3 === 0 ? 0xc4aa86 : 0xd0bb99) : 0x535c61,
         );
+        if (roman && !s.end && n % 4 === 0) {
+          for (const side of [-1,1]) {
+            const b=side*(width/2-.14);
+            along(g,-2+n*.5,y+.03,b-.09,.18,.53,.18,forum?0xcebd98:signal);
+            along(g,-2+n*.5-.04,y+.56,b-.14,.27,.10,.28,0xe3cba3);
+          }
+        }
         if (s.shape === "lift" && !s.end) {
           for (const side of [-1, 1]) {
             const b = side * (width / 2 + 0.01);
@@ -1069,9 +1081,16 @@ export class EngineeringView {
         const point=(u:number,v:number,h:number)=>[cx+(s.axis==="x"?u:v),h+.021,cz+(s.axis==="x"?v:u)];
         const strip=(v:number,w:number,color:number)=>s.axis==="x"?g.face(point(-2,v,a),point(-2,v+w,a),point(2,v+w,b),point(2,v,b),color):g.face(point(-2,v,a),point(2,v,b),point(2,v+w,b),point(-2,v+w,a),color);
         for(const side of [-width/2,width/2])g.face(point(-2,side,a-.24),point(2,side,b-.24),point(2,side,b),point(-2,side,a),0x767e7e);
-        strip(-width/2,width,0x535c61);
+        strip(-width/2,width,roman ? (forum?0xcdbb99:masonry) : 0x535c61);
+        if (roman) {
+          for (let row=1; row<6; row++) {
+            const u=-2+row*4/6, rise=a+(b-a)*row/6+.009;
+            g.face(point(u,-width/2,rise),point(u,width/2,rise),point(u+.023,width/2,rise+.002),point(u+.023,-width/2,rise+.002),0x917d66);
+          }
+          strip(-width/2,.14,0xe2d1ad);strip(width/2-.14,.14,0xe2d1ad);
+        }
         if(s.mode==="rail"){strip(-.62,.1,0xaeb8bb);strip(.52,.1,0xaeb8bb);}
-        else strip(-.035,.07,0xe6cb74);
+        else strip(-.035,.07,roman?0xb29a71:0xe6cb74);
       }
       if (counter.positions.length) {
         const mesh = counter.mesh(this.material);

@@ -1,0 +1,266 @@
+[
+  {
+    "era": "original",
+    "fixture": "rome-starter",
+    "view": "street",
+    "hash": "df950cd945eb06ff58026cfc768dbf7724a1cae9faeda9637611da273257f00a",
+    "count": 15,
+    "target": [
+      2,
+      0.6,
+      2
+    ],
+    "radius": 29,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 1,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "rome-forum",
+    "fixture": "rome-starter",
+    "view": "street",
+    "hash": "df950cd945eb06ff58026cfc768dbf7724a1cae9faeda9637611da273257f00a",
+    "count": 15,
+    "target": [
+      2,
+      0.6,
+      2
+    ],
+    "radius": 29,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 1,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-starter",
+    "view": "street",
+    "hash": "df950cd945eb06ff58026cfc768dbf7724a1cae9faeda9637611da273257f00a",
+    "count": 15,
+    "target": [
+      2,
+      0.6,
+      2
+    ],
+    "radius": 29,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 1,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "original",
+    "fixture": "rome-district",
+    "view": "district",
+    "hash": "f9b4601cfba4838d4a3aa35ccbcfc5ed5462acc14ad49a9dfd8a69cd2a73bbd8",
+    "count": 93,
+    "target": [
+      -2,
+      0.6,
+      2
+    ],
+    "radius": 66,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 8,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "rome-forum",
+    "fixture": "rome-district",
+    "view": "district",
+    "hash": "f9b4601cfba4838d4a3aa35ccbcfc5ed5462acc14ad49a9dfd8a69cd2a73bbd8",
+    "count": 93,
+    "target": [
+      -2,
+      0.6,
+      2
+    ],
+    "radius": 66,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 8,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-district",
+    "view": "district",
+    "hash": "f9b4601cfba4838d4a3aa35ccbcfc5ed5462acc14ad49a9dfd8a69cd2a73bbd8",
+    "count": 93,
+    "target": [
+      -2,
+      0.6,
+      2
+    ],
+    "radius": 66,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 8,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "original",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "hash": "f9b4601cfba4838d4a3aa35ccbcfc5ed5462acc14ad49a9dfd8a69cd2a73bbd8",
+    "count": 93,
+    "target": [
+      34,
+      0.6,
+      -6
+    ],
+    "radius": 38,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 8,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "rome-forum",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "hash": "f9b4601cfba4838d4a3aa35ccbcfc5ed5462acc14ad49a9dfd8a69cd2a73bbd8",
+    "count": 93,
+    "target": [
+      34,
+      0.6,
+      -6
+    ],
+    "radius": 38,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 8,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-district",
+    "view": "crossing",
+    "hash": "f9b4601cfba4838d4a3aa35ccbcfc5ed5462acc14ad49a9dfd8a69cd2a73bbd8",
+    "count": 93,
+    "target": [
+      34,
+      0.6,
+      -6
+    ],
+    "radius": 38,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 8,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "original",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "hash": "5362b8a0aeae2f8344c4156233322fb9652c6d4c0306e89c0b83e92284afdbc3",
+    "count": 156,
+    "target": [
+      -2,
+      0.6,
+      -2
+    ],
+    "radius": 82,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 20,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "rome-forum",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "hash": "5362b8a0aeae2f8344c4156233322fb9652c6d4c0306e89c0b83e92284afdbc3",
+    "count": 156,
+    "target": [
+      -2,
+      0.6,
+      -2
+    ],
+    "radius": 82,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 20,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  },
+  {
+    "era": "rome-aqueduct",
+    "fixture": "rome-skyline",
+    "view": "skyline",
+    "hash": "5362b8a0aeae2f8344c4156233322fb9652c6d4c0306e89c0b83e92284afdbc3",
+    "count": 156,
+    "target": [
+      -2,
+      0.6,
+      -2
+    ],
+    "radius": 82,
+    "theta": 0.68,
+    "phi": 0.89,
+    "fov": 44,
+    "stage": 20,
+    "hour": 14,
+    "viewport": [
+      920,
+      560
+    ]
+  }
+]

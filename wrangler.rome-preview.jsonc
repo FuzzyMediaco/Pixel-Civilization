@@ -1,0 +1,8 @@
+{
+  "name": "pixel-civilization-rome-preview",
+  "main": "worker/era-preview.mjs",
+  "compatibility_date": "2026-11-22",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": { "directory": "./dist", "binding": "ASSETS", "run_worker_first": ["/api/*"] }
+}

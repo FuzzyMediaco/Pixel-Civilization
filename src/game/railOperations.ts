@@ -173,6 +173,8 @@ export interface FreightContract {
   drop: string;
   loaded: number;
   delivered: number;
+  /** Cargo actually unloaded on the current station call, cleared on the following call. */
+  unloadedHere?: number;
 }
 export interface RailFormation {
   name: string;
@@ -645,6 +647,7 @@ export function freightCall(
   const r = trainFor(l),
     c = r.contract;
   if (!c) return;
+  c.unloadedHere = 0;
   const a = net.byId.get(c.pickup),
     b = net.byId.get(c.drop);
   if (!a || !b) return;
@@ -689,6 +692,7 @@ export function freightCall(
   if (foodCargo(c.type)) siteOf(s, sink).food += quantity;
   c.loaded = 0;
   c.delivered += quantity;
+  c.unloadedHere = quantity;
   l.delivered += quantity;
   s.mobility!.deliveries.push({
     time: s.activePlaySec,

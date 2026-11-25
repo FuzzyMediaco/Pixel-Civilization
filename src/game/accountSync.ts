@@ -50,7 +50,7 @@ export function watchSync(fn: () => void) {
   };
 }
 export const cloudAvailable = () =>
-  deviceReady() && /^https?:$/.test(location.protocol);
+  deviceReady() && /^https?:$/.test(location.protocol) && location.hostname !== "pixel-civilization-rome-preview.fuzzymedia.workers.dev";
 class AccountError extends Error {
   constructor(
     message: string,

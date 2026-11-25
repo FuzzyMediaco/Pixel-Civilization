@@ -1,4 +1,4 @@
-.example-islands, .world-guide { font-family: var(--font-sans, system-ui), sans-serif; color: #263936; }
+.example-islands, .world-guide { font-family: var(--ui-font); color: #263936; }
 .example-islands {
   margin: auto; border: 1px solid #b9c9bf; border-radius: 16px; padding: 0;
   width: min(800px, calc(100vw - 28px)); max-height: min(86dvh, 820px); overflow: auto;

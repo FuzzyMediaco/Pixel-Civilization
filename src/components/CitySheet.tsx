@@ -1,3 +1,5 @@
+import { usePeriodNames } from "./PeriodPicker";
+import { eraStageTreatment } from "../game/eraStage";
 import React from "react";
 import { AlertTriangle, ArrowUpRight, Coins, Eye, Hammer, TrainFront, Trophy, Users, Wrench } from "lucide-react";
 import { ELEMENT_BY_ID, STAGES } from "../game/catalog";
@@ -114,6 +116,7 @@ export function CitySheet({
   const issues = cityIssues(state);
   const problems = issues.filter((i) => i.severity === "critical" || i.severity === "warning");
   const limit = growthLimit(state);
+  const {era} = usePeriodNames();
   const stage = STAGES[Math.max(0, Math.min(STAGES.length - 1, state.currentStage - 1))];
   const next = state.currentStage < 20 ? STAGES[state.currentStage] : undefined;
   const growthIssue = issues.find((i) => i.id === "growth_limit");
@@ -188,7 +191,7 @@ export function CitySheet({
     <BottomSheet
       id="sheet-city"
       title="City"
-      subtitle={state.mode === "god" ? "God mode" : "Stage " + stage.stage + " · " + stage.name}
+      subtitle={state.mode === "god" ? "God mode" : "Stage " + stage.stage + " · " + eraStageTreatment(era,stage.stage).name}
       height={height}
       onHeightChange={onHeight}
       onClose={onClose}
@@ -518,7 +521,7 @@ export function CitySheet({
           ) : next ? (
             <div className="ui-panel-card">
               <div className="ui-card-head">
-                <strong>Next: Stage {next.stage} · {next.name}</strong>
+                <strong>Next: Stage {next.stage} · {eraStageTreatment(era,next.stage).name}</strong>
                 <span className="ui-card-sub">
                   {state.population.toLocaleString()} / {stagePopulationThreshold(state,next.minPop).toLocaleString()}
                 </span>
@@ -542,7 +545,7 @@ export function CitySheet({
           ) : (
             <div className="ui-panel-card">
               <div className="ui-card-head">
-                <strong>Stage 20 · {stage.name}</strong>
+                <strong>Stage 20 · {eraStageTreatment(era,stage.stage).name}</strong>
                 <span className="ui-card-sub">Max stage reached</span>
               </div>
               <p className="ui-card-meta">Your island has reached the highest civilization stage.</p>

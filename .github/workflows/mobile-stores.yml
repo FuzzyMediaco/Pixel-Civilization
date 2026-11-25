@@ -1,0 +1,142 @@
+name: Mobile store builds
+on:
+  workflow_dispatch:
+    inputs:
+      native_target:
+        description: Which native builds to run
+        type: choice
+        default: all
+        options: [all, play, apple-archive, apple-simulators]
+      web_edition:
+        description: Published web edition SHA-256 to include unchanged
+        required: false
+        type: string
+  pull_request:
+    paths:
+      - 'packages/store/**'
+      - '.github/workflows/mobile-stores.yml'
+      - 'src/game/storeCatalog.mjs'
+concurrency:
+  group: mobile-stores-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && github.sha || 'pr' }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile && node --test packages/store/tests/bridge.test.mjs && node packages/store/catalog.mjs
+      - name: Prepare the reviewed web edition
+        env:
+          WEB_EDITION: ${{ inputs.web_edition }}
+        run: |
+          if [ -n "$WEB_EDITION" ]; then
+            node packages/store/fetch-published.mjs "$WEB_EDITION" dist
+          else
+            npm run build
+          fi
+      - uses: actions/upload-artifact@v4
+        with: {name: mobile-web, path: dist, retention-days: 3}
+  play:
+    if: ${{ !inputs.native_target || inputs.native_target == 'all' || inputs.native_target == 'play' }}
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: mobile-web, path: dist}
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: 21}
+      - uses: gradle/actions/setup-gradle@v4
+        with: {gradle-version: '8.13'}
+      - run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"
+      - name: Load existing upload key for manual releases
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_KEY: ${{ secrets.PIXEL_ANDROID_KEYSTORE_BASE64 }}
+          KEY_PASSWORD: ${{ secrets.PIXEL_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$RELEASE_KEY" ] && [ -n "$KEY_PASSWORD" ]; then
+            printf '%s' "$RELEASE_KEY" | base64 --decode > "$RUNNER_TEMP/upload.p12"
+            echo "PIXEL_ANDROID_KEYSTORE=$RUNNER_TEMP/upload.p12" >> "$GITHUB_ENV"
+          fi
+      - name: Build and inspect bundle
+        env:
+          PIXEL_KEYSTORE_PASSWORD: ${{ github.event_name == 'workflow_dispatch' && secrets.PIXEL_KEYSTORE_PASSWORD || '' }}
+        run: |
+          gradle -p packages/store/android bundleRelease
+          bundle=$(find packages/store/android/build/outputs/bundle -name '*.aab' -print -quit)
+          node packages/store/verify-bundle.mjs "$bundle"
+          if [ -n "${PIXEL_ANDROID_KEYSTORE:-}" ]; then jarsigner -verify "$bundle"; fi
+      - uses: actions/upload-artifact@v4
+        with: {name: Pixel-Civilization-Play-Bundle, path: 'packages/store/android/build/outputs/bundle/release/*.aab'}
+  apple-simulators:
+    if: ${{ !inputs.native_target || inputs.native_target == 'all' || inputs.native_target == 'apple-simulators' }}
+    needs: web
+    runs-on: macos-26
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: mobile-web, path: dist}
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - name: Build game and StoreKit tests
+        id: compile
+        run: |
+          node packages/store/prepare.mjs && node packages/store/catalog.mjs
+          brew install xcodegen
+          python3 packages/store/ios/check-simulator.py compile
+      - name: Render and capture the game on iPhone
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        run: python3 packages/store/ios/check-simulator.py phone
+      - name: Render and capture the game on iPad
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        run: python3 packages/store/ios/check-simulator.py tablet
+      - name: Test StoreKit products, account association, and restoration
+        if: ${{ !cancelled() && steps.compile.outcome == 'success' }}
+        run: python3 packages/store/ios/check-simulator.py purchases
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Pixel-Civilization-Apple-Simulator-Review
+          path: |
+            packages/store/ios/build/*-screens/
+            packages/store/ios/build/storekit-result.json
+          if-no-files-found: warn
+  apple-archive:
+    if: ${{ !inputs.native_target || inputs.native_target == 'all' || inputs.native_target == 'apple-archive' }}
+    needs: web
+    runs-on: macos-26-intel
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: mobile-web, path: dist}
+      - uses: actions/setup-node@v4
+        with: {node-version: 24}
+      - name: Archive and verify the iOS device build
+        run: |
+          node packages/store/prepare.mjs && node packages/store/catalog.mjs
+          brew install xcodegen
+          cd packages/store/ios
+          xcodegen generate
+          xcodebuild archive -project PixelCivilization.xcodeproj -scheme PixelCivilization \
+            -destination 'generic/platform=iOS' -archivePath build/PixelCivilization.xcarchive \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO
+          app="build/PixelCivilization.xcarchive/Products/Applications/PixelCivilization.app"
+          test "$(plutil -extract CFBundleIdentifier raw "$app/Info.plist")" = app.pixelcivilization.game
+          lipo "$app/PixelCivilization" -verify_arch arm64
+          node ../verify-folder.mjs "$app/web"
+          ditto -c -k --keepParent build/PixelCivilization.xcarchive build/PixelCivilization-device-unsigned.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Pixel-Civilization-Apple-Device-Archive
+          path: packages/store/ios/build/PixelCivilization-device-unsigned.zip

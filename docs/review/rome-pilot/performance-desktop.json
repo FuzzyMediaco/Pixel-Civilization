@@ -1,0 +1,253 @@
+{
+  "build": null,
+  "edition": "32ff9dbb315905bb4f8d4e341d4549c28c2d764012559794f28ffcfb1440ad63",
+  "viewport": [
+    920,
+    560
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "era": "original",
+      "medianMs": 16.69999999999891,
+      "p95Ms": 16.899999999999636,
+      "frames": 60,
+      "worldReadyMs": 12670.700000017881,
+      "sites": 156,
+      "gameWindow": [
+        886,
+        306
+      ],
+      "drawingBuffer": [
+        886,
+        306
+      ],
+      "dpr": 1,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "heapBytes": 371521492,
+      "downloads": {
+        "scripts": 41,
+        "transferredBytes": 3356276,
+        "decodedBytes": 3343976
+      },
+      "atlasFirstModelMs": 1202.300000011921
+    },
+    {
+      "run": 1,
+      "era": "rome-forum",
+      "medianMs": 16.649999999999636,
+      "p95Ms": 17.100000000000364,
+      "frames": 60,
+      "worldReadyMs": 8824.5,
+      "sites": 156,
+      "gameWindow": [
+        886,
+        306
+      ],
+      "drawingBuffer": [
+        886,
+        306
+      ],
+      "dpr": 1,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "heapBytes": 359586624,
+      "downloads": {
+        "scripts": 42,
+        "transferredBytes": 0,
+        "decodedBytes": 3361166
+      },
+      "atlasFirstModelMs": 744.0999999940395
+    },
+    {
+      "run": 1,
+      "era": "rome-aqueduct",
+      "medianMs": 16.69999999999891,
+      "p95Ms": 17.799999999999272,
+      "frames": 60,
+      "worldReadyMs": 9062.59999999404,
+      "sites": 156,
+      "gameWindow": [
+        886,
+        306
+      ],
+      "drawingBuffer": [
+        886,
+        306
+      ],
+      "dpr": 1,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "heapBytes": 123559928,
+      "downloads": {
+        "scripts": 42,
+        "transferredBytes": 0,
+        "decodedBytes": 3361166
+      },
+      "atlasFirstModelMs": 726.5
+    },
+    {
+      "run": 2,
+      "era": "original",
+      "medianMs": 16.69999999999891,
+      "p95Ms": 33.29999999999927,
+      "frames": 60,
+      "worldReadyMs": 7614.800000011921,
+      "sites": 156,
+      "gameWindow": [
+        886,
+        306
+      ],
+      "drawingBuffer": [
+        886,
+        306
+      ],
+      "dpr": 1,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "heapBytes": 158143530,
+      "downloads": {
+        "scripts": 41,
+        "transferredBytes": 0,
+        "decodedBytes": 3343976
+      },
+      "atlasFirstModelMs": 718.5999999940395
+    },
+    {
+      "run": 2,
+      "era": "rome-forum",
+      "medianMs": 16.69999999999891,
+      "p95Ms": 17,
+      "frames": 60,
+      "worldReadyMs": 8993.90000000596,
+      "sites": 156,
+      "gameWindow": [
+        886,
+        306
+      ],
+      "drawingBuffer": [
+        886,
+        306
+      ],
+      "dpr": 1,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "heapBytes": 362362227,
+      "downloads": {
+        "scripts": 42,
+        "transferredBytes": 0,
+        "decodedBytes": 3361166
+      },
+      "atlasFirstModelMs": 893.9000000059605
+    },
+    {
+      "run": 2,
+      "era": "rome-aqueduct",
+      "medianMs": 16.69999999999891,
+      "p95Ms": 17.30000000000109,
+      "frames": 60,
+      "worldReadyMs": 8944.299999982119,
+      "sites": 156,
+      "gameWindow": [
+        886,
+        306
+      ],
+      "drawingBuffer": [
+        886,
+        306
+      ],
+      "dpr": 1,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "heapBytes": 552340494,
+      "downloads": {
+        "scripts": 42,
+        "transferredBytes": 0,
+        "decodedBytes": 3361166
+      },
+      "atlasFirstModelMs": 766.1000000238419
+    },
+    {
+      "run": 3,
+      "era": "original",
+      "medianMs": 16.699999999999818,
+      "p95Ms": 33.399999999999636,
+      "frames": 60,
+      "worldReadyMs": 7657.799999982119,
+      "sites": 156,
+      "gameWindow": [
+        886,
+        306
+      ],
+      "drawingBuffer": [
+        886,
+        306
+      ],
+      "dpr": 1,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "heapBytes": 393131659,
+      "downloads": {
+        "scripts": 41,
+        "transferredBytes": 0,
+        "decodedBytes": 3343976
+      },
+      "atlasFirstModelMs": 610.3000000119209
+    },
+    {
+      "run": 3,
+      "era": "rome-forum",
+      "medianMs": 16.699999999999818,
+      "p95Ms": 33.20000000000073,
+      "frames": 60,
+      "worldReadyMs": 9079.59999999404,
+      "sites": 156,
+      "gameWindow": [
+        886,
+        306
+      ],
+      "drawingBuffer": [
+        886,
+        306
+      ],
+      "dpr": 1,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "heapBytes": 359029891,
+      "downloads": {
+        "scripts": 42,
+        "transferredBytes": 0,
+        "decodedBytes": 3361166
+      },
+      "atlasFirstModelMs": 1028
+    },
+    {
+      "run": 3,
+      "era": "rome-aqueduct",
+      "medianMs": 16.700000000000728,
+      "p95Ms": 33.399999999999636,
+      "frames": 60,
+      "worldReadyMs": 10775,
+      "sites": 156,
+      "gameWindow": [
+        886,
+        306
+      ],
+      "drawingBuffer": [
+        886,
+        306
+      ],
+      "dpr": 1,
+      "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36",
+      "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+      "heapBytes": 372601042,
+      "downloads": {
+        "scripts": 42,
+        "transferredBytes": 0,
+        "decodedBytes": 3361166
+      },
+      "atlasFirstModelMs": 930.7999999821186
+    }
+  ]
+}

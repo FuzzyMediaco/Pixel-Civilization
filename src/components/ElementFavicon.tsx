@@ -1,27 +1,67 @@
-import React, { useMemo, useState } from "react";
-import type { CivElementDef } from "../game/catalog";
-import { getStandardFootprintForLevel } from "../game/catalog";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ROME_PILOT_IDS, eraElementSpec, type EraKey } from "../game/eraStyles";
+import { useEraArt } from "./useEraArt";
+import { isEraArtReady } from "../game/eraArtLoader";
+import { getMaxElementLevel, type CivElementDef } from "../game/catalog";
+import { atlasPlots } from "../handbook/modelPlots";
 import { isCustomElementId } from "../game/customElements";
-import { buildDesignVoxels } from "../game/voxelArchitect";
-import { getVoxelStyleColor, packVoxKey } from "../game/voxelCore";
+import { buildCorridorVoxels, buildDesignVoxels } from "../game/voxelArchitect";
+import { corridorTransform } from "../game/roadCorridors";
+import { getVoxelStyleColor, packVoxKey, VOXEL_SIZE, VOXELS_PER_TILE } from "../game/voxelCore";
 
 const ISO_THUMB_CACHE = new Map<string, string>();
+export const EraThumbnailContext = createContext<EraKey>("original");
+export const hasBakedSheet=(id:string,era:EraKey)=>(era==="rome-forum" || era==="rome-aqueduct") && ROME_PILOT_IDS.includes(id);
+export const eraSheet = (id:string,era:EraKey) => "./handbook/era-pilot/models/"+era+"/"+id+".webp";
+
+export function EraSheetCell({id,era,level,variant,size,className,label,onError}:{
+  id:string;era:EraKey;level:number;variant:number;size:number;className?:string;label?:string;onError?:()=>void;
+}) {
+  const columns=getMaxElementLevel(id);
+  const left=96*(Math.min(columns,Math.max(1,level))-1);
+  return <svg width={size} height={size} viewBox={left+" "+(96*variant)+" 96 96"} className={className}
+    aria-hidden={label ? undefined : true} role={label ? "img" : undefined} aria-label={label}>
+    <image href={eraSheet(id,era)} width={columns*96} height={384} onError={onError}/>
+  </svg>;
+}
 
 /**
  * Renders a crisp 2D isometric miniature directly from the element's live 3D voxel blueprint
  * onto an offscreen canvas and caches the PNG data URL. Used for new balanced-catalog elements
  * (which don't have pre-baked static .webp files) and as a reliable fallback if any thumb fails.
  */
-export function renderIsometricVoxelThumb(def: CivElementDef, level = 2, variant = 0, angle = 0, size = 72): string | null {
-  const cacheKey = [def.id,level,variant,angle,size].join(":");
+export function renderIsometricVoxelThumb(def: CivElementDef, level = 2, variant = 0, angle = 0, size = 72, era: EraKey = "original", active = false, joined = false): string | null {
+  if (!isEraArtReady(era)) return null;
+  const cacheKey = [def.id,level,variant,angle,size,era,active,joined].join(":");
   const cached = ISO_THUMB_CACHE.get(cacheKey);
   if (cached) return cached;
   if (typeof document === "undefined") return null;
 
   try {
-    const [sx, sz] = getStandardFootprintForLevel(def, level);
-    const ctxData = buildDesignVoxels(def, level, variant, sx, sz, 0);
-    const source = ctxData.v.v;
+    const source = new Map<number,number>();
+    for (const plot of atlasPlots(def,level,variant,era,joined,active)) {
+      const [sx, sz] = plot.span;
+      const ctxData = buildDesignVoxels(plot.def,plot.level,plot.variant,sx,sz,plot.mask,plot.appearance);
+      const fit = Math.min(1,sx / ctxData.spanX,sz / ctxData.spanZ);
+      const rotation = plot.rotation * Math.PI / 2, cos = Math.cos(rotation), sin = Math.sin(rotation);
+      const corridor = plot.appearance.corridor;
+      const add = (voxels: Map<number,number>, pivot: readonly number[], scale = 1) => {
+        for (const [key,style] of voxels) {
+          let x = ((key >>> 20) - 512 + pivot[0]) * fit * scale;
+          const y = (((key >>> 10) & 1023) - 512 + pivot[1]) * fit * scale;
+          let z = ((key & 1023) - 512 + pivot[2]) * fit * scale;
+          if (corridor?.axis==="x") z=corridorTransform(corridor,x*VOXEL_SIZE,z*VOXEL_SIZE)/VOXEL_SIZE;
+          else if (corridor) x=corridorTransform(corridor,z*VOXEL_SIZE,x*VOXEL_SIZE)/VOXEL_SIZE;
+          source.set(packVoxKey(Math.round(x*cos+z*sin+plot.x*VOXELS_PER_TILE),
+            Math.round(y),Math.round(z*cos-x*sin+plot.z*VOXELS_PER_TILE)),style);
+        }
+      };
+      if (corridor) add(buildCorridorVoxels(plot.def.id,plot.level,plot.variant,plot.mask,plot.appearance)!.v,[0,0,0],.5);
+      else {
+        add(ctxData.v.v,[0,0,0]);
+        for (const rotor of ctxData.rotors) add(rotor.vox.v,rotor.pivot);
+      }
+    }
     const map = angle === 0 ? source : new Map(Array.from(source, ([k, style]) => {
       const x = ((k >>> 20) & 1023) - 512;
       const y = ((k >>> 10) & 1023) - 512;
@@ -134,15 +174,51 @@ export function renderIsometricVoxelThumb(def: CivElementDef, level = 2, variant
   }
 }
 
+function PeriodIcon({def,era,level,variant,className}:{def:CivElementDef;era:EraKey;level:number;variant:number;className:string}) {
+  const host=useRef<HTMLSpanElement>(null);
+  const [visible,setVisible]=useState(false);
+  useEffect(()=>{
+    if(!host.current || typeof IntersectionObserver==="undefined") {
+      setVisible(true);
+      return;
+    }
+    const observer=new IntersectionObserver(([entry])=>{
+      if(entry.isIntersecting) {
+        setVisible(true);
+        observer.disconnect();
+      }
+    },{rootMargin:"100px"});
+    observer.observe(host.current);
+    return ()=>observer.disconnect();
+  },[]);
+  const {ready}=useEraArt(visible ? era : "original");
+  const image=useMemo(()=>visible && ready ? renderIsometricVoxelThumb(def,level,variant,0,72,era) : null,
+    [visible,ready,def,level,variant,era]);
+  return <span ref={host} aria-hidden="true" className={"element-favicon "+className} style={{width:36,height:36,display:"inline-grid"}}>
+    {image && <img alt="" width={36} height={36} src={image}/>}
+  </span>;
+}
+
 /** The same cached design illustration appears in the build palette and handbook. */
-export function ElementFavicon({ def, className = "", eager = false }: { def: CivElementDef; className?: string; eager?: boolean }) {
-  const [imgFailed, setImgFailed] = useState(false);
+export function ElementFavicon({ def, className = "", eager = false, era: override, level = 2, variant = 0 }: { def: CivElementDef; className?: string; eager?: boolean; era?: EraKey; level?: number; variant?: number }) {
+  const inherited = useContext(EraThumbnailContext);
+  const era = override ?? inherited;
+  const themed = Boolean(eraElementSpec(def.id, era));
+  const baked=hasBakedSheet(def.id,era);
+  const source=baked ? eraSheet(def.id,era) : "./handbook/catalog/thumbs/"+def.id+".webp";
+  const [failedFor,setFailedFor] = useState("");
+  const imgFailed=source===failedFor;
+  const {ready} = useEraArt(themed && imgFailed ? era : "original");
 
   const isoUrl = useMemo(() => {
-    if (!imgFailed || isCustomElementId(def.id)) return null;
-    return renderIsometricVoxelThumb(def);
-  }, [def, imgFailed]);
+    if (!ready || isCustomElementId(def.id) || !imgFailed) return null;
+    return renderIsometricVoxelThumb(def, level, variant, 0, 72, era);
+  }, [def, imgFailed, themed, ready, era, level, variant]);
 
+  if (themed && !baked) return <PeriodIcon def={def} era={era} level={level} variant={variant} className={className}/>;
+  if (themed && !imgFailed) {
+    return <EraSheetCell id={def.id} era={era} level={level} variant={variant} size={36} className={"element-favicon "+className} onError={()=>setFailedFor(source)}/>;
+  }
   if (isoUrl) {
     return (
       <img
@@ -156,7 +232,7 @@ export function ElementFavicon({ def, className = "", eager = false }: { def: Ci
     );
   }
 
-  if (isCustomElementId(def.id) || imgFailed) {
+  if (isCustomElementId(def.id) || imgFailed || themed) {
     return (
       <svg
         viewBox="0 0 36 36"
@@ -185,14 +261,14 @@ export function ElementFavicon({ def, className = "", eager = false }: { def: Ci
 
   return (
     <img
-      src={"./handbook/catalog/thumbs/" + def.id + ".webp"}
+      src={source}
       alt=""
       aria-hidden="true"
       loading={eager ? "eager" : "lazy"}
       decoding="async"
       width={36}
       height={36}
-      onError={() => setImgFailed(true)}
+      onError={() => setFailedFor(source)}
       className={"element-favicon " + className}
     />
   );

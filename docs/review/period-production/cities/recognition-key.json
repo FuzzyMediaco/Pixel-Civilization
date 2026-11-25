@@ -1,0 +1,26 @@
+{
+  "street": {
+    "A": "art-deco",
+    "B": "rome-aqueduct",
+    "C": "post-apocalyptic",
+    "D": "ancient-china",
+    "E": "medieval-europe",
+    "F": "future-3027",
+    "G": "ancient-greece",
+    "H": "world-war-ii",
+    "I": "ancient-egypt",
+    "J": "renaissance-italy"
+  },
+  "skyline": {
+    "A": "ancient-greece",
+    "B": "world-war-ii",
+    "C": "ancient-egypt",
+    "D": "renaissance-italy",
+    "E": "future-3027",
+    "F": "medieval-europe",
+    "G": "post-apocalyptic",
+    "H": "rome-aqueduct",
+    "I": "art-deco",
+    "J": "ancient-china"
+  }
+}

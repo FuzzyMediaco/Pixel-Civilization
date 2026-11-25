@@ -5,6 +5,11 @@ import { MODE_TUTORIAL_LABELS } from "../game/tutorialFlows";
 import { syncState, watchSync } from "../game/accountSync";
 import { currentPlayer, isCloudSavePending, readPlayerItem, slotKey } from "../game/deviceSaves";
 import { type CivilizationSaveSlot, MAX_SAVE_SLOTS } from "../game/saveSlots";
+import { islandProductAvailable } from "../game/islandLicenses";
+import { productForEra, productForMode, productById } from "../game/storeCatalog.mjs";
+import { EraSelect } from "./PeriodPicker";
+import type { EraKey } from "../game/eraStyles";
+import { createInitialGameState } from "../game/simulation";
 import type { GameState } from "../game/simulation";
 import { MAX_TRANSFER_BYTES, readWorldFile, type TransferWorld } from "../game/worldTransfer";
 import "./saveSlots.css";
@@ -18,6 +23,7 @@ type Props = {
   currentState: GameState;
   saveKey: string;
   onClose: () => void;
+  onShop: (productId:string) => void;
   onExportWorld: (slotIndex?: number) => void;
   onImportWorld: (slotIndex: number, world: TransferWorld) => Promise<boolean>;
   linkedWorlds: TransferWorld[];
@@ -37,7 +43,7 @@ export function SaveSlotsModal({ open, ...props }: Props) {
 
 function SavedIslands({
   slots, activeSlotIndex, currentState, saveKey, error, deviceError, linkedWorlds,
-  onClose, onExportWorld, onImportWorld, onAddSlot, onSaveToSlot, onLoadSlot, onRenameSlot, onDeleteSlot,
+  onClose, onShop, onExportWorld, onImportWorld, onAddSlot, onSaveToSlot, onLoadSlot, onRenameSlot, onDeleteSlot,
 }: Omit<Props, "open">) {
   const sync = useSyncExternalStore(watchSync, syncState);
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -55,8 +61,10 @@ function SavedIslands({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [options, setOptions] = useState<number | null>(null);
-  const [form, setForm] = useState<{ action: "name" | "rename" | "delete" | "replace"; index: number } | null>(null);
+  const [form, setForm] = useState<{ action: "create" | "name" | "rename" | "delete" | "replace"; index: number } | null>(null);
   const [name, setName] = useState("");
+  const [newEra, setNewEra] = useState<EraKey>("original");
+  const [newMode, setNewMode] = useState<GameState["mode"]>("real");
   const worlds = fileWorlds.length ? fileWorlds : linkedWorlds;
   const selectedWorld = worlds[worldIndex];
   const emptySlot = slots.findIndex(slot => slot === null);
@@ -111,7 +119,16 @@ function SavedIslands({
     const { action, index } = form;
     setBusy(true);
     try {
-      if (action === "name") {
+      if (action === "create") {
+        const locked=[productForMode(newMode),productForEra(newEra)].find(id=>!islandProductAvailable(id));
+        if(locked){setMessage("Unlock "+productById(locked)?.label+" to use it on this island.");onShop(locked);return;}
+        const slot = index >= 0 ? index : await onAddSlot();
+        if (slot === undefined) return;
+        const state = createInitialGameState(newMode);
+        state.appearanceEra = newEra;
+        if (!await onImportWorld(slot, {name:name.trim(), state, customElements:[]})) return;
+        onLoadSlot(slot);
+      } else if (action === "name") {
         const slot = index >= 0 ? index : await onAddSlot();
         if (slot === undefined) return;
         await onSaveToSlot(slot, name);
@@ -149,24 +166,33 @@ function SavedIslands({
               setName(activeIsland ? activeIsland.name + " copy" : "");
               setForm({ action: "name", index: emptySlot });
             }}><Plus size={16} aria-hidden="true" />{activeIsland ? "Make a copy" : "Name this island"}</button>}
+            {canAdd && <button className="save-button" type="button" disabled={busy} onClick={()=>{
+              setName(""); setNewEra("original"); setNewMode(islandProductAvailable(productForMode(currentState.mode))?currentState.mode:"real"); setForm({action:"create",index:emptySlot});
+            }}><Plus size={16} aria-hidden="true"/> New island</button>}
           </section>
 
           {error && <p className="save-error" role="alert">{error}</p>}
 
           {form && (
             <form className="save-form" onSubmit={event => { event.preventDefault(); void submit(); }}>
-              {form.action === "name" || form.action === "rename" ? (
+              {form.action === "create" || form.action === "name" || form.action === "rename" ? (
                 <label>
                   {form.action === "rename" ? "New island name" : "Island name"}
                   <input autoFocus value={name} maxLength={36} placeholder="Island name"
                     onChange={event => setName(event.currentTarget.value)} />
                 </label>
               ) : <p>{form.action === "delete" ? "Delete" : "Replace"} “{slots[form.index]?.name}”?</p>}
+              {form.action === "create" && <>
+                <label>Game mode<select value={newMode} onChange={e=>setNewMode(e.target.value as GameState["mode"])}>
+                  {(["god","real","survival","idle","manager"] as const).map(mode=><option value={mode} key={mode}>{modeLabel(mode)}</option>)}
+                </select></label>
+                <EraSelect value={newEra} onChange={setNewEra}/>
+              </>}
               <div className="save-actions">
                 <button type="button" className="save-button" disabled={busy} onClick={() => setForm(null)}>Cancel</button>
                 <button className={form.action === "delete" ? "save-button save-danger" : "save-button save-primary"} type="submit"
-                  disabled={busy || ((form.action === "name" || form.action === "rename") && !name.trim())}>
-                  {form.action === "delete" ? "Delete island" : form.action === "replace" ? "Replace island" : "Save name"}
+                  disabled={busy || ((form.action === "create" || form.action === "name" || form.action === "rename") && !name.trim())}>
+                  {form.action === "create" ? "Create island" : form.action === "delete" ? "Delete island" : form.action === "replace" ? "Replace island" : "Save name"}
                 </button>
               </div>
             </form>

@@ -1,3 +1,4 @@
+import { ParcelLayoutRevision } from "./parcelLayoutRevision";
 import { railFreightBonus, railServedSites } from "./railOperations";
 import {syncCatalogBridges} from "./catalogBridge";
 import {chooseRoadAxis,corridorConflict} from "./roadCorridors";
@@ -339,6 +340,9 @@ export interface GameEventToast {
 }
 
 export interface GameState {
+  /** Saved visual preference; simulation rules always use canonical element IDs. */
+  appearanceEra?: string;
+  showOriginalNames?: boolean;
   railYard?: import("./railOperations").RailState;
   faith?: FaithRecord;
   exampleWorldId?: import("./exampleWorlds").ExampleWorldId;
@@ -1208,8 +1212,7 @@ interface RoadNetworkAnalysis {
   elementRoadComps: Map<string, Set<number>>;
 }
 
-function analyzeRoadNetwork(elements: PlacedElement[], state?:GameState): RoadNetworkAnalysis {
-  const occ = buildOccupancyMap(elements);
+function analyzeRoadNetwork(elements: PlacedElement[], state?:GameState, occ=buildOccupancyMap(elements), edges?:Map<string,ReturnType<typeof getParcelEdges>>): RoadNetworkAnalysis {
   // A bridge deck and the street passing underneath occupy one cell but cannot exchange traffic.
   const roadTiles = new Set<string>();
   const split = new Set<string>();
@@ -1260,7 +1263,7 @@ function analyzeRoadNetwork(elements: PlacedElement[], state?:GameState): RoadNe
   const sites = elements.filter(el=>ELEMENT_BY_ID[el.defId] && !ELEMENT_BY_ID[el.defId].isNetwork);
   for (const el of sites) {
     const comps = new Set<number>(), neighbors = new Set<string>();
-    for (const step of parcelAccessSteps(el,occ,state)) {
+    for (const step of parcelAccessSteps(el,occ,state,edges?.get(el.id))) {
       const next=ELEMENT_BY_ID[step.neighbor.defId];
       if (next.isRoadNetwork) {
         const horizontal=step.gx<el.gx || step.gx>=el.gx+el.spanX;
@@ -1396,6 +1399,23 @@ export function isUnconnectedBuilding(el: PlacedElement): boolean {
   return !el.connected && def?.domain === "land" && !def.isNetwork && !def.passiveNature;
 }
 
+const parcelLayoutRevision = new ParcelLayoutRevision();
+let districtLayout: {
+  edges: Map<string, ReturnType<typeof getParcelEdges>>;
+  effects: Map<string, ReturnType<typeof getParcelEffectSummary>>;
+  roads: RoadNetworkAnalysis;
+} | undefined;
+
+/** Cached results contain only IDs and spatial facts; mobile actors and current PlacedElement objects stay live. */
+function districtConnections(state:GameState,occupancy:Map<string,PlacedElement>){
+  if(parcelLayoutRevision.update(state) || !districtLayout){
+    const edges=new Map(state.elements.map(el=>[el.id,getParcelEdges(el,occupancy,state)]));
+    districtLayout={edges,effects:new Map(state.elements.map(el=>[el.id,getParcelEffectSummary(edges.get(el.id)!)])),
+      roads:analyzeRoadNetwork(state.elements,state,occupancy,edges)};
+  }
+  return districtLayout;
+}
+
 export function recomputeConnectivityAndMetrics(state: GameState): void {
   syncCatalogBridges(state);
   // Normalize old saves that predate protected sanctuaries.
@@ -1404,12 +1424,11 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   const parcelOccupancy = buildOccupancyMap(elements);
   const waterSystem=hydraulics(state);
   const waterAtSites = waterSystem.services;
-  const parcelEdges = new Map(elements.map(el => [el.id,getParcelEdges(el,parcelOccupancy,state)]));
-  const borderEffects = new Map(elements.map(el => [el.id,getParcelEffectSummary(parcelEdges.get(el.id)!)]));
+  const {edges:parcelEdges,effects:borderEffects,roads} = districtConnections(state,parcelOccupancy);
   let unportedVessels = 0;
   const freeAccess=state.mode==="god"&&effective(state,"access",0)>0;
   const service = transitReadout(state);
-  const { buildingsInRoadComp, elementRoadComps } = analyzeRoadNetwork(elements,state);
+  const { buildingsInRoadComp, elementRoadComps } = roads;
 
   // An element is connected if:
   // - In God Mode: always active, or
@@ -1665,7 +1684,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
   if (freightSites.length) {
     const tracks = getConnectedRailCoordSet(elements);
     for (const el of freightSites) {
-      if (getParcelEdges(el,parcelOccupancy,state).some(edge => edge.kind === "freight" && tracks.has(cellBeyondEdge(el,edge.side,edge.slot).join(",")))) freightRail.add(el.id);
+      if (parcelEdges.get(el.id)!.some(edge => edge.kind === "freight" && tracks.has(cellBeyondEdge(el,edge.side,edge.slot).join(",")))) freightRail.add(el.id);
     }
   }
   evaluateEconomy(state,m,baseHousingPop,elementRoadComps,service.reachable,borderEffects,service.districts,congestedEls,freightRail);

@@ -30,6 +30,14 @@ import { BuildSheet, type BuildCategory } from "./components/BuildSheet";
 import { PlacementBar } from "./components/PlacementBar";
 import { QuickBuildRing } from "./components/QuickBuildRing";
 import { SelectionRing, type PendingConfirmAction } from "./components/SelectionRing";
+import { EraThumbnailContext } from "./components/ElementFavicon";
+import { islandProductAvailable, resumeAccessibleIsland } from "./game/islandLicenses";
+import { IslandShop, useStoreAccess } from "./components/IslandShop";
+import { productForMode, productForEra } from "./game/storeCatalog.mjs";
+import { EraPresentation, PeriodPicker } from "./components/PeriodPicker";
+import { eraStageTreatment } from "./game/eraStage";
+import { eraElementName, normalizeEra, type EraKey } from "./game/eraStyles";
+import { loadEraArt } from "./game/eraArtLoader";
 import { GuideModal, type GuideModalState } from "./components/GuideModal";
 import { InspectorSheet } from "./components/InspectorSheet";
 import { LayersSheet, LAYERS } from "./components/LayersSheet";
@@ -184,14 +192,16 @@ const DEFAULT_HEIGHT: Record<NavSheet, SheetHeight> = {build: "peek", layers: "p
 const idleBrush = (b: BuildBrush): BuildBrush => ({...b, kind: "none", defId: undefined, movingElementId: undefined, movingGroupIds: undefined, groupDestination: undefined});
 
 export const App: React.FC = () => {
+  useStoreAccess();
+  const [shop,setShop]=useState<string|null>(()=>new URLSearchParams(location.search).has("purchase")?"":null);
+  const gate=(product:string|undefined)=>{if(islandProductAvailable(product))return true;setShop(product??"");return false;};
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<PixelWorldRenderer | null>(null);
 
-  const [gameState, setGameState] = useState<GameState>(() =>
-    unlockSky(resumeIsland(typeof location !== "undefined" ? location.hash : "")),
-  );
+  const [initialIsland]=useState(()=>resumeAccessibleIsland(location.hash));
+  const [gameState, setGameState] = useState<GameState>(() => unlockSky(initialIsland.city));
   const stateRef = useRef<GameState>(gameState);
-  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(() => lastActiveSlot(location.hash));
+  const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(() => initialIsland.slot);
   const activeSave = useRef<{ index: number; name: string } | null>(null);
   if (activeSlotIndex !== null && activeSave.current === null) {
     const slot = loadSaveSlots()[activeSlotIndex];
@@ -243,6 +253,7 @@ export const App: React.FC = () => {
     else route.delete("world");
     if (gameState.exampleWorldId && activeSlotIndex === null && gameState.mode === "real") route.set("mode", "real");
     else route.delete("mode");
+    route.delete("era"); // Era tour links apply once; subsequent saves own the choice.
     route.delete("view"); // A tour link sets the initial camera once. Refresh resumes the player's view.
     history.replaceState(null, "", "#" + route.toString());
   }, [gameState.exampleWorldId, gameState.mode, activeSlotIndex]);
@@ -266,6 +277,31 @@ export const App: React.FC = () => {
   const [inspectorHeight,setInspectorHeight]=useState<SheetHeight>("peek");
   const [cityTab,setCityTab]=useState<CityTab>("issues");
   const [morePage,setMorePage]=useState<MorePage>(null);
+  const [previewEra, setPreviewEra] = useState<EraKey | null>(null);
+  const [readyEra, setReadyEra] = useState<EraKey>("original");
+  const [eraError, setEraError] = useState("");
+  const storedEra = normalizeEra(gameState.appearanceEra);
+  const savedEra=gameState.exampleWorldId || islandProductAvailable(productForEra(storedEra)) ? storedEra : "original";
+  const isPreviewing = sheet === "more" && morePage === "view";
+  const requestedEra = isPreviewing ? previewEra ?? savedEra : savedEra;
+  const displayedEra = requestedEra === readyEra ? readyEra : "original";
+  useEffect(() => {
+    if (!isPreviewing) setPreviewEra(null);
+  }, [isPreviewing]);
+  useEffect(() => {
+    let current = true;
+    setEraError("");
+    void loadEraArt(requestedEra).then(() => {
+      if (current) setReadyEra(requestedEra);
+    }).catch(() => {
+      if (current) setEraError("This artwork could not be opened. Reconnect and select the period again.");
+    });
+    return () => { current = false; };
+  }, [requestedEra]);
+  const displayedEraRef = useRef(displayedEra);
+  displayedEraRef.current = displayedEra;
+  const displayName = useCallback((id: string) => eraElementName(id, stateRef.current.showOriginalNames ? "original" : displayedEraRef.current), []);
+  useEffect(() => { rendererRef.current?.setAppearanceEra(displayedEra); }, [displayedEra]);
   const [buildCat,setBuildCat]=useState<BuildCategory>("suggested");
   const buildCatRef=useRef(buildCat);buildCatRef.current=buildCat;
   const [buildQuery,setBuildQuery]=useState("");
@@ -644,7 +680,7 @@ export const App: React.FC = () => {
       const plan = planConstruction(cur, brushDef, gx, gz, curBrush.level, curBrush.rotation, curBrush.faceManually);
       if (!plan.valid) {
         if (plan.cost > 0 && cur.money < plan.cost) {
-          showToast({id:"funds",title:"Not enough money",subtitle:`Need $${plan.cost.toLocaleString()} to build ${plan.def.name}.`,tone:"alert"});
+          showToast({id:"funds",title:"Not enough money",subtitle:`Need $${plan.cost.toLocaleString()} to build ${displayName(plan.def.id)}.`,tone:"alert"});
         } else if (plan.reason) {
           showToast({id:"placement-blocked",title:"Can't build here",subtitle:plan.reason,tone:"alert"});
         }
@@ -660,7 +696,7 @@ export const App: React.FC = () => {
       const charged = plan.cost;
 
       const placedId = makeElementId();
-      commitBuildingEdit("Place "+def.name,(draft) => {
+      commitBuildingEdit("Place "+displayName(def.id),(draft) => {
         if (charged) transfer(draft,"treasury","outside",charged,"Construction");
         const placed: PlacedElement = {
           id: placedId,
@@ -693,7 +729,7 @@ export const App: React.FC = () => {
         applyLandformPlacement(draft,placed);
         settleStreetFacing(draft, placed, curBrush.faceManually === true);
         if (def.id !== brushDef.id && !draft.achievements?.includes("bridge_builder")) {
-          pushToast(draft, "merge", `Auto-Bridge: ${def.name}`, "Roads dragged across water become bridges automatically.");
+          pushToast(draft, "merge", `Auto-Bridge: ${displayName(def.id)}`, "Roads dragged across water become bridges automatically.");
         }
         recomputeConnectivityAndMetrics(draft);
       });
@@ -752,7 +788,7 @@ export const App: React.FC = () => {
     const status = site ? maintenanceStatus(city, site) : "none";
     if (site && status !== "none" && status !== "healthy") {
       commitState(draft => { maintainElement(draft, site.id); });
-      showToast({id:"maintenance",title:"Maintained " + (ELEMENT_BY_ID[site.defId]?.name ?? "building"),subtitle:"Full service restored for free."});
+      showToast({id:"maintenance",title:"Maintained " + (displayName(site.defId)),subtitle:"Full service restored for free."});
     }
     setSelectedIds(elementId ? [elementId] : []);
     if (elementId) notifyTutorial("select_element");
@@ -851,7 +887,7 @@ export const App: React.FC = () => {
           showToast({
             id: "funds",
             title: "Not enough money",
-            subtitle: `Need $${plan.cost.toLocaleString()} to build ${plan.def.name}.`,
+            subtitle: `Need $${plan.cost.toLocaleString()} to build ${displayName(plan.def.id)}.`,
             tone: "alert",
           });
         } else {
@@ -1128,6 +1164,7 @@ export const App: React.FC = () => {
       return;
     }
     rendererRef.current = world;
+    world.setAppearanceEra(displayedEraRef.current);
     if (ringObserverRef.current) world.setSelectionRingObserver(ringObserverRef.current);
     restoreIslandView(stateRef.current);
     (window as unknown as { __pixelWorld?: PixelWorldRenderer }).__pixelWorld = world;
@@ -1231,7 +1268,19 @@ export const App: React.FC = () => {
   // Simulation loop (250ms tick, pauses active Survival timers when tab is hidden)
   useEffect(() => {
     let lastMs = performance.now(), lastSave=lastMs;
-    const flush=()=>saveActiveMode(stateRef.current);
+    let queuedSave: number | undefined;
+    const idleAvailable = typeof window.requestIdleCallback === "function";
+    const unqueue=()=>{
+      if(queuedSave===undefined)return;
+      if(idleAvailable)window.cancelIdleCallback(queuedSave);else window.clearTimeout(queuedSave);
+      queuedSave=undefined;
+    };
+    const flush=()=>{unqueue();return saveActiveMode(stateRef.current);};
+    const queueSave=()=>{
+      if(queuedSave!==undefined)return;
+      // Keep the five-second checkpoint off the simulation/render turn; page hide and island changes flush immediately.
+      queuedSave=idleAvailable ? window.requestIdleCallback(flush,{timeout:750}) : window.setTimeout(flush,0);
+    };
     const closeSave = () => { if (flush()) void autosync(); };
     const visibility=()=>{if(document.hidden)closeSave();};
     window.addEventListener("pagehide",closeSave);
@@ -1262,13 +1311,13 @@ export const App: React.FC = () => {
         next.elements.some((e) => e.animProgress > 0)
       ) {
         setGameState(next);
-        if(now-lastSave>=5000){saveActiveMode(next);lastSave=now;}
+        if(now-lastSave>=5000){queueSave();lastSave=now;}
       } else {
         rendererRef.current?.syncState(next, selectedIdsRef.current);
       }
     }, 250);
 
-    return () => {window.clearInterval(timer);window.removeEventListener("pagehide",closeSave);window.removeEventListener("pixel-save-before-switch",flush);document.removeEventListener("visibilitychange",visibility);};
+    return () => {unqueue();window.clearInterval(timer);window.removeEventListener("pagehide",closeSave);window.removeEventListener("pixel-save-before-switch",flush);document.removeEventListener("visibilitychange",visibility);};
   }, []);
 
   // Construction advances on active play time and shares the selected simulation speed.
@@ -1417,6 +1466,7 @@ export const App: React.FC = () => {
 
   // UI Handlers
   const handleSwitchMode = (mode: GameMode) => {
+    if (!gate(productForMode(mode))) return false;
     resetTools();
     if(!saveActiveMode(stateRef.current))return false;
     const loaded = unlockSky(loadModeState(mode));
@@ -1537,7 +1587,7 @@ export const App: React.FC = () => {
       if (!site) return;
       if (site.onFire) dispatchFire(draft,id);
       else if (maintainElement(draft,id)) {
-        showToast({id:"maintenance",title:"Maintained " + (ELEMENT_BY_ID[site.defId]?.name ?? "building"),subtitle:"Full service restored for free."});
+        showToast({id:"maintenance",title:"Maintained " + (displayName(site.defId)),subtitle:"Full service restored for free."});
       }
     });
   };
@@ -1643,6 +1693,8 @@ export const App: React.FC = () => {
     resetTools();
     const previous = stateRef.current;
     const fresh = previous.exampleWorldId ? createExampleWorld(previous.exampleWorldId, previous.mode === "real" ? "real" : "god") : createInitialGameState(previous.mode);
+    fresh.appearanceEra = previous.appearanceEra;
+    fresh.showOriginalNames = previous.showOriginalNames;
     fresh.exampleReturnMode = previous.exampleReturnMode;
     restoreIslandView(fresh);
     stateRef.current = fresh;
@@ -1735,6 +1787,7 @@ export const App: React.FC = () => {
     resetTools();
     const slot = loadSaveSlots()[slotIndex];
     if (!slot || activeSave.current?.index === slotIndex) return;
+    if (!slot.state.exampleWorldId && !gate(productForMode(slot.state.mode))) return;
     if(!saveActiveMode(stateRef.current))return;
     const restored = unlockSky(cloneGameStateSnapshot(slot.state));
     pushToast(restored, "stage", `Loaded "${slot.name}"`, `Restored Slot #${slotIndex + 1} · ${restored.population.toLocaleString()} pop`);
@@ -1912,6 +1965,7 @@ export const App: React.FC = () => {
     catch{showToast({id:"snap",title:"Snapshot could not be saved",subtitle:"Free a save slot or browser storage, then try again.",tone:"alert"});return false;}
   };
   const activateSandbox=(s:GameState)=>{
+    if(!gate(productForMode("god")))return;
     if (!saveActiveMode(stateRef.current)) return;
     s.mode="god";s.gameOver=false;s.gameOverReason="";s.toasts=[];
     recomputeConnectivityAndMetrics(s);restoreIslandView(s);stateRef.current=s;setGameState(s);saveModeState(s);
@@ -1919,7 +1973,7 @@ export const App: React.FC = () => {
   };
   const activeExample = EXAMPLE_WORLDS.find(world => world.id === gameState.exampleWorldId);
   const openExamples = () => { setSheetState(null); setExamplesOpen(true); };
-  const visitExample = (id: ExampleWorldId, mode: ExampleMode, viewIndex?: number) => {
+  const visitExample = (id: ExampleWorldId, mode: ExampleMode, viewIndex?: number, linkedEra?: string | null) => {
     const previous = stateRef.current;
     if (!saveActiveMode(previous)) return;
     const next = previous.exampleWorldId === id && previous.mode === mode ? { ...previous } : loadModeState(mode, id);
@@ -1927,6 +1981,7 @@ export const App: React.FC = () => {
       next.exampleViewpoint = viewIndex;
       delete next.cameraView;
     }
+    if (linkedEra != null && id.startsWith("rome-")) next.appearanceEra = normalizeEra(linkedEra);
     next.exampleReturnMode = previous.exampleReturnMode ?? previous.mode;
     if (!saveModeState(next)) return;
     stateRef.current = next;
@@ -1939,7 +1994,7 @@ export const App: React.FC = () => {
   };
   const followExampleLink = useEffectEvent(() => {
     const route = readExampleRoute(location.hash);
-    if (route) visitExample(route.id, route.mode, route.viewIndex);
+    if (route) visitExample(route.id, route.mode, route.viewIndex, new URLSearchParams(location.hash.slice(1)).get("era"));
   });
   useEffect(() => {
     const onHashChange = () => followExampleLink();
@@ -1964,6 +2019,7 @@ export const App: React.FC = () => {
     commitState(draft => { draft.exampleViewpoint = index; });
   };
   const copyIsland=()=>{
+    if(!gate(productForMode("god")))return;
     const current=stateRef.current;if(!saveActiveMode(current))return;
     if(!snapshot(loadModeState("god")))return;
     const sandbox = cloneGameStateSnapshot(current);
@@ -2036,7 +2092,7 @@ export const App: React.FC = () => {
   const pendingConfirm: PendingConfirmAction | null = roadStrokeStats
     ? {
         key: `road:${roadStrokeStats.def.id}:${pendingRoadStroke!.points.map((p) => `${p.gx},${p.gz}`).join(";")}`,
-        label: `Build ${roadStrokeStats.def.name} · ${roadStrokeStats.validCount} tiles`,
+        label: `Build ${displayName(roadStrokeStats.def.id)} · ${roadStrokeStats.validCount} tiles`,
         sublabel:
           roadStrokeStats.validCount > 0
             ? (roadStrokeStats.totalCost > 0 ? `$${roadStrokeStats.totalCost.toLocaleString()}` : "Free")
@@ -2436,6 +2492,8 @@ export const App: React.FC = () => {
       : null;
 
   return (
+    <EraPresentation.Provider value={{era: displayedEra, originalNames: gameState.showOriginalNames === true}}>
+    <EraThumbnailContext.Provider value={displayedEra}>
     <main className={"island-app relative h-screen w-screen overflow-hidden select-none bg-[#c2e9ff]"+(showAlert?" has-alert":"")+(inFocusMenu?" has-focus-menu":"")+(ringOpen?" is-ring-open":"")}>
       {mapFallback
         ? <IslandMapFallback key={gameState.mode + (gameState.exampleWorldId ?? "")} state={gameState} focus={gameState.mode === "idle" && !followGrowth ? undefined : mapFocus} buildingPulse={mapBuildingPulse}
@@ -2474,7 +2532,7 @@ export const App: React.FC = () => {
       {!hideChrome && !ringOpen && gameState.mode === "idle" && (
         <IdleModeBanner
           stage={gameState.currentStage}
-          stageName={currentStageMeta.name}
+          stageName={eraStageTreatment(gameState.showOriginalNames ? "original" : displayedEra, currentStageMeta.stage).name}
           lastAction={autoLastAction}
           paused={idlePaused}
           followGrowth={followGrowth}
@@ -2525,7 +2583,7 @@ export const App: React.FC = () => {
       </div>}
 
       {/* Context layer */}
-      {brushDef&&<PlacementBar label="Placing" def={brushDef} title={brushDef.name+(gameState.mode==="god"?" · Lv "+brush.level:"")}
+      {brushDef&&<PlacementBar label="Placing" def={brushDef} title={eraElementName(brushDef.id,gameState.showOriginalNames ? "original" : displayedEra)+(gameState.mode==="god"?" · Lv "+brush.level:"")}
         subtitle={(brushCost?"$"+brushCost.toLocaleString()+(brushDef.isNetwork?" / tile":" each"):"Free")+(placeStats?.defId===brushDef.id?" · "+placeStats.count+" placed"+(placeStats.spent?" = $"+placeStats.spent.toLocaleString():""):"")}
         hint={
           pendingRoadStroke
@@ -2897,7 +2955,10 @@ export const App: React.FC = () => {
             simSpeed={simSpeed} onSimSpeed={(v)=>{trackDrawerAction("sim_speed",0.5);setSimSpeed(v);}}
             tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onStopTutorial={()=>stopTutorial(false)}/>
         ) : sheet==="more" ? (
-          <MoreSheet {...sheetProps} saveNow={()=>saveActiveMode(stateRef.current)} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount} slotCount={saveSlots.length}
+          <MoreSheet onShop={()=>setShop("")} periodPicker={<PeriodPicker stage={gameState.currentStage} saved={savedEra} selected={requestedEra} locked={!gameState.exampleWorldId && !islandProductAvailable(productForEra(requestedEra))} ready={readyEra === requestedEra} error={eraError}
+            originalNames={gameState.showOriginalNames === true} onSelect={setPreviewEra}
+            onApply={() => { if(!gameState.exampleWorldId && !gate(productForEra(requestedEra)))return; commitState(draft => { draft.appearanceEra = requestedEra; }); setPreviewEra(null); }}
+            onOriginalNames={value => commitState(draft => { draft.showOriginalNames = value; })}/>} {...sheetProps} saveNow={()=>saveActiveMode(stateRef.current)} state={gameState} page={morePage} onPage={setMorePage} savedCount={savedCount} slotCount={saveSlots.length}
             onSaves={()=>{trackDrawerAction("save_slots",0.5);setSheetState(null);setSlotError("");setSaveSlots(loadSaveSlots());setSavesModalOpen(true);}} onExamples={openExamples}
             onOpenHandbook={()=>{trackDrawerAction("handbook",0.5);setSheetState(null);setGuideModal({kind:"unified",atlasRoute:{tab:"course"}});}}
             onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
@@ -2929,11 +2990,11 @@ export const App: React.FC = () => {
         onTrack={e=>{setRailSite(undefined);rendererRef.current?.focusElement(e.id);handleSelectBrushDef("train_tracks");}}/>}
       {examplesOpen && <ExampleIslands current={gameState.exampleWorldId} currentMode={gameState.mode === "real" ? "real" : "god"} onOpen={visitExample} onClose={()=>setExamplesOpen(false)}
         error={saveError} onReturn={()=>{if(handleSwitchMode(stateRef.current.exampleReturnMode ?? "god"))setExamplesOpen(false);}}/>}
-      <SaveSlotsModal open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState} saveKey={islandSaveKey(gameState)} deviceError={deviceNotice || (saveError ? "Could not save to this device." : "")}
+      <SaveSlotsModal onShop={setShop} open={savesModalOpen} slots={saveSlots} activeSlotIndex={activeSlotIndex} currentState={gameState} saveKey={islandSaveKey(gameState)} deviceError={deviceNotice || (saveError ? "Could not save to this device." : "")}
         onClose={() => setSavesModalOpen(false)} onAddSlot={handleAddSaveSlot} onSaveToSlot={handleSaveToSlot} onLoadSlot={handleLoadSlot} error={slotError}
         onRenameSlot={handleRenameSlot} onDeleteSlot={handleDeleteSlot}
         linkedWorlds={linkedWorlds} onImportWorld={handleImportWorld} onExportWorld={handleExportWorld}/>
-      {guideModal && <GuideModal modal={guideModal} currentMode={gameState.mode} onChange={setGuideModal} onClose={() => setGuideModal(null)}
+      {guideModal && <GuideModal currentEra={displayedEra} showOriginalNames={gameState.showOriginalNames === true} modal={guideModal} currentMode={gameState.mode} onChange={setGuideModal} onClose={() => setGuideModal(null)}
         onPlayWorld={visitExample}/>}
       {pixModal.open && (
         <PixBuilderModal
@@ -2985,6 +3046,9 @@ export const App: React.FC = () => {
           </div>
         </GameDialog>
       )}
+      {shop!==null && <IslandShop initial={shop} onClose={()=>setShop(null)} saveNow={()=>saveActiveMode(stateRef.current)}/>}
     </main>
+    </EraThumbnailContext.Provider>
+    </EraPresentation.Provider>
   );
 };

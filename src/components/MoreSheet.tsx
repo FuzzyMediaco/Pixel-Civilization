@@ -1,4 +1,6 @@
 import React from "react";
+import { islandProductAvailable } from "../game/islandLicenses";
+import { productForMode } from "../game/storeCatalog.mjs";
 import { PlayerAccount } from "./PlayerAccount";
 import { currentPlayer } from "../game/deviceSaves";
 import {
@@ -51,7 +53,9 @@ export function MoreSheet({
   slotCount,
   onSaves,
   onExamples,
+  periodPicker,
   onOpenHandbook,
+  onShop,
   onOpenPixBuilder,
   onChangeMode,
   onCopyIsland,
@@ -72,7 +76,9 @@ export function MoreSheet({
   slotCount: number;
   onSaves: () => void;
   onExamples: () => void;
+  periodPicker: React.ReactNode;
   onOpenHandbook: () => void;
+  onShop:()=>void;
   onOpenPixBuilder?: () => void;
   onChangeMode: (m: GameMode) => void;
   onCopyIsland: () => void;
@@ -118,6 +124,7 @@ export function MoreSheet({
               <Settings size={18} aria-hidden="true" />
               <span>Settings</span>
             </button>
+            <button type="button" className="ui-more-tile" onClick={onShop}><BookOpen size={18} aria-hidden="true"/><span>Island Store</span></button>
             {onOpenPixBuilder && (
               <button type="button" className="ui-more-tile is-accent" onClick={onOpenPixBuilder} title="PixBuilder Studio & Advisor">
                 <Sparkles size={18} aria-hidden="true" />
@@ -172,6 +179,7 @@ export function MoreSheet({
               Weather &amp; clock run automatically outside God mode.
             </p>
           )}
+          {periodPicker}
           {view}
         </>
       )}
@@ -191,7 +199,7 @@ export function MoreSheet({
                 >
                   <b>
                     {m.title}
-                    {state.mode === m.id ? " · active" : ""}
+                    {state.mode === m.id ? " · active" : islandProductAvailable(productForMode(m.id)) ? "" : " · paid mode"}
                   </b>
                   <small>{m.desc}</small>
                 </button>

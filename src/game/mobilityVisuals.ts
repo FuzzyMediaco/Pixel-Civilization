@@ -1,4 +1,7 @@
-import { buildRailModel } from "./railModels";
+import { periodCabin } from "./periodTransit";
+import { productionPeriod } from "./periods";
+import type { EraKey } from "./eraStyles";
+import { buildRailModel, isRollingStock } from "./railModels";
 import { railBodies, parkedBodies, type RailBody } from "./railMovement";
 import { lineColor } from "./railOperations";
 import { cargoByCar } from "./railOperations";
@@ -24,7 +27,7 @@ type ModelKind =
   | "passenger"
   | "wake"
   | "bubbles";
-type RoadMesh = (kind: "bus" | "taxi", seed: number) => THREE.BufferGeometry;
+type RoadMesh = (kind: "bus" | "taxi", seed: number, era?: EraKey) => THREE.BufferGeometry;
 function model(kind: ModelKind) {
   const v = new PixelVox(51);
   const box = solidVoxels(v);
@@ -117,6 +120,8 @@ export class MobilityVisuals {
   ) {
     scene.add(this.root);
   }
+  private appearanceEra: EraKey = "original";
+  setAppearanceEra(era: EraKey) { this.appearanceEra = era; }
   private draw(
     id: string,
     kind: string,
@@ -128,18 +133,26 @@ export class MobilityVisuals {
     dt: number,
   ) {
     this.used.add(id);
+    const era = this.appearanceEra;
+    const key = era + "|" + kind;
     let mesh = this.objects.get(id);
-    if (!mesh || mesh.userData.kind !== kind) {
+    if (!mesh || mesh.userData.appearanceKey !== key) {
       if (mesh) this.root.remove(mesh);
-      let geo = this.geometries.get(kind);
+      let geo = this.geometries.get(key);
       if (!geo) {
         geo = kind.startsWith("rolling:") ? buildRailModel(kind.slice(8)) : ["bus", "taxi"].includes(kind)
-          ? this.road(kind as "bus" | "taxi", 1)
+          ? this.road(kind as "bus" | "taxi", 1, era)
           : model(kind as ModelKind);
-        this.geometries.set(kind, geo);
+        if (era !== "original" && ((kind.startsWith("rolling:") && isRollingStock(kind.slice(8))) || ["ferry","freight","gondola"].includes(kind))) {
+          const old = geo;
+          geo = periodVehicle(old,kind,era);
+          old.dispose();
+        }
+        this.geometries.set(key, geo);
       }
       mesh = new THREE.Mesh(geo, getPixelVoxelMaterial());
       mesh.userData.kind = kind;
+      mesh.userData.appearanceKey = key;
       mesh.castShadow = true;
       this.root.add(mesh);
       this.objects.set(id, mesh);
@@ -316,4 +329,43 @@ export function voyagePlacement(s: GameState, position: Point, submerged: boolea
     y: cell.waterLevel - (submerged ? Math.min(cell.depth * 0.42, 1.65) : 0),
     z: (position[1] + 0.5) * TILE_SIZE,
   };
+}
+
+// Match the original coupling pitch, ground contact and hull envelope so routes stay legible.
+function periodVehicle(original:THREE.BufferGeometry, kind:string, era:EraKey) {
+  original.computeBoundingBox();
+  const bounds=original.boundingBox!, v=new PixelVox(17);
+  const materials=productionPeriod(era).materials;
+  const stone=era==="rome-forum" ? "#dfcc9e" : materials[0];
+  const canopy=era==="rome-forum" ? "#ae4e46" : materials[2];
+  const engine=/^rolling:(steam|diesel|electric|express|commuter)/.test(kind);
+  const hull=kind === "ferry" || kind === "freight" || kind === "gondola";
+  if (hull) {
+    v.box(-2,0,-7,2,1,7,"#85583c");v.box(-1,1,-9,1,2,9,"#694630");
+    for(const x of [-3,3])v.box(x,1,-6,x,2,6,"#bd9869");
+  } else {
+    v.box(-3,1,-8,3,2,8,"#9e714d");
+    for(const x of [-3,3])for(const z of [-6,6])v.box(x,0,z-1,x,2,z+1,"#494941");
+  }
+  for(const x of [-2,2])for(const z of [-5,0,5])v.box(x,2,z,x,5,z,stone);
+  for(const x of [-3,3]) {
+    v.box(x,2,-6,x,2,6,stone);
+    for(const z of [-5,0,5]) v.put(x,2,z,"#b28d4c");
+  }
+  if (engine) {
+    v.box(-2,3,-7,2,5,-5,"#986443");v.box(-2,5,-7,2,5,-6,stone);
+    v.box(-1,3,3,1,5,5,"#b98347");v.put(0,6,5,"#c5aa67");
+  } else if (/freight|wagon|hopper|boxcar|container|tanker|livestock/.test(kind)) {
+    for(const z of [-4,1,5])v.box(-1,2,z-1,1,4,z+1,"#bd8355");
+  } else {
+    v.box(-3,6,-6,3,6,6,canopy);v.box(-2,7,-6,2,7,6,canopy);
+    for(const z of [-5,-1,3])v.box(-3,6,z,3,6,z,stone);
+    for(const z of [-3,2])v.box(-2,3,z,2,3,z,"#a46c44");
+  }
+  periodCabin(v,era,hull,/freight|hopper|boxcar|tanker/.test(kind));
+  const out=buildVoxelGeometry(v,.13);out.computeBoundingBox();
+  const own=out.boundingBox!, a=own.getSize(new THREE.Vector3()), b=bounds.getSize(new THREE.Vector3());
+  out.translate(-own.min.x,-own.min.y,-own.min.z);
+  out.scale(b.x/a.x,b.y/a.y,b.z/a.z);out.translate(bounds.min.x,bounds.min.y,bounds.min.z);
+  return out;
 }

@@ -300,9 +300,9 @@ const sharedCourts = ids("tiny_homes trailer_home cottages apartments apartment_
 export interface AccessStep { gx:number; gz:number; neighbor:PlacedElement }
 /** Boundaries that can carry people or local deliveries. A service pipe, power cable,
  * adjoining wall, habitat strip or planted buffer never supplies road access. */
-export function parcelAccessSteps(el:PlacedElement, occupancy:ReadonlyMap<string,PlacedElement>, state?:GameState):AccessStep[] {
+export function parcelAccessSteps(el:PlacedElement, occupancy:ReadonlyMap<string,PlacedElement>, state?:GameState, edges=getParcelEdges(el,occupancy,state)):AccessStep[] {
   const steps:AccessStep[]=[];
-  for(const edge of getParcelEdges(el,occupancy,state)) {
+  for(const edge of edges) {
     if(!traversable.has(edge.kind) && !(edge.kind==="yard" && sharedCourts.has(el.defId) && sharedCourts.has(edge.neighbor))) continue;
     const [gx,gz]=cellBeyondEdge(el,edge.side,edge.slot);
     const neighbor=occupancy.get(gx+","+gz);

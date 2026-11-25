@@ -248,6 +248,596 @@
             "height": 660
           }
         ]
+      },
+      {
+        "id": "rome-starter",
+        "world": "rome-starter",
+        "title": "Via delle Vigne",
+        "summary": "Practice street access on a farm lane with two courtyard homes and a market.",
+        "steps": [
+          "At The vineyard street, open Details on the two homes and compare their levels. The road links both front doors to the market.",
+          "At The open parcel, place a house beside the road. Inspect its access, then use Undo to try another position."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/rome-starter.webp",
+            "caption": "The courtyard homes and market share a single street with the farm.",
+            "alt": "A short road with tiled homes, farmland and an open building parcel.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "rome-district",
+        "world": "rome-district",
+        "title": "Porta Fluminis",
+        "summary": "Follow the water supply and the passenger railway through a working riverside district.",
+        "steps": [
+          "At The market block, look for street entrances to the homes, market and baths.",
+          "Visit The bridge and spring. Inspect the raised aqueduct and trace the water around the bend from the hillside to the baths.",
+          "At The passenger railway, open City → Transit and follow a train between the two stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/rome-district.webp",
+            "caption": "The riverside crossing links two streets beside the district’s aqueduct and passenger railway.",
+            "alt": "A river crossing, settled market block and rail corridor in Porta Fluminis.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "rome-skyline",
+        "world": "rome-skyline",
+        "title": "Colonia Alta",
+        "summary": "Compare four apartment designs beneath a hilltop observatory, then follow the streets down to the quay.",
+        "steps": [
+          "At The hilltop skyline, find the observatory and the housing below it. In More → View, switch between the two Roman appearances and compare the same plots.",
+          "At The four insulae, inspect an apartment. Open its model in the Atlas and step through the four designs.",
+          "Choose Crossing to the quay, then follow the street across the bridge and back toward the apartment district."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/rome-skyline.webp",
+            "caption": "The elevated observatory looks over the apartment quarter and its route down to the water.",
+            "alt": "Dense Roman housing, an observatory on the hill and a road toward the river.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "ancient-china-starter",
+        "world": "ancient-china-starter",
+        "title": "Mulberry Lane",
+        "summary": "Sweeping tiled eaves, gate courts and lantern-lit canal quays. Build a home on the open parcel and check its street access.",
+        "steps": [
+          "Build a home on the open parcel and check its street access.",
+          "Build a house by the street, inspect its access, and use Undo to return to the original block."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/ancient-china-starter.webp",
+            "caption": "Mulberry Lane in ancient china.",
+            "alt": "Sweeping tiled eaves, gate courts and lantern-lit canal quays. Build a home on the open parcel and check its street access.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "ancient-china-district",
+        "world": "ancient-china-district",
+        "title": "Jade Landing",
+        "summary": "Sweeping tiled eaves, gate courts and lantern-lit canal quays. Follow a passenger to the second platform and trace spring water to the waterworks.",
+        "steps": [
+          "Follow a passenger to the second platform and trace spring water to the waterworks.",
+          "Inspect the aqueduct bend and follow the water from the hillside spring towards the waterworks.",
+          "Open City → Transit, select the passenger service and follow a train between stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/ancient-china-district.webp",
+            "caption": "Jade Landing in ancient china.",
+            "alt": "Sweeping tiled eaves, gate courts and lantern-lit canal quays. Follow a passenger to the second platform and trace spring water to the waterworks.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "ancient-china-skyline",
+        "world": "ancient-china-skyline",
+        "title": "Capital of Nine Gates",
+        "summary": "Sweeping tiled eaves, gate courts and lantern-lit canal quays. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+        "steps": [
+          "Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+          "Compare the four residential variants. Open Details and follow the model into the Atlas.",
+          "Follow the bridge deck into the street and compare the aqueduct route above it."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/ancient-china-skyline.webp",
+            "caption": "Capital of Nine Gates in ancient china.",
+            "alt": "Sweeping tiled eaves, gate courts and lantern-lit canal quays. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "ancient-egypt-starter",
+        "world": "ancient-egypt-starter",
+        "title": "Reedbank",
+        "summary": "Reed landings, low mudbrick roofs and sandstone pylons follow the floodplain. Build a home on the open parcel and check its street access.",
+        "steps": [
+          "Build a home on the open parcel and check its street access.",
+          "Build a house by the street, inspect its access, and use Undo to return to the original block."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/ancient-egypt-starter.webp",
+            "caption": "Reedbank in ancient egypt.",
+            "alt": "Reed landings, low mudbrick roofs and sandstone pylons follow the floodplain. Build a home on the open parcel and check its street access.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "ancient-egypt-district",
+        "world": "ancient-egypt-district",
+        "title": "Lotus Quays",
+        "summary": "Reed landings, low mudbrick roofs and sandstone pylons follow the floodplain. Follow a passenger to the second platform and trace spring water to the waterworks.",
+        "steps": [
+          "Follow a passenger to the second platform and trace spring water to the waterworks.",
+          "Inspect the aqueduct bend and follow the water from the hillside spring towards the waterworks.",
+          "Open City → Transit, select the passenger service and follow a train between stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/ancient-egypt-district.webp",
+            "caption": "Lotus Quays in ancient egypt.",
+            "alt": "Reed landings, low mudbrick roofs and sandstone pylons follow the floodplain. Follow a passenger to the second platform and trace spring water to the waterworks.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "ancient-egypt-skyline",
+        "world": "ancient-egypt-skyline",
+        "title": "City of the Sun",
+        "summary": "Reed landings, low mudbrick roofs and sandstone pylons follow the floodplain. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+        "steps": [
+          "Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+          "Compare the four residential variants. Open Details and follow the model into the Atlas.",
+          "Follow the bridge deck into the street and compare the aqueduct route above it."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/ancient-egypt-skyline.webp",
+            "caption": "City of the Sun in ancient egypt.",
+            "alt": "Reed landings, low mudbrick roofs and sandstone pylons follow the floodplain. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "ancient-greece-starter",
+        "world": "ancient-greece-starter",
+        "title": "Olive Steps",
+        "summary": "Limestone stoas, terraced olive gardens and open civic theaters. Build a home on the open parcel and check its street access.",
+        "steps": [
+          "Build a home on the open parcel and check its street access.",
+          "Build a house by the street, inspect its access, and use Undo to return to the original block."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/ancient-greece-starter.webp",
+            "caption": "Olive Steps in ancient greece.",
+            "alt": "Limestone stoas, terraced olive gardens and open civic theaters. Build a home on the open parcel and check its street access.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "ancient-greece-district",
+        "world": "ancient-greece-district",
+        "title": "Stoa Harbour",
+        "summary": "Limestone stoas, terraced olive gardens and open civic theaters. Follow a passenger to the second platform and trace spring water to the waterworks.",
+        "steps": [
+          "Follow a passenger to the second platform and trace spring water to the waterworks.",
+          "Inspect the aqueduct bend and follow the water from the hillside spring towards the waterworks.",
+          "Open City → Transit, select the passenger service and follow a train between stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/ancient-greece-district.webp",
+            "caption": "Stoa Harbour in ancient greece.",
+            "alt": "Limestone stoas, terraced olive gardens and open civic theaters. Follow a passenger to the second platform and trace spring water to the waterworks.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "ancient-greece-skyline",
+        "world": "ancient-greece-skyline",
+        "title": "Acropolis of the Winds",
+        "summary": "Limestone stoas, terraced olive gardens and open civic theaters. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+        "steps": [
+          "Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+          "Compare the four residential variants. Open Details and follow the model into the Atlas.",
+          "Follow the bridge deck into the street and compare the aqueduct route above it."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/ancient-greece-skyline.webp",
+            "caption": "Acropolis of the Winds in ancient greece.",
+            "alt": "Limestone stoas, terraced olive gardens and open civic theaters. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "medieval-europe-starter",
+        "world": "medieval-europe-starter",
+        "title": "Millbrook",
+        "summary": "Timber gables, guild signs and market lanes below a stone keep. Build a home on the open parcel and check its street access.",
+        "steps": [
+          "Build a home on the open parcel and check its street access.",
+          "Build a house by the street, inspect its access, and use Undo to return to the original block."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/medieval-europe-starter.webp",
+            "caption": "Millbrook in medieval europe.",
+            "alt": "Timber gables, guild signs and market lanes below a stone keep. Build a home on the open parcel and check its street access.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "medieval-europe-district",
+        "world": "medieval-europe-district",
+        "title": "Crosskeys Market",
+        "summary": "Timber gables, guild signs and market lanes below a stone keep. Follow a passenger to the second platform and trace spring water to the waterworks.",
+        "steps": [
+          "Follow a passenger to the second platform and trace spring water to the waterworks.",
+          "Inspect the aqueduct bend and follow the water from the hillside spring towards the waterworks.",
+          "Open City → Transit, select the passenger service and follow a train between stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/medieval-europe-district.webp",
+            "caption": "Crosskeys Market in medieval europe.",
+            "alt": "Timber gables, guild signs and market lanes below a stone keep. Follow a passenger to the second platform and trace spring water to the waterworks.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "medieval-europe-skyline",
+        "world": "medieval-europe-skyline",
+        "title": "Crownwatch",
+        "summary": "Timber gables, guild signs and market lanes below a stone keep. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+        "steps": [
+          "Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+          "Compare the four residential variants. Open Details and follow the model into the Atlas.",
+          "Follow the bridge deck into the street and compare the aqueduct route above it."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/medieval-europe-skyline.webp",
+            "caption": "Crownwatch in medieval europe.",
+            "alt": "Timber gables, guild signs and market lanes below a stone keep. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "renaissance-italy-starter",
+        "world": "renaissance-italy-starter",
+        "title": "Via dei Fabbri",
+        "summary": "Ochre palazzi, loggias and workshops surround formal civic squares. Build a home on the open parcel and check its street access.",
+        "steps": [
+          "Build a home on the open parcel and check its street access.",
+          "Build a house by the street, inspect its access, and use Undo to return to the original block."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/renaissance-italy-starter.webp",
+            "caption": "Via dei Fabbri in renaissance italy.",
+            "alt": "Ochre palazzi, loggias and workshops surround formal civic squares. Build a home on the open parcel and check its street access.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "renaissance-italy-district",
+        "world": "renaissance-italy-district",
+        "title": "Porto delle Arti",
+        "summary": "Ochre palazzi, loggias and workshops surround formal civic squares. Follow a passenger to the second platform and trace spring water to the waterworks.",
+        "steps": [
+          "Follow a passenger to the second platform and trace spring water to the waterworks.",
+          "Inspect the aqueduct bend and follow the water from the hillside spring towards the waterworks.",
+          "Open City → Transit, select the passenger service and follow a train between stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/renaissance-italy-district.webp",
+            "caption": "Porto delle Arti in renaissance italy.",
+            "alt": "Ochre palazzi, loggias and workshops surround formal civic squares. Follow a passenger to the second platform and trace spring water to the waterworks.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "renaissance-italy-skyline",
+        "world": "renaissance-italy-skyline",
+        "title": "Città della Cupola",
+        "summary": "Ochre palazzi, loggias and workshops surround formal civic squares. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+        "steps": [
+          "Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+          "Compare the four residential variants. Open Details and follow the model into the Atlas.",
+          "Follow the bridge deck into the street and compare the aqueduct route above it."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/renaissance-italy-skyline.webp",
+            "caption": "Città della Cupola in renaissance italy.",
+            "alt": "Ochre palazzi, loggias and workshops surround formal civic squares. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "world-war-ii-starter",
+        "world": "world-war-ii-starter",
+        "title": "Victory Gardens",
+        "summary": "Brick neighbourhoods, signal huts and working rail yards share one wartime city. Build a home on the open parcel and check its street access.",
+        "steps": [
+          "Build a home on the open parcel and check its street access.",
+          "Build a house by the street, inspect its access, and use Undo to return to the original block."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/world-war-ii-starter.webp",
+            "caption": "Victory Gardens in world war ii.",
+            "alt": "Brick neighbourhoods, signal huts and working rail yards share one wartime city. Build a home on the open parcel and check its street access.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "world-war-ii-district",
+        "world": "world-war-ii-district",
+        "title": "Switchyard Junction",
+        "summary": "Brick neighbourhoods, signal huts and working rail yards share one wartime city. Follow a passenger to the second platform and trace spring water to the waterworks.",
+        "steps": [
+          "Follow a passenger to the second platform and trace spring water to the waterworks.",
+          "Inspect the aqueduct bend and follow the water from the hillside spring towards the waterworks.",
+          "Open City → Transit, select the passenger service and follow a train between stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/world-war-ii-district.webp",
+            "caption": "Switchyard Junction in world war ii.",
+            "alt": "Brick neighbourhoods, signal huts and working rail yards share one wartime city. Follow a passenger to the second platform and trace spring water to the waterworks.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "world-war-ii-skyline",
+        "world": "world-war-ii-skyline",
+        "title": "Harbour Command",
+        "summary": "Brick neighbourhoods, signal huts and working rail yards share one wartime city. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+        "steps": [
+          "Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+          "Compare the four residential variants. Open Details and follow the model into the Atlas.",
+          "Follow the bridge deck into the street and compare the aqueduct route above it."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/world-war-ii-skyline.webp",
+            "caption": "Harbour Command in world war ii.",
+            "alt": "Brick neighbourhoods, signal huts and working rail yards share one wartime city. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "art-deco-starter",
+        "world": "art-deco-starter",
+        "title": "Marquee Row",
+        "summary": "Fluted towers, streamlined terminals and illuminated marquee streets. Build a home on the open parcel and check its street access.",
+        "steps": [
+          "Build a home on the open parcel and check its street access.",
+          "Build a house by the street, inspect its access, and use Undo to return to the original block."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/art-deco-starter.webp",
+            "caption": "Marquee Row in art deco.",
+            "alt": "Fluted towers, streamlined terminals and illuminated marquee streets. Build a home on the open parcel and check its street access.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "art-deco-district",
+        "world": "art-deco-district",
+        "title": "Union Promenade",
+        "summary": "Fluted towers, streamlined terminals and illuminated marquee streets. Follow a passenger to the second platform and trace spring water to the waterworks.",
+        "steps": [
+          "Follow a passenger to the second platform and trace spring water to the waterworks.",
+          "Inspect the aqueduct bend and follow the water from the hillside spring towards the waterworks.",
+          "Open City → Transit, select the passenger service and follow a train between stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/art-deco-district.webp",
+            "caption": "Union Promenade in art deco.",
+            "alt": "Fluted towers, streamlined terminals and illuminated marquee streets. Follow a passenger to the second platform and trace spring water to the waterworks.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "art-deco-skyline",
+        "world": "art-deco-skyline",
+        "title": "Meridian City",
+        "summary": "Fluted towers, streamlined terminals and illuminated marquee streets. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+        "steps": [
+          "Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+          "Compare the four residential variants. Open Details and follow the model into the Atlas.",
+          "Follow the bridge deck into the street and compare the aqueduct route above it."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/art-deco-skyline.webp",
+            "caption": "Meridian City in art deco.",
+            "alt": "Fluted towers, streamlined terminals and illuminated marquee streets. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "future-3027-starter",
+        "world": "future-3027-starter",
+        "title": "Seed Array",
+        "summary": "Suspended habitats, light guides and modular gardens rise over quiet transit lanes. Build a home on the open parcel and check its street access.",
+        "steps": [
+          "Build a home on the open parcel and check its street access.",
+          "Build a house by the street, inspect its access, and use Undo to return to the original block."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/future-3027-starter.webp",
+            "caption": "Seed Array in future 3027.",
+            "alt": "Suspended habitats, light guides and modular gardens rise over quiet transit lanes. Build a home on the open parcel and check its street access.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "future-3027-district",
+        "world": "future-3027-district",
+        "title": "Tidal Exchange",
+        "summary": "Suspended habitats, light guides and modular gardens rise over quiet transit lanes. Follow a passenger to the second platform and trace spring water to the waterworks.",
+        "steps": [
+          "Follow a passenger to the second platform and trace spring water to the waterworks.",
+          "Inspect the aqueduct bend and follow the water from the hillside spring towards the waterworks.",
+          "Open City → Transit, select the passenger service and follow a train between stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/future-3027-district.webp",
+            "caption": "Tidal Exchange in future 3027.",
+            "alt": "Suspended habitats, light guides and modular gardens rise over quiet transit lanes. Follow a passenger to the second platform and trace spring water to the waterworks.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "future-3027-skyline",
+        "world": "future-3027-skyline",
+        "title": "Orbital Commons",
+        "summary": "Suspended habitats, light guides and modular gardens rise over quiet transit lanes. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+        "steps": [
+          "Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+          "Compare the four residential variants. Open Details and follow the model into the Atlas.",
+          "Follow the bridge deck into the street and compare the aqueduct route above it."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/future-3027-skyline.webp",
+            "caption": "Orbital Commons in future 3027.",
+            "alt": "Suspended habitats, light guides and modular gardens rise over quiet transit lanes. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "post-apocalyptic-starter",
+        "world": "post-apocalyptic-starter",
+        "title": "Cistern Camp",
+        "summary": "Salvaged frames, patchwork shade and flourishing gardens mark a rebuilding city. Build a home on the open parcel and check its street access.",
+        "steps": [
+          "Build a home on the open parcel and check its street access.",
+          "Build a house by the street, inspect its access, and use Undo to return to the original block."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/post-apocalyptic-starter.webp",
+            "caption": "Cistern Camp in post apocalyptic.",
+            "alt": "Salvaged frames, patchwork shade and flourishing gardens mark a rebuilding city. Build a home on the open parcel and check its street access.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "post-apocalyptic-district",
+        "world": "post-apocalyptic-district",
+        "title": "Patchwork Crossing",
+        "summary": "Salvaged frames, patchwork shade and flourishing gardens mark a rebuilding city. Follow a passenger to the second platform and trace spring water to the waterworks.",
+        "steps": [
+          "Follow a passenger to the second platform and trace spring water to the waterworks.",
+          "Inspect the aqueduct bend and follow the water from the hillside spring towards the waterworks.",
+          "Open City → Transit, select the passenger service and follow a train between stations."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/post-apocalyptic-district.webp",
+            "caption": "Patchwork Crossing in post apocalyptic.",
+            "alt": "Salvaged frames, patchwork shade and flourishing gardens mark a rebuilding city. Follow a passenger to the second platform and trace spring water to the waterworks.",
+            "width": 720,
+            "height": 438
+          }
+        ]
+      },
+      {
+        "id": "post-apocalyptic-skyline",
+        "world": "post-apocalyptic-skyline",
+        "title": "The Green Spire",
+        "summary": "Salvaged frames, patchwork shade and flourishing gardens mark a rebuilding city. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+        "steps": [
+          "Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+          "Compare the four residential variants. Open Details and follow the model into the Atlas.",
+          "Follow the bridge deck into the street and compare the aqueduct route above it."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/worlds/post-apocalyptic-skyline.webp",
+            "caption": "The Green Spire in post apocalyptic.",
+            "alt": "Salvaged frames, patchwork shade and flourishing gardens mark a rebuilding city. Inspect the skyline landmark and compare the four apartment courtyards in the Atlas.",
+            "width": 720,
+            "height": 438
+          }
+        ]
       }
     ]
   },

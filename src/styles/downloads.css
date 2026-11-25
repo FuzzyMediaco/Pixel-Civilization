@@ -1,4 +1,4 @@
-@font-face { font-family: "DM Sans"; src: url("./dm-sans-latin.woff2") format("woff2"); font-weight: 100 1000; font-display: swap; }
+@import "./interface.css";
 * { box-sizing: border-box; }
 body { margin: 0; background: #f2f3e9; color: #19382b; font: 17px/1.55 "DM Sans", system-ui, sans-serif; }
 main { max-width: 1000px; margin: auto; padding: 28px clamp(18px, 4vw, 48px) 64px; }

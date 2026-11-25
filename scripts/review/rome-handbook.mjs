@@ -1,0 +1,67 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { chromium } from "./ui-lib.mjs";
+
+const origin = process.env.ROME_PREVIEW_URL ?? "http://127.0.0.1:5382";
+const out = process.env.ROME_CAPTURE_DIR ?? path.resolve("docs/review/rome-pilot");
+fs.mkdirSync(out,{recursive:true});
+const browser = await chromium.launch({executablePath:process.env.CHROME_PATH,args:["--enable-unsafe-swiftshader","--num-raster-threads=2"]});
+const errors = [];
+const scenarios=[];
+try {
+  for(const [name,width,height] of [["phone",320,740],["desktop",1180,820]]) {
+    const context=await browser.newContext({viewport:{width,height},reducedMotion:"reduce",hasTouch:name==="phone"});
+    const page=await context.newPage();page.on("pageerror",e=>errors.push(e.message));
+    await page.goto(origin+"/handbook.html#design=house&era=rome-forum&level=2&style=3&course=rome-upgrade");
+    await page.getByRole("heading",{name:"Domus",exact:true}).waitFor();
+    await page.locator(".pc-atlas-viewport canvas").waitFor();
+    assert.equal(await page.getByLabel("Handbook time period").inputValue(),"rome-forum");
+    await page.getByRole("button",{name:"Compare Original",exact:true}).click();
+    assert.match(await page.locator(".pc-era-comparison [role=status]").innerText(),/Original.*Lv 2.*C/);
+    await page.getByRole("button",{name:/Return to Rome/}).click();
+    await page.getByRole("button",{name:"Zoom in",exact:true}).click();
+    await page.getByRole("button",{name:"Reset view",exact:true}).click();
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.screenshot({path:path.join(out,"atlas-"+name+".jpg"),quality:80,type:"jpeg"});
+    await page.getByRole("button",{name:"Back to course lesson"}).click();
+    await page.getByRole("heading",{name:"Room for another family"}).waitFor();
+    await page.getByRole("button",{name:"Inspect this model in Atlas"}).click();
+    await page.getByRole("button",{name:"Next level",exact:true}).click();
+    assert.match(page.url(),/level=2/);
+    await page.getByRole("button",{name:"Back to course lesson"}).click();
+    await page.getByRole("button",{name:"Upgrade the house",exact:true}).click();
+    await page.getByText(/Goal met.*from 5 to 10/).waitFor();
+    await page.getByRole("button",{name:/Water from the hills/}).click();
+    await page.getByRole("button",{name:"Lower the middle span",exact:true}).click();
+    await page.getByText(/Goal met.*receiving pool/).waitFor();
+    await page.getByRole("button",{name:/The passenger terminus/}).click();
+    await page.getByLabel("First stop").selectOption("1");
+    await page.getByRole("button",{name:"Dispatch train",exact:true}).click();
+    await page.locator("[data-complete=true]").waitFor();
+    await page.locator(".pc-practice-scene").scrollIntoViewIfNeeded();
+    await page.screenshot({path:path.join(out,"exercise-"+name+".jpg"),quality:80,type:"jpeg"});
+    await page.goto(origin+"/field-guide.html?id=bus_stops&level=99&variant=9&era=rome-aqueduct");
+    await page.locator(".pc-atlas-nest summary").first().waitFor();
+    assert.match(await page.locator(".pc-atlas-nest summary").first().innerText(),/Lv 3/);
+    assert.match(page.url(),/level=3/);assert.match(page.url(),/variant=4/);
+    const search=page.getByRole("searchbox",{name:"Search Handbook"});await search.fill("Domus");
+    await page.locator(".pc-hb-search-el").filter({hasText:"Domus"}).first().click();
+    await page.getByRole("heading",{name:"Domus",exact:true}).waitFor();
+    scenarios.push({device:name,width,orbitControls:true,normalizedLink:true,lessonReturn:true,serviceCall:true});
+    await context.close();
+  }
+  const flat=await browser.newContext();
+  await flat.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return type.includes("webgl")?null:original.call(this,type,...args);};});
+  const page=await flat.newPage();await page.goto(origin+"/field-guide.html?id=train_tracks&level=2&variant=2&era=rome-aqueduct");
+  await page.locator(".pc-atlas-illustrated img").waitFor();
+  const before=await page.locator(".pc-atlas-illustrated img").getAttribute("src");
+  await page.getByRole("button",{name:"Rotate right"}).click();
+  await page.waitForFunction(previous=>document.querySelector(".pc-atlas-illustrated img")?.src!==previous,before);
+  await page.getByText("Neighbor connection",{exact:true}).click();
+  await page.getByRole("button",{name:/^Beside /}).click();
+  await page.locator(".pc-atlas-illustrated img").waitFor();
+  await flat.close();
+  assert.deepEqual(errors,[]);
+  console.log(JSON.stringify({scenarios,illustratedJoined:true,errors}));
+} finally {await browser.close();}
