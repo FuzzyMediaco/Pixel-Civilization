@@ -257,7 +257,7 @@ export async function startFunded(env, user, sku, price, stripe, customerFor, co
         billing_address_collection: "required",
         "customer_update[address]": "auto",
         "customer_update[name]": "auto",
-        "payment_method_types[0]": "card",
+        "allowed_payment_method_types[0]": "card",
         "custom_text[submit][message]": row.consent_text,
         "metadata[pixel_consent_version]": row.consent_version,
         "setup_intent_data[metadata][pixel_consent_version]": row.consent_version,

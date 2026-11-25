@@ -139,6 +139,8 @@ function storefront(t: TestContext) {
         break;
       case "POST checkout/sessions":
         assert.equal(form.get("mode"), "setup");
+        assert.equal(form.get("allowed_payment_method_types[0]"), "card");
+        assert.equal(form.has("payment_method_types[0]"), false);
         assert.equal(form.get("consent_collection[terms_of_service]"), null);
         assert.equal(
           form.get("setup_intent_data[metadata][pixel_consent_version]"),
