@@ -56,7 +56,7 @@ jobs:
         with: {name: Pixel-Civilization-Play-Bundle, path: 'packages/store/android/build/outputs/bundle/release/*.aab'}
   apple:
     needs: web
-    runs-on: macos-26
+    runs-on: macos-26-intel
     timeout-minutes: 95
     steps:
       - uses: actions/checkout@v4
@@ -64,7 +64,7 @@ jobs:
         with: {name: mobile-web, path: dist}
       - uses: actions/setup-node@v4
         with: {node-version: 24}
-      - run: node packages/store/prepare.mjs
+      - run: node packages/store/prepare.mjs && node packages/store/catalog.mjs
       - name: Build and run the game on iPhone and iPad
         run: |
           brew install xcodegen
