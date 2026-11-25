@@ -9,6 +9,7 @@ import { storePage } from "./bundle-content.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
+const source = path.resolve(process.env.PIXEL_WEB_DIST || path.join(root, "dist"));
 const archive = process.argv[2] && path.resolve(process.argv[2]);
 if (!archive || !/\.(aab|apk)$/i.test(archive)) throw Error("Pass a Play AAB or Android APK path.");
 const appBundle = /\.aab$/i.test(archive);
@@ -16,7 +17,7 @@ const assets = appBundle ? "base/assets" : "assets";
 const jdk = process.env.JAVA_HOME;
 const jar = jdk ? path.join(jdk,"bin",process.platform === "win32" ? "jar.exe" : "jar") : "jar";
 const entries = new Set(execFileSync(jar,["tf",archive],{encoding:"utf8"}).trim().split(/\r?\n/));
-const manifest = JSON.parse(await readFile(path.join(root,"dist/offline-index.json"),"utf8"));
+const manifest = JSON.parse(await readFile(path.join(source,"offline-index.json"),"utf8"));
 const expectedNative = appBundle ? ["BundleConfig.pb","base/manifest/AndroidManifest.xml","base/dex/classes.dex"] : ["AndroidManifest.xml","classes.dex"];
 for (const entry of expectedNative) assert.ok(entries.has(entry),entry);
 for (const entry of entries) {
@@ -32,7 +33,7 @@ try {
   for (const file of manifest.files) {
     const bundled = await readFile(path.join(folder,file.path));
     if (file.path.endsWith(".html")) {
-      const web = await readFile(path.join(root,"dist",file.path),"utf8");
+      const web = await readFile(path.join(source,file.path),"utf8");
       assert.equal(bundled.toString("utf8"),storePage(web),file.path);
     } else {
       assert.equal(createHash("sha256").update(bundled).digest("hex"),file.sha256,file.path);

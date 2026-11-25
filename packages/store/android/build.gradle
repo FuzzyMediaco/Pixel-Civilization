@@ -36,7 +36,7 @@ android {
     }
 }
 tasks.register('prepareStoreAssets', Exec) {
-    inputs.dir('../../../dist')
+    inputs.dir(System.getenv('PIXEL_WEB_DIST') ?: '../../../dist')
     inputs.files('../prepare.mjs', '../bundle-content.mjs', '../bridge.js')
     outputs.dir('../generated/web')
     commandLine 'node', '../prepare.mjs'

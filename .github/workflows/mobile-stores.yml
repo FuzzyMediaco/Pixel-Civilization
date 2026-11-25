@@ -6,6 +6,9 @@ on:
       - 'packages/store/**'
       - '.github/workflows/mobile-stores.yml'
       - 'src/game/storeCatalog.mjs'
+concurrency:
+  group: mobile-stores-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

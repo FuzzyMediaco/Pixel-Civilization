@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
-const source = path.join(root, "dist");
+const source = path.resolve(process.env.PIXEL_WEB_DIST || path.join(root, "dist"));
 const target = path.join(here, "generated", "web");
 const manifest = JSON.parse(await readFile(path.join(source, "offline-index.json"), "utf8"));
 if (!manifest.files?.length) throw Error("Build the web game first.");
