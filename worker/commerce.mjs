@@ -6,6 +6,9 @@ import { activeGrants, DAY, getUsage, requireOrigin, requireStore, signAccess } 
 import { activeNativeStores, verifyNative, refreshNative } from "./native-purchases.mjs";
 import {
   checkout,
+  fundedSnapshot,
+  maintainPixBilling,
+  stopPixRenewal,
   fundedSubscriptionBillingReady,
   portal,
   reconcileSession,
@@ -34,6 +37,7 @@ async function snapshot(env, user) {
     providers,
     readyStores,
     pixAdmission,
+    pixBilling: user ? await fundedSnapshot(db, user.id) : null,
     webSubscriptionsReady: Object.values(pixAdmission.tiers).some((tier) => tier.available),
     validUntil: Math.min(Date.now() + 7 * DAY, plan?.expires_at ?? Infinity),
   };
@@ -117,6 +121,10 @@ export async function commerceRequest(request, env) {
       await reconcileSession(env, body.sessionId, user.id);
       return json(await snapshot(env, user));
     }
+    if (path === "pix/cancel-renewal") {
+      await stopPixRenewal(env, user.id);
+      return json(await snapshot(env, user));
+    }
     if (path === "portal") return json(await portal(env, user));
     throw new AccountError(404, "Unknown store page.", "not_found");
   } catch (error) {
@@ -134,6 +142,7 @@ export async function commerceRequest(request, env) {
 export async function maintainCommerce(env) {
   if (!env.GAME_ACCOUNTS) return;
   await refreshNative(env);
+  if (env.STRIPE_SECRET_KEY) await maintainPixBilling(env);
   const db = env.GAME_ACCOUNTS,
     now = Date.now();
   await db.batch([
