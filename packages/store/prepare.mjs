@@ -1,6 +1,7 @@
 // Prepare an immutable store edition from the production web build.
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { storePage } from "./bundle-content.mjs";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -19,8 +20,9 @@ for (const {path:relative} of manifest.files) {
   await mkdir(path.dirname(dest), {recursive:true});
   if (relative.endsWith(".html")) {
     const html = await readFile(path.join(source,relative),"utf8");
-    await writeFile(dest,html.replace(/<head(?:\s[^>]*)?>/i, tag => tag+'<script src="/store-bridge.js"></script>'));
+    await writeFile(dest,storePage(html));
   } else await cp(path.join(source, relative), dest);
 }
 await cp(path.join(here,"bridge.js"),path.join(target,"store-bridge.js"));
+await writeFile(path.join(target,"store-edition.json"), JSON.stringify({release:manifest.release, files:manifest.files.length})+"\n");
 console.log(`Prepared ${manifest.files.length} files from web edition ${manifest.release}.`);

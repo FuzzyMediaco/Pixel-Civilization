@@ -108,6 +108,7 @@ final class PlayStore implements PurchasesUpdatedListener {
             }
         } else {
             var prices=p.getOneTimePurchaseOfferDetailsList();
+            if ((prices==null || prices.isEmpty()) && p.getOneTimePurchaseOfferDetails()!=null) prices = Collections.singletonList(p.getOneTimePurchaseOfferDetails());
             if (prices!=null) for (var price:prices) if(price.getOfferId()==null && price.getRentalDetails()==null)
                 return new Offer(p,price.getOfferToken(),price.getFormattedPrice(),price.getPriceCurrencyCode());
         }

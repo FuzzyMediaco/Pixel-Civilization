@@ -37,7 +37,7 @@ android {
 }
 tasks.register('prepareStoreAssets', Exec) {
     inputs.dir('../../../dist')
-    inputs.files('../prepare.mjs', '../bridge.js')
+    inputs.files('../prepare.mjs', '../bundle-content.mjs', '../bridge.js')
     outputs.dir('../generated/web')
     commandLine 'node', '../prepare.mjs'
 }
