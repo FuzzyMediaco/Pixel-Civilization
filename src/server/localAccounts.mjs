@@ -1,10 +1,11 @@
 // Node's development server uses the same account and revision code as the hosted Worker.
 import { DatabaseSync } from "node:sqlite";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { Readable } from "node:stream";
 import { commerceRequest } from "../../worker/commerce.mjs";
 import { pixWithPlans } from "../../worker/pix-plans.mjs";
+import { pixReport } from "../../worker/pix-reports.mjs";
 import { accountRequest } from "../../worker/accounts.mjs";
 
 export function openAccountDatabase(filename) {
@@ -13,25 +14,16 @@ export function openAccountDatabase(filename) {
   sqlite.exec("PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000");
   sqlite.exec("BEGIN IMMEDIATE");
   try {
-    if (!sqlite.prepare("PRAGMA user_version").get().user_version) {
-      sqlite.exec(readFileSync(new URL("../../migrations/0001_game_accounts.sql", import.meta.url), "utf8"));
-      sqlite.exec("PRAGMA user_version=1");
-    }
-    if (sqlite.prepare("PRAGMA user_version").get().user_version < 2) {
-      sqlite.exec(readFileSync(new URL("../../migrations/0002_store_and_pix.sql", import.meta.url),"utf8"));
-      sqlite.exec("PRAGMA user_version=2");
-    }
-    if (sqlite.prepare("PRAGMA user_version").get().user_version < 3) {
-      sqlite.exec(readFileSync(new URL("../../migrations/0003_store_checkout_slots.sql", import.meta.url),"utf8"));
-      sqlite.exec("PRAGMA user_version=3");
-    }
-    if (sqlite.prepare("PRAGMA user_version").get().user_version < 4) {
-      sqlite.exec(readFileSync(new URL("../../migrations/0004_existing_game_modes.sql", import.meta.url),"utf8"));
-      sqlite.exec("PRAGMA user_version=4");
-    }
-    if (sqlite.prepare("PRAGMA user_version").get().user_version < 5) {
-      sqlite.exec(readFileSync(new URL("../../migrations/0005_payment_links.sql", import.meta.url), "utf8"));
-      sqlite.exec("PRAGMA user_version=5");
+    const directory = new URL("../../migrations/", import.meta.url);
+    let version = sqlite.prepare("PRAGMA user_version").get().user_version;
+    const files = readdirSync(directory).filter(name => /^\d{4}_.+\.sql$/.test(name)).sort();
+    for (const name of files) {
+      const next = Number(name.slice(0, 4));
+      if (next <= version) continue;
+      if (next !== version + 1) throw new Error("Missing account migration before " + name);
+      sqlite.exec(readFileSync(new URL(name, directory), "utf8"));
+      sqlite.exec("PRAGMA user_version=" + next);
+      version = next;
     }
     if (!sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='game_pix_funded_terms'").get()) {
       sqlite.exec(readFileSync(new URL("../../migrations/0007_pix_funded_terms.sql", import.meta.url), "utf8"));
@@ -85,7 +77,8 @@ export function createLocalAccounts(filename) {
         ...(["GET", "HEAD"].includes(req.method) ? {} : { body: Readable.toWeb(req), duplex: "half" }),
       });
       const env={...process.env,GAME_ACCOUNTS:db},path=new URL(request.url).pathname;
-      const response=path.startsWith("/api/commerce/") ? await commerceRequest(request,env)
+      const response=path === "/api/pix/report" ? await pixReport(request, env)
+        : path.startsWith("/api/commerce/") ? await commerceRequest(request,env)
         : path.startsWith("/api/pix/") ? await pixWithPlans(request,env,null)
         : await accountRequest(request,env);
       res.writeHead(response.status, Object.fromEntries(response.headers));
