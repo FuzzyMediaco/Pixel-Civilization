@@ -1,3 +1,4 @@
+import { PIX_BILLING_CONSENT_VERSION } from "./pixBillingConsent.mjs";
 import defaultLeaseKey from "./storeLeasePublic.json";
 import { currentPlayer, onDeviceChange } from "./deviceSaves";
 import type { StoreAccess } from "./storeCatalog.mjs";
@@ -154,24 +155,39 @@ onDeviceChange(() => {
     void fetchStoreAccess();
   }
 });
+function confirmed(snapshot: Verified, id: string): StoreAccess {
+  if (currentPlayer()?.id !== id) return cachedStoreAccess();
+  // A slower status read begun before this confirmation must not reopen an old invoice.
+  generation++;
+  refreshing = undefined;
+  return put(snapshot,id);
+}
 export async function confirmStorePurchase(receipt: StoreReceipt): Promise<StoreAccess> {
   const id = currentPlayer()?.id;
   if (!id) throw new Error("Sign in to restore purchases.");
-  return put(await api<Verified>("purchase", receipt, id), id);
+  return confirmed(await api<Verified>("purchase", receipt, id), id);
 }
-export async function startWebCheckout(productId: string): Promise<string> {
-  return (await api<{ url: string }>("checkout", { productId })).url;
+async function accountBillingUrl(path: "checkout" | "portal", body: unknown): Promise<string> {
+  const account = currentPlayer()?.id;
+  if (!account) throw new Error("Sign in to manage billing.");
+  const result = await api<{url:string}>(path, body, account);
+  if (currentPlayer()?.id !== account) throw new Error("The signed-in account changed. Reopen the store.");
+  return result.url;
+}
+export async function startWebCheckout(productId: string, acceptedMonthlyBilling = false): Promise<string> {
+  const billingConsent = acceptedMonthlyBilling ? {version: PIX_BILLING_CONSENT_VERSION, accepted: true} : undefined;
+  return accountBillingUrl("checkout", { productId, billingConsent });
 }
 export async function stopPixRenewal(): Promise<StoreAccess> {
   const id = currentPlayer()?.id;
   if (!id) throw new Error("Sign in to manage your Pix plan.");
-  return put(await api<Verified>("pix/cancel-renewal", {}, id), id);
+  return confirmed(await api<Verified>("pix/cancel-renewal", {}, id), id);
 }
 export async function openBillingPortal(): Promise<string> {
-  return (await api<{ url: string }>("portal", {})).url;
+  return accountBillingUrl("portal", {});
 }
 export async function finishWebCheckout(sessionId: string): Promise<StoreAccess> {
   const id = currentPlayer()?.id;
   if (!id) throw new Error("Sign in to the account that opened checkout.");
-  return put(await api<Verified>("checkout/complete", { sessionId }, id), id);
+  return confirmed(await api<Verified>("checkout/complete", { sessionId }, id), id);
 }

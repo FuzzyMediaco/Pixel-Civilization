@@ -17,11 +17,15 @@ export interface StoreAccess {
   readyStores: string[];
   webSubscriptionsReady?: boolean;
   pixBilling?: {
-    state: "invoice_open" | "active" | "processing" | "ended";
+    state: "setup_open" | "invoice_open" | "active" | "processing" | "revoked" | "ended";
+    productId?: string;
+    setupUrl?: string;
+    setupExpires?: number;
+    cancelPending?: boolean;
     invoiceUrl?: string;
     renews: boolean;
     paidThrough: number | null;
-  };
+  } | null;
   pixAdmission?: {
     native: boolean;
     tiers: Record<string, { available: boolean; reason: "available" | "wallet_capacity" | "providers_unavailable" | "billing_unavailable" }>;
