@@ -3,7 +3,14 @@ import { AccountError, json, readJson } from "./account-http.mjs";
 import { currentSession } from "./accounts.mjs";
 import { activeGrants, DAY, getUsage, requireOrigin, requireStore, signAccess } from "./store-data.mjs";
 import { activeNativeStores, verifyNative, refreshNative } from "./native-purchases.mjs";
-import { checkout, portal, reconcileSession, stripeAvailable, stripeWebhook } from "./stripe-store.mjs";
+import {
+  checkout,
+  keyCheckoutReady,
+  portal,
+  reconcileSession,
+  stripeAvailable,
+  stripeWebhook,
+} from "./stripe-store.mjs";
 import { enabledModels } from "./pix-plans.mjs";
 import { canUseProduct, productById } from "../src/game/storeCatalog.mjs";
 
@@ -23,6 +30,7 @@ async function snapshot(env, user) {
     usage: await getUsage(db, user?.id, plan),
     providers: enabledModels(env),
     readyStores,
+    webSubscriptionsReady: keyCheckoutReady(env) && enabledModels(env).length === 3,
     validUntil: Math.min(Date.now() + 7 * DAY, plan?.expires_at ?? Infinity),
   };
   return { ...access, lease: await signAccess(env, access) };

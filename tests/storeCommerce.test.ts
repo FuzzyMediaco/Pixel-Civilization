@@ -510,3 +510,175 @@ test("a pre-rollout 1490-site God island and a named-only Survival island retain
   app.sqlite.prepare("UPDATE game_purchases SET checked_at=0 WHERE store='legacy'").run();
   assert.deepEqual((await (await app.call("access")).json()).owned, ["mode_god"]);
 });
+
+test("Payment Links bind timed checkouts, permit one claim of direct purchases and handle late, replayed or reversed events without a Stripe API key", async (t) => {
+  const app = await setup({
+    STRIPE_WEBHOOK_SECRET: "links-secret",
+    STRIPE_TAX_READY: "true",
+    STRIPE_PAYMENT_LINKS: JSON.stringify({
+      era_rome: { id: "plink_rome", url: "https://buy.stripe.com/test_rome" },
+    }),
+  });
+  t.after(() => app.sqlite.close());
+  t.mock.method(globalThis, "fetch", async () => {
+    throw Error("The link-only flow must work without an API call");
+  });
+  const other = await accountRequest(
+    app.req("/api/account/register", "POST", "", {
+      email: "grace@example.com",
+      password: "another city password",
+    }),
+    app.env,
+  );
+  const otherCookie = other.headers.get("set-cookie")!.split(";")[0],
+    otherId = (await other.json()).user.id;
+  const otherClaim = (sessionId: string) =>
+    commerceRequest(app.req("/api/commerce/checkout/complete", "POST", otherCookie, { sessionId }), app.env);
+  const access = await (await app.call("access")).json();
+  assert.ok(access.readyStores.includes("stripe"));
+  assert.equal(access.webSubscriptionsReady, false);
+  const url = new URL((await (await app.call("checkout", { productId: "era_rome" })).json()).url);
+  assert.equal(url.origin, "https://buy.stripe.com");
+  const ticket = url.searchParams.get("client_reference_id");
+  assert.ok(ticket);
+  assert.equal(
+    new URL((await (await app.call("checkout", { productId: "era_rome" })).json()).url).searchParams.get(
+      "client_reference_id",
+    ),
+    ticket,
+  );
+  const now = Math.floor(Date.now() / 1000);
+  const session = (n: number, ref: string | null = ticket) => ({
+    object: "checkout.session",
+    id: "cs_test_" + String(n).padStart(25, "1"),
+    payment_intent: "pi_test" + n,
+    payment_link: "plink_rome",
+    status: "complete",
+    mode: "payment",
+    payment_status: "paid",
+    client_reference_id: ref,
+    created: now,
+    currency: "usd",
+    amount_subtotal: 99,
+    amount_total: 105,
+    total_details: { amount_discount: 0 },
+    automatic_tax: { enabled: true, status: "complete" },
+  });
+  const event = async (
+    type: string,
+    obj: unknown,
+    time = now,
+    id = crypto.randomUUID().replaceAll("-", ""),
+  ) => {
+    const payload = JSON.stringify({ id: "evt_" + id, created: time, type, data: { object: obj } });
+    const at = Math.floor(Date.now() / 1000),
+      sig = createHmac("sha256", "links-secret")
+        .update(at + "." + payload)
+        .digest("hex");
+    return commerceRequest(
+      new Request(origin + "/api/commerce/stripe/webhook", {
+        method: "POST",
+        headers: { "Stripe-Signature": `t=${at},v1=${sig}` },
+        body: payload,
+      }),
+      app.env,
+    );
+  };
+  const s = session(1),
+    claim = (id: string) => app.call("checkout/complete", { sessionId: id });
+  assert.equal((await (await claim(s.id)).json()).code, "checkout_pending");
+  // The session began while its ticket was valid. The signed webhook can arrive after expiration.
+  app.sqlite
+    .prepare("UPDATE game_link_tickets SET issued_at=?,expires_at=?")
+    .run(now * 1000 - 30000, now * 1000);
+  assert.equal((await event("checkout.session.completed", s)).status, 200);
+  assert.deepEqual((await (await claim(s.id)).json()).owned, ["era_rome"]);
+  assert.equal((await otherClaim(s.id)).status, 403);
+  assert.equal(
+    (
+      await event(
+        "charge.dispute.created",
+        { id: "dp_game", payment_intent: s.payment_intent, status: "needs_response" },
+        now + 1,
+      )
+    ).status,
+    200,
+  );
+  assert.equal((await (await claim(s.id)).json()).code, "payment_reversed");
+  await event(
+    "charge.dispute.closed",
+    { id: "dp_game", payment_intent: s.payment_intent, status: "won" },
+    now + 2,
+  );
+  await event(
+    "charge.dispute.updated",
+    { id: "dp_game", payment_intent: s.payment_intent, status: "under_review" },
+    now + 1,
+  );
+  assert.ok((await (await claim(s.id)).json()).owned.includes("era_rome"));
+  await event("charge.refunded", {
+    id: "ch_test",
+    payment_intent: s.payment_intent,
+    amount: 105,
+    amount_refunded: 105,
+    refunded: true,
+  });
+  await event("checkout.session.completed", s);
+  assert.equal((await (await claim(s.id)).json()).code, "payment_reversed");
+  const direct = session(2, null);
+  await event("checkout.session.completed", { ...direct, payment_status: "unpaid" });
+  const claims = await Promise.all([claim(direct.id), otherClaim(direct.id)]);
+  assert.deepEqual(claims.map((r) => r.status).sort(), [403, 409]);
+  await event("checkout.session.async_payment_succeeded", direct);
+  const originalWon = claims[0].status === 409;
+  const winningClaim = originalWon ? claim : otherClaim;
+  assert.ok((await (await winningClaim(direct.id)).json()).owned.includes("era_rome"));
+  const prior = session(3, null);
+  await event("charge.refunded", {
+    id: "ch_prior",
+    payment_intent: prior.payment_intent,
+    amount: 105,
+    amount_refunded: 105,
+    refunded: true,
+  });
+  await event("checkout.session.completed", prior);
+  assert.equal((await (await claim(prior.id)).json()).code, "payment_reversed");
+  assert.equal(
+    (await event("checkout.session.completed", { ...session(4), amount_subtotal: 1 })).status,
+    409,
+  );
+  assert.equal(
+    (await event("checkout.session.completed", { ...session(5), automatic_tax: { enabled: false } })).status,
+    409,
+  );
+  assert.equal(
+    (await event("checkout.session.completed", { ...session(6), payment_link: "plink_other" })).status,
+    200,
+  );
+  assert.equal((await (await claim(session(6).id)).json()).code, "checkout_pending");
+  // Even when a link is retired, a valid game checkout opened on it can finish.
+  const rotated = session(7);
+  const appVars = app.env as Record<string, unknown>;
+  appVars.STRIPE_PAYMENT_LINKS = "{}";
+  assert.equal((await event("checkout.session.completed", rotated)).status, 200);
+  assert.equal((await otherClaim(rotated.id)).status, 403);
+  assert.ok((await (await claim(rotated.id)).json()).owned.includes("era_rome"));
+  app.sqlite.prepare("DELETE FROM game_users WHERE id=?").run(originalWon ? app.user : otherId);
+  await event("checkout.session.completed", direct);
+  await event("charge.refunded", {
+    id: "ch_afterdelete",
+    payment_intent: direct.payment_intent,
+    amount: 105,
+    amount_refunded: 105,
+    refunded: true,
+  });
+  assert.equal((await (originalWon ? otherClaim : claim)(direct.id)).status, 403);
+  assert.equal(
+    (
+      app.sqlite
+        .prepare("SELECT COUNT(*) AS n FROM game_link_receipts WHERE session_key=? OR payment_key=?")
+        .get(direct.id, direct.payment_intent) as any
+    ).n,
+    0,
+  );
+});

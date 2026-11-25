@@ -1,3 +1,4 @@
+import { applyLinkEvent, claimLinkReceipt, linkCheckout, paymentLinksReady } from "./stripe-links.mjs";
 import { AccountError, json } from "./account-http.mjs";
 import { DAY, asId, recordPurchase, requireStore, utf8 } from "./store-data.mjs";
 import { productById } from "../src/game/storeCatalog.mjs";
@@ -10,6 +11,9 @@ function prices(env) {
   }
 }
 export function stripeAvailable(env) {
+  return keyCheckoutReady(env) || paymentLinksReady(env);
+}
+export function keyCheckoutReady(env) {
   return Boolean(
     env.STRIPE_SECRET_KEY &&
       env.STRIPE_WEBHOOK_SECRET &&
@@ -69,8 +73,10 @@ async function customerFor(env, user) {
 export async function checkout(env, user, id) {
   const sku = productById(id),
     price = prices(env)[id];
+  if (sku && sku.kind !== "subscription" && (!keyCheckoutReady(env) || !price))
+    return linkCheckout(env, user, id);
   requireStore(
-    sku && typeof price === "string" && /^price_[a-zA-Z0-9]+$/.test(price) && stripeAvailable(env),
+    sku && typeof price === "string" && /^price_[a-zA-Z0-9]+$/.test(price) && keyCheckoutReady(env),
     503,
     "This item is not yet available for web purchase.",
     "unavailable_product",
@@ -211,11 +217,21 @@ async function charged(env, pi) {
   return true;
 }
 export async function reconcileSession(env, id, expectedUser) {
+  if (expectedUser && (await claimLinkReceipt(env.GAME_ACCOUNTS, id, expectedUser))) return;
+  const pending = () => {
+    throw new AccountError(
+      409,
+      "Your payment is still being confirmed. Refresh your purchases shortly.",
+      "checkout_pending",
+    );
+  };
+  if (expectedUser && !env.STRIPE_SECRET_KEY) return pending();
   const checked = Date.now();
   const session = await stripe(
     env,
     "checkout/sessions/" + escape(id) + "?expand[]=line_items&expand[]=payment_intent.latest_charge",
   );
+  if (session.payment_link && expectedUser) return pending();
   const user = await userForCustomer(env, session.customer);
   if (expectedUser)
     requireStore(user === expectedUser, 403, "Sign in to the account that opened checkout.", "receipt_owner");
@@ -388,10 +404,16 @@ export async function stripeWebhook(request, env) {
   if (await db.prepare("SELECT event_id FROM game_stripe_events WHERE event_id=?").bind(event.id).first())
     return json({ received: true });
   const object = event.data?.object;
+  const linkSession = await applyLinkEvent(db, env, event);
+  if (linkSession || !env.STRIPE_SECRET_KEY) {
+    await db
+      .prepare("INSERT OR IGNORE INTO game_stripe_events(event_id,processed_at) VALUES(?,?)")
+      .bind(event.id, Date.now())
+      .run();
+    return json({ received: true });
+  }
   // This merchant also sells other products. Only game customers need reconciliation.
   if (object?.customer && !(await userForCustomer(env, object.customer))) return json({ received: true });
-  if (!env.STRIPE_SECRET_KEY && !(await db.prepare("SELECT 1 FROM game_stripe_customers LIMIT 1").first()))
-    return json({ received: true });
   if (["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(event.type))
     await reconcileSession(env, object.id);
   else if (

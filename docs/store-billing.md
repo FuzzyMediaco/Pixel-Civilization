@@ -43,6 +43,7 @@ Web purchases use Stripe-hosted Checkout and an account-specific link to the hos
 | Worker setting | Purpose |
 | --- | --- |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Server-side Stripe API key and signing secret for this application's endpoint |
+| `STRIPE_PAYMENT_LINKS` | JSON object mapping each one-time SKU to its dedicated Stripe Payment Link ID and buy.stripe.com URL. |
 | `STRIPE_PRICE_IDS` | JSON object mapping each catalog ID to its Stripe Price ID |
 | `STRIPE_PORTAL_CONFIG` | Dedicated Stripe portal configuration for the four Pix products |
 | `STRIPE_TAX_READY` | Set to `true` once the merchant's tax setup has been confirmed. Checkout requires automatic tax and billing address collection. |
@@ -65,3 +66,15 @@ Apple verification fetches the transaction from Apple's authenticated HTTPS Serv
 ## Release evidence
 
 Run `node --import tsx --test tests/storeCommerce.test.ts tests/accountApi.test.ts` for deterministic integration tests. Store replies in these tests are fixtures. Real purchase, renewal, refund and restore certification requires the merchant's Stripe sandbox and native test accounts against correctly provisioned products. A signed native build and product creation alone do not establish that checkout completed.
+
+## One-time web purchases with Payment Links
+
+An operator can connect the ten era packs and two premium modes with fixed-price Stripe Payment Links. Apply migration 0005 before enabling checkout. Each entry in `STRIPE_PAYMENT_LINKS` is keyed by the game's SKU, for example `{"era_rome":{"id":"plink_…","url":"https://buy.stripe.com/…"}}`. Enable a single unit of the catalog's exact USD price, automatic tax and a billing address. Disable adjustable quantities and promotion codes. Keep `STRIPE_TAX_READY` false until tax collection is authorized. The Worker requires the endpoint signing secret and currency/amount/tax checks for fulfillment. Key-backed Checkout remains available for subscriptions and for products with a configured Stripe price.
+
+Configure the completion redirect to `https://pixelcivilization.app/?purchase=complete&session_id={CHECKOUT_SESSION_ID}`. Deliver signed snapshot events for `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `charge.refunded`, `charge.dispute.created`, `charge.dispute.updated`, and `charge.dispute.closed`. Preserve the additional customer subscription and invoice events used by Pix. Keep old SKU-to-link mappings when retiring a link until its open payments have settled. Stripe Dashboard can resend webhook events for support.
+
+The game gives each signed-in account an opaque 30-minute reference. A Stripe session created during that window stays bound to the purchasing game account even when payment or webhook delivery takes longer. A payment made directly on a public link can be claimed once by signing in on its return page. The full Stripe return URL is a private receipt. The authenticated claim uses the unguessable session ID plus a verified signed webhook. Opening the return page before the webhook produces a pending response and can be retried. An existing account assignment takes precedence over anyone else who opens the same URL. If a buyer closes an anonymous Stripe checkout before returning, support can use the original payment and Stripe's private session return URL to help verify and recover it.
+
+The game store checks ownership before presenting checkout. Public Stripe URLs can be used more than once. If the buyer pays twice, Stripe records two transactions and the merchant can refund the duplicate through its dashboard. A full refund or an open/lost dispute revokes that payment's access. A won dispute reinstates it if the payment still qualifies. Partial refunds keep the lifetime product. Another independently paid copy remains active. A small ledger retains hashed session, payment and dispute identifiers and their status after account deletion. It drops the game account reference and stores no payer email, name, billing address or card information. This makes previously assigned receipts unusable on replacement accounts. Native StoreKit and Google Play receipts likewise remain bound to the original game account under its store-supplied identifier.
+
+[Stripe Payment Link parameters](https://docs.stripe.com/payment-links/url-parameters) · [Stripe completion pages](https://docs.stripe.com/payments/checkout/custom-success-page) · [Stripe Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment) · [Stripe disputes](https://docs.stripe.com/api/disputes/object)

@@ -29,6 +29,10 @@ export function openAccountDatabase(filename) {
       sqlite.exec(readFileSync(new URL("../../migrations/0004_existing_game_modes.sql", import.meta.url),"utf8"));
       sqlite.exec("PRAGMA user_version=4");
     }
+    if (sqlite.prepare("PRAGMA user_version").get().user_version < 5) {
+      sqlite.exec(readFileSync(new URL("../../migrations/0005_payment_links.sql", import.meta.url), "utf8"));
+      sqlite.exec("PRAGMA user_version=5");
+    }
     sqlite.exec("COMMIT");
   } catch (error) {
     sqlite.exec("ROLLBACK");
