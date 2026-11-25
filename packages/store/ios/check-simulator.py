@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import time
 
@@ -55,15 +56,21 @@ def capture(family, udid):
         output = ROOT / "build" / (family + "-screens")
         output.mkdir(parents=True, exist_ok=True)
         fingerprints = set()
+        failures = []
         for scene in ("street", "skyline", "guide"):
             print("Rendering", family, scene, flush=True)
             marker = data / "Library/Caches" / ("PixelStoreCapture-" + scene)
-            marker.unlink(missing_ok=True)
+            for old in (marker, marker.with_suffix(".json"), marker.with_suffix(".png")):
+                old.unlink(missing_ok=True)
             sim("launch", udid, APP, "-storeTour", scene, timeout=100)
             deadline = time.monotonic() + 210
             while not marker.exists() and time.monotonic() < deadline:
                 time.sleep(1)
             ready = marker.exists() and marker.read_text() == scene
+            details = marker.with_suffix(".json")
+            if details.exists():
+                print("Installed WKWebView", details.read_text(), flush=True)
+                shutil.copyfile(details, output / (scene + "-renderer.json"))
             screen = output / (scene + "-did-not-render.png")
             has_image = False
             for _ in range(5 if ready else 1):
@@ -78,10 +85,16 @@ def capture(family, udid):
                     break
                 if ready:
                     time.sleep(5)
-            if not has_image:
-                raise RuntimeError(f"{family} did not display a distinct rendered {scene} with its controls")
-            print("Captured playable", family, scene, flush=True)
+            if marker.with_suffix(".png").exists():
+                shutil.copyfile(marker.with_suffix(".png"), output / (scene + "-webkit-diagnostic.png"))
+            if has_image:
+                print("Captured playable", family, scene, flush=True)
+            else:
+                failures.append(scene)
+                print("Full device capture failed for", family, scene, flush=True)
             stop(udid)
+        if failures:
+            raise RuntimeError(f"{family} did not display distinct playable captures: {failures}")
     finally:
         sim("shutdown", udid, timeout=120, check=False)
 

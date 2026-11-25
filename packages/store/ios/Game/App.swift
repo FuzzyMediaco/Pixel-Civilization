@@ -27,7 +27,8 @@ final class GameController: UIViewController, WKNavigationDelegate {
         config.preferences.isTextInteractionEnabled = true
         config.userContentController.addScriptMessageHandler(store,contentWorld:.page,name:"pixelBilling")
         game = WKWebView(frame:.zero,configuration:config)
-        game.isOpaque = false
+        game.isOpaque = true
+        game.backgroundColor = view.backgroundColor
         game.navigationDelegate = self
         game.allowsBackForwardNavigationGestures = true
         game.scrollView.contentInsetAdjustmentBehavior = .never
