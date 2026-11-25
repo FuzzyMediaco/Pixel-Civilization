@@ -32,7 +32,7 @@ def device(family):
     raise RuntimeError("Missing iOS 26.2 " + family + " simulator")
 
 
-def boot(udid):
+def boot(udid, *, show_display=True):
     try:
         sim("bootstatus", udid, "-b", timeout=600)
     except subprocess.TimeoutExpired:
@@ -44,7 +44,14 @@ def boot(udid):
             restart(udid)
     except subprocess.CalledProcessError:
         restart(udid)
-    subprocess.run(["open", "-a", "Simulator", "--args", "-CurrentDeviceUDID", udid], timeout=45, check=True)
+    if not show_display:
+        return
+    try:
+        subprocess.run(["open", "-a", "Simulator", "--args", "-CurrentDeviceUDID", udid], timeout=45, check=True)
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+        # The Mac window is optional; the actual device framebuffer and its
+        # game controls are still required by the screenshot checks.
+        print("Simulator window unavailable; checking the device framebuffer directly", flush=True)
     sim("status_bar", udid, "override", "--time", "9:41", "--batteryState", "charged", "--batteryLevel", "100")
 
 
@@ -157,7 +164,7 @@ def main():
         subprocess.run(["xcrun", "swiftc", "check-frame.swift", "-o", "build/check-frame"], check=True, timeout=100)
         subprocess.run([*build, "build-for-testing"], timeout=1800, check=True)
     elif stage == "purchases":
-        boot(udid)
+        boot(udid, show_display=False)
         try:
             subprocess.run([*build, "test-without-building", "-parallel-testing-enabled", "NO",
                             "-test-timeouts-enabled", "YES", "-default-test-execution-time-allowance", "180",
