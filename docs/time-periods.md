@@ -28,6 +28,10 @@ Original artwork, Real, Idle and Manager modes, the Atlas and all thirty tour is
 | Studio | $39.99 | 1,000 | Builder plus China, Greece, Medieval Europe and Renaissance Italy |
 | Complete | $99.99 | 2,500 | Both modes and all ten eras |
 
+In the web store, **At capacity** means there is too little prepaid AI credit to offer the full allowance for one more player at that tier. When a plan opens, set up a payment method and choose **Review and pay first invoice** to see the exact total with tax. **Check payment status** retrieves the result. **Stop Pix renewal** ends future renewals and keeps access through the paid period. One-time era and mode purchases stay in your library.
+
+Open **Pix → Advise with Pix** for help with your current island. The model selector names the provider that will receive your request. To flag an answer, building or world plan, choose **Report this result**, review the excerpt and send it directly to the game team.
+
 Each plan has a separate AI usage budget shown beside its message allowance. Reaching either cap pauses paid messages until renewal. You can still play your islands. A signed-in device can use its last verified paid access offline for up to seven days, subject to the subscription end date. Reconnect to refresh it.
 
 The [Android and Windows downloads](https://pixelcivilization.app/downloads.html) save islands on the device. In those editions, opening the game online lets it check for an update. The updated game is available on a subsequent launch. On any device, **More → Account** connects your saves to your account.
