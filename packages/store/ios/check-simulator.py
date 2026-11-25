@@ -75,7 +75,14 @@ def capture(family, udid):
             has_image = False
             for _ in range(5 if ready else 1):
                 screen.unlink(missing_ok=True)
-                sim("io", udid, "screenshot", str(screen), timeout=45)
+                try:
+                    sim("io", udid, "screenshot", str(screen), timeout=90)
+                except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                    # The simulator can finish writing the frame before its image
+                    # pipeline returns. Only decode a complete, fresh PNG.
+                    if not screen.exists() or not screen.read_bytes().endswith(bytes.fromhex("0000000049454e44ae426082")):
+                        print("Simulator did not finish its screenshot", flush=True)
+                        continue
                 check = subprocess.run([str(ROOT / "build/check-frame"), str(screen)], timeout=30)
                 fingerprint = hashlib.sha256(screen.read_bytes()).digest()
                 if ready and check.returncode == 0 and fingerprint not in fingerprints:

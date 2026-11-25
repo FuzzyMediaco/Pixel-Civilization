@@ -36,8 +36,9 @@ enum StoreTourCapture {
                 const fixture = guide === '\(name) island guide';
                 const world = window.__pixelWorld;
                 const frame = world?.renderer?.info?.render?.frame || 0;
+                const era = world?.appearanceEra || '';
                 const sites = world?.gameState?.elements?.length || 0;
-                const game3D = world?.gameState?.exampleWorldId === '\(id)' && frame >= 4 && sites > 3;
+                const game3D = era === 'rome-aqueduct' && world?.gameState?.exampleWorldId === '\(id)' && frame >= 4 && sites > 3;
                 const map = document.querySelector('canvas[aria-label="Pixel Civilization island map"]');
                 let colors = 0;
                 if (map?.width > 50 && map.height > 50) {
@@ -64,7 +65,7 @@ enum StoreTourCapture {
                     else if (menu === 'closing' && !expanded) menu = 'passed';
                     window.__pixelCaptureMenu = menu;
                 }
-                return {scene,renderer,foreground,fonts,fixture,frame,sites,colors,menu,controls:!!more,
+                return {scene,renderer,foreground,fonts,fixture,era,frame,sites,colors,menu,controls:!!more,
                         ready:!!(foreground && fonts && (handbook || (visiblePage && menu === 'passed')))};
             })()
             """

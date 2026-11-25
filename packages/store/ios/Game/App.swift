@@ -21,6 +21,9 @@ final class GameController: UIViewController, WKNavigationDelegate {
     private var game: WKWebView!
     override func viewDidLoad() {
         super.viewDidLoad()
+        #if DEBUG
+        if StoreTourCapture.requested != nil { UIApplication.shared.isIdleTimerDisabled = true }
+        #endif
         view.backgroundColor = UIColor(red:0.15,green:0.27,blue:0.23,alpha:1)
         let config = WKWebViewConfiguration()
         config.applicationNameForUserAgent = "PixelCivilizationOffline/1 PixelCivilizationStore/Apple"
