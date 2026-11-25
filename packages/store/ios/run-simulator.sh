@@ -9,7 +9,7 @@ import json, re, subprocess, sys
 groups=json.loads(subprocess.check_output(['xcrun','simctl','list','devices','available','-j']))['devices']
 family=sys.argv[1]
 pattern=re.compile(r'iPhone .*Pro Max' if family=='phone' else r'iPad Pro.*13-inch')
-for runtime in sorted((k for k in groups if 'iOS-' in k),reverse=True):
+for runtime in (k for k in groups if k.endswith('iOS-26-2')):
     devices=[d for d in groups[runtime] if pattern.search(d['name']) and d.get('isAvailable',True)]
     if devices:
         print(devices[0]['udid']);break
@@ -19,9 +19,13 @@ PY
   xcrun simctl boot "$device_id" || true
   xcrun simctl bootstatus "$device_id" -b
   xcrun simctl status_bar "$device_id" override --time 9:41 --batteryState charged --batteryLevel 100
+  test_status=0
+  test_scope=(-only-testing:GameUITests -only-testing:StoreCatalogTests)
+  if [[ "$family" == tablet ]]; then test_scope=(-only-testing:GameUITests); fi
   xcodebuild test -scheme PixelCivilization -project PixelCivilization.xcodeproj \
     -destination "platform=iOS Simulator,id=$device_id" -derivedDataPath build/derived \
-    -parallel-testing-enabled NO -resultBundlePath "build/$family.xcresult" CODE_SIGNING_ALLOWED=NO
+    -parallel-testing-enabled NO -resultBundlePath "build/$family.xcresult" "${test_scope[@]}" CODE_SIGN_IDENTITY=- || test_status=$?
   xcrun xcresulttool export attachments --path "build/$family.xcresult" --output-path "build/$family-screens"
   xcrun simctl shutdown "$device_id"
+  if [[ "$test_status" -ne 0 ]]; then exit "$test_status"; fi
 done

@@ -7,7 +7,8 @@ import XCTest
 final class StoreCatalogTests: XCTestCase {
     @MainActor
     func testProductsAccountAssociationAndRestoration() async throws {
-        let session = try SKTestSession(configurationFileNamed:"PixelCivilization")
+        let configuration = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "PixelCivilization", withExtension: "storekit"))
+        let session = try SKTestSession(contentsOf: configuration)
         session.resetToDefaultState()
         session.disableDialogs = true
         session.clearTransactions()

@@ -71,6 +71,7 @@ schemes:
         PixelCivilization: all
     run:
       config: Debug
+      storeKitConfiguration: ../generated/PixelCivilization.storekit
     test:
       targets: [GameUITests, StoreCatalogTests]
     archive:

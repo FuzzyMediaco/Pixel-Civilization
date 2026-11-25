@@ -9,7 +9,12 @@ final class StoreTour: XCTestCase {
             let page = app.webViews.firstMatch
             XCTAssertTrue(page.waitForExistence(timeout:45))
             let marker = page.descendants(matching:.any).matching(NSPredicate(format:"label CONTAINS[c] %@",label)).firstMatch
-            XCTAssertTrue(marker.waitForExistence(timeout:90),"The bundled game's \(label) control should be available")
+            let ready = marker.waitForExistence(timeout:90)
+            if !ready {
+                let tree = XCTAttachment(string: app.debugDescription)
+                tree.name = scene + " accessibility hierarchy"; tree.lifetime = .keepAlways; add(tree)
+            }
+            XCTAssertTrue(ready,"The bundled game's \(scene) scene should have its \(label) control")
             let capture = XCTAttachment(screenshot:XCUIScreen.main.screenshot())
             capture.name = "Pixel Civilization - " + scene
             capture.lifetime = .keepAlways

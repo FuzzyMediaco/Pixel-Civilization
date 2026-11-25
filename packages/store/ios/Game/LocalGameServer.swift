@@ -20,6 +20,7 @@ final class LocalGameServer {
         let cookie = cookieValue
         let session = remote
         ServerBootstrap(group: group).serverChannelOption(ChannelOptions.backlog, value: 60)
+            .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
             .childChannelInitializer { channel in
                 channel.pipeline.configureHTTPServerPipeline().flatMap {
                     channel.pipeline.addHandler(GameRequest(root: root, cookie: cookie, session: session))
