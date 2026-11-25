@@ -112,6 +112,9 @@ def capture(family, udid):
                     break
                 if ready:
                     time.sleep(5)
+            startup = marker.parent / "PixelStoreLaunchStatus.png"
+            if startup.exists():
+                shutil.copyfile(startup, output / "native-startup-control.png")
             if marker.with_suffix(".png").exists():
                 shutil.copyfile(marker.with_suffix(".png"), output / (scene + "-webkit-diagnostic.png"))
             if has_image:

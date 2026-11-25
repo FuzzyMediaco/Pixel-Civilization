@@ -19,7 +19,7 @@ enum StoreTourCapture {
         return args[i + 1]
     }
 
-    static func waitForScene(in web: WKWebView, scene: String) {
+    static func waitForScene(in web: WKWebView, scene: String, launchStatus: IslandStartupStatus) {
         guard let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first else { return }
         let id = scene == "street" ? "rome-starter" : "rome-skyline"
         let name = scene == "street" ? "Via delle Vigne" : "Colonia Alta"
@@ -78,7 +78,8 @@ enum StoreTourCapture {
                 status["foregroundWindow"] = web.window?.isKeyWindow == true
                 status["width"] = web.bounds.width
                 status["height"] = web.bounds.height
-                let ready = status["ready"] as? Bool == true && web.window?.isKeyWindow == true
+                status["nativeStartupVisible"] = !launchStatus.isHidden
+                let ready = status["ready"] as? Bool == true && web.window?.isKeyWindow == true && launchStatus.isHidden
                 let last = Date() >= deadline
                 if let data = try? JSONSerialization.data(withJSONObject: status, options: [.sortedKeys]) {
                     try? data.write(to: file.appendingPathExtension("json"), options: .atomic)
