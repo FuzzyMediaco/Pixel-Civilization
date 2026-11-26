@@ -1,3 +1,4 @@
+import { newIslandId } from "./islandGifts.mjs";
 import { ParcelLayoutRevision } from "./parcelLayoutRevision";
 import { railFreightBonus, railServedSites } from "./railOperations";
 import {syncCatalogBridges} from "./catalogBridge";
@@ -348,6 +349,8 @@ export interface GameEventToast {
 }
 
 export interface GameState {
+  islandId?: string;
+  islandGiftTotals?: Record<string, number>;
   /** Saved visual preference; simulation rules always use canonical element IDs. */
   appearanceEra?: string;
   showOriginalNames?: boolean;
@@ -590,6 +593,7 @@ export function createEmptyMetrics(): CityMetrics {
 
 export function createInitialGameState(mode: GameMode): GameState {
   const state: GameState = {
+    islandId: newIslandId(),
     mode,
     terrainVersion:2,
     centeredHighways:true,

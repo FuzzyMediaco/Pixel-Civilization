@@ -1,3 +1,4 @@
+import { newIslandId } from "./islandGifts.mjs";
 import { restoreBeachGround } from "./terrainInteraction";
 import { readPlayerItem, slotKey, writePlayerItem, writePlayerItems, insertPlayerSlot } from "./deviceSaves";
 import { listCustomElements, type CustomElementSpec } from "./customElements";
@@ -127,7 +128,7 @@ export async function saveImportedCivilization(slotIndex: number, name: string, 
   const custom: [string, string] | undefined = additions.length
     ? ["pixel_civ_pix_custom_elements_v1", JSON.stringify([...listCustomElements(), ...additions])] : undefined;
   // Preserve the source state, including its camera and earthworks. Load refreshes derived metrics.
-  await insertPlayerSlot(slotIndex, JSON.stringify(makeSlot(slotIndex, name, state)), custom);
+  await insertPlayerSlot(slotIndex, JSON.stringify(makeSlot(slotIndex, name, { ...state, islandId: newIslandId() })), custom);
   return loadSaveSlots();
 }
 

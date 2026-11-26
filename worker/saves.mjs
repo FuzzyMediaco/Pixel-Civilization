@@ -7,13 +7,13 @@ const MAX_KEYS = 256;
 function metadata(key, version, updatedAt, deleted) {
   return { key, version, updatedAt, deleted: Boolean(deleted) };
 }
-export async function listSaves(db, user) {
+export async function listSaves(db, user, islandGifts = []) {
   const { results } = await db.prepare(`SELECT save_key,version,updated_at,deleted FROM game_saves
     WHERE user_id=? ORDER BY save_key`).bind(user).all();
-  return json({ saves: results.map(r => metadata(r.save_key, r.version, r.updated_at, r.deleted)) });
+  return json({ saves: results.map(r => metadata(r.save_key, r.version, r.updated_at, r.deleted)), islandGifts });
 }
 
-function encodeChunk(bytes) {
+export function encodeChunk(bytes) {
   let binary = "";
   for (let offset = 0; offset < bytes.length; offset += 16000) {
     binary += String.fromCharCode(...bytes.subarray(offset, offset + 16000));
@@ -27,7 +27,7 @@ function decodeChunk(text) {
   return result;
 }
 
-export async function readSave(db, user, key, previous) {
+export async function readSaveSnapshot(db, user, key, previous = false) {
   const revision = previous ? "previous_revision" : "revision";
   // One database snapshot for both metadata and bytes, even if another device saves twice.
   const [headers, chunks] = await db.batch([
@@ -52,7 +52,7 @@ export async function readSave(db, user, key, previous) {
       data = await new Response(gzip.stream().pipeThrough(new DecompressionStream("gzip"))).text();
     }
   }
-  return json({ ...item, data });
+  return { ...item, data };
 }
 
 export async function writeSave(db, user, key, request) {
@@ -98,6 +98,12 @@ export async function writeSave(db, user, key, request) {
     AND revision NOT IN (SELECT revision FROM game_saves WHERE user_id=? AND save_key=?
       UNION ALL SELECT previous_revision FROM game_saves WHERE user_id=? AND save_key=? AND previous_revision IS NOT NULL)`)
     .bind(user, key, user, key, user, key));
+  if (deleted || data === "null") {
+    // A reusable slot can receive another legacy island after it has been emptied.
+    statements.push(db.prepare(`UPDATE island_gifts SET retired=1 WHERE recipient_id=? AND save_key=? AND retired=0
+      AND EXISTS(SELECT 1 FROM game_saves WHERE user_id=? AND save_key=? AND revision=?)`)
+      .bind(user, key, user, key, revision));
+  }
   statements.push(db.prepare("SELECT version,updated_at,deleted,revision FROM game_saves WHERE user_id=? AND save_key=?").bind(user, key));
   // D1 batches are transactional. A stale version cannot advance a head or attach any bytes.
   const results = await db.batch(statements);
