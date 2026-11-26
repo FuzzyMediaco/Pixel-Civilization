@@ -13,6 +13,8 @@ export interface BuildingEdit {
   sites:SiteEdit[];
   ground:GroundEdit[];
   guardedGround:string;
+  /** Existing facilities touching a beach apron when it was graded, by tile. */
+  beachNeighbors?: Record<string, string[]>;
   routes:string;
   refund:number;
 }
@@ -77,6 +79,17 @@ export function rememberBuildingEdit(before:GameState, after:GameState, label:st
   }
   const edit:BuildingEdit={label,sites,ground,guardedGround:groundSignature(after,sites),routes:routeSignature(after,sites),
     refund:Math.max(0,paid(after)-paid(before))};
+  if (sites.some(site => site.after?.beachGrade || site.before?.beachGrade)) {
+    const changed = new Set(ground.filter(g => g.layer === "cells").map(g => g.key));
+    const neighbors: Record<string, string[]> = {};
+    for (const site of before.elements) {
+      if (site.sculptsTerrain) continue;
+      const keys = new Set<string>();
+      footprint(site, keys);
+      for (const key of keys) if (changed.has(key)) (neighbors[key] ??= []).push(site.id);
+    }
+    if (Object.keys(neighbors).length) edit.beachNeighbors = neighbors;
+  }
   after.constructionHistory=[...(after.constructionHistory??[]).slice(-23),edit];
 }
 
@@ -107,7 +120,7 @@ function conflict(state:GameState,edit:BuildingEdit) {
   // refunding that first paint/earthwork could leave the new building underwater.
   for(const g of edit.ground) if(g.layer==="cells") {
     const [x,z]=g.key.split(",").map(Number);
-    if(state.elements.some(e=>!ids.has(e.id)&&!e.sculptsTerrain&&x>=e.gx&&x<e.gx+e.spanX&&z>=e.gz&&z<e.gz+e.spanZ))
+    if(state.elements.some(e=>!ids.has(e.id)&&!e.sculptsTerrain&&!edit.beachNeighbors?.[g.key]?.includes(e.id)&&x>=e.gx&&x<e.gx+e.spanX&&z>=e.gz&&z<e.gz+e.spanZ))
       return "A building now uses ground altered by this edit.";
   }
 }
@@ -148,7 +161,7 @@ export function undoBuildingEdit(state:GameState): {ok:boolean; reason?:string; 
       if(g.before===undefined) delete records[g.key];
       else records[g.key]=structuredClone(g.before);
     }
-    markInfrastructureChanged(inf);
+    markInfrastructureChanged(inf, edit.ground.some(g => g.layer === "cells" || g.layer === "voxels"));
   }
   if(edit.refund) transfer(state,"outside","treasury",edit.refund,"Building edit refund");
   state.constructionHistory!.pop();

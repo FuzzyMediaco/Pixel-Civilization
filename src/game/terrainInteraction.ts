@@ -1,4 +1,5 @@
 import { ELEMENT_BY_ID, type CivElementDef } from "./catalog";
+import { isBeachParcel, legacyBeachColumns, planBeachGround } from "./beachTerrain";
 import { withinMap } from "./mapBounds";
 import type { GameState, PlacedElement } from "./simulation";
 import {
@@ -274,6 +275,7 @@ export function detectCoastRotation(
 export interface TerrainInteractionPlan {
   profile: TerrainInteractionProfile;
   autoRotation: number;
+  beachGrade?: boolean;
   edits: Map<string, VoxelColumnEdit>;
   touchedTiles: Set<string>;
   extraCellMeta?: Partial<Pick<TerrainCell, "form" | "source" | "flowDir" | "excavated">>;
@@ -294,9 +296,17 @@ export function planElementTerrainInteraction(
   level: number,
   variant: number,
   rotation: number,
-  options?: { preserveRotation?: boolean; baselineElevation?: number },
+  options?: { preserveRotation?: boolean; baselineElevation?: number; restoreBeach?: boolean },
 ): TerrainInteractionPlan | null {
   const profile = TERRAIN_INTERACTION_PROFILES[def.id];
+  if (isBeachParcel(def.id)) {
+    const ground = planBeachGround(state, { defId: def.id, gx, gz, spanX, spanZ }, rotation, options?.restoreBeach);
+    if (ground) {
+      const beachProfile = def.id === "sand" ? TERRAIN_INTERACTION_PROFILES.beach_umbrellas : profile;
+      return { ...ground, profile: beachProfile, summary: beachProfile.previewNote, beachGrade: true };
+    }
+    if (options?.restoreBeach) return null;
+  }
   if (!profile) {
     // Gentle local pad leveling ONLY when a standard land building sits on strongly sloped voxel terrain
     if (def.domain !== "land" || def.isNetwork || def.passiveNature) return null;
@@ -444,37 +454,6 @@ export function planElementTerrainInteraction(
       };
 
       switch (profile.kind) {
-        case "beach": {
-          // Dry golden sand (vLoc 0..0.52) -> wet sand (0.52..0.72) -> shallow turquoise surf (0.72..1.0)
-          const shoreCurve = 0.62 + 0.08 * Math.sin(uLoc * Math.PI * 2 + variant * 1.4);
-          let targetY: number;
-          if (vLoc < shoreCurve - 0.14) {
-            // Dry beach backshore — gentle slope down toward shore
-            const t = clamp(vLoc / Math.max(0.1, shoreCurve - 0.14), 0, 1);
-            targetY = 0.25 - t * 0.45 + 0.04 * waveNoise;
-          } else if (vLoc < shoreCurve + 0.04) {
-            // Wet sand swash zone right above SEA (-0.62)
-            const t = clamp((vLoc - (shoreCurve - 0.14)) / 0.18, 0, 1);
-            targetY = -0.2 - t * 0.42;
-          } else {
-            // Shallow surf & sandy seabed sloping into ocean
-            const t = clamp((vLoc - (shoreCurve + 0.04)) / Math.max(0.1, 1 - (shoreCurve + 0.04)), 0, 1);
-            targetY = SEA - 0.06 - t * 0.58;
-          }
-          const blendedY = round2(cur.elevation + (targetY - cur.elevation) * edgeBlend);
-          const isWater = blendedY < SEA - 0.02;
-          const isWet = isWater || blendedY <= SEA + 0.36;
-          col = {
-            y: blendedY,
-            m: outDist > blendV * 0.65 && cur.material === "grass" && !isWet ? "grass" : "sand",
-            w: isWater ? "salt" : "dry",
-            wl: isWater ? SEA : undefined,
-            wet: isWet,
-            form: isWater ? "bay" : "bank",
-          };
-          break;
-        }
-
         case "desert": {
           const interior = clamp(1 - Math.max(0, radial - 0.55) / 0.65, 0, 1) * edgeBlend;
           const ripple = 0.5 + 0.5 * Math.sin(vx * 0.26 + vz * 0.14 + Math.cos(vz * 0.2) * 1.8 + variant);
@@ -607,6 +586,7 @@ export function planElementTerrainInteraction(
         case "coastal_structure": {
           // Gentle natural coastal slope from dry backshore sand down toward the seaward +z water edge
           const isBeachHouse = def.id === "beach_houses" || def.id === "beach_umbrellas" || def.id === "boardwalks";
+          if (isBeachHouse && cur.beach) continue;
           const targetY = isBeachHouse
             ? round2(0.18 - Math.pow(vLoc, 1.35) * 0.72 + 0.03 * waveNoise)
             : round2(0.15 - vLoc * 0.75);
@@ -660,7 +640,7 @@ export function planElementTerrainInteraction(
 export function applyElementTerrainInteraction(
   state: GameState,
   el: PlacedElement,
-  options?: { preserveRotation?: boolean },
+  options?: { preserveRotation?: boolean; restoreBeach?: boolean },
 ): TerrainInteractionPlan | null {
   const def = ELEMENT_BY_ID[el.defId];
   if (!def) return null;
@@ -677,7 +657,8 @@ export function applyElementTerrainInteraction(
     el.rotation,
     options,
   );
-  if (!plan || plan.edits.size === 0) return plan;
+  if (plan?.beachGrade) el.beachGrade = 1;
+  if (!plan || (!plan.beachGrade && !plan.edits.size)) return plan;
 
   if (plan.profile.sculptsTerrain) {
     el.sculptsTerrain = true;
@@ -686,14 +667,47 @@ export function applyElementTerrainInteraction(
     el.rotation = plan.autoRotation;
   }
 
+  if (!plan.edits.size) return plan;
   const infra = ensureInfrastructure(state);
   writeVoxelEditsToState(state, plan.edits.values(), plan.extraCellMeta);
 
-  // Sync any border tiles touched so tile-level hydraulics & coastline stay coherent
-  for (const tk of plan.touchedTiles) {
-    const [gx, gz] = tk.split(",").map(Number);
-    syncTileCellFromVoxels(state, gx, gz, plan.extraCellMeta);
-  }
-  markInfrastructureChanged(infra);
+  markInfrastructureChanged(infra, Boolean(plan.beachGrade));
   return plan;
+}
+
+/** Old plot-only beaches acquire real terrain once. Keep the player's camera and saved plot rotations. */
+export function restoreBeachGround(state: GameState): void {
+  const sites = state.elements.filter(el => isBeachParcel(el.defId) && !el.beachGrade);
+  if (!sites.length) return;
+  const infra = state.infrastructure;
+  if (infra?.voxels && sites.some(e => e.defId === "beaches" && e.sculptsTerrain)) {
+    const touched = new Set<string>();
+    const protectedTiles = new Set<string>();
+    for (const e of state.elements) {
+      if (isBeachParcel(e.defId) || e.defId === "boardwalks" || e.defId === "beach_houses") continue;
+      for (let z = e.gz; z < e.gz + e.spanZ; z++)
+        for (let x = e.gx; x < e.gx + e.spanX; x++) protectedTiles.add(tileKey(x, z));
+    }
+    for (const key of legacyBeachColumns(state, sites)) {
+      const [vx, vz] = key.split(",").map(Number);
+      const {gx, gz, idx} = voxelToTileLocal(vx, vz), tk = tileKey(gx, gz);
+      if (protectedTiles.has(tk) || infra.spans?.[tk] || infra.conduits?.[tk]) continue;
+      delete infra.voxels[tk].cols[idx];
+      touched.add(tk);
+    }
+    for (const tk of touched) {
+      const patch = infra.voxels[tk];
+      if (patch.beach?.length || Object.keys(patch.cols).length) {
+        const [gx, gz] = tk.split(",").map(Number);
+        syncTileCellFromVoxels(state, gx, gz);
+      } else {
+        // Nothing else modified this tile. Revealing the original seabed also retires
+        // the old rectangular outline beyond the new deposit's rounded ends.
+        delete infra.voxels[tk];
+        delete infra.cells[tk];
+      }
+    }
+    if (touched.size) markInfrastructureChanged(infra, true);
+  }
+  for (const el of sites) applyElementTerrainInteraction(state, el, { preserveRotation: true, restoreBeach: true });
 }

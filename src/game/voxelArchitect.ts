@@ -1,3 +1,4 @@
+import { seatBeachProps } from "./beachProps";
 import {dividedCarriageway} from "./designs/carriageways";
 import { currentRomeArt, currentProductionArt } from "./eraArtLoader";
 import { eraElementSpec, normalizeEra, ROME_PILOT_IDS, type RomeFamily } from "./eraStyles";
@@ -135,6 +136,7 @@ export function buildDesignAsset(
     baseGeo = mesh(buildCorridorVoxels(def.id,lv,variant,connMask,appearance)!, .5);
   } else baseGeo = mesh(c.v);
   if (groundShift) baseGeo.translate(0, groundShift, 0);
+  if (appearance.shoreHeight) seatBeachProps(baseGeo, c, unit, groundShift, appearance.shoreHeight);
   baseGeo.computeBoundingBox();
   let topY = baseGeo.boundingBox?.max.y ?? 1;
   const rotors: BuiltRotor[] = (corridor?[]:c.rotors).map((r) => {
@@ -228,7 +230,7 @@ export function getOrBuildElementAsset(
   const themed = Boolean(currentProductionArt(era)) || (era === "rome-forum" && currentRomeArt() && romanPilot.has(elementId));
   const styleKey = themed ? `${appearance.era}:${appearance.eraActivity ?? "idle"}` : "original";
   const key = `${styleKey}|${appearance.worldSculpted ? "sculpted" : "model"}|${appearance.corridor?JSON.stringify(appearance.corridor):""}|${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
-  if (def && (appearance.edges?.length || appearance.soils?.length || (appearance.lighting && appearance.lighting !== "auto"))) {
+  if (def && (appearance.shoreHeight || appearance.edges?.length || appearance.soils?.length || (appearance.lighting && appearance.lighting !== "auto"))) {
     const asset = buildDesignAsset(def, clampedLv, clampedVar, spanX, spanZ, connMask, appearance);
     asset.siteSpecific = true;
     return asset;

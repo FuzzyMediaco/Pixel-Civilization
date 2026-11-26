@@ -16,7 +16,7 @@ function dock(c: Ctx, x: number, z: number, length: number, y = 2): void {
   for (let d = 0; d < length; d++) {
     v.box(x - 1, y, z - d, x + 2, y + 1, z - d + 1, d % 3 ? "wood" : "woodLight");
     if (d % 4 === 0)
-      for (const offset of [-1, 1]) v.box(x + offset, 0, z - d, x + offset + 1, y + 2, z - d + 1, "woodDark");
+      for (const offset of [-1, 1]) v.box(x + offset, c.id === "beaches" && c.worldSculpted ? -4 : 0, z - d, x + offset + 1, y + 2, z - d + 1, "woodDark");
   }
 }
 function boat(c: Ctx, x: number, z: number, sail: boolean): void {
@@ -262,7 +262,7 @@ function parasol(c: Ctx, x: number, z: number, r: number, style: number): void {
 // Lifeguard canvas, square Riviera awnings, thatched palapas and tasselled resort parasols.
 export function umbrellas(c: Ctx): void {
   const { lv, hx, hz, variant: s, v } = c;
-  ground(c, "sand", "sandDark");
+  if (!c.worldSculpted) ground(c, "sand", "sandDark");
   const sites =
     lv === 1
       ? [[0, -1]]
@@ -320,9 +320,16 @@ export function beaches(c: Ctx): void {
     for (let i = 0; i <= Math.floor(lv / 2); i++)
       tree(v, -hx + 4 + i * 5, 1, -hz + 4 + (i % 2) * 3, "palm", 1 + lv * 0.15 - i * 0.15);
   if (s === 3) {
-    for (let i = 0; i < lv; i++) {
-      const x = -hx + 3 + i * 4,
-        z = shore(x) + 3;
+    if (c.worldSculpted) {
+      // Two tapered longboards resting on the upper sand, with contrasting stringers.
+      for (let n = 0; n < (lv >= 3 ? 2 : 1); n++) {
+        const x = -hx + 4 + n * 5, z = -hz + 7 + n * 2, paint = n ? "amber" : "teal";
+        v.box(x, 1, z - 3, x + 1, 2, z + 4, "cream");
+        v.box(x - 1, 1, z - 2, x, 2, z + 3, paint);
+        v.box(x + 1, 1, z - 2, x + 2, 2, z + 3, paint);
+      }
+    } else for (let i = 0; i < lv; i++) {
+      const x = -hx + 3 + i * 4, z = shore(x) + 3;
       v.box(x - 1, 1, z, x + 3, 2, z + 1, i % 2 ? "red" : "amber");
       v.put(x + 3, 1, z + 1, "cream");
     }
@@ -349,7 +356,7 @@ export function beaches(c: Ctx): void {
 // Sand drips, castellated bucket fort, conical fairy towers and a stepped sand pyramid.
 export function sandArt(c: Ctx): void {
   const { v, lv, hx, hz, variant: s } = c;
-  ground(c, "sand", "sandDark");
+  if (!c.worldSculpted) ground(c, "sand", "sandDark");
   const col = ["#cfad77", "#d4b07b", "#dab985", "#d2ac73"][s];
   const sandTower = (x: number, z: number, r: number, h: number) => {
     if (s === 3) {
@@ -388,7 +395,7 @@ export function sandArt(c: Ctx): void {
     for (let x = -hx; x < hx; x++)
       for (let z = -hz; z < hz; z++) {
         const d = (x / rx) ** 2 + (z / rz) ** 2;
-        if (d > 0.7 && d < 1.17) v.put(x, 0, z, "#87c9ce");
+        if (!c.worldSculpted && d > 0.7 && d < 1.17) v.put(x, 0, z, "#87c9ce");
       }
     v.box(-1, 1, Math.round(rz * 0.66), 2, 2, Math.round(rz * 1.1), "woodLight");
   }

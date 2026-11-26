@@ -2,6 +2,7 @@ import {roadPortalWidth} from "./roadTopology";
 import { ELEMENT_BY_ID } from "./catalog";
 import { type Ctx } from "./designs/kit";
 import { PixelVox, packVoxKey } from "./voxelCore";
+import { isBeachParcel } from "./beachTerrain";
 import { type JoinKind, type LocalSide, type ParcelEdge, type ParcelPose } from "./parcelEdges";
 import { getTerrainCell, type Material } from "./terrain";
 import type { GameState } from "./simulation";
@@ -16,6 +17,8 @@ export interface ParcelAppearance {
   lighting?: "auto" | "dark" | "lit";
   /** True when placed in-world atop sculpted voxel terrain so duplicate ground slabs are omitted. */
   worldSculpted?: boolean;
+  /** World terrain height relative to the model origin, sampled at a local prop anchor in metres. */
+  shoreHeight?: (localX: number, localZ: number) => number;
 }
 
 export function getParcelSoils(state: GameState, el: ParcelPose): Material[] | undefined {
@@ -97,6 +100,8 @@ export function applyParcelAppearance(c: Ctx, opts: ParcelAppearance, siteX=c.sp
   }
   for (const edge of opts.edges ?? []) {
     const { side, slot, kind } = edge;
+    if ((opts.worldSculpted && isBeachParcel(c.id)) ||
+        (kind === "beach" && (opts.worldSculpted || edge.neighbor === "sea" || edge.neighbor === "freshwater"))) continue;
     if (kind==="rail" || kind==="road" || kind==="channel" || (kind==="walk" && ELEMENT_BY_ID[c.id]?.isNetwork && !edge.stairRise)) continue;
     const alongX=side==="front" || side==="back";
     const origin=(alongX ? c.hx : c.hz) + (slot*16-(alongX ? siteX : siteZ)*8)/fit;

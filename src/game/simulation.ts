@@ -27,6 +27,8 @@ import {
   getUpgradeCost,
   getMaxElementLevel,
 } from "./catalog";
+import { isBeachParcel } from "./beachTerrain";
+import { applyElementTerrainInteraction } from "./terrainInteraction";
 import { markInfrastructureChanged, advanceReservoirs, getTerrainCell, islandMargin, freshWaterFactor, hydroHead, roadPortOpen, hydraulics, buildWaterNavigation, type Infrastructure } from "./terrain";
 import { streetDemand } from "./streetDemand";
 import { generationExposure } from "./parcelExposure";
@@ -117,6 +119,8 @@ export interface PlacedElement {
   /** Waterway temporarily covered by a bridge. Restored when the deck is moved or removed. */
   waterUnderlay?: PlacedElement;
   sculptsTerrain?: boolean;
+  /** Saved coastline grade for beach plots and their sandy facilities. */
+  beachGrade?: 1;
   roadAxis?: RoadAxis;
   crossingAxis?: "x" | "z";
   pedestrianDeck?: boolean;
@@ -1072,11 +1076,13 @@ export function resizeElementForLevel(
       cands.sort((p, q) => p[2] - q[2]);
       for (const [ox, oz] of cands) {
         if (checkPlacementValid(state, def, el.gx + ox, el.gz + oz, tx, tz, ignore).valid) {
+          const regrade = isBeachParcel(el.defId) && (ox !== 0 || oz !== 0 || tx !== el.spanX || tz !== el.spanZ);
           el.gx += ox;
           el.gz += oz;
           el.spanX = tx;
           el.spanZ = tz;
           if (tx !== wantX || tz !== wantZ) el.rotation = (el.rotation + 1) % 4;
+          if (regrade) applyElementTerrainInteraction(state, el, { preserveRotation: true });
           fitted = true;
           break;
         }

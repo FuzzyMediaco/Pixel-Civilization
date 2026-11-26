@@ -1,3 +1,4 @@
+import { restoreBeachGround } from "./terrainInteraction";
 import { readPlayerItem, slotKey, writePlayerItem, writePlayerItems, insertPlayerSlot } from "./deviceSaves";
 import { listCustomElements, type CustomElementSpec } from "./customElements";
 import { type GameMode, STAGES } from "./catalog";
@@ -73,6 +74,7 @@ export function cloneGameStateSnapshot(state: GameState): GameState {
   if (!Array.isArray(cloned.crimeIncidents)) cloned.crimeIncidents = [];
   if (cloned.activeAttack === undefined) cloned.activeAttack = null;
   migrateCenteredHighways(cloned);
+  restoreBeachGround(cloned);
   recomputeConnectivityAndMetrics(cloned);
   return cloned;
 }
