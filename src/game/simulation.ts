@@ -26,6 +26,9 @@ import {
   MAX_FOOTPRINT,
   getUpgradeCost,
   getMaxElementLevel,
+  getMaxPlacementLevel,
+  getElementUnlockStage,
+  isRealModeChristmas,
 } from "./catalog";
 import { isBeachParcel } from "./beachTerrain";
 import { applyElementTerrainInteraction } from "./terrainInteraction";
@@ -621,6 +624,7 @@ export function createInitialGameState(mode: GameMode): GameState {
 }
 
 export function buildingLockReason(def: CivElementDef, state: GameState): string | undefined {
+  if (isRealModeChristmas(def, state.mode)) return;
   if (state.mode === "god" && !effective(state, "stageRules", 0)) return;
   if (def.wealthThreshold) {
     const threshold = Math.ceil(def.wealthThreshold * effective(state, "wealthScale", 100) / 100);
@@ -850,7 +854,7 @@ export function migrateCenteredHighways(state: GameState): void {
 export function planConstruction(state: GameState, selected: CivElementDef, gx: number, gz: number, brushLevel: number, preferred: number, faceManually=false, strokeAxis?: RoadAxis, occupancy = buildOccupancyMap(state.elements)) {
   const network = selected.isNetwork ? planNetworkPlacement(state, selected, gx, gz, occupancy) : undefined;
   const def = ELEMENT_BY_ID[network?.defId ?? selected.id];
-  const level = state.mode === "god" ? Math.min(getMaxElementLevel(def.id), Math.max(1, brushLevel)) : 1;
+  const level = Math.min(getMaxPlacementLevel(def, state.mode), Math.max(1, Math.trunc(brushLevel) || 1));
   const [sx, sz] = getStandardFootprintForLevel(def, level);
   const rotation = faceManually && !def.isNetwork ? preferred : def.domain === "coast_or_water" && !def.isNetwork
     ? shoreRotation(state, def, gx, gz, sx, sz, preferred, occupancy)
@@ -865,7 +869,7 @@ export function planConstruction(state: GameState, selected: CivElementDef, gx: 
     check.valid = false;
     check.reason = lock;
   }
-  const cost = constructionCost(state, def);
+  const cost = constructionCost(state, def, level);
   if (check.valid && cost > 0 && cost > state.money) {
     check.valid = false;
     check.reason = `Need $${cost.toLocaleString()} to build ${def.name}.`;
@@ -1655,7 +1659,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (stageNow > state.highestStageReached) {
       for (let st = state.highestStageReached + 1; st <= stageNow; st++) {
         const stMeta = STAGES[st - 1];
-        const unlockedCount = ELEMENTS.filter((e) => e.stage === st).length;
+        const unlockedCount = ELEMENTS.filter((e) => getElementUnlockStage(e, state.mode) === st).length;
         if(state.mode !== "god") pushToast(
           state,
           "stage",

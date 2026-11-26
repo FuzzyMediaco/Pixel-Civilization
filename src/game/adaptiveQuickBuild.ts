@@ -17,6 +17,7 @@ import {
   ELEMENTS,
   ELEMENT_BY_ID,
   type ElementCategory,
+  getElementUnlockStage,
 } from "./catalog";
 import { constructionCost, buildingCharges } from "./cityEconomy";
 import { alertIssues, suppliesNeed, type FixNeed } from "./cityIssues";
@@ -758,13 +759,14 @@ export function recommendQuickElements(
     }
 
     // 4. Stage & Population Fit
-    const stageDelta = Math.abs(def.stage - stage);
+    const unlockStage = getElementUnlockStage(def, state.mode);
+    const stageDelta = Math.abs(unlockStage - stage);
     if (state.mode === "god") {
       if (def.isStarter) score += 8;
       // Gently favor iconic / versatile builds across stages
       score += Math.max(0, 10 - stageDelta * 0.8);
     } else {
-      if (def.stage <= stage) {
+      if (unlockStage <= stage) {
         score += Math.max(2, 16 - stageDelta * 1.6);
         if (def.isStarter && stage <= 3) score += 10;
       }

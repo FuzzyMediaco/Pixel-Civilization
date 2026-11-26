@@ -4,7 +4,7 @@ import { FARM_ANCHOR_IDS,FARM_MODULE_IDS } from "./expansionCatalog";
 import { complexBoost,districtReport } from "./farmNetworks";
 import {VEHICLE_ROADS} from "./roadStandards";
 import type { getParcelEffectSummary } from "./parcelEdges";
-import { ELEMENT_BY_ID, STAGES, type CivElementDef } from "./catalog";
+import { ELEMENT_BY_ID, STAGES, getMaxElementLevel, getUpgradeCost, isRealModeChristmas, type CivElementDef } from "./catalog";
 import type { CityMetrics, GameState, PlacedElement } from "./simulation";
 import { hydraulics } from "./terrain";
 import { CROP_SITE_IDS, isRetailFoodSite } from "./cityDynamics";
@@ -220,8 +220,15 @@ export const buildingCharges = (s: GameState) => s.mode !== "god" || effective(s
 export const isFreeSurvivalBusiness = (s: GameState, def: CivElementDef) =>
   s.mode === "survival" && def.category === "commerce";
 
-export const constructionCost = (s: GameState, def: CivElementDef) =>
-  buildingCharges(s) && !isFreeSurvivalBusiness(s, def) ? def.cost : 0;
+export function constructionCost(s: GameState, def: CivElementDef, level = 1): number {
+  if (!buildingCharges(s) || isFreeSurvivalBusiness(s, def)) return 0;
+  let cost = def.cost;
+  if (isRealModeChristmas(def, s.mode)) {
+    const target = Math.min(Math.trunc(level), getMaxElementLevel(def.id));
+    for (let current = 1; current < target; current++) cost += getUpgradeCost(def, current);
+  }
+  return cost;
+}
 
 export const treasuryUpkeepRate = (s: GameState) =>
   s.mode === "survival" ? 0 : s.metrics.upkeepPerTick * 0.06 * effective(s, "upkeep", 100) / 100;
@@ -671,6 +678,10 @@ export function activityRule(el: PlacedElement) {
   return { label: "Service time", goal: 12 * el.level };
 }
 export function upgradeReadiness(s: GameState, el: PlacedElement) {
+  if (isRealModeChristmas(ELEMENT_BY_ID[el.defId], s.mode)) {
+    const reasons = el.onFire || el.disrepair ? ["Restore this site to service."] : [];
+    return { label: "Available at every stage", goal: 0, value: 0, ready: reasons.length === 0, reasons };
+  }
   const rule = activityRule(el),
     a = siteOf(s, el),
     value = effective(s, "activity", a.work, el.id);

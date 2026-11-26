@@ -2585,6 +2585,18 @@ export function getMaxElementLevel(id: string): number {
   return VEHICLE_ROADS.has(id) ? 11 : id === "bus_stops" ? 3 : 5;
 }
 
+export function isRealModeChristmas(def: CivElementDef, mode: GameMode): boolean {
+  return mode === "real" && def.category === "christmas";
+}
+
+export function getElementUnlockStage(def: CivElementDef, mode: GameMode): number {
+  return isRealModeChristmas(def, mode) ? 1 : def.stage;
+}
+
+export function getMaxPlacementLevel(def: CivElementDef, mode: GameMode): number {
+  return mode === "god" || isRealModeChristmas(def, mode) ? getMaxElementLevel(def.id) : 1;
+}
+
 export function getStandardFootprintForLevel(
   def: CivElementDef,
   level: number,
