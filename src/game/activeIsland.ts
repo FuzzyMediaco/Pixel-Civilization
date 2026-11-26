@@ -1,3 +1,4 @@
+import { restoreBeachGround } from "./terrainInteraction";
 import { normalizeEra } from "./eraStyles";
 import { readPlayerItem, writePlayerItems } from "./deviceSaves";
 import { cloneGameStateSnapshot, loadSaveSlots } from "./saveSlots";
@@ -41,6 +42,7 @@ export function loadModeState(mode: GameMode, exampleId?: ExampleWorldId): GameS
           if (typeof parsed.activeAttack.severity !== "number") parsed.activeAttack.severity = 1;
         }
         migrateCenteredHighways(parsed);
+        restoreBeachGround(parsed);
         recomputeConnectivityAndMetrics(parsed);
         return parsed;
       }

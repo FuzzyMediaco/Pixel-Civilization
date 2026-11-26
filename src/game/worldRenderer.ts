@@ -3,7 +3,8 @@ import { periodCar } from "./periodTransit";
 import { eraElementSpec, type EraKey } from "./eraStyles";
 import { presentationActivity, eraActiveSites } from "./eraActivity";
 import { eraStageTreatment, drawStageMarker } from "./eraStage";
-import { editedCoastline } from "./coastline";
+import { isBeachParcel } from "./beachTerrain";
+import { beachSurfMask, editedCoastline } from "./coastline";
 import { GRID_SIZE, GRID_HALF } from "./mapBounds";
 import { patrolPosition } from "./policeDispatch";
 import { getTravelNetwork, travelSignature, type TravelNetwork } from "./travelNetwork";
@@ -380,6 +381,7 @@ export class PixelWorldRenderer {
   private fxGroup = new THREE.Group();
 
   private coastlineTexture?:THREE.DataTexture;
+  private beachSurfTexture?: THREE.DataTexture;
   private naturalCoastline?:Uint8Array;
   private naturalTide?:Uint8Array;
   private coastalStamp="";
@@ -899,12 +901,15 @@ export class PixelWorldRenderer {
     this.coastlineTexture = new THREE.DataTexture(coast, coastRes, coastRes, THREE.RedFormat);
     this.coastlineTexture.minFilter = this.coastlineTexture.magFilter = THREE.LinearFilter;
     this.coastlineTexture.needsUpdate = true;
+    this.beachSurfTexture = new THREE.DataTexture(new Uint8Array(GRID_SIZE ** 2), GRID_SIZE, GRID_SIZE, THREE.RedFormat);
+    this.beachSurfTexture.minFilter = this.beachSurfTexture.magFilter = THREE.LinearFilter;
+    this.beachSurfTexture.needsUpdate = true;
 
     const oceanGeo = new THREE.PlaneGeometry(size * 4, size * 4, 1, 1);
     oceanGeo.rotateX(-Math.PI / 2);
 
     const oceanMat = new THREE.ShaderMaterial({
-      uniforms: { ...this.oceanUniforms, uCoast: { value: this.coastlineTexture }, uWorksMask: { value: this.engineering.mask } },
+      uniforms: { ...this.oceanUniforms, uCoast: { value: this.coastlineTexture }, uBeachSurf: { value: this.beachSurfTexture }, uWorksMask: { value: this.engineering.mask } },
       transparent: true,
       vertexShader: `
         varying vec3 vWorldPos;
@@ -921,6 +926,7 @@ export class PixelWorldRenderer {
         varying vec3 vWorldPos;
 
         uniform sampler2D uCoast;
+        uniform sampler2D uBeachSurf;
         float islandMargin(vec2 p){
           vec2 uv=p/${size.toFixed(1)}+.5;
           if(any(lessThan(uv,vec2(0.)))||any(greaterThanEqual(uv,vec2(1.))))return -36.;
@@ -949,21 +955,49 @@ export class PixelWorldRenderer {
           col += resolved * crest * vec3(0.045, 0.053, 0.044);
 
           float shoreBand = abs(m + 1.85 + sin(uTime * 1.55 + dot(water, vec2(0.2, 0.17))) * 0.55);
-          float aa = clamp(fwidth(m) * 0.5, 0.12, 2.5);
-          float foam = (1.0 - smoothstep(max(0.0, 0.67 - aa), 0.67 + aa, shoreBand)) / max(1.0, aa);
-          col = mix(col, vec3(0.94, 0.99, 1.0), foam * 0.91);
+          float baseAA = clamp(fwidth(m) * 0.5, 0.12, 2.5);
+          float foam = (1.0 - smoothstep(max(0.0, 0.67 - baseAA), 0.67 + baseAA, shoreBand)) / max(1.0, baseAA);
+          vec3 naturalShore = mix(col, vec3(0.94, 0.99, 1.0), foam * 0.91);
+          float beach = texture2D(uBeachSurf, water / ${size.toFixed(1)} + 0.5).r;
+          float opacity = 0.91;
+          float shoreAA = clamp(fwidth(m) * 0.55, 0.045, 1.25);
+          if (beach > 0.0) {
+            // Signed distance to the actual wet/dry boundary in world metres. Both
+            // the swash and the intermittent outer breaker bend around the same bank.
+            float offshore = -(m + 2.2);
+            float shoal = 1.0 - smoothstep(0.0, 7.5, offshore);
+            col = mix(col, vec3(0.44, 0.80, 0.79), shoal * 0.88);
+            col = mix(col, vec3(0.67, 0.83, 0.73), 0.66 * (1.0 - smoothstep(0.15, 1.75, offshore)));
+            float drift = dot(water, vec2(0.32, -0.21));
+            float wave = sin(uTime * 1.18 + drift * 0.69 + 0.55 * sin(drift));
+            float scallop = 0.13 * sin(dot(water, vec2(1.03, 0.76)) + uTime * 0.65);
+            float lip = 0.38 + 0.34 * wave + scallop;
+            float aa = shoreAA;
+            float lace = sin(dot(water, vec2(1.7, 1.13)) + 0.36 * sin(water.y * 2.5) - uTime * 0.38);
+            float line = (1.0 - smoothstep(0.025, 0.18 + aa, abs(offshore - lip)))
+                         * (0.68 + 0.32 * smoothstep(-0.8, 0.55, lace));
+            float swell = abs(offshore - (2.05 + 0.57 * wave + 0.27 * sin(drift * 1.4)));
+            float breaking = smoothstep(0.12, 0.84, sin(drift + uTime * 0.33) + 0.27 * sin(drift * 3.7));
+            float crestFoam = breaking * (1.0 - smoothstep(0.035, 0.20 + aa, swell));
+            col = mix(col, vec3(0.94, 0.985, 0.95), max(line * 0.88, crestFoam * 0.68) / max(1.0, aa * 2.0));
+            // Hide the submerged end of the sand mesh while showing the bed in the wash.
+            float bed = 0.17 * (1.0 - smoothstep(0.5, 3.0, offshore)) * (1.0 - line * 0.8);
+            float openWater = 0.09 * smoothstep(9.0, 18.0, offshore);
+            opacity = mix(opacity, 1.0 - max(bed, openWater), beach);
+            col = mix(naturalShore, col, beach);
+          } else col = naturalShore;
 
           float distFade = clamp(length(vWorldPos.xz) / 620.0, 0.0, 1.0);
           col = mix(col, vec3(0.80, 0.93, 1.0), distFade * 0.75);
 
           vec3 moonlit = col * vec3(0.22, 0.34, 0.48);
-          gl_FragColor = vec4(mix(moonlit, col, uDaylight), 0.91);
+          gl_FragColor = vec4(mix(moonlit, col, uDaylight), opacity);
         }
       `,
     });
 
     const oceanMesh = new THREE.Mesh(oceanGeo, oceanMat);
-    oceanMesh.position.y = -0.62;
+    oceanMesh.position.y = SEA;
     this.islandGroup.add(oceanMesh);
   }
 
@@ -1380,6 +1414,7 @@ export class PixelWorldRenderer {
     });
     this.islandGroup.clear();
     this.coastlineTexture?.dispose();
+    this.beachSurfTexture?.dispose();
   }
   private appearanceEra: EraKey = "original";
   private readonly reduceMotion = typeof window !== "undefined" ? window.matchMedia?.("(prefers-reduced-motion: reduce)") : undefined;
@@ -1402,6 +1437,10 @@ export class PixelWorldRenderer {
       this.coastalStamp=coastalStamp;
       this.coastlineTexture.image.data=editedCoastline(state,this.naturalCoastline,this.naturalTide);
       this.coastlineTexture.needsUpdate=true;
+      if (this.beachSurfTexture) {
+        beachSurfMask(state, this.beachSurfTexture.image.data as Uint8Array);
+        this.beachSurfTexture.needsUpdate = true;
+      }
     }
     this.activeTravel = state.mobility || state.projectOps?.calls.length || state.crimeIncidents?.some(i=>i.policeOriginId) ? getTravelNetwork(state) : undefined;
 
@@ -1421,7 +1460,8 @@ export class PixelWorldRenderer {
       const spec = eraElementSpec(el.defId, this.appearanceEra);
       const eraActivity = spec && activeSites ? presentationActivity(state, el, spec.family, activeSites) : "idle";
       const marker = spec && (spec.family === "market" || spec.family === "station") ? stageStyle : undefined;
-      const renderKey = [this.appearanceEra,eraActivity,marker?.level??"",parcel.key,el.level,el.variant,lighting].join("|");
+      const shoreProps = worldSculpted && isBeachParcel(el.defId);
+      const renderKey = [shoreProps ? coastalStamp : "",this.appearanceEra,eraActivity,marker?.level??"",parcel.key,el.level,el.variant,lighting].join("|");
       let entry = this.placedEntries.get(el.id);
       if (!entry || entry.key !== renderKey) {
         emittersChanged=true;
@@ -1446,7 +1486,8 @@ export class PixelWorldRenderer {
           localSpanX,
           localSpanZ,
           connMask,
-          { edges, soils, lighting, corridor, worldSculpted, era: this.appearanceEra, eraActivity },
+          { edges, soils, lighting, corridor, worldSculpted, era: this.appearanceEra, eraActivity,
+            shoreHeight: shoreProps ? this.shorePropSurface(wx, wz, el.rotation, baseY) : undefined },
         );
         const group = buildPlacedGroupFromAsset(asset, false);
         group.position.set(wx, baseY, wz);
@@ -1562,6 +1603,15 @@ export class PixelWorldRenderer {
     this.rebuildHeatmapOverlay();
     this.syncCrimeVisuals();
     this.syncAttackVisuals();
+  }
+
+  private shorePropSurface(wx: number, wz: number, rotation: number, baseY: number) {
+    const quarter = ((rotation % 4) + 4) % 4;
+    const cos = [1, 0, -1, 0][quarter], sin = [0, 1, 0, -1][quarter];
+    return (x: number, z: number) => {
+      const s = sampleTerrainAt(this.gameState, wx + x * cos + z * sin, wz - x * sin + z * cos);
+      return (s.depth > 0 ? s.waterLevel : s.elevation) - baseY;
+    };
   }
 
   private getGroundElevationForElement(def: CivElementDef, wx: number, wz: number): number {
@@ -2187,13 +2237,15 @@ export class PixelWorldRenderer {
     const localSpanZ = def.isNetwork || !oddRot ? spanZ : spanX;
     const corridor=corridorArt({gx,gz,defId:def.id,roadAxis:placement?.roadAxis??moving?.roadAxis},occupancy);
     if(corridor){const a=corridor.axis==="x";this.cursorOutline.scale.set((a?1:corridor.width)*4,.25,(a?corridor.width:1)*4); }
-    const wantedGhostKey = `${JSON.stringify(corridor)??""}|${def.id}|L${level}|V${variant}|${localSpanX}x${localSpanZ}|C${mask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}|${chk.valid ? "ok" : "bad"}`;
+    const beachPreview = def.id === "beaches" || (isBeachParcel(def.id) && Boolean(moving?.beachGrade));
+    const wantedGhostKey = `${beachPreview ? gx + "," + gz + "," + rotation + "," + this.coastalStamp : ""}|${JSON.stringify(corridor)??""}|${def.id}|L${level}|V${variant}|${localSpanX}x${localSpanZ}|C${mask}|${getParcelEdgeKey(edges)}|${soils ?? ""}|${lighting}|${chk.valid ? "ok" : "bad"}`;
     if (this.ghostKey !== wantedGhostKey) {
       if (this.ghostGroup) {
         this.overlayGroup.remove(this.ghostGroup);
         releaseParcelGeometry(this.ghostGroup);
       }
-      const asset = getOrBuildElementAsset(def.id, level, variant, localSpanX, localSpanZ, mask, { edges, soils, lighting, corridor, era:this.appearanceEra });
+      const asset = getOrBuildElementAsset(def.id, level, variant, localSpanX, localSpanZ, mask, { edges, soils, lighting, corridor, era:this.appearanceEra, worldSculpted: beachPreview,
+        shoreHeight: beachPreview ? this.shorePropSurface(wx, wz, rotation, baseY) : undefined });
       this.ghostGroup = buildPlacedGroupFromAsset(asset, true, chk.valid);
       this.overlayGroup.add(this.ghostGroup);
       this.ghostKey = wantedGhostKey;

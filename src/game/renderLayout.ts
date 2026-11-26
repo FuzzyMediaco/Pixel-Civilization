@@ -19,7 +19,7 @@ function renderParcel(state:GameState,el:PlacedElement,def:CivElementDef,occupan
   const soils=def.domain==="land"?getParcelSoils(state,pose):undefined;
   const corridor=corridorArt(el,occupancy);
   const strip=el.sculptsTerrain || stripsFlatGroundSlabInWorld(el.defId);
-  let terrainOverbuilt=false,worldSculpted=false;
+  let terrainOverbuilt=false,worldSculpted=el.defId==="beaches" || !!el.beachGrade;
   if(strip){
     for(let dx=0;dx<el.spanX;dx++)for(let dz=0;dz<el.spanZ;dz++){
       const x=el.gx+dx,z=el.gz+dz,k=tileKey(x,z);

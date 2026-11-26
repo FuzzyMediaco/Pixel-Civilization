@@ -85,6 +85,9 @@ export function editedCoastline(state: GameState, natural: Uint8Array, naturalTi
   const dry = new Float32Array(count);
   const wet = new Float32Array(count);
   const edits = new Float32Array(count).fill(300 * sub);
+  // Preserve fractional crossings of the smooth beach profile between one-metre texels.
+  const beachBed = sub > 1 && Object.values(voxelPatches).some(p => p.beach?.length)
+    ? new Float32Array(count).fill(NaN) : undefined;
   const voxPerTexel = Math.max(1, Math.round(VOXELS_PER_TILE / sub));
 
   for (let tz = z0; tz < z1; tz++) {
@@ -99,6 +102,7 @@ export function editedCoastline(state: GameState, natural: Uint8Array, naturalTi
         const vx = (tx - GRID_HALF * sub) * voxPerTexel + Math.floor(voxPerTexel * 0.5);
         const vz = (tz - GRID_HALF * sub) * voxPerTexel + Math.floor(voxPerTexel * 0.5);
         const s = sampleVoxelColumn(state, vx, vz);
+        if (beachBed && s.beach) beachBed[i] = s.elevation;
         sea = s.water === "salt" && s.depth > 0.02 && Math.abs(s.waterLevel - SEA) < 0.05;
       }
       dry[i] = sea ? 300 * sub : 0;
@@ -125,13 +129,37 @@ export function editedCoastline(state: GameState, natural: Uint8Array, naturalTi
   const fadeSpan = 6 * sub;
   for (let i = 0; i < count; i++) {
     if (edits[i] > maxDist) continue;
-    const signed = wet[i]
+    let signed = wet[i]
       ? (wet[i] - 0.5) * worldMetersPerTexel - 2.2
       : -((dry[i] - 0.5) * worldMetersPerTexel) - 2.2;
+    if (beachBed && Number.isFinite(beachBed[i]) && Math.abs(signed + 2.2) < 3) {
+      const dx = beachBed[i + 1] - beachBed[i - 1], dz = beachBed[i + width] - beachBed[i - width];
+      const slope = Math.hypot(dx, dz) / (2 * worldMetersPerTexel);
+      if (slope > 0.06) {
+        const distance = (beachBed[i] - SEA) / slope;
+        const blend = Math.min(1, 3 - Math.abs(signed + 2.2));
+        signed += (Math.max(-3.5, Math.min(3.5, distance)) - 2.2 - signed) * blend;
+      }
+    }
     const encoded = Math.min(255, Math.max(0, ((signed + 36) * 255) / 48));
     const weight = Math.max(0, Math.min(1, (maxDist - edits[i]) / fadeSpan));
     const target = (z0 + Math.floor(i / width)) * n + x0 + (i % width);
     result[target] = Math.round(natural[target] + (encoded - natural[target]) * weight);
   }
   return result;
+}
+
+/** Fade beach swash back into ordinary ocean around the ends of a developed shore. */
+export function beachSurfMask(state: GameState, pixels: Uint8Array) {
+  pixels.fill(0);
+  for (const [key, patch] of Object.entries(state.infrastructure?.voxels ?? {})) {
+    if (!patch.beach?.length) continue;
+    const [gx, gz] = key.split(",").map(Number);
+    for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) {
+      if (!withinMap(gx + dx, gz + dz)) continue;
+      const fade = Math.min(1, Math.max(0, (4.5 - Math.hypot(dx, dz)) / 2.5));
+      const i = (gz + dz - GRID_MIN) * GRID_SIZE + gx + dx - GRID_MIN;
+      pixels[i] = Math.max(pixels[i], Math.round(255 * fade * fade * (3 - 2 * fade)));
+    }
+  }
 }

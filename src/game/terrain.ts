@@ -20,6 +20,7 @@ import {
   interpolateVoxelStroke,
   voxelToTileLocal,
   syncVoxelPatchWaterFromCell,
+  syncTileCellFromVoxels,
   writeVoxelEditsToState,
   type VoxelTilePatch,
 } from "./voxelTerrain";
@@ -923,6 +924,7 @@ function accountCoastalWater(state: GameState, before: Map<string, Change>) {
       };
       const [gx, gz] = k.split(",").map(Number);
       syncVoxelPatchWaterFromCell(state, gx, gz, i.cells[k]);
+      if (i.voxels?.[k]?.beach?.length) syncTileCellFromVoxels(state, gx, gz);
     }
   }
 }

@@ -28,6 +28,8 @@ export interface VoxelColumn {
   wl?: number;
   /** Wet/damp shore margin flag (wet sand, surf wash, creek bank). */
   wet?: boolean;
+  /** Sand deposited by a placed beach, eligible to merge with adjoining deposits. */
+  beach?: true;
   /** Optional landform tag propagated to tile aggregate. */
   form?: TerrainCell["form"];
 }
@@ -37,6 +39,8 @@ export interface VoxelTilePatch {
   v: 1;
   /** Sparse map of local column index (lz * 16 + lx, 0..255) -> VoxelColumn. */
   cols: Record<number, VoxelColumn>;
+  /** Height in centimetres at each local sand column. Null entries use the underlying terrain. */
+  beach?: (number | null)[];
 }
 
 export interface VoxelTerrainSample {
@@ -47,6 +51,7 @@ export interface VoxelTerrainSample {
   depth: number;
   wet: boolean;
   form?: TerrainCell["form"];
+  beach?: true;
   source: "voxel" | "cell" | "natural";
 }
 
@@ -125,8 +130,17 @@ export function sampleVoxelColumn(
       depth: effectiveWater === "dry" ? 0 : depth,
       wet: Boolean(col.wet || depth > 0 || (effectiveWater === "dry" && col.y <= SEA + 0.35)),
       form: col.form,
+      beach: col.beach,
       source: "voxel",
     };
+  }
+
+  const sand = patch?.beach?.[idx];
+  if (sand != null) {
+    const elevation = sand / 100, depth = round2(Math.max(0, SEA - elevation));
+    const tidal = depth > 0.01;
+    return { elevation, material: "sand", water: tidal ? "salt" : "dry", waterLevel: SEA,
+      depth: tidal ? depth : 0, wet: elevation <= SEA + 0.30, form: tidal ? "bay" : "bank", beach: true, source: "voxel" };
   }
 
   // Only fall back to legacy coarse cell if the tile has no voxel patch at all (older saves).
@@ -205,7 +219,7 @@ export function sampleFootprintTerrain(
     for (let z = gz; z < gz + spanZ; z++) {
       const key = tileKey(x, z);
       const patch = state?.infrastructure?.voxels?.[key];
-      if (patch && Object.keys(patch.cols).length > 0) {
+      if (patch && (patch.beach?.length || Object.keys(patch.cols).length > 0)) {
         hasVoxels = true;
       }
       // Sample 4x4 grid inside every parcel for accurate 0.25m terrain statistics
@@ -266,6 +280,15 @@ export function syncVoxelPatchWaterFromCell(state: GameState, gx: number, gz: nu
     for (let lx = 0; lx < VOXELS_PER_TILE; lx++) {
       const idx = lz * VOXELS_PER_TILE + lx;
       const existing = patch.cols[idx];
+      const sand = patch.beach?.[idx];
+      if (sand != null && (!existing || existing.beach)) {
+        // A mixed dry/wet tile still has a tide in every column below sea level.
+        // An elevated or enclosed waterwork can temporarily cover the same sand.
+        if (cell.depth > 0.01 && Math.abs(cell.waterLevel - SEA) > 0.04 && sand / 100 < cell.waterLevel) {
+          patch.cols[idx] = {y: sand / 100, m: "sand", beach: true, w: cell.water, wl: cell.waterLevel, wet: true, form: "bank"};
+        } else if (existing) delete patch.cols[idx];
+        continue;
+      }
       if (!existing) continue;
       if (cell.depth <= 0.01 || cell.water === "dry") {
         if (existing.w && existing.w !== "dry") {
@@ -291,7 +314,7 @@ export function syncVoxelPatchWaterFromCell(state: GameState, gx: number, gz: nu
     for (let lz = 0; lz < VOXELS_PER_TILE; lz++) {
       for (let lx = 0; lx < VOXELS_PER_TILE; lx++) {
         const idx = lz * VOXELS_PER_TILE + lx;
-        if (patch.cols[idx]) continue;
+        if (patch.cols[idx] || patch.beach?.[idx] != null) continue;
         const s = sampleVoxelColumn(state, baseVx + lx, baseVz + lz);
         if (s.elevation < cell.waterLevel - 0.01) {
           patch.cols[idx] = {
@@ -322,7 +345,7 @@ export function syncTileCellFromVoxels(
   if (!infra) return undefined;
   const key = tileKey(gx, gz);
   const patch = infra.voxels?.[key];
-  if (!patch || Object.keys(patch.cols).length === 0) return infra.cells[key];
+  if (!patch || (!patch.beach?.length && Object.keys(patch.cols).length === 0)) return infra.cells[key];
 
   const prev = getTerrainCell(state, gx, gz);
   let sumY = 0;
@@ -842,10 +865,20 @@ export function writeVoxelEditsToState(
   for (const edit of edits) {
     let patch = infra.voxels[edit.tileKey];
     if (!patch) {
-      patch = { v: 1, cols: {} };
+      const coarse = infra.cells[edit.tileKey];
+      if (coarse && edit.col.beach) {
+        // Keep untouched columns of a tile from an older, tile-resolution save.
+        patch = { v: 1, cols: {} };
+        for (let idx = 0; idx < VOXELS_PER_TILE ** 2; idx++)
+          patch.cols[idx] = { y: coarse.elevation, m: coarse.material, w: coarse.water, wl: coarse.waterLevel,
+            wet: coarse.depth > 0 || coarse.kind === "coast" || coarse.material === "wetland", form: coarse.form };
+      } else patch = { v: 1, cols: {} };
       infra.voxels[edit.tileKey] = patch;
     }
-    patch.cols[edit.idx] = { ...edit.col };
+    if (edit.col.beach) {
+      (patch.beach ??= [])[edit.idx] = Math.round(edit.col.y * 100);
+      delete patch.cols[edit.idx];
+    } else patch.cols[edit.idx] = { ...edit.col };
     touched.add(edit.tileKey);
   }
 
@@ -867,7 +900,7 @@ export function cloneVoxelPatch(patch: VoxelTilePatch | undefined): VoxelTilePat
   for (const [k, v] of Object.entries(patch.cols)) {
     cols[Number(k)] = { ...v };
   }
-  return { v: 1, cols };
+  return { v: 1, cols, ...(patch.beach ? { beach: patch.beach.slice() } : {}) };
 }
 
 /**
