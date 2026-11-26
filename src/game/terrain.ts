@@ -99,6 +99,8 @@ export interface Infrastructure {
   revision: number;
   stamp?: string;
   coastlineStamp?: string;
+  /** Berth footprints used by the stored, tile-scale summaries of beach terraces. */
+  beachTerraceLayout?: string;
   cells: Record<string, TerrainCell>;
   /** Sparse 16x16 (0.25m pitch) per-tile voxel column overrides. Optional for legacy save compatibility. */
   voxels?: Record<string, VoxelTilePatch>;

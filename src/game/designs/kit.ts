@@ -48,6 +48,7 @@ export interface Ctx {
   parcelEdges?: readonly import("../parcelEdges").ParcelEdge[];
   /** True when rendered in-world atop real sculpted voxel terrain (false/undefined in Atlas previews). */
   worldSculpted?: boolean;
+  beachClearance?: (vx: number, vz: number) => number;
   v: PixelVox;
   id: string;
   /** level 1..5 */

@@ -1,5 +1,5 @@
 import type { EraKey } from "./eraStyles";
-import { BeachSurface, beachSandMaterial } from "./beachSurface";
+import { terraceSandColor } from "./beachTerraces";
 import { sharesOceanSurface } from "./coastline";
 import { GRID_SIZE, GRID_HALF, cellIndex } from "./mapBounds";
 import { TILE_SIZE } from "./voxelCore";
@@ -117,7 +117,6 @@ export class EngineeringView {
     flatShading: true,
     side: THREE.DoubleSide,
   });
-  private beachMaterial = beachSandMaterial();
   private voxelWaterMat = new THREE.MeshStandardMaterial({
     vertexColors: true,
     roughness: 0.24,
@@ -223,7 +222,6 @@ export class EngineeringView {
     }
     const solid = new Blocks();
     const voxelWater = new Blocks();
-    const beach = new BeachSurface(state);
     const hydro = hydraulics(state);
     const voxelPatches = infra.voxels ?? {};
     for (const [k, cell] of Object.entries(infra.cells)) {
@@ -276,11 +274,11 @@ export class EngineeringView {
             const mat: Material = s.material;
             const checker = (baseVx + lx + baseVz + lz) & 1;
             const skipDeepSeabed = !needsOceanMask && s.water === "salt" && y < -2.25;
-            if (s.beach && !skipDeepSeabed) {
-              beach.add(baseVx + lx, baseVz + lz);
-            } else if (!skipDeepSeabed) {
+            if (!skipDeepSeabed) {
               let topCol = checker ? earthAlt[mat] : earth[mat];
-              if (s.wet && mat === "sand") {
+              if (s.beach) {
+                topCol = terraceSandColor(y, checker);
+              } else if (s.wet && mat === "sand") {
                 topCol = s.depth > 0.02 ? (checker ? 0xad8f62 : 0xb49668) : checker ? 0xcab079 : 0xd2b882;
               } else if (mat === "rock" && y > 6.8) {
                 topCol = checker ? 0xd8e4e0 : 0xe4eeea;
@@ -1203,8 +1201,6 @@ export class EngineeringView {
       this.group.add(this.streamMarks);
     }
     if (solid.positions.length) this.group.add(solid.mesh(this.material));
-    const shore = beach.build(this.beachMaterial);
-    if (shore) this.group.add(shore);
     if (voxelWater.positions.length) this.group.add(voxelWater.mesh(this.voxelWaterMat));
   }
   animate(state: GameState, elapsedSeconds: number) {
@@ -1322,7 +1318,6 @@ export class EngineeringView {
     this.clear(this.preview);
     this.material.dispose();
     this.voxelWaterMat.dispose();
-    this.beachMaterial.dispose();
     this.previewMat.dispose();
     this.mask.dispose();
   }

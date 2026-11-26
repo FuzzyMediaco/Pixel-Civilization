@@ -19,6 +19,8 @@ export interface ParcelAppearance {
   worldSculpted?: boolean;
   /** World terrain height relative to the model origin, sampled at a local prop anchor in metres. */
   shoreHeight?: (localX: number, localZ: number) => number;
+  /** Sea level in the same local coordinates, for finding dry seating. */
+  shoreSeaLevel?: number;
 }
 
 export function getParcelSoils(state: GameState, el: ParcelPose): Material[] | undefined {

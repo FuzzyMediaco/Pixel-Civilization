@@ -965,9 +965,13 @@ export class PixelWorldRenderer {
             // Signed distance to the actual wet/dry boundary in world metres. Both
             // the swash and the intermittent outer breaker bend around the same bank.
             float offshore = -(m + 2.2);
+            const float pitch = ${VOXEL_SIZE.toFixed(2)};
+            float gridFade = 1.0 - smoothstep(pitch * 0.40, pitch, max(fwidth(water.x), fwidth(water.y)));
+            vec2 centre = (floor(water / pitch) + 0.5) * pitch;
+            offshore = mix(offshore, -(islandMargin(centre) + 2.2), gridFade);
             float shoal = 1.0 - smoothstep(0.0, 7.5, offshore);
-            col = mix(col, vec3(0.44, 0.80, 0.79), shoal * 0.88);
-            col = mix(col, vec3(0.67, 0.83, 0.73), 0.66 * (1.0 - smoothstep(0.15, 1.75, offshore)));
+            col = mix(col, vec3(0.44, 0.80, 0.79), shoal * 0.43);
+            col = mix(col, vec3(0.67, 0.83, 0.73), 0.26 * (1.0 - smoothstep(0.15, 1.75, offshore)));
             float drift = dot(water, vec2(0.32, -0.21));
             float wave = sin(uTime * 1.18 + drift * 0.69 + 0.55 * sin(drift));
             float scallop = 0.13 * sin(dot(water, vec2(1.03, 0.76)) + uTime * 0.65);
@@ -979,6 +983,8 @@ export class PixelWorldRenderer {
             float swell = abs(offshore - (2.05 + 0.57 * wave + 0.27 * sin(drift * 1.4)));
             float breaking = smoothstep(0.12, 0.84, sin(drift + uTime * 0.33) + 0.27 * sin(drift * 3.7));
             float crestFoam = breaking * (1.0 - smoothstep(0.035, 0.20 + aa, swell));
+            line *= 0.62 + 0.38 * smoothstep(-0.5, 0.55, lace);
+            crestFoam *= 0.52;
             col = mix(col, vec3(0.94, 0.985, 0.95), max(line * 0.88, crestFoam * 0.68) / max(1.0, aa * 2.0));
             // Hide the submerged end of the sand mesh while showing the bed in the wash.
             float bed = 0.17 * (1.0 - smoothstep(0.5, 3.0, offshore)) * (1.0 - line * 0.8);
@@ -1487,6 +1493,7 @@ export class PixelWorldRenderer {
           localSpanZ,
           connMask,
           { edges, soils, lighting, corridor, worldSculpted, era: this.appearanceEra, eraActivity,
+            shoreSeaLevel: SEA - baseY,
             shoreHeight: shoreProps ? this.shorePropSurface(wx, wz, el.rotation, baseY) : undefined },
         );
         const group = buildPlacedGroupFromAsset(asset, false);
@@ -2245,6 +2252,7 @@ export class PixelWorldRenderer {
         releaseParcelGeometry(this.ghostGroup);
       }
       const asset = getOrBuildElementAsset(def.id, level, variant, localSpanX, localSpanZ, mask, { edges, soils, lighting, corridor, era:this.appearanceEra, worldSculpted: beachPreview,
+        shoreSeaLevel: SEA - baseY,
         shoreHeight: beachPreview ? this.shorePropSurface(wx, wz, rotation, baseY) : undefined });
       this.ghostGroup = buildPlacedGroupFromAsset(asset, true, chk.valid);
       this.overlayGroup.add(this.ghostGroup);

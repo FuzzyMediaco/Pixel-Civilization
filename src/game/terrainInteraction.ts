@@ -14,6 +14,7 @@ import {
 } from "./terrain";
 import {
   VOXELS_PER_TILE,
+  refreshBeachTides,
   sampleFootprintTerrain,
   sampleVoxelColumn,
   syncTileCellFromVoxels,
@@ -678,7 +679,10 @@ export function applyElementTerrainInteraction(
 /** Old plot-only beaches acquire real terrain once. Keep the player's camera and saved plot rotations. */
 export function restoreBeachGround(state: GameState): void {
   const sites = state.elements.filter(el => isBeachParcel(el.defId) && el.beachGrade !== 2);
-  if (!sites.length) return;
+  if (!sites.length) {
+    refreshBeachTides(state);
+    return;
+  }
   const paintedBeds = legacyPaintedBeachBeds(state, sites);
   const unstamped = sites.filter(e => !e.beachGrade);
   const infra = state.infrastructure;
@@ -712,4 +716,5 @@ export function restoreBeachGround(state: GameState): void {
     if (touched.size) markInfrastructureChanged(infra, true);
   }
   for (const el of sites) applyElementTerrainInteraction(state, el, { preserveRotation: true, restoreBeach: true, paintedBeds });
+  refreshBeachTides(state);
 }
