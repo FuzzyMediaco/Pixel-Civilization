@@ -11,7 +11,7 @@ import { collectFarms,hasFarmRoad,setDistrictReport } from "./farmNetworks";
 import { FARM_MODULE_IDS } from "./expansionCatalog";
 import { GRID_MIN, GRID_MAX } from "./mapBounds";
 export { GRID_MIN, GRID_MAX, GRID_HALF } from "./mapBounds";
-import { hasNavigableHarbor, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
+import { hasNavigableHarbor, moveVesselBerth, stepMobility, transitLayer, transitReadout, type MobilityState } from "./mobility";
 import { advanceEconomy, buildingCharges, constructionCost, isFreeSurvivalBusiness, treasuryUpkeepRate, stagePopulationThreshold, cityWealth, unlockWealth, taxRateOf, economyOf, effective, enforceAccountHolds, evaluateEconomy, hasAuthority, professionalStaff, transfer, upgradeReadiness, type Economy } from "./cityEconomy";
 import { advanceOperations, type ProjectOps } from "./projectOperations";
 import { vesselIds,waterHull } from "./travelNetwork";
@@ -908,6 +908,7 @@ export function relocatePlacedElement(state: GameState, el: PlacedElement, gx: n
   el.overWater = Boolean(plan.underlay) || (ELEMENT_BY_ID[el.defId].isRoadNetwork && getTileTerrainKind(gx, gz, state) !== "land");
   el.gx = gx;
   el.gz = gz;
+  moveVesselBerth(state, el);
   el.animProgress = 0.85;
   el.animKind = "place";
   return true;
@@ -1868,8 +1869,8 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
       id: "no_port",
       severity: "warning",
       title: `${unportedVessels} Vessel${unportedVessels > 1 ? "s" : ""} Without a Home Port`,
-      detail: "Boats and ships only earn, patrol and defend when a Dock, Shipyard or Naval Base is nearby.",
-      fixHint: "Build a Dock (or a Naval Base for warships) on the coast within a few tiles of your fleet.",
+      detail: "Vessels can cruise here. Connect a home port by water to earn income and provide services.",
+      fixHint: "Place a Dock, Shipyard or Naval Base with a navigable approach to the fleet.",
     });
   }
 

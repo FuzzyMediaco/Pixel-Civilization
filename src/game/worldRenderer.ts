@@ -11,6 +11,7 @@ import { getTravelNetwork, travelSignature, type TravelNetwork } from "./travelN
 import { advanceCarSegment, departureInterval, getRoadTripNetwork, roadTripPoints, trafficFleetTarget, type RoadTrip, type RoadTripNetwork, type TripPoint } from "./roadTraffic";
 import { FarmActivityVisuals } from "./farmActivity";
 import { ChimneyPlumes, type ChimneyOutlet } from "./chimneyPlumes";
+import { visualFootprint } from "./mobility";
 import { MobilityVisuals, voyagePlacement } from "./mobilityVisuals";
 import { PatrolCraftManager } from "./patrolCraft";
 import * as THREE from "three";
@@ -1108,8 +1109,10 @@ export class PixelWorldRenderer {
     this.followService();
     const el = this.gameState.elements.find((e) => e.id === elementId);
     if (!el) return;
-    const [wx, wz] = gridToWorldCenter(el.gx, el.gz, el.spanX, el.spanZ);
     const entry = this.placedEntries.get(el.id);
+    const [wx, wz] = this.gameState.mobility?.voyages[el.id] && entry
+      ? [entry.group.position.x, entry.group.position.z]
+      : gridToWorldCenter(el.gx, el.gz, el.spanX, el.spanZ);
     const topY = (entry?.group.userData.topY as number) || 2.5;
     const lookY = Math.min(8, Math.max(0.6, topY * 0.35));
 
@@ -1259,44 +1262,22 @@ export class PixelWorldRenderer {
       minY = box.baseY ?? 0;
       maxY = minY + Math.max(1.2, box.topY ?? 2.4);
       hasTarget = true;
-    } else if (this.selectedIds.length === 1) {
-      const selId = this.selectedIds[0];
-      const el = this.gameState.elements.find((e) => e.id === selId);
-      const entry = this.placedEntries.get(selId);
-      if (el) {
-        const voyage = this.gameState.mobility?.voyages[el.id];
-        if (voyage && entry) {
-          const halfW = (el.spanX * TILE_SIZE) * 0.5;
-          const halfD = (el.spanZ * TILE_SIZE) * 0.5;
-          minX = entry.group.position.x - halfW;
-          maxX = entry.group.position.x + halfW;
-          minZ = entry.group.position.z - halfD;
-          maxZ = entry.group.position.z + halfD;
-          minY = entry.group.position.y;
-          maxY = minY + Math.max(1.2, (entry.group.userData.topY as number) || 2.2);
-        } else {
-          const bounds = roadBounds(el);
-          minX = bounds.minX * TILE_SIZE;
-          maxX = bounds.maxX * TILE_SIZE;
-          minZ = bounds.minZ * TILE_SIZE;
-          maxZ = bounds.maxZ * TILE_SIZE;
-          minY = entry?.baseY ?? 0;
-          maxY = minY + Math.max(1.2, (entry?.group.userData.topY as number) || 2.5);
-        }
-        hasTarget = true;
-      }
-    } else if (this.selectedIds.length > 1) {
-      // Combined bounding box for multi-selection / bulk-delete floating toolbar
+    } else {
       for (const id of this.selectedIds) {
         const el = this.gameState.elements.find((e) => e.id === id);
         if (!el) continue;
         const entry = this.placedEntries.get(id);
-        const bounds = roadBounds(el);
+        const hull = this.gameState.mobility?.voyages[id] && entry?.group;
+        const footprint = hull ? visualFootprint(el, {
+          position: [hull.position.x / TILE_SIZE - .5, hull.position.z / TILE_SIZE - .5],
+          heading: hull.rotation.y,
+        }) : el;
+        const bounds = roadBounds({ ...el, ...footprint });
         const ex0 = bounds.minX * TILE_SIZE;
         const ex1 = bounds.maxX * TILE_SIZE;
         const ez0 = bounds.minZ * TILE_SIZE;
         const ez1 = bounds.maxZ * TILE_SIZE;
-        const ey0 = entry?.baseY ?? 0;
+        const ey0 = hull ? hull.position.y : entry?.baseY ?? 0;
         const ey1 = ey0 + Math.max(1.2, (entry?.group.userData.topY as number) || 2.5);
         if (ex0 < minX) minX = ex0;
         if (ex1 > maxX) maxX = ex1;
@@ -1499,6 +1480,12 @@ export class PixelWorldRenderer {
         const group = buildPlacedGroupFromAsset(asset, false);
         group.position.set(wx, baseY, wz);
         group.rotation.y = def.isNetwork ? 0 : (el.rotation * Math.PI) / 2;
+        const voyage = state.mobility?.voyages[el.id];
+        if (voyage) {
+          const position = voyagePlacement(state, voyage.position, voyage.status === "Submerged", this.activeTravel);
+          group.position.set(position.x, position.y, position.z);
+          group.rotation.y = voyage.heading;
+        }
         if(terrainOverbuilt||worksSpan && !worksSpan.run.startsWith("junction-")) group.traverse(o=>{if(o instanceof THREE.Mesh)o.visible=false;});
         group.userData.elementId = el.id;
         group.userData.baseY = baseY;
@@ -1847,7 +1834,7 @@ export class PixelWorldRenderer {
 
   private rebuildSelectionAndRadiusOverlays(): void {
     for (const line of this.selectionOutlines) {
-      this.overlayGroup.remove(line);
+      line.removeFromParent();
       line.geometry.dispose();
       (line.material as THREE.Material).dispose();
     }
@@ -1865,13 +1852,21 @@ export class PixelWorldRenderer {
       const bounds = roadBounds(el);
       const width = (bounds.maxX - bounds.minX) * TILE_SIZE;
       const depth = (bounds.maxZ - bounds.minZ) * TILE_SIZE;
-      const box = new THREE.BoxGeometry(width + 0.16, h, depth + 0.16);
+      const hull = this.gameState.mobility?.voyages[id] && entry?.group;
+      const swapped = hull && el.rotation % 2 === 1;
+      const box = new THREE.BoxGeometry((swapped ? depth : width) + 0.16, h, (swapped ? width : depth) + 0.16);
       const edges = new THREE.EdgesGeometry(box);
       box.dispose();
       const col = this.bulkSelectMode || this.selectedIds.length > 1 ? 0xff5a5f : 0xf4c44e;
       const seg = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: col }));
-      seg.position.set(wx, baseY + h * .5, wz);
-      this.overlayGroup.add(seg);
+      if (hull) {
+        seg.position.y = h * .5;
+        seg.raycast = () => {}; // The selection decoration must not intercept taps beside the hull.
+        hull.add(seg);
+      } else {
+        seg.position.set(wx, baseY + h * .5, wz);
+        this.overlayGroup.add(seg);
+      }
       this.selectionOutlines.push(seg);
     });
 

@@ -4,6 +4,7 @@ import { usePeriodNames } from "./PeriodPicker";
 import React, { useState } from "react";
 import {
   AlertCircle,
+  Anchor,
   ArrowDown,
   ArrowUp,
   ArrowUpRight,
@@ -16,12 +17,14 @@ import {
   Move,
   RotateCw,
   Shuffle,
+  Ship,
   TreePine,
   Trash2,
   TrainFront,
   Wrench,
 } from "lucide-react";
 import { type CivElementDef, getElementLevelName, getMaxElementLevel, getStandardFootprintForLevel } from "../game/catalog";
+import { vesselIds } from "../game/travelNetwork";
 import { SYNERGY_RULES } from "../game/cityDynamics";
 import { buildingCharges, upgradeReadiness } from "../game/cityEconomy";
 import { alertIssues, type IssueFix } from "../game/cityIssues";
@@ -89,6 +92,9 @@ export function InspectorSheet({
   const nextSize = !atMax && !def.isNetwork ? " (" + getStandardFootprintForLevel(def, el.level + 1).join("×") + ")" : "";
   const isRail = RAIL_SITES.includes(def.id);
   const building = !def.isNetwork && !def.passiveNature;
+  const vessel = vesselIds.has(def.id);
+  const voyage = state.mobility?.voyages[el.id];
+  const accessFix: IssueFix = vessel ? { label: "Build a home port", category: "maritime" } : { label: "Build roads", category: "roads_transit" };
   const lv = el.landValue ?? 0.5;
   const maintenance = maintenanceStatus(state, el);
   const cityNeeds = alertIssues(state).filter((i) => i.fix).slice(0, 3);
@@ -117,7 +123,7 @@ export function InspectorSheet({
           subtitle={levelName + (next ? " → Lv " + (el.level + 1) + nextSize : " · Max")}
           badges={
             <span className="ui-tags ui-icard-badges" role="group" aria-label="Status">
-              {building && !god && <Tag tone={el.connected ? "good" : "bad"}>{el.connected ? "Road ✓" : "No road"}</Tag>}
+              {building && !god && <Tag tone={el.connected ? "good" : "bad"}>{vessel ? (el.connected ? "Port ✓" : "No port") : (el.connected ? "Road ✓" : "No road")}</Tag>}
               {el.awaitingStreet && <Tag tone="warn">Street</Tag>}
               {el.onFire && (
                 <Tag tone="bad" icon={<Flame size={11} />}>
@@ -182,6 +188,7 @@ export function InspectorSheet({
     >
       {tab === "needs" && (
         <div className="ui-list">
+          {voyage && <ListRow icon={<Ship size={17} />} title="Voyage" subtitle={voyage.status} />}
           {!atMax && building && ready.goal > 0 && (
             <ListRow
               icon="⬆"
@@ -197,17 +204,17 @@ export function InspectorSheet({
           )}
           {building && !god && !el.connected && (
             <ListRow
-              icon="🛣"
+              icon={vessel ? <Anchor size={17} /> : "🛣"}
               tone="bad"
-              title="Not connected"
-              subtitle="Place any road next to this building to link automatically"
+              title={vessel ? "No home port" : "Not connected"}
+              subtitle={vessel ? "A reachable dock, shipyard or naval base enables this vessel’s income and services." : "Place any road next to this building to link automatically"}
               trailing={
                 <button
                   type="button"
                   className="ui-row-action-icon"
-                  aria-label="Build roads"
-                  title="Build roads"
-                  onClick={() => onFix({ label: "Build roads", category: "roads_transit" })}
+                  aria-label={accessFix.label}
+                  title={accessFix.label}
+                  onClick={() => onFix(accessFix)}
                 >
                   <Hammer size={14} />
                 </button>

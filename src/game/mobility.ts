@@ -97,6 +97,15 @@ export interface Voyage {
   status: string;
   sequence: number;
 }
+/** Axis-aligned map bounds of the hull at its current heading, in tile coordinates. */
+export function visualFootprint(el: PlacedElement, voyage?: Pick<Voyage, "position" | "heading">) {
+  if (!voyage) return el;
+  const angle = voyage.heading - el.rotation * Math.PI / 2;
+  const c = Math.abs(Math.cos(angle)), s = Math.abs(Math.sin(angle));
+  const spanX = c * el.spanX + s * el.spanZ, spanZ = s * el.spanX + c * el.spanZ;
+  return { gx: voyage.position[0] + .5 - spanX / 2, gz: voyage.position[1] + .5 - spanZ / 2, spanX, spanZ };
+}
+
 export interface MobilityState {
   lines: Run[];
   voyages: Record<string, Voyage>;
@@ -966,90 +975,74 @@ function newVoyage(e: PlacedElement): Voyage {
     heading: (e.rotation * Math.PI) / 2,
     path: [],
     progress: 0,
-    dwell: 1,
+    dwell: 0,
     moored: false,
     returnHome: false,
     sequence: 0,
     status: "At berth",
   };
 }
+export function moveVesselBerth(s: GameState, e: PlacedElement): void {
+  const voyages = s.mobility?.voyages;
+  const previous = voyages?.[e.id];
+  if (!voyages || !previous) return;
+  const v = newVoyage(e);
+  if (previous.moored) {
+    v.moored = true;
+    v.status = "Holding position";
+  }
+  voyages[e.id] = v;
+}
+
+function cruiseStart(position: Point, net: TravelNetwork, hull: Hull): Point | undefined {
+  const [x, z] = position;
+  const center: Point = [Math.round(x), Math.round(z)];
+  if (net.canUse(...center, "ferry", hull)) return center;
+  // An even-width hull can straddle four cells. Use the closest wet one beneath its center.
+  const corners: Point[] = [
+    [Math.floor(x), Math.floor(z)], [Math.ceil(x), Math.floor(z)],
+    [Math.floor(x), Math.ceil(z)], [Math.ceil(x), Math.ceil(z)],
+  ];
+  return corners.sort((a, b) => Math.hypot(a[0] - x, a[1] - z) - Math.hypot(b[0] - x, b[1] - z))
+    .find(p => net.canUse(...p, "ferry", hull));
+}
+
 function stepVoyage(s: GameState, e: PlacedElement, v: Voyage, dt: number, net: TravelNetwork, version: number) {
   if (v.moored) return;
   if (v.dwell > 0 && v.version === version) {
     v.dwell -= dt;
     return;
   }
-  if (s.mode !== "god" && !hasNavigableHarbor(s, e)) {
-    v.status = "Needs a reachable home port";
-    v.dwell = 8;
-    v.version = version;
-    return;
-  }
-  const hull = vesselHull(e),
-    home = net.connectors(e, "ferry", hull),
-    a: Point = [Math.round(v.position[0]), Math.round(v.position[1])];
+  const hull = vesselHull(e);
+  if (v.version !== version && v.path.length && net.waterPathOpen(v.path, v.progress, hull)) v.version = version;
   if (!v.path.length || v.version !== version) {
-    const start = net.canUse(a[0], a[1], "ferry", hull) ? [a] : v.sequence === 0 ? home : [];
-    const goals: Point[][] = [];
-    if (v.returnHome) goals.push(home);
-    else if (v.target) goals.push([v.target]);
-    else {
-      const inland = s.elements.filter((p) =>
-        [
-          "docks",
-          "ferry_landings",
-          "canals",
-          "rivers",
-          "wide_rivers",
-          "lakes",
-          "naval_base",
-          "shipyards",
-          "submarine_base",
-        ].includes(p.defId),
-      );
-      const coast: Point[] = [
-        [-30, -25],
-        [-30, 12],
-        [-20, 30],
-        [16, 30],
-        [30, 12],
-        [30, -18],
-        [8, -30],
-        [-12, -30],
-        [36,0],[44,35],[16,38],[-75,28],[-82,-39],[-23,-65],[21,-82],[79,-29],[83,72],
-      ];
-      // Cycle inland harbors, drawn channels and the open-ocean ring, interspersed with home calls.
-      const destinations: Point[][] = inland.map((p) => net.connectors(p, "ferry", hull));
-      const edits = Object.keys(s.infrastructure?.cells ?? {});
-      for (const key of edits) {
-        const [x, z] = key.split(",").map(Number);
-        if (Number.isFinite(z) && net.canUse(x, z, "ferry", hull)) destinations.push([[x, z]]);
-      }
-      destinations.push(...coast.map((p) => [p]));
-      if (destinations.length) {
-        for (let i = 0; i < Math.min(8, destinations.length); i++)
-          goals.push(destinations[(v.sequence + i) % destinations.length]);
-      }
-      if (!goals.length) goals.push(home);
-    }
+    const start = cruiseStart(v.position, net, hull);
     let path: Point[] | null = null;
-    for (const goal of goals) {
-      const valid = goal.filter(
-        ([x, z]) =>
-          net.canUse(x, z, "ferry", hull) &&
-          (v.returnHome || !!v.target || Math.abs(x - a[0]) + Math.abs(z - a[1]) > 2),
-      );
-      if (valid.length && (path = net.path(start, valid, "ferry", hull))) break;
+    if (start) {
+      if (v.returnHome) {
+        const berth: Point = [Math.round(e.gx + (e.spanX - 1) / 2), Math.round(e.gz + (e.spanZ - 1) / 2)];
+        path = net.path([start], [berth], "ferry", hull) ?? net.path([start], net.connectors(e, "ferry", hull), "ferry", hull);
+        // An automatic home call may be cut off by new construction. A player's recall stays queued.
+        if (!path && !v.holdAtHome) v.returnHome = false;
+      } else if (v.target) {
+        path = net.path([start], [v.target], "ferry", hull);
+      }
+      if (!v.returnHome && !v.target) {
+        const bearing = e.gx * 0.73 + e.gz * 1.23 + v.sequence * 2.4 + e.rotation * Math.PI / 2;
+        path = net.cruisePath(start, hull, bearing);
+      }
     }
     v.version = version;
     v.path = path ?? [];
     v.progress = 0;
+    if (path?.length === 1) v.position = path[0];
     v.sequence++;
     if (!path) {
       v.status = "Waiting for navigable water with enough width, depth and bridge clearance";
       v.dwell = 8;
       return;
     }
+    v.dwell = 0;
   }
   const result = advance(
     s,

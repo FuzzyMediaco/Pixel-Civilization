@@ -1144,7 +1144,7 @@
         "id": "harbor-voyages",
         "title": "Send a ship out from a working harbor",
         "steps": [
-          "Place a naval base, dock or shipyard where its berths face navigable water. Put the ship on water with enough depth and turning room for its hull. In Real mode it needs a reachable home port.",
+          "Place a naval base, dock or shipyard where its berths face navigable water. Ships cruise automatically wherever their hulls have enough depth, width and turning room. In Real mode a reachable home port enables their income and services.",
           "Open the vessel controls, select the ship, then choose a destination on the map or enter coordinates. Watch its status change to Under way. Use Recall to bring it back to its home position and moor it.",
           "If a route stalls, inspect any narrow reach, shallow approach or low bridge between the ship and its destination. Wide naval hulls need more turning room than small launches."
         ],

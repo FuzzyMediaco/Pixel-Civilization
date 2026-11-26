@@ -51,7 +51,7 @@ const basins = ids("rivers wide_rivers canals water_tile lakes ponds swamps muni
 const shore = ids("beaches beach_houses beach_umbrellas sand boardwalks shoreline_overlook tidal_pool_walk");
 const publicWalks = ids("paths walking_paths side_walks pretty_roads trails boardwalks");
 const ports = ids("docks naval_base submarine_base shipyards ship_building_areas ferry_landings ferry_exchange canal_boat_lift maritime_college ocean_habitat_ring coast_rescue_station harbor_patrol_pier naval_shipyard_base naval_coast_guard_base naval_destroyer_dock naval_carrier_berth naval_amphibious_dock marine_amphib_base seafood_pier boatyard_slipway colossus_lighthouse maritime_museum");
-const vessels = ids("boats sail_boats speed_boats naval_vessels submarines aircraft_carriers naval_patrol_cutter naval_frigate_ship naval_minesweeper naval_hospital_ship harbor_tugboat coastal_corvette");
+export const vesselIds = ids("boats sail_boats speed_boats naval_vessels submarines aircraft_carriers naval_patrol_cutter naval_frigate_ship naval_minesweeper naval_hospital_ship harbor_tugboat coastal_corvette");
 const fuelIndustry = ids("factories trash_burning_plants trash_compacting_plants landfill coal_powerplants natural_gas_power_plants");
 const industrial = ids("factories landfill trash_compacting_plants coal_powerplants natural_gas_power_plants trash_burning_plants blacksmiths data_centers open_pit_mine materials_foundry freight_rail_terminal nuclear_power_plants geothermal_power_plants micro_reactor_nuclear recycling_center compost_works");
 const wetUtil = ids("water_treatment_plant water_pumping_station hydro_electric_power_plants municipal_reservoir aqueduct water_reuse_works pumped_storage_station tidal_sluice");
@@ -117,7 +117,7 @@ function joint(a: CivElementDef, b: CivElementDef, sa: LocalSide, sb: LocalSide,
   if ((wetUtil.has(x) && fresh.has(y)) || (wetUtil.has(y) && fresh.has(x))) return "intake";
   if (supply.has(x) && supply.has(y)) return "service";
   if ((x === "water_places" && supply.has(y)) || (y === "water_places" && supply.has(x))) return "service";
-  if ((ports.has(x) && vessels.has(y)) || (ports.has(y) && vessels.has(x))) return "dock";
+  if ((ports.has(x) && vesselIds.has(y)) || (ports.has(y) && vesselIds.has(x))) return "dock";
   if ((ports.has(x) && (basins.has(y) || ports.has(y))) || (ports.has(y) && basins.has(x))) return "quay";
   if ((flora.has(x) && flora.has(y)) || ((x === "alligators" || y === "alligators") && (basins.has(x) || basins.has(y)))) return "habitat";
   if ((shore.has(x) && (shore.has(y) || basins.has(y))) || (shore.has(y) && basins.has(x))) return "beach";
@@ -142,8 +142,8 @@ function joint(a: CivElementDef, b: CivElementDef, sa: LocalSide, sb: LocalSide,
     if (localRoad(network) && side === "back" && (industrial.has(d.id) || ports.has(d.id) || d.id === "post_offices" || d.id === "grocery_store")) return "freight";
     if (localRoad(network) && !d.passiveNature) return "drive";
     if (localRoad(network) && greens.has(d.id)) return "walk";
-    if (publicWalks.has(network.id) && !vessels.has(d.id)) return "walk";
-    if (network.isRoadNetwork && !vessels.has(d.id) && !d.passiveNature) return "drive";
+    if (publicWalks.has(network.id) && !vesselIds.has(d.id)) return "walk";
+    if (network.isRoadNetwork && !vesselIds.has(d.id) && !d.passiveNature) return "drive";
   }
   if (frontage(a) && frontage(b)) return "arcade";
   if ((publicFaith.has(x) && supply.has(y)) || (publicFaith.has(y) && supply.has(x))) return "service";
