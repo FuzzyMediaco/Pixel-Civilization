@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { ELEMENT_BY_ID } from "../game/catalog";
 import { GRID_MIN, GRID_MAX, GRID_SIZE, withinMap } from "../game/mapBounds";
+import { visualFootprint } from "../game/mobility";
 import { roadBounds } from "../game/roadCorridors";
 import { computeHeatmapCells, maintenanceStatus, type GameState, type HeatmapKind } from "../game/simulation";
 import { getTerrainCell, type GridPoint } from "../game/terrain";
@@ -131,8 +132,9 @@ export function IslandMapFallback({ state, focus, buildingPulse, draw, following
       for (const el of state.elements) {
         const def = ELEMENT_BY_ID[el.defId];
         if (!def) continue;
-        const x = left + el.gx * zoom, y = top + el.gz * zoom;
-        const ew = el.spanX * zoom, eh = el.spanZ * zoom;
+        const footprint = visualFootprint(el, voyages[el.id]);
+        const x = left + footprint.gx * zoom, y = top + footprint.gz * zoom;
+        const ew = footprint.spanX * zoom, eh = footprint.spanZ * zoom;
         if (x + ew < 0 || y + eh < 0 || x > w || y > h) continue;
         const span = state.infrastructure?.spans[`${el.gx},${el.gz}`];
         if (def.isRoadNetwork || span || def.isRailNetwork) {
@@ -201,7 +203,6 @@ export function IslandMapFallback({ state, focus, buildingPulse, draw, following
         ctx.stroke();
       };
       for(const line of lines) if (line.position && line.enabled) drawVehicle(line.id,...line.position,line.mode==="rail");
-      for(const [id,voyage] of Object.entries(voyages)) if(voyage.position && !voyage.moored) drawVehicle(id,...voyage.position);
       if (stroke.length) {
         ctx.beginPath();
         for (const [i, point] of stroke.entries()) {

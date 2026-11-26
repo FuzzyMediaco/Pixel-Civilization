@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 
 export type SheetHeight = "peek" | "half" | "full";
 const ORDER: SheetHeight[] = ["peek", "half", "full"];
@@ -310,6 +311,22 @@ export function BottomSheet({
     }
   };
 
+  const grip = (
+    <button
+      type="button"
+      className="ui-sheet-grip-btn"
+      aria-label={`${title} sheet height: ${height}. Swipe up to expand or down to close. Arrow keys resize`}
+      title="Swipe up/down to resize or close"
+      onKeyDown={onGripKeyDown}
+      onClick={e => {
+        if (e.detail > 0 && suppressGripClick.current) return;
+        onHeightChange(height === "peek" ? "half" : "peek");
+      }}
+    >
+      <span className="ui-sheet-grip" aria-hidden="true" />
+    </button>
+  );
+
   return (
     <section
       ref={sheetRef}
@@ -335,25 +352,14 @@ export function BottomSheet({
         onPointerUp={endDrag}
         onPointerCancel={cancelDrag}
       >
+        {header && grip}
         {headerLead && <div className="ui-sheet-rail-lead">{headerLead}</div>}
 
         {header ? (
           <div className="ui-sheet-custom-head">{header}</div>
         ) : (
           <div className="ui-sheet-rail-center">
-            <button
-              type="button"
-              className="ui-sheet-grip-btn"
-              aria-label={`${title} sheet height: ${height}. Swipe up to expand or down to close. Arrow keys resize`}
-              title="Swipe up/down to resize or close"
-              onKeyDown={onGripKeyDown}
-              onClick={e => {
-                if (e.detail > 0 && suppressGripClick.current) return;
-                onHeightChange(height === "peek" ? "half" : "peek");
-              }}
-            >
-              <span className="ui-sheet-grip" aria-hidden="true" />
-            </button>
+            {grip}
             {!hideTitle && (
               <div className="ui-sheet-shadow-title">
                 <h2>{title}</h2>
@@ -365,14 +371,13 @@ export function BottomSheet({
 
         {headerTrail && <div className="ui-sheet-rail-trail">{headerTrail}</div>}
 
-        {/* Keyboard/screen-reader accessible close (visually minimal; swipe-down & Esc are primary) */}
         <button
           type="button"
-          className="ui-sheet-sr-close"
+          className={header ? "ui-sheet-icon-btn" : "ui-sheet-sr-close"}
           aria-label={closeLabel}
           onClick={onClose}
         >
-          {closeLabel}
+          {header ? <X size={18} aria-hidden="true" /> : closeLabel}
         </button>
       </div>
 

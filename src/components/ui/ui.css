@@ -771,6 +771,23 @@ button.ui-row:hover { border-color: var(--ui-green); }
   opacity: 0 !important;
   pointer-events: none !important;
 }
+.ui-ring-name {
+  position: absolute;
+  bottom: calc(var(--ring-r) + 27px);
+  left: 0;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(260px, calc(2 * (min(var(--ring-x, 50vw), 100vw - var(--ring-x, 50vw)) - 8px)));
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 999px;
+  background: #19392f;
+  box-shadow: 0 2px 8px #152d3033;
+  color: #fffdf3;
+  font: 700 13px/1.25 var(--ui-font);
+  text-align: center;
+  pointer-events: none;
+}
 .ui-ring-cluster {
   position: absolute;
   left: 0;
@@ -4260,7 +4277,47 @@ button.ui-row:hover { border-color: var(--ui-green); }
 .ui-sheet-stage .ui-sheet { bottom: var(--nav-bottom); }
 .ui-sheet-grip-btn { touch-action: none; }
 
-#sheet-inspector .ui-sheet-rail.has-custom-header { padding: 5px 8px; }
+#sheet-inspector {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  gap: 8px;
+  padding: 0 max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  border: 1px solid #cbd6c9;
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  background: var(--ui-paper);
+  box-shadow: 0 -4px 22px #19392f29;
+  overflow: hidden;
+  pointer-events: auto;
+}
+#sheet-inspector[data-height="peek"] {
+  height: auto;
+  max-height: min(max(54dvh, 240px), calc(100dvh - var(--hud-top)), 440px);
+}
+#sheet-inspector[data-height="half"] { height: min(65dvh, 520px); }
+#sheet-inspector .ui-sheet-rail.has-custom-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#sheet-inspector .ui-sheet-grip-btn {
+  grid-column: 1 / -1;
+  justify-self: center;
+  height: 19px;
+}
+#sheet-inspector .ui-sheet-grip { background: #a0ada2; box-shadow: none; }
+#sheet-inspector .ui-sheet-icon-btn { width: 44px; height: 44px; }
+#sheet-inspector .ui-sheet-body { padding: 0 0 2px; }
+#sheet-inspector .ui-sheet-body .ui-muted { margin: 2px 2px 4px; }
+@media (max-height: 460px) {
+  #sheet-inspector[data-height="peek"] { max-height: min(84dvh, 350px); }
+}
 #sheet-inspector .ui-icard { gap: 7px; }
 #sheet-inspector .ui-icard-thumb { width: 38px; height: 38px; }
 #sheet-inspector .ui-icard-thumb img { width: 36px; height: 36px; }

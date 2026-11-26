@@ -28,14 +28,7 @@ export const waterHull: Record<"ferry" | "gondola" | "freight", Hull> = {
   ferry: { beam: 4.25, draft: 0.8, height: 2.1 },
   freight: { beam: 5.5, draft: 1.25, height: 2.7, turningWidth: 9 },
 };
-export const vesselIds = new Set([
-  "boats",
-  "speed_boats",
-  "sail_boats",
-  "naval_vessels",
-  "aircraft_carriers",
-  "submarines",
-]);
+export { vesselIds } from "./parcelEdges";
 export const harborIds = new Set([
   "docks",
   "ferry_landings",
@@ -47,14 +40,14 @@ export const harborIds = new Set([
 ]);
 export function vesselHull(e: PlacedElement): Hull {
   const size = (e.level - 1) / 4;
-  switch (e.defId) {
-    case "aircraft_carriers":
+  switch (ELEMENT_BY_ID[e.defId]?.archetype) {
+    case "aircraft_carrier":
       return { beam: 12 + size * 2, draft: 2.2 + size * 1.1, height: 3.8 + size * 2, turningWidth: 17 + size * 3 };
-    case "submarines":
+    case "submarine":
       return { beam: 5.5 + size * 3, draft: 1.35 + size, height: 1.25, turningWidth: 8 + size * 3 };
-    case "naval_vessels":
+    case "naval_ship":
       return { beam: 6.5 + size * 3, draft: 1.1 + size, height: 2.8 + size * 1.4, turningWidth: 10 + size * 3 };
-    case "sail_boats":
+    case "sailboat":
       return { beam: 1.5 + size * 3.5, draft: 0.38 + size * 0.65, height: 2.25 + size * 3 };
     default:
       return { beam: 1.3 + size * 1.25, draft: 0.24 + size * 0.46, height: 0.7 + size * 0.8 };
@@ -232,6 +225,47 @@ export class TravelNetwork {
     }
     return null;
   }
+  /** Pick a waypoint from water the hull can actually reach in one short cruise. */
+  cruisePath(start: Point, hull: Hull, bearing: number): Point[] | null {
+    if (!this.canUse(...start, "ferry", hull)) return null;
+    const reach = 10;
+    const aimX = reach * Math.sin(bearing), aimZ = reach * Math.cos(bearing);
+    const queue = [{ point: start, parent: -1, steps: 0, axis: -1 }];
+    const seen = new Set<number>([tileKey(...start) * 2]);
+    let best = -1, bestScore = -Infinity;
+    for (let i = 0; i < queue.length; i++) {
+      const { point: [x, z], steps, axis } = queue[i];
+      if (steps >= reach + 4) continue;
+      const tight = Boolean(hull.turningWidth && !this.canTurn(x, z, hull));
+      for (const [dx, dz] of sides) {
+        const nx = x + dx, nz = z + dz, nextAxis = dx ? 1 : 0;
+        if (tight && axis !== -1 && nextAxis !== axis) continue;
+        if (!inside(nx, nz) || !this.water.canStep(x, z, nx, nz, hull)) continue;
+        const key = tileKey(nx, nz) * 2 + (hull.turningWidth ? nextAxis : 0);
+        if (seen.has(key) || (nx === start[0] && nz === start[1])) continue;
+        seen.add(key);
+        const offsetX = nx - start[0], offsetZ = nz - start[1];
+        const distance = Math.hypot(offsetX, offsetZ);
+        const score = 2 * Math.min(distance, reach) - Math.hypot(offsetX - aimX, offsetZ - aimZ);
+        const next = queue.push({ point: [nx, nz], parent: i, steps: steps + 1, axis: nextAxis }) - 1;
+        if (score > bestScore) { best = next; bestScore = score; }
+      }
+    }
+    if (best < 0) return null;
+    const path: Point[] = [];
+    for (let i = best; i >= 0; i = queue[i].parent) path.push(queue[i].point);
+    return path.reverse();
+  }
+
+  waterPathOpen(path: Point[], progress: number, hull: Hull): boolean {
+    for (let i = Math.floor(progress); i < path.length - 1; i++) {
+      const [x, z] = path[i], [nx, nz] = path[i + 1];
+      if (!this.water.canStep(x, z, nx, nz, hull)) return false;
+      if (i && hull.turningWidth && path[i - 1][0] !== nx && path[i - 1][1] !== nz && !this.canTurn(x, z, hull)) return false;
+    }
+    return true;
+  }
+
   /**
    * Rail route that prefers free track: tiles in `penalty` (held by other trains) cost extra, so a train picks
    * the other side of a passing loop or the second track of a double line when one is busy. Same turn rules as

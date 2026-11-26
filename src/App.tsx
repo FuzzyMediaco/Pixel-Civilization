@@ -7,7 +7,7 @@ import { currentPlayer, slotKey, readPlayerItem, writePlayerItem, deviceIssue, o
 import { RailOperations } from "./components/RailOperations";
 import { rememberBuildingEdit, undoBuildingEdit } from "./game/constructionHistory";
 import { dispatchFire } from "./game/projectOperations";
-import { dispatchVessel, previewWaterPassage } from "./game/mobility";
+import { dispatchVessel, previewWaterPassage, visualFootprint } from "./game/mobility";
 import { buildingCharges, constructionCost, transfer } from "./game/cityEconomy";
 import "./islandDesk.css";
 import { Connections, GodControls } from "./components/IslandControls";
@@ -2164,7 +2164,11 @@ export const App: React.FC = () => {
       return;
     }
     setInspectPoint({gx,gz});
-    const hit = stateRef.current.elements.find(el=>gx>=el.gx && gx<el.gx+el.spanX && gz>=el.gz && gz<el.gz+el.spanZ);
+    const state = stateRef.current;
+    const hit = state.elements.find(el => {
+      const b = visualFootprint(el, state.mobility?.voyages[el.id]);
+      return gx + .5 >= b.gx && gx + .5 < b.gx + b.spanX && gz + .5 >= b.gz && gz + .5 < b.gz + b.spanZ;
+    });
     if (bulkSelectMode && hit) {
       const isRoad = ELEMENT_BY_ID[hit.defId]?.isNetwork;
       if (bulkFilter==="all" || (bulkFilter==="roads" ? isRoad : !isRoad)) handleBulkSelectElements([hit.id],"toggle");
@@ -2535,7 +2539,7 @@ export const App: React.FC = () => {
         ? <IslandMapFallback key={gameState.mode + (gameState.exampleWorldId ?? "")} state={gameState} focus={gameState.mode === "idle" && !followGrowth ? undefined : mapFocus} buildingPulse={mapBuildingPulse}
             startAt={activeExample?.viewpoints[gameState.exampleViewpoint ?? -1] ?? activeExample?.camera}
             following={followedService} onStopFollowing={()=>setFollowedService(undefined)} heatmap={activeHeatmap} draw={Boolean(worksTool || brushDef || movingEl || brush.movingGroupIds)} onStroke={mapStroke} onTap={dismissMapPanel} onInspect={mapTile}
-            ringTarget={showSelectionRing ? deletedAnchor ?? selected : undefined} onRingProjection={projectFallbackRing} />
+            ringTarget={showSelectionRing ? deletedAnchor ?? (selected && visualFootprint(selected, gameState.mobility?.voyages[selected.id])) : undefined} onRingProjection={projectFallbackRing} />
         : <canvas ref={canvasRef} className="block h-full w-full cursor-crosshair touch-none" aria-label="Pixel Civilization 3D Voxel Island" />}
 
       {showHud && (
@@ -2913,7 +2917,7 @@ export const App: React.FC = () => {
             if (selected) setRailSite(selected.id);
           }}
           onUndo={handleRingUndo}
-          onOpenDetails={() => { setInspectorHeight("half"); setInspectorDetailOpen(true); notifyTutorial("open_inspector"); }}
+          onOpenDetails={() => { setInspectorHeight("peek"); setInspectorDetailOpen(true); notifyTutorial("open_inspector"); }}
         />
       )}
 

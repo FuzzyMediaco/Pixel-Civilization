@@ -118,7 +118,11 @@ export function SelectionRing({
         return;
       }
       host.dataset.hidden = "false";
-      host.style.transform = `translate3d(${proj.x}px, ${proj.y}px, 0)`;
+      const y = host.classList.contains("has-element-name")
+        ? `max(${proj.y}px, calc(${proj.radiusPx}px + var(--hud-top) + 66px))`
+        : `${proj.y}px`;
+      host.style.transform = `translate3d(${proj.x}px, ${y}, 0)`;
+      host.style.setProperty("--ring-x", `${proj.x}px`);
       host.style.setProperty("--ring-r", `${proj.radiusPx}px`);
       if (!readyRef.current) {
         readyRef.current = true;
@@ -373,11 +377,12 @@ export function SelectionRing({
   return (
     <div
       ref={ringRef}
-      className="ui-ring"
+      className="ui-ring has-element-name"
       data-ready="false"
       role="toolbar"
       aria-label={`Quick Edit ${periodName(def.id)}`}
     >
+      <span className="ui-ring-name" aria-hidden="true">{periodName(def.id)}</span>
       <div key={el.id} className="ui-ring-cluster">
         {orderedActions.map((action, idx) => {
           const angDeg = Number((-90 + (idx / count) * 360).toFixed(2));

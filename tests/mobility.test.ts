@@ -4,6 +4,7 @@ import { createCanalDistrict } from "../src/game/canalDistrict";
 import {
   createInitialGameState,
   recomputeConnectivityAndMetrics,
+  relocatePlacedElement,
   type GameState,
   type PlacedElement,
 } from "../src/game/simulation";
@@ -12,12 +13,13 @@ import {
   autoStops,
   dispatchVessel,
   hasNavigableHarbor,
+  visualFootprint,
   mobilityOf,
   previewWaterPassage,
   stepMobility,
   transitReadout,
 } from "../src/game/mobility";
-import { getTravelNetwork } from "../src/game/travelNetwork";
+import { getTravelNetwork, vesselHull, vesselIds } from "../src/game/travelNetwork";
 import { applyInfrastructureStroke } from "../src/game/terrain";
 
 function site(s: GameState, defId: string, gx: number, gz: number, rotation = 0): PlacedElement {
@@ -51,6 +53,61 @@ function run(s: GameState, seconds: number) {
   }
   recomputeConnectivityAndMetrics(s);
 }
+
+test("placed hulls cruise in their own basin without a port and obey moor, recall and relocation", () => {
+  for (const defId of ["harbor_tugboat", "coastal_corvette", "naval_vessels", "naval_patrol_cutter", "naval_frigate_ship", "naval_minesweeper", "naval_hospital_ship"]) {
+    const s = createInitialGameState("god");
+    assert.ok(applyInfrastructureStroke(s, { kind: "pond", depth: 5, radius: 4 }, [{ gx: 0, gz: 0 }]).valid);
+    s.mode = "real";
+    const ship = site(s, defId, 0, 0);
+    ship.level = 5;
+    const net = getTravelNetwork(s);
+    assert.equal(hasNavigableHarbor(s, ship), false);
+    const hull = vesselHull(ship);
+    stepMobility(s, .25);
+    const v = s.mobility!.voyages[ship.id];
+    assert.ok(v.path.length >= 4, defId);
+    for (let i = 1; i < v.path.length; i++) assert.ok(net.water.canStep(...v.path[i - 1], ...v.path[i], hull));
+    for (let i = 0; i < 10; i++) stepMobility(s, .25);
+    assert.ok(Math.hypot(...v.position) > 1.5, defId);
+    dispatchVessel(s, ship.id, "moor");
+    const rest = structuredClone(v.position);
+    stepMobility(s, 1);
+    assert.deepEqual(v.position, rest);
+    dispatchVessel(s, ship.id, "recall");
+    for (let i = 0; i < 40; i++) stepMobility(s, .25);
+    assert.ok(v.moored, defId);
+    assert.ok(Math.hypot(...v.position) <= 1);
+    dispatchVessel(s, ship.id, "sail", [20, 0]);
+    stepMobility(s, .25);
+    assert.equal(v.path.length, 0, "a manual waypoint across land must stay blocked");
+    assert.deepEqual(v.target, [20, 0]);
+    assert.ok(relocatePlacedElement(s, ship, 1, 1));
+    stepMobility(s, .25);
+    assert.ok(Math.hypot(s.mobility!.voyages[ship.id].position[0] - 1, s.mobility!.voyages[ship.id].position[1] - 1) < 1);
+  }
+  for (const id of ["boats", "sail_boats", "speed_boats", "submarines", "aircraft_carriers"]) assert.ok(vesselIds.has(id));
+  assert.ok(!vesselIds.has("docks") && !vesselIds.has("ocean_habitat_ring"));
+});
+
+test("replanning on unrelated edits preserves sailing progress and map bounds follow a rotated hull", () => {
+  const s = createInitialGameState("god");
+  const ship = site(s, "naval_vessels", 42, 30, 1);
+  ship.spanX = 4; ship.spanZ = 2;
+  stepMobility(s, .25);
+  const v = s.mobility!.voyages[ship.id];
+  assert.ok(v.path.length > 3);
+  const course = structuredClone(v.path);
+  for (let i = 0; i < 6; i++) {
+    site(s, "house", i, 0);
+    stepMobility(s, .25);
+  }
+  assert.deepEqual(v.path, course);
+  assert.ok(v.progress > 1);
+  assert.deepEqual(visualFootprint(ship, { position: [14.5, 9.5], heading: Math.PI / 2 }), {gx:13, gz:9, spanX:4, spanZ:2});
+  const north = visualFootprint(ship, {position:[14.5, 9.5], heading:0});
+  assert.ok(Math.abs(north.spanX - 2) < 1e-8 && Math.abs(north.spanZ - 4) < 1e-8);
+});
 
 test("the editable canal district carries people by water and keeps voyages across a save", () => {
   const s = createCanalDistrict();
