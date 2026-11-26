@@ -120,7 +120,7 @@ export interface PlacedElement {
   waterUnderlay?: PlacedElement;
   sculptsTerrain?: boolean;
   /** Saved coastline grade for beach plots and their sandy facilities. */
-  beachGrade?: 1;
+  beachGrade?: 1 | 2;
   roadAxis?: RoadAxis;
   crossingAxis?: "x" | "z";
   pedestrianDeck?: boolean;

@@ -1,6 +1,6 @@
 import { withinMap } from "./mapBounds";
 import type { GameState, PlacedElement } from "./simulation";
-import { SEA, elevationFromMargin, islandMargin, tileKey } from "./terrain";
+import { SEA, elevationFromMargin, getTerrainCell, islandMargin, tileKey } from "./terrain";
 import { TILE_SIZE } from "./voxelCore";
 import { VOXEL_PITCH, VOXELS_PER_TILE, sampleTerrainAt, sampleVoxelColumn, voxelToTileLocal, type VoxelColumnEdit } from "./voxelTerrain";
 
@@ -65,7 +65,8 @@ function beachAspect(state: BeachWorld, x: number, z: number, half: number, rota
 /** A world-space sand deposit with a rounded toe, tied back to the nearby bank.
  * Deposits combine by maximum elevation, so overlapping beaches share the same ground
  * across rotations, levels and art variants. No parcel owns a strip of ocean. */
-export function planBeachGround(state: BeachWorld, site: Site, rotation: number, preserveEdits = false) {
+export function planBeachGround(state: BeachWorld, site: Site, rotation: number, preserveEdits = false,
+  paintedBeds?: ReadonlyMap<string, number>) {
   const { gx, gz, spanX, spanZ } = site;
   const hx = spanX * TILE_SIZE / 2, hz = spanZ * TILE_SIZE / 2;
   const cx = gx * TILE_SIZE + hx, cz = gz * TILE_SIZE + hz;
@@ -132,7 +133,11 @@ export function planBeachGround(state: BeachWorld, site: Site, rotation: number,
       if (occupied.has(key) || state.infrastructure?.spans?.[key] || state.infrastructure?.conduits?.[key]) continue;
       const cur = sampleVoxelColumn(state, vx, vz);
       if (cur.water === "fresh" || (cur.form && cur.form !== "bank" && cur.form !== "bay")) continue;
-      if (preserveEdits && cur.source !== "natural" && !cur.beach) continue;
+      if (preserveEdits && cur.source !== "natural" && !cur.beach) {
+        // The first deposit in a coarse tile expands its untouched bed into ordinary
+        // columns. Neighbors may still cover those same original heights in this pass.
+        if (paintedBeds?.get(key) !== cur.elevation || cur.material !== "sand" || cur.form) continue;
+      }
       const dryCap = 0.035 + 0.045 * Math.sin(x * 0.22 - z * 0.14);
       const grade = Math.min(dryCap, SEA + d * 0.19);
       // At the submerged toe blend with a fixed seabed baseline. Never raise a second
@@ -151,6 +156,32 @@ export function planBeachGround(state: BeachWorld, site: Site, rotation: number,
   }
   const autoRotation = coastal ? (Math.round(Math.atan2(nx, nz) / (Math.PI / 2)) + 4) % 4 : rotation;
   return { edits, touchedTiles, autoRotation };
+}
+
+/** Early beach builds painted an entire 4 m cell. The saved sand and tide can be
+ * virtually identical to the native tile even when the water crosses the individual
+ * columns. Hand-sculpted ground, freshwater and hydraulic structures stay authoritative. */
+export function legacyPaintedBeachBeds(state: BeachWorld, sites: PlacedElement[]) {
+  const beds = new Map<string, number>();
+  const infra = state.infrastructure;
+  if (!infra) return beds;
+  const natural = { terrainVersion: state.terrainVersion };
+  for (const e of sites) {
+    if (e.defId !== "beaches" || !e.sculptsTerrain) continue;
+    for (let z = e.gz; z < e.gz + e.spanZ; z++) for (let x = e.gx; x < e.gx + e.spanX; x++) {
+      const key = tileKey(x, z), cell = infra.cells[key];
+      if (!cell || infra.voxels?.[key] || cell.material !== "sand" || cell.form || cell.excavated ||
+        cell.gate || cell.gateKind || cell.gateHead != null || cell.freeLevel != null ||
+        cell.flowDir != null || cell.source !== 0 || cell.water === "fresh" ||
+        infra.spans?.[key] || infra.conduits?.[key]) continue;
+      const original = getTerrainCell(natural, x, z);
+      // Tile-scale smoothing in old saves could shift the painted bed by a few
+      // centimetres. Use its recorded height as the floor wherever sand is added.
+      if (cell.water === original.water && cell.waterLevel === SEA &&
+        Math.abs(cell.elevation - original.elevation) <= 0.051) beds.set(key, cell.elevation);
+    }
+  }
+  return beds;
 }
 
 /** Locate old beach stamps by their original height equation. Matching the sand/bank

@@ -1,5 +1,5 @@
 import { ELEMENT_BY_ID, type CivElementDef } from "./catalog";
-import { isBeachParcel, legacyBeachColumns, planBeachGround } from "./beachTerrain";
+import { isBeachParcel, legacyBeachColumns, legacyPaintedBeachBeds, planBeachGround } from "./beachTerrain";
 import { withinMap } from "./mapBounds";
 import type { GameState, PlacedElement } from "./simulation";
 import {
@@ -296,11 +296,11 @@ export function planElementTerrainInteraction(
   level: number,
   variant: number,
   rotation: number,
-  options?: { preserveRotation?: boolean; baselineElevation?: number; restoreBeach?: boolean },
+  options?: { preserveRotation?: boolean; baselineElevation?: number; restoreBeach?: boolean; paintedBeds?: ReadonlyMap<string, number> },
 ): TerrainInteractionPlan | null {
   const profile = TERRAIN_INTERACTION_PROFILES[def.id];
   if (isBeachParcel(def.id)) {
-    const ground = planBeachGround(state, { defId: def.id, gx, gz, spanX, spanZ }, rotation, options?.restoreBeach);
+    const ground = planBeachGround(state, { defId: def.id, gx, gz, spanX, spanZ }, rotation, options?.restoreBeach, options?.paintedBeds);
     if (ground) {
       const beachProfile = def.id === "sand" ? TERRAIN_INTERACTION_PROFILES.beach_umbrellas : profile;
       return { ...ground, profile: beachProfile, summary: beachProfile.previewNote, beachGrade: true };
@@ -640,7 +640,7 @@ export function planElementTerrainInteraction(
 export function applyElementTerrainInteraction(
   state: GameState,
   el: PlacedElement,
-  options?: { preserveRotation?: boolean; restoreBeach?: boolean },
+  options?: { preserveRotation?: boolean; restoreBeach?: boolean; paintedBeds?: ReadonlyMap<string, number> },
 ): TerrainInteractionPlan | null {
   const def = ELEMENT_BY_ID[el.defId];
   if (!def) return null;
@@ -657,7 +657,7 @@ export function applyElementTerrainInteraction(
     el.rotation,
     options,
   );
-  if (plan?.beachGrade) el.beachGrade = 1;
+  if (plan?.beachGrade) el.beachGrade = 2;
   if (!plan || (!plan.beachGrade && !plan.edits.size)) return plan;
 
   if (plan.profile.sculptsTerrain) {
@@ -677,10 +677,12 @@ export function applyElementTerrainInteraction(
 
 /** Old plot-only beaches acquire real terrain once. Keep the player's camera and saved plot rotations. */
 export function restoreBeachGround(state: GameState): void {
-  const sites = state.elements.filter(el => isBeachParcel(el.defId) && !el.beachGrade);
+  const sites = state.elements.filter(el => isBeachParcel(el.defId) && el.beachGrade !== 2);
   if (!sites.length) return;
+  const paintedBeds = legacyPaintedBeachBeds(state, sites);
+  const unstamped = sites.filter(e => !e.beachGrade);
   const infra = state.infrastructure;
-  if (infra?.voxels && sites.some(e => e.defId === "beaches" && e.sculptsTerrain)) {
+  if (infra?.voxels && unstamped.some(e => e.defId === "beaches" && e.sculptsTerrain)) {
     const touched = new Set<string>();
     const protectedTiles = new Set<string>();
     for (const e of state.elements) {
@@ -688,7 +690,7 @@ export function restoreBeachGround(state: GameState): void {
       for (let z = e.gz; z < e.gz + e.spanZ; z++)
         for (let x = e.gx; x < e.gx + e.spanX; x++) protectedTiles.add(tileKey(x, z));
     }
-    for (const key of legacyBeachColumns(state, sites)) {
+    for (const key of legacyBeachColumns(state, unstamped)) {
       const [vx, vz] = key.split(",").map(Number);
       const {gx, gz, idx} = voxelToTileLocal(vx, vz), tk = tileKey(gx, gz);
       if (protectedTiles.has(tk) || infra.spans?.[tk] || infra.conduits?.[tk]) continue;
@@ -709,5 +711,5 @@ export function restoreBeachGround(state: GameState): void {
     }
     if (touched.size) markInfrastructureChanged(infra, true);
   }
-  for (const el of sites) applyElementTerrainInteraction(state, el, { preserveRotation: true, restoreBeach: true });
+  for (const el of sites) applyElementTerrainInteraction(state, el, { preserveRotation: true, restoreBeach: true, paintedBeds });
 }
