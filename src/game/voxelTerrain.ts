@@ -1,3 +1,4 @@
+import { beachTerraceHeight, shorelineLayout } from "./beachTerraces";
 import { TILE_SIZE, VOXEL_SIZE } from "./voxelCore";
 import { withinMap } from "./mapBounds";
 import {
@@ -6,6 +7,7 @@ import {
   elevationFromMargin,
   getTerrainCell,
   islandMargin,
+  markInfrastructureChanged,
   tileKey,
   type GridPoint,
   type InfrastructureTool,
@@ -112,6 +114,7 @@ export function sampleVoxelColumn(
   state: Pick<GameState, "infrastructure" | "terrainVersion"> | undefined,
   vx: number,
   vz: number,
+  beachSurface: "terrace" | "deposit" = "terrace",
 ): VoxelTerrainSample {
   const { gx, gz, idx } = voxelToTileLocal(vx, vz);
   const key = tileKey(gx, gz);
@@ -136,8 +139,9 @@ export function sampleVoxelColumn(
   }
 
   const sand = patch?.beach?.[idx];
-  if (sand != null) {
-    const elevation = sand / 100, depth = round2(Math.max(0, SEA - elevation));
+  if (state && sand != null) {
+    const elevation = beachSurface === "deposit" ? sand / 100 : beachTerraceHeight(state, gx, gz, idx, sand);
+    const depth = round2(Math.max(0, SEA - elevation));
     const tidal = depth > 0.01;
     return { elevation, material: "sand", water: tidal ? "salt" : "dry", waterLevel: SEA,
       depth: tidal ? depth : 0, wet: elevation <= SEA + 0.30, form: tidal ? "bay" : "bank", beach: true, source: "voxel" };
@@ -284,8 +288,10 @@ export function syncVoxelPatchWaterFromCell(state: GameState, gx: number, gz: nu
       if (sand != null && (!existing || existing.beach)) {
         // A mixed dry/wet tile still has a tide in every column below sea level.
         // An elevated or enclosed waterwork can temporarily cover the same sand.
-        if (cell.depth > 0.01 && Math.abs(cell.waterLevel - SEA) > 0.04 && sand / 100 < cell.waterLevel) {
-          patch.cols[idx] = {y: sand / 100, m: "sand", beach: true, w: cell.water, wl: cell.waterLevel, wet: true, form: "bank"};
+        const raisedWater = cell.depth > 0.01 && Math.abs(cell.waterLevel - SEA) > 0.04;
+        const ground = raisedWater ? beachTerraceHeight(state, gx, gz, idx, sand) : 0;
+        if (raisedWater && ground < cell.waterLevel) {
+          patch.cols[idx] = {y: ground, m: "sand", beach: true, w: cell.water, wl: cell.waterLevel, wet: true, form: "bank"};
         } else if (existing) delete patch.cols[idx];
         continue;
       }
@@ -423,6 +429,27 @@ export function syncTileCellFromVoxels(
   }
   infra.cells[key] = cell;
   return cell;
+}
+
+function syncBeachTile(state: GameState, key: string) {
+  const cell = state.infrastructure?.cells[key];
+  if (cell?.gate || cell?.freeLevel != null || cell?.water === "fresh") return;
+  const [gx, gz] = key.split(",").map(Number);
+  syncTileCellFromVoxels(state, gx, gz);
+}
+
+/** Refresh saved tile summaries when an existing beach opens on the new terrain, or a berth moves.
+ * The compact original deposit and explicit voxel edits keep their full precision. */
+export function refreshBeachTides(state: GameState) {
+  const infra = state.infrastructure;
+  if (!infra?.voxels) return;
+  const layout = shorelineLayout(state, true);
+  if (infra.beachTerraceLayout === layout.key) return;
+  const beaches = Object.entries(infra.voxels).filter(([, patch]) => patch.beach?.length);
+  if (!beaches.length) return;
+  for (const [key] of beaches) syncBeachTile(state, key);
+  infra.beachTerraceLayout = layout.key;
+  markInfrastructureChanged(infra, true);
 }
 
 export function interpolateVoxelStroke(points: VoxelCoord[]): VoxelCoord[] {
@@ -861,6 +888,7 @@ export function writeVoxelEditsToState(
   if (!infra) return new Set();
   infra.voxels ??= {};
   const touched = new Set<string>();
+  const beachTiles = new Set<string>();
 
   for (const edit of edits) {
     let patch = infra.voxels[edit.tileKey];
@@ -875,6 +903,7 @@ export function writeVoxelEditsToState(
       } else patch = { v: 1, cols: {} };
       infra.voxels[edit.tileKey] = patch;
     }
+    if (edit.col.beach || patch.beach?.[edit.idx] != null) beachTiles.add(edit.tileKey);
     if (edit.col.beach) {
       (patch.beach ??= [])[edit.idx] = Math.round(edit.col.y * 100);
       delete patch.cols[edit.idx];
@@ -888,6 +917,16 @@ export function writeVoxelEditsToState(
     syncTileCellFromVoxels(state, gx, gz, meta);
   }
 
+  // The shore profile samples up to 1.7 m along the coast, including across tile boundaries.
+  const adjacent = new Set<string>();
+  for (const key of beachTiles) {
+    const [gx, gz] = key.split(",").map(Number);
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const neighbor = tileKey(gx + dx, gz + dz);
+      if (!touched.has(neighbor) && infra.voxels[neighbor]?.beach?.length) adjacent.add(neighbor);
+    }
+  }
+  for (const key of adjacent) syncBeachTile(state, key);
   return touched;
 }
 

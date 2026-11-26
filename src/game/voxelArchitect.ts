@@ -62,6 +62,21 @@ export function buildDesignVoxels(
   const c = makeCtx(def.id, lv, variant, designX, designZ, connMask);
   c.parcelEdges = appearance.edges;
   c.worldSculpted = appearance.worldSculpted;
+  const { shoreHeight, shoreSeaLevel } = appearance;
+  if (shoreHeight && shoreSeaLevel !== undefined) {
+    const pitch = VOXEL_SIZE * Math.min(1, spanX / designX, spanZ / designZ);
+    // Adjacent candidate footprints share most of their samples.
+    const heights = new Map<number, number>();
+    c.beachClearance = (vx, vz) => {
+      const index = (vz + c.hz) * (2 * c.hx) + vx + c.hx;
+      let height = heights.get(index);
+      if (height === undefined) {
+        height = shoreHeight((vx + 0.5) * pitch, (vz + 0.5) * pitch) - shoreSeaLevel;
+        heights.set(index, height);
+      }
+      return height;
+    };
+  }
   try {
     const era = normalizeEra(appearance.era);
     const roman = era === "rome-forum" || era === "rome-aqueduct";

@@ -8,6 +8,7 @@ import { rememberBuildingEdit, undoBuildingEdit } from "../src/game/construction
 import { createInitialGameState, type PlacedElement } from "../src/game/simulation";
 import { applyLandformPlacement, ensureInfrastructure, getTerrainCell, SEA } from "../src/game/terrain";
 import { restoreBeachGround } from "../src/game/terrainInteraction";
+import { packVoxKey } from "../src/game/voxelCore";
 import { buildDesignVoxels } from "../src/game/voxelArchitect";
 import { sampleTerrainAt, sampleVoxelColumn, voxelToTileLocal, writeVoxelEditsToState } from "../src/game/voxelTerrain";
 
@@ -194,4 +195,53 @@ test("decorations never repaint the sea-facing join or restore the catalog tile 
     assert.deepEqual(model(true, true), model(true));
     assert.ok(model(false).size > model(true).size + 300);
   }
+});
+
+test("a saved beach uses native steps and tapers into an adjacent berth as the dock layout changes", () => {
+  const state = makeWorld();
+  const beach = site("beach", 32, 74, 0, 0);
+  state.elements.push(beach);
+  restoreBeachGround(state);
+  const sample = (x: number, z: number) => sampleTerrainAt(state, x, z);
+  const edge = [139.875, 302.125] as const;
+  const before = sample(...edge).elevation;
+  const dock = { ...site("pier", 35, 73, 0, 0, "docks"), spanZ: 3 };
+  state.elements.push(dock);
+  restoreBeachGround(state);
+  const outside = sample(...edge), inside = sample(edge[0] + 0.25, edge[1]);
+  assert.equal(outside.elevation, inside.elevation);
+  assert.equal(outside.water, "salt");
+  assert.ok(outside.elevation < before);
+  for (let z = 297.125; z < 307; z += 0.25)
+    for (let x = 129.125; x < 140; x += 0.25) {
+      const s = sample(x, z);
+      if (s.beach) assert.equal(s.elevation * 4, Math.round(s.elevation * 4));
+    }
+  const saved = JSON.stringify(state);
+  const loaded = JSON.parse(saved);
+  restoreBeachGround(loaded);
+  assert.equal(JSON.stringify(loaded), saved);
+  assert.deepEqual(sampleTerrainAt(loaded, ...edge), outside);
+  dock.gx += 10;
+  restoreBeachGround(state);
+  assert.equal(sample(...edge).elevation, before);
+});
+
+test("a placed towel pair uses the same dry terrace when a wet edge crosses its default position", () => {
+  const def = ELEMENT_BY_ID.beaches;
+  const model = (dryAt: (x: number, z: number) => number) => buildDesignVoxels(def, 2, 0, 3, 2, 0, {
+    worldSculpted: true, shoreHeight: dryAt, shoreSeaLevel: 0,
+  });
+  const flat = model(() => 0.62), c = model((x) => x < 0.5 ? 0 : 0.62);
+  const left = flat.v.v.get(packVoxKey(-3, 1, -flat.hz + 3));
+  const right = flat.v.v.get(packVoxKey(1, 1, -flat.hz + 3));
+  assert.ok(left && right && left !== right);
+  let area = 0;
+  for (let z = -c.hz; z < c.hz; z++) for (let x = -c.hx; x < c.hx; x++) {
+    if (c.v.v.get(packVoxKey(x, 1, z)) !== left) continue;
+    assert.ok((x + 0.5) * 0.25 >= 0.5);
+    assert.equal(c.v.v.get(packVoxKey(x + 4, 1, z)), right);
+    area++;
+  }
+  assert.equal(area, 8);
 });

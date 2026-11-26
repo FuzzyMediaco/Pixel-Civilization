@@ -1,6 +1,7 @@
 import { type Ctx, bench, flag, gable, person, tree } from "./kit";
 import { critter, gator, waterBlob } from "./agriculture";
 import { ground, stem } from "./woodland";
+import { packVoxKey } from "../voxelCore";
 
 function reeds(c: Ctx, x: number, z: number, h = 3): void {
   for (let i = 0; i < 4; i++) {
@@ -230,7 +231,37 @@ export function alligators(c: Ctx): void {
   }
 }
 
+/** Move a group of props together onto the nearest free, dry terrace on its own plot. */
+function dryShelf(c: Ctx, x: number, z: number, left: number, right: number, back: number, front: number): [number, number] {
+  const clearance = c.beachClearance;
+  if (!clearance) return [x, z];
+  const fits = (ax: number, az: number) => {
+    if (ax + left < -c.hx || ax + right >= c.hx || az + back < -c.hz || az + front >= c.hz) return false;
+    const height = clearance(ax, az);
+    if (height < 0.3) return false;
+    for (let dz = back; dz <= front; dz++) {
+      for (let dx = left; dx <= right; dx++) {
+        if (Math.abs(clearance(ax + dx, az + dz) - height) > 0.06 || c.v.v.has(packVoxKey(ax + dx, 1, az + dz))) return false;
+      }
+    }
+    return true;
+  };
+  if (fits(x, z)) return [x, z];
+  let best: [number, number] = [x, z], nearest = Infinity;
+  for (let dz = -12; dz <= 12; dz++) {
+    for (let dx = -12; dx <= 12; dx++) {
+      const squared = dx * dx + dz * dz;
+      if (squared < nearest && fits(x + dx, z + dz)) {
+        best = [x + dx, z + dz];
+        nearest = squared;
+      }
+    }
+  }
+  return best;
+}
+
 function parasol(c: Ctx, x: number, z: number, r: number, style: number): void {
+  [x, z] = dryShelf(c, x, z, -r, r, -r, Math.max(4, r));
   const v = c.v,
     h = 3 + r;
   const col = ["#ef705b", "#6394c7", "#c0a36c", "#50a79b"][style];
@@ -335,8 +366,9 @@ export function beaches(c: Ctx): void {
     }
   }
   if (lv >= 2) {
-    v.box(-3, 1, -hz + 3, -1, 2, -hz + 7, "teal");
-    v.box(1, 1, -hz + 3, 3, 2, -hz + 7, "crimson");
+    const [x, z] = dryShelf(c, 0, -hz + 3, -3, 2, 0, 3);
+    v.box(x - 3, 1, z, x - 1, 2, z + 4, "teal");
+    v.box(x + 1, 1, z, x + 3, 2, z + 4, "crimson");
   }
   if (lv >= 3) parasol(c, hx - 6, -hz + 5, 3, s);
   if (lv >= 4) {

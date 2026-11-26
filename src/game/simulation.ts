@@ -35,7 +35,7 @@ import { generationExposure } from "./parcelExposure";
 import { roadSiteAccess, autoFrontageRotation, cellBeyondEdge, parcelAccessSteps, getParcelEdges, getParcelEffectSummary, PARCEL_SIDES, type LocalSide, type EdgeOverride } from "./parcelEdges";
 import { separatedDeckAxis, encodeRoadSitePort } from "./roadTopology";
 import { TILE_SIZE, VOXELS_PER_TILE } from "./voxelCore";
-import { sampleVoxelColumn } from "./voxelTerrain";
+import { refreshBeachTides, sampleVoxelColumn } from "./voxelTerrain";
 import type { roadBounds } from "./roadCorridors";
 import { payEarnedGrants } from "./cityGrants";
 import {
@@ -1423,6 +1423,7 @@ function districtConnections(state:GameState,occupancy:Map<string,PlacedElement>
 }
 
 export function recomputeConnectivityAndMetrics(state: GameState): void {
+  refreshBeachTides(state);
   syncCatalogBridges(state);
   // Normalize old saves that predate protected sanctuaries.
   for (const site of state.elements) if (isSanctuary(site)) {site.onFire = false; site.disrepair = false;}

@@ -131,7 +131,7 @@ export function planBeachGround(state: BeachWorld, site: Site, rotation: number,
       if (!withinMap(loc.gx, loc.gz)) continue;
       const key = tileKey(loc.gx, loc.gz);
       if (occupied.has(key) || state.infrastructure?.spans?.[key] || state.infrastructure?.conduits?.[key]) continue;
-      const cur = sampleVoxelColumn(state, vx, vz);
+      const cur = sampleVoxelColumn(state, vx, vz, "deposit");
       if (cur.water === "fresh" || (cur.form && cur.form !== "bank" && cur.form !== "bay")) continue;
       if (preserveEdits && cur.source !== "natural" && !cur.beach) {
         // The first deposit in a coarse tile expands its untouched bed into ordinary
