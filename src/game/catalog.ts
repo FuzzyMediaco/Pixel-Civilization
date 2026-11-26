@@ -1,3 +1,4 @@
+import { CHRISTMAS_ELEMENTS } from "./christmasCatalog";
 import {VEHICLE_ROADS,roadStageName} from "./roadStandards";
 import { EXPANSION_ELEMENTS } from "./expansionCatalog";
 import { WEALTH_PROJECTS } from "./wealthProjects";
@@ -12,6 +13,7 @@ export { ELEMENT_LEVEL_SPANS };
 export type GameMode = "god" | "real" | "survival" | "idle" | "manager";
 
 export type ElementCategory =
+  | "christmas"
   | "starter"
   | "housing"
   | "agriculture"
@@ -184,6 +186,7 @@ export interface CivElementDef {
 
 export const CATEGORY_META: { id: ElementCategory; label: string }[] = [
   { id: "starter", label: "Starter 10" },
+  { id: "christmas", label: "Christmas Village" },
   { id: "housing", label: "Housing" },
   { id: "roads_transit", label: "Roads & Transit" },
   { id: "commerce", label: "Commerce" },
@@ -2555,6 +2558,7 @@ export const ELEMENTS: CivElementDef[] = [
   ...HISTORICAL_WONDERS,
   ...NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS,
   ...BALANCED_EXPANSION_ELEMENTS,
+  ...CHRISTMAS_ELEMENTS,
 ];
 
 export const ELEMENT_BY_ID: Record<string, CivElementDef> = Object.fromEntries(

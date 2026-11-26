@@ -1762,5 +1762,125 @@
     "Verdant Glass",
     "Alabaster Pearl",
     "Cobalt Solar"
+  ],
+  "christmas_tree": [
+    "Starry Spruce",
+    "Candle Spire",
+    "Ribbon Spiral",
+    "Snowy Boughs"
+  ],
+  "christmas_snowman": [
+    "Top Hat",
+    "Earflaps",
+    "Woolly Pom",
+    "Little Crown"
+  ],
+  "santas_sleigh": [
+    "Scroll Runner",
+    "Moon Runner",
+    "Bobsled",
+    "Royal Cutter"
+  ],
+  "santas_house": [
+    "Log Gable",
+    "Snow A-Frame",
+    "Twin Chimney",
+    "Gabled Wing"
+  ],
+  "elf_cottages": [
+    "Bent Cap",
+    "Acorn Hood",
+    "Pointed Boot",
+    "Bobble Hat"
+  ],
+  "santas_workshop": [
+    "Toy Train",
+    "Wooden Duck",
+    "Spinning Top",
+    "Toy Robot"
+  ],
+  "reindeer_stable": [
+    "Round Pen",
+    "Split Rail",
+    "Hay Loft",
+    "Bell Gate"
+  ],
+  "gingerbread_bakery": [
+    "Gumdrop Gable",
+    "Wafer Stack",
+    "Cookie Heart",
+    "Peppermint Roof"
+  ],
+  "candy_cane_works": [
+    "Shepherd Crook",
+    "Twin Hooks",
+    "Mint Twist",
+    "Candy Arch"
+  ],
+  "christmas_market": [
+    "Holly Row",
+    "Star Court",
+    "Lantern Arcade",
+    "Alpine Cross"
+  ],
+  "north_pole_post": [
+    "Raised Flag",
+    "Envelope Crest",
+    "Post Horn",
+    "Parcel Chute"
+  ],
+  "christmas_ice_rink": [
+    "Oval Track",
+    "Figure Eight",
+    "Diamond Ice",
+    "Snowflake Loop"
+  ],
+  "nutcracker_guard": [
+    "Drum Major",
+    "Standard Bearer",
+    "Trumpeter",
+    "Royal Scepter"
+  ],
+  "carolers_bandstand": [
+    "Hymn Circle",
+    "Candle Choir",
+    "Bell Singers",
+    "Midnight Quartet"
+  ],
+  "black_santa_grotto": [
+    "Holly Throne",
+    "Candy Columns",
+    "Starlight Arch",
+    "Fireside Seat"
+  ],
+  "gift_wrap_hall": [
+    "Twin Loop",
+    "Pinwheel Bow",
+    "Rosette",
+    "Ribbon Tails"
+  ],
+  "nativity_stable": [
+    "Timber Lean-to",
+    "Stone Arch",
+    "Palm Shelter",
+    "Beamed Gable"
+  ],
+  "christmas_snow_globe": [
+    "Fir in Glass",
+    "Snowman Globe",
+    "Cottage Globe",
+    "Candle Globe"
+  ],
+  "christmas_carousel": [
+    "Crown Tent",
+    "Ribbon Pavilion",
+    "Bell Canopy",
+    "Star Spire"
+  ],
+  "christmas_bell_tower": [
+    "Timber Frame",
+    "Copper Spire",
+    "Double Belfry",
+    "Star Crown"
   ]
 }

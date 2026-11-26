@@ -14,7 +14,7 @@ export const ART_VARIANTS = {
 } as const;
 export type ProductionEra = keyof typeof ART_VARIANTS;
 export const PRODUCTION_ERAS = Object.keys(ART_VARIANTS) as ProductionEra[];
-export const PRODUCTION_ART_IDS = Object.keys(ELEMENT_BY_ID);
+export const PRODUCTION_ART_IDS = Object.values(ELEMENT_BY_ID).filter(def => def.category !== "christmas").map(def => def.id);
 export type ArtFamily = "house" | "apartment" | "tower" | "market" | "hall" | "school" |
   "workshop" | "farm" | "water" | "power" | "station" | "dock" | "vessel" | "road" |
   "track" | "bridge" | "aqueduct" | "landscape" | "faith" | "landmark" | "defense";
@@ -51,6 +51,7 @@ for (const [family,ids] of Object.entries(overrides)) {
   for (const id of ids.split(" ")) byId.set(id,family as ArtFamily);
 }
 export function productionArtFamily(id: string): ArtFamily | undefined {
+  if (ELEMENT_BY_ID[id]?.category === "christmas") return undefined;
   return byId.get(id) ?? byArchetype.get(ELEMENT_BY_ID[id]?.archetype);
 }
 

@@ -1,16 +1,6 @@
+import { CHRISTMAS_GROUPS } from "./christmasCatalog";
 import { readPlayerItem, writePlayerItem } from "./deviceSaves";
-/**
- * 7 × 7 × 6 Decision Tree for the Exact Build Spiral Menu (294 elements total).
- *
- * Partitions every single catalog element (294 elements) evenly into:
- *   7 Parent Categories  →  7 Subcategories each (49 leaves)  →  6 Placeable Elements each
- *
- * Allows any element in the entire game to be placed on any tile in 4 taps:
- *   1. Tap empty tile  →  7 Parent Categories spiral out
- *   2. Tap parent      →  7 Subcategories spiral out
- *   3. Tap subcategory →  6 Elements spiral out
- *   4. Tap element     →  Element builds immediately, then the standard SelectionRing opens
- */
+/** Stable paths through Exact Build. The seven original branches retain their layout. */
 import {
   type CivElementDef,
   ELEMENTS,
@@ -49,6 +39,7 @@ export function saveQuickBuildMode(mode: QuickBuildMode): void {
 }
 
 export type DecisionTreeParentId =
+  | "christmas_village"
   | "homes_retail"
   | "roads_harbor"
   | "farms_nature"
@@ -558,6 +549,7 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
       },
     ],
   },
+  { id: "christmas_village", label: "Christmas Village", shortDesc: "North Pole homes, winter fairs and holiday scenes", subcategories: CHRISTMAS_GROUPS },
 ];
 
 export function getDecisionTreeParent(parentId: DecisionTreeParentId): DecisionTreeParent | undefined {
@@ -617,7 +609,7 @@ export function getDecisionTreeLeafElements(
 
 /**
  * Runtime/test audit helper verifying that all non-custom catalog elements are
- * partitioned cleanly across the 7 × 7 decision tree without omissions or duplicates.
+ * partitioned cleanly across the decision tree without omissions or duplicates.
  */
 export function auditDecisionTreeCoverage(): {
   parentCount: number;

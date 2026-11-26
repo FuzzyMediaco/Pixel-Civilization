@@ -23,11 +23,11 @@ import { packVoxKey } from "../src/game/voxelCore";
 import { sampleTerrainAt, sampleVoxelColumn, voxelCenterWorld, VOXELS_PER_TILE } from "../src/game/voxelTerrain";
 import { rememberBuildingEdit, undoBuildingEdit } from "../src/game/constructionHistory";
 
-test("7x7x6 Exact Build Decision Tree partitions all 294 non-custom elements evenly", () => {
+test("Exact Build partitions the full catalog including Christmas Village", () => {
   const audit = auditDecisionTreeCoverage();
-  assert.equal(audit.parentCount, 7);
-  assert.equal(audit.subcategoryCount, 49);
-  assert.equal(audit.minLeafSize, 6);
+  assert.equal(audit.parentCount, 8);
+  assert.equal(audit.subcategoryCount, 53);
+  assert.equal(audit.minLeafSize, 5);
   assert.equal(audit.maxLeafSize, 6);
   assert.deepEqual(audit.missingIds, []);
   assert.deepEqual(audit.unknownIds, []);
@@ -37,8 +37,8 @@ test("7x7x6 Exact Build Decision Tree partitions all 294 non-custom elements eve
     (sum, p) => sum + p.subcategories.reduce((s, sub) => s + sub.elementIds.length, 0),
     0,
   );
-  assert.equal(total, 294);
-  assert.ok(ELEMENTS.length >= 294);
+  assert.equal(total, 314);
+  assert.ok(ELEMENTS.length >= 314);
 });
 
 test("all 24 new balanced catalog elements build valid 3D voxel geometry across all 5 levels and 4 styles", () => {

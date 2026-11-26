@@ -1,3 +1,4 @@
+import { canDecorateForChristmas, christmasActionLabel, toggleChristmasDecorations } from "./game/christmasDecorations";
 import { strokeRoadAxis } from "./game/roadCorridors";
 import { downloadWorld, importWorldIntoSlot, readLinkedWorld, type TransferWorld } from "./game/worldTransfer";
 import { autosync, scheduleAccountSync } from "./game/accountSync";
@@ -1925,6 +1926,14 @@ export const App: React.FC = () => {
 
 
   const selected=gameState.elements.find(e=>e.id===selectedIds[0]);
+  const decorateSelected = selected && gameState.mode !== "idle" && canDecorateForChristmas(ELEMENT_BY_ID[selected.defId]) ? () => {
+    const label = christmasActionLabel(selected);
+    commitBuildingEdit(label, draft => {
+      const el = draft.elements.find(site => site.id === selected.id);
+      if (el) toggleChristmasDecorations(el, ELEMENT_BY_ID[el.defId]);
+    });
+    setSelectionUndo(prev => ({targetId:selected.id, steps:(prev?.targetId === selected.id ? prev.steps : 0) + 1}));
+  } : undefined;
   const selectedDef=selected?ELEMENT_BY_ID[selected.defId]:undefined;
   const editCity=(fn:(draft:GameState)=>void,buildingEdit?:string)=>{
     const update=(draft:GameState)=>{fn(draft);recomputeConnectivityAndMetrics(draft);};
@@ -2860,6 +2869,7 @@ export const App: React.FC = () => {
                 }
               : undefined
           }
+          onChristmas={decorateSelected}
           onVariant={() => {
             if (selected) handleGodMutateSelected(selected.id, { variant: (selected.variant + 1) % 4 });
           }}
@@ -2887,7 +2897,7 @@ export const App: React.FC = () => {
             onUpgrade={()=>gameState.mode==="god"?handleGodMutateSelected(selected.id,{level:selected.level+1}):handleUpgradeSelected(selected.id)}
             onLevelDown={()=>handleGodMutateSelected(selected.id,{level:Math.max(1,selected.level-1)})}
             onMove={()=>{setInspectorDetailOpen(false);setBrush(b=>({...b,kind:"move",movingElementId:selected.id,defId:undefined}));}}
-            onRotate={()=>rotateSelected(selected.id)} onVariant={()=>handleGodMutateSelected(selected.id,{variant:(selected.variant+1)%4})}
+            onChristmas={decorateSelected} onRotate={()=>rotateSelected(selected.id)} onVariant={()=>handleGodMutateSelected(selected.id,{variant:(selected.variant+1)%4})}
             onMaintain={()=>handleMaintainSelected(selected.id)} onDemolish={()=>demolish([selected.id])}
             onRailOps={()=>setRailSite(selected.id)}
             onFieldGuide={()=>setGuideModal({kind:"field_guide",elementId:selectedDef.id,level:selected.level,variant:selected.variant+1})}

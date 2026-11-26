@@ -25,16 +25,16 @@ import {
 } from "../src/game/quickMenuPrefs";
 import { GRID_MAX, GRID_MIN, createInitialGameState, getTileTerrainKind } from "../src/game/simulation";
 
-test("Exact Build decision tree has exactly 7 parent categories, 7 subcategories each (49 leaves), and 4-6 elements per leaf", () => {
+test("Exact Build keeps its seven original branches and adds four Christmas Village shelves", () => {
   const audit = auditDecisionTreeCoverage();
-  assert.equal(audit.parentCount, 7, "Must have exactly 7 parent categories");
-  assert.equal(audit.subcategoryCount, 49, "Must have exactly 7 × 7 = 49 subcategories");
+  assert.equal(audit.parentCount, 8);
+  assert.equal(audit.subcategoryCount, 53);
   assert.ok(audit.minLeafSize >= 4, `Smallest leaf has ${audit.minLeafSize} items (expected >= 4)`);
   assert.ok(audit.maxLeafSize <= 6, `Largest leaf has ${audit.maxLeafSize} items (expected <= 6)`);
 
   for (const parent of QUICK_BUILD_TREE) {
-    assert.equal(parent.subcategories.length, 7, `${parent.id} must have 7 subcategories`);
-    assert.ok(countParentElements(parent) >= 35, `${parent.id} should contain a balanced share of elements`);
+    assert.equal(parent.subcategories.length, parent.id === "christmas_village" ? 4 : 7);
+    assert.equal(countParentElements(parent), parent.id === "christmas_village" ? 20 : 42);
     for (const sub of parent.subcategories) {
       assert.ok(ELEMENT_BY_ID[sub.iconDefId], `Subcategory ${sub.id} iconDefId '${sub.iconDefId}' must exist in catalog`);
     }
@@ -129,13 +129,13 @@ test("Quick Edit customization protects core Delete & Details buttons and suppor
   assert.equal(resolved[2].id, "move", "Second most-clicked button 'move' should follow");
 });
 
-test("Exact Build branch reordering preserves all 7 branches without breaking tree coverage", () => {
+test("Exact Build branch reordering preserves all eight branches without breaking tree coverage", () => {
   let prefs = createDefaultQuickMenuPrefs();
-  assert.equal(prefs.exactParentOrder.length, 7);
+  assert.equal(prefs.exactParentOrder.length, 8);
   prefs = moveExactParent(prefs, "police_military", -1);
   const parents = getOrderedDecisionTreeParents(prefs.exactParentOrder);
-  assert.equal(parents.length, 7);
-  assert.equal(new Set(parents.map((p) => p.id)).size, 7);
+  assert.equal(parents.length, 8);
+  assert.equal(new Set(parents.map((p) => p.id)).size, 8);
 
   // Sanitization recovers gracefully even from corrupted/partial saved prefs
   const recovered = sanitizeQuickMenuPrefs({
@@ -147,9 +147,9 @@ test("Exact Build branch reordering preserves all 7 branches without breaking tr
     },
     exactParentOrder: ["police_military"],
   });
-  assert.equal(recovered.quickEdit.buttonOrder.length, 8);
+  assert.equal(recovered.quickEdit.buttonOrder.length, 9);
   assert.deepEqual(recovered.quickEdit.hiddenButtons, ["undo"]);
-  assert.equal(recovered.exactParentOrder.length, 7);
+  assert.equal(recovered.exactParentOrder.length, 8);
   assert.equal(recovered.exactParentOrder[0], "police_military");
 });
 

@@ -1467,7 +1467,7 @@ export class PixelWorldRenderer {
       const eraActivity = spec && activeSites ? presentationActivity(state, el, spec.family, activeSites) : "idle";
       const marker = spec && (spec.family === "market" || spec.family === "station") ? stageStyle : undefined;
       const shoreProps = worldSculpted && isBeachParcel(el.defId);
-      const renderKey = [shoreProps ? coastalStamp : "",this.appearanceEra,eraActivity,marker?.level??"",parcel.key,el.level,el.variant,lighting].join("|");
+      const renderKey = [shoreProps ? coastalStamp : "",this.appearanceEra,eraActivity,marker?.level??"",parcel.key,el.level,el.variant,el.christmasDecorated,lighting].join("|");
       let entry = this.placedEntries.get(el.id);
       if (!entry || entry.key !== renderKey) {
         emittersChanged=true;
@@ -1492,7 +1492,7 @@ export class PixelWorldRenderer {
           localSpanX,
           localSpanZ,
           connMask,
-          { edges, soils, lighting, corridor, worldSculpted, era: this.appearanceEra, eraActivity,
+          { edges, soils, lighting, corridor, worldSculpted, christmasDecorated: el.christmasDecorated, era: this.appearanceEra, eraActivity,
             shoreSeaLevel: SEA - baseY,
             shoreHeight: shoreProps ? this.shorePropSurface(wx, wz, el.rotation, baseY) : undefined },
         );

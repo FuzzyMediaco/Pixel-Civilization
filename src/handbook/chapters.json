@@ -1612,6 +1612,31 @@
         ]
       },
       {
+        "id": "christmas-village",
+        "title": "Build a Christmas village",
+        "steps": [
+          "Open Build and choose Christmas Village. Start a square with a Christmas Tree, give Black Santa’s Grotto an open front, and run a path past the market stalls. The tree, snowman, sleigh and grotto are available at stage 1.",
+          "Tap a Christmas element to change its visual style or upgrade it. Each has four styles at all five levels. The Atlas shows the footprint before you make room for the next level.",
+          "Tap an existing house, mall or eligible storefront, then choose the tree icon to decorate it for Christmas. The lights follow its roof and glow at dusk. Tap the tree again to take them down."
+        ],
+        "examples": [
+          {
+            "image": "/handbook/catalog/thumbs/black_santa_grotto.webp",
+            "caption": "Black Santa welcomes visitors from an open-front grotto.",
+            "alt": "Black Santa seated on a red throne between two decorated columns.",
+            "width": 256,
+            "height": 256
+          },
+          {
+            "image": "/handbook/catalog/thumbs/christmas_carousel.webp",
+            "caption": "Reindeer turn on brass poles beneath the striped carousel roof.",
+            "alt": "A Christmas carousel with painted reindeer.",
+            "width": 256,
+            "height": 256
+          }
+        ]
+      },
+      {
         "id": "grow-in-place",
         "title": "Upgrade in place",
         "steps": [

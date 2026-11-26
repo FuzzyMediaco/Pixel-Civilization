@@ -27193,5 +27193,1787 @@
     },
     "image": "/handbook/catalog/solar_spire_arcology.webp",
     "thumbnail": "/handbook/catalog/thumbs/solar_spire_arcology.webp"
+  },
+  {
+    "id": "christmas_tree",
+    "name": "Christmas Tree",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 35,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "recreation": 12
+    },
+    "description": "A star-topped evergreen strung with glowing ornaments.",
+    "usage": "A star-topped evergreen strung with glowing ornaments.",
+    "growth": "New tiers of boughs rise over a growing circle of gifts.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Parlor Pine",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Village Fir",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Square Spruce",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Jubilee Evergreen",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Christmas Tree",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Starry Spruce"
+      },
+      {
+        "index": 1,
+        "name": "Candle Spire"
+      },
+      {
+        "index": 2,
+        "name": "Ribbon Spiral"
+      },
+      {
+        "index": 3,
+        "name": "Snowy Boughs"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/christmas_tree.webp",
+    "thumbnail": "/handbook/catalog/thumbs/christmas_tree.webp"
+  },
+  {
+    "id": "christmas_snowman",
+    "name": "Snowman",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 20,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "recreation": 8
+    },
+    "description": "A carrot-nosed snowman greets the neighborhood with twig arms.",
+    "usage": "A carrot-nosed snowman greets the neighborhood with twig arms.",
+    "growth": "A taller snowman welcomes smaller friends and a family of snow sculptures.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "First Snow",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Scarf Day",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Snow Friends",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Snow Family",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Snowman Reunion",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Top Hat"
+      },
+      {
+        "index": 1,
+        "name": "Earflaps"
+      },
+      {
+        "index": 2,
+        "name": "Woolly Pom"
+      },
+      {
+        "index": 3,
+        "name": "Little Crown"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/christmas_snowman.webp",
+    "thumbnail": "/handbook/catalog/thumbs/christmas_snowman.webp"
+  },
+  {
+    "id": "santas_sleigh",
+    "name": "Santa’s Sleigh",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 95,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 2,
+      "recreation": 18
+    },
+    "description": "Black Santa takes the reins of an open sleigh full of parcels.",
+    "usage": "Black Santa takes the reins of an open sleigh full of parcels.",
+    "growth": "A longer sleigh, bigger gift load and more harnessed reindeer join the Christmas Eve run.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "First Delivery",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Mail Run",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Reindeer Express",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Starlight Flight",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Christmas Eve Convoy",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Scroll Runner"
+      },
+      {
+        "index": 1,
+        "name": "Moon Runner"
+      },
+      {
+        "index": 2,
+        "name": "Bobsled"
+      },
+      {
+        "index": 3,
+        "name": "Royal Cutter"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/santas_sleigh.webp",
+    "thumbnail": "/handbook/catalog/thumbs/santas_sleigh.webp"
+  },
+  {
+    "id": "santas_house",
+    "name": "Santa’s House",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 110,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "population": 10,
+      "power": -1,
+      "recreation": 9
+    },
+    "description": "A red timber lodge with lit windows, a wreath and a smoking chimney.",
+    "usage": "A red timber lodge with lit windows, a wreath and a smoking chimney.",
+    "growth": "Its hearth grows into a broad manor with outbuildings and Santa on the doorstep.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Hearth Cottage",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Holly Cottage",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Chimney Lodge",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Santa’s Homestead",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "North Pole Manor",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Log Gable"
+      },
+      {
+        "index": 1,
+        "name": "Snow A-Frame"
+      },
+      {
+        "index": 2,
+        "name": "Twin Chimney"
+      },
+      {
+        "index": 3,
+        "name": "Gabled Wing"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/santas_house.webp",
+    "thumbnail": "/handbook/catalog/thumbs/santas_house.webp"
+  },
+  {
+    "id": "elf_cottages",
+    "name": "Elves’ Houses",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 70,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "population": 16,
+      "jobs": 3
+    },
+    "description": "Small round homes wear colorful, crooked elf-cap roofs.",
+    "usage": "Small round homes wear colorful, crooked elf-cap roofs.",
+    "growth": "Cottages collect around the first home, each with its own lit doorway.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Elf Nook",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Cobblers’ Lane",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Tinker Court",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Little Lantern Row",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Elf Village",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Bent Cap"
+      },
+      {
+        "index": 1,
+        "name": "Acorn Hood"
+      },
+      {
+        "index": 2,
+        "name": "Pointed Boot"
+      },
+      {
+        "index": 3,
+        "name": "Bobble Hat"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/elf_cottages.webp",
+    "thumbnail": "/handbook/catalog/thumbs/elf_cottages.webp"
+  },
+  {
+    "id": "santas_workshop",
+    "name": "Santa’s Toy Workshop",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 165,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 18,
+      "power": -2,
+      "income": 4
+    },
+    "description": "A toy factory puts its signature toy above the sawtooth roof.",
+    "usage": "A toy factory puts its signature toy above the sawtooth roof.",
+    "growth": "The toy sign, production line, chimneys and colorful output grow with each level.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Toy Bench",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Tinker Shed",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Toymaker Works",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Clockwork Factory",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Toy Workshop",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Toy Train"
+      },
+      {
+        "index": 1,
+        "name": "Wooden Duck"
+      },
+      {
+        "index": 2,
+        "name": "Spinning Top"
+      },
+      {
+        "index": 3,
+        "name": "Toy Robot"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/santas_workshop.webp",
+    "thumbnail": "/handbook/catalog/thumbs/santas_workshop.webp"
+  },
+  {
+    "id": "reindeer_stable",
+    "name": "Reindeer Stable",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 90,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 5,
+      "recreation": 12
+    },
+    "description": "Antlered reindeer stand beside an open timber shelter.",
+    "usage": "Antlered reindeer stand beside an open timber shelter.",
+    "growth": "The barn lengthens as new animals, rails and feeding stations fill the paddock.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Reindeer Stall",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Harness Barn",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Antler Paddock",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Sleigh Team Yard",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "North Pole Stables",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Round Pen"
+      },
+      {
+        "index": 1,
+        "name": "Split Rail"
+      },
+      {
+        "index": 2,
+        "name": "Hay Loft"
+      },
+      {
+        "index": 3,
+        "name": "Bell Gate"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/reindeer_stable.webp",
+    "thumbnail": "/handbook/catalog/thumbs/reindeer_stable.webp"
+  },
+  {
+    "id": "gingerbread_bakery",
+    "name": "Gingerbread Bakery",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 135,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 10,
+      "food": 10,
+      "income": 3
+    },
+    "description": "Cookie walls and piped icing frame a warm bakery window.",
+    "usage": "Cookie walls and piped icing frame a warm bakery window.",
+    "growth": "Candy details, extra ovens and a giant rooftop sweet mark each expansion.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Cookie Counter",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Gingerbread Oven",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Icing Shop",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Biscuit Bakehouse",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Gingerbread Palace",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Gumdrop Gable"
+      },
+      {
+        "index": 1,
+        "name": "Wafer Stack"
+      },
+      {
+        "index": 2,
+        "name": "Cookie Heart"
+      },
+      {
+        "index": 3,
+        "name": "Peppermint Roof"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/gingerbread_bakery.webp",
+    "thumbnail": "/handbook/catalog/thumbs/gingerbread_bakery.webp"
+  },
+  {
+    "id": "candy_cane_works",
+    "name": "Candy Cane Works",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 145,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 12,
+      "food": 6,
+      "income": 3
+    },
+    "description": "Giant striped candy canes rise from a copper sugar kettle.",
+    "usage": "Giant striped candy canes rise from a copper sugar kettle.",
+    "growth": "Taller crooks and additional kettles turn a single boiler into a candy skyline.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Candy Kettle",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Sugar Boiler",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Candy Benders",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Peppermint Works",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Candy Cane Forest",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Shepherd Crook"
+      },
+      {
+        "index": 1,
+        "name": "Twin Hooks"
+      },
+      {
+        "index": 2,
+        "name": "Mint Twist"
+      },
+      {
+        "index": 3,
+        "name": "Candy Arch"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/candy_cane_works.webp",
+    "thumbnail": "/handbook/catalog/thumbs/candy_cane_works.webp"
+  },
+  {
+    "id": "christmas_market",
+    "name": "Christmas Market",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 85,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 10,
+      "recreation": 10,
+      "income": 5
+    },
+    "description": "Open-front timber stalls sell gifts beneath striped awnings.",
+    "usage": "Open-front timber stalls sell gifts beneath striped awnings.",
+    "growth": "More stalls, goods and festoon lights fill the market square.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Holiday Stall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Market Pair",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Lantern Court",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Market Street",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Christkindlmarkt",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Holly Row"
+      },
+      {
+        "index": 1,
+        "name": "Star Court"
+      },
+      {
+        "index": 2,
+        "name": "Lantern Arcade"
+      },
+      {
+        "index": 3,
+        "name": "Alpine Cross"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/christmas_market.webp",
+    "thumbnail": "/handbook/catalog/thumbs/christmas_market.webp"
+  },
+  {
+    "id": "north_pole_post",
+    "name": "North Pole Post Office",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 120,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 9,
+      "recreation": 9
+    },
+    "description": "A walk-in mailbox sorts letters beside a striped North Pole marker.",
+    "usage": "A walk-in mailbox sorts letters beside a striped North Pole marker.",
+    "growth": "The mail hatch expands into a sorting office with sacks and a taller pole.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Letter Box",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Wish Desk",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Santa Mailroom",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Polar Sorting Office",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "North Pole Post",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Raised Flag"
+      },
+      {
+        "index": 1,
+        "name": "Envelope Crest"
+      },
+      {
+        "index": 2,
+        "name": "Post Horn"
+      },
+      {
+        "index": 3,
+        "name": "Parcel Chute"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/north_pole_post.webp",
+    "thumbnail": "/handbook/catalog/thumbs/north_pole_post.webp"
+  },
+  {
+    "id": "christmas_ice_rink",
+    "name": "Christmas Ice Rink",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 160,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 6,
+      "power": -1,
+      "recreation": 26
+    },
+    "description": "Tiny skaters circle an ice-blue rink edged with lanterns.",
+    "usage": "Tiny skaters circle an ice-blue rink edged with lanterns.",
+    "growth": "The ice grows wider as skaters, benches and spectator stands arrive.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Frozen Pond",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Lantern Rink",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Skating Club",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Winter Arena",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Festival Ice Garden",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Oval Track"
+      },
+      {
+        "index": 1,
+        "name": "Figure Eight"
+      },
+      {
+        "index": 2,
+        "name": "Diamond Ice"
+      },
+      {
+        "index": 3,
+        "name": "Snowflake Loop"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/christmas_ice_rink.webp",
+    "thumbnail": "/handbook/catalog/thumbs/christmas_ice_rink.webp"
+  },
+  {
+    "id": "nutcracker_guard",
+    "name": "Nutcracker Guard",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 50,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "recreation": 10
+    },
+    "description": "A wooden nutcracker stands to attention with a hinged jaw and gold buttons.",
+    "usage": "A wooden nutcracker stands to attention with a hinged jaw and gold buttons.",
+    "growth": "Taller boots, a broader uniform and ceremonial regalia rise over the square.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Pocket Soldier",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Parade Guard",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Royal Drummer",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Gate Captain",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Nutcracker",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Drum Major"
+      },
+      {
+        "index": 1,
+        "name": "Standard Bearer"
+      },
+      {
+        "index": 2,
+        "name": "Trumpeter"
+      },
+      {
+        "index": 3,
+        "name": "Royal Scepter"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/nutcracker_guard.webp",
+    "thumbnail": "/handbook/catalog/thumbs/nutcracker_guard.webp"
+  },
+  {
+    "id": "carolers_bandstand",
+    "name": "Carolers’ Bandstand",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 95,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 5,
+      "recreation": 18
+    },
+    "description": "Robed singers hold open songbooks beneath a musical crest.",
+    "usage": "Robed singers hold open songbooks beneath a musical crest.",
+    "growth": "A handful of singers grows into a choir on tiered risers.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Carol Step",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Choir Platform",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Candle Stage",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Village Bandstand",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Midnight Choir",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Hymn Circle"
+      },
+      {
+        "index": 1,
+        "name": "Candle Choir"
+      },
+      {
+        "index": 2,
+        "name": "Bell Singers"
+      },
+      {
+        "index": 3,
+        "name": "Midnight Quartet"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/carolers_bandstand.webp",
+    "thumbnail": "/handbook/catalog/thumbs/carolers_bandstand.webp"
+  },
+  {
+    "id": "black_santa_grotto",
+    "name": "Black Santa’s Grotto",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 80,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 4,
+      "recreation": 22
+    },
+    "description": "Meet Black Santa in his red coat and white beard on an open-front Christmas throne.",
+    "usage": "Meet Black Santa in his red coat and white beard on an open-front Christmas throne.",
+    "growth": "A little chair becomes an illuminated audience pavilion surrounded by gifts.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Santa’s Chair",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Wish Corner",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Holly Throne",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Santa’s Pavilion",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Christmas Grotto",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Holly Throne"
+      },
+      {
+        "index": 1,
+        "name": "Candy Columns"
+      },
+      {
+        "index": 2,
+        "name": "Starlight Arch"
+      },
+      {
+        "index": 3,
+        "name": "Fireside Seat"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/black_santa_grotto.webp",
+    "thumbnail": "/handbook/catalog/thumbs/black_santa_grotto.webp"
+  },
+  {
+    "id": "gift_wrap_hall",
+    "name": "Gift Wrap Hall",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 130,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 12,
+      "income": 4
+    },
+    "description": "A building-sized parcel wears a sculpted ribbon bow.",
+    "usage": "A building-sized parcel wears a sculpted ribbon bow.",
+    "growth": "The lid and bow grow taller as smaller wrapped gifts gather by the door.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Wrapping Desk",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Ribbon Room",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Parcel House",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Bow Factory",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Gift Hall",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Twin Loop"
+      },
+      {
+        "index": 1,
+        "name": "Pinwheel Bow"
+      },
+      {
+        "index": 2,
+        "name": "Rosette"
+      },
+      {
+        "index": 3,
+        "name": "Ribbon Tails"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/gift_wrap_hall.webp",
+    "thumbnail": "/handbook/catalog/thumbs/gift_wrap_hall.webp"
+  },
+  {
+    "id": "nativity_stable",
+    "name": "Nativity Stable",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 65,
+    "stage": 1,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "recreation": 14
+    },
+    "description": "A star hangs above an open manger, Mary and Joseph.",
+    "usage": "A star hangs above an open manger, Mary and Joseph.",
+    "growth": "Shepherds, travelers and gifts join the scene beneath a taller star.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Manger",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Bethlehem Shelter",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Shepherds’ Visit",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Wise Men’s Court",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Starlit Nativity",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Timber Lean-to"
+      },
+      {
+        "index": 1,
+        "name": "Stone Arch"
+      },
+      {
+        "index": 2,
+        "name": "Palm Shelter"
+      },
+      {
+        "index": 3,
+        "name": "Beamed Gable"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/nativity_stable.webp",
+    "thumbnail": "/handbook/catalog/thumbs/nativity_stable.webp"
+  },
+  {
+    "id": "christmas_snow_globe",
+    "name": "Christmas Snow Globe",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 120,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "recreation": 14
+    },
+    "description": "A gilded base holds an open ice-crystal dome around a tiny winter scene.",
+    "usage": "A gilded base holds an open ice-crystal dome around a tiny winter scene.",
+    "growth": "Wider domes frame larger miniatures and a growing constellation of snow.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Pocket Globe",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Mantel Globe",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Keepsake Dome",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Winter Diorama",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Snow Globe",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Fir in Glass"
+      },
+      {
+        "index": 1,
+        "name": "Snowman Globe"
+      },
+      {
+        "index": 2,
+        "name": "Cottage Globe"
+      },
+      {
+        "index": 3,
+        "name": "Candle Globe"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/christmas_snow_globe.webp",
+    "thumbnail": "/handbook/catalog/thumbs/christmas_snow_globe.webp"
+  },
+  {
+    "id": "christmas_carousel",
+    "name": "Reindeer Carousel",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 225,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 8,
+      "power": -2,
+      "recreation": 30
+    },
+    "description": "Painted reindeer turn on brass poles below a striped canopy.",
+    "usage": "Painted reindeer turn on brass poles below a striped canopy.",
+    "growth": "More mounts and taller decorated canopies crown the expanding ride.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Reindeer Ride",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Painted Carousel",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Yuletide Roundabout",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Lantern Carousel",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Reindeer Carousel",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Crown Tent"
+      },
+      {
+        "index": 1,
+        "name": "Ribbon Pavilion"
+      },
+      {
+        "index": 2,
+        "name": "Bell Canopy"
+      },
+      {
+        "index": 3,
+        "name": "Star Spire"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/christmas_carousel.webp",
+    "thumbnail": "/handbook/catalog/thumbs/christmas_carousel.webp"
+  },
+  {
+    "id": "christmas_bell_tower",
+    "name": "Christmas Bell Tower",
+    "category": "christmas",
+    "categoryName": "Christmas Village",
+    "cost": 140,
+    "stage": 2,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 3,
+      "recreation": 16
+    },
+    "description": "Flared brass bells hang in an open timber belfry.",
+    "usage": "Flared brass bells hang in an open timber belfry.",
+    "growth": "New hanging bells, lofts and a rising crown turn the single chime into a carillon.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Wayside Bell",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Village Belfry",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Carillon Loft",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Golden Chimes",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Christmas Carillon",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Timber Frame"
+      },
+      {
+        "index": 1,
+        "name": "Copper Spire"
+      },
+      {
+        "index": 2,
+        "name": "Double Belfry"
+      },
+      {
+        "index": 3,
+        "name": "Star Crown"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/christmas_bell_tower.webp",
+    "thumbnail": "/handbook/catalog/thumbs/christmas_bell_tower.webp"
   }
 ]
