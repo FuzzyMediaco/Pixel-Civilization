@@ -25,6 +25,8 @@ import {
   type Recovery,
 } from "../game/deviceSaves";
 
+import { IslandGiftPanel } from "./IslandGiftPanel";
+
 export function PlayerAccount({ saveNow, entry = false }: { saveNow: () => boolean; entry?: boolean }) {
   const progress = useRef<HTMLDialogElement>(null);
   const user = currentPlayer();
@@ -224,6 +226,7 @@ export function PlayerAccount({ saveNow, entry = false }: { saveNow: () => boole
             <label>Confirm your password<input value={deletePassword} type="password" autoComplete="current-password" required onChange={e=>setDeletePassword(e.target.value)}/></label>
             <button className="ui-btn" disabled={busy||!deletePassword}>Permanently delete my account</button></form>}
           </details>
+          <IslandGiftPanel key={user.id} issuer={user.id} />
           {sync.conflicts.map((k) => (
             <div className="player-conflict" key={k}>
               <b>{saveLabel(k)}</b>

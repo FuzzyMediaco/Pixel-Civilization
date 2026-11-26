@@ -17,6 +17,20 @@ import {
   type SaveRecord,
 } from "./deviceSaves";
 
+import type { IslandGiftTotal } from "./islandGifts.mjs";
+
+let giftInbox: { accountId: string; totals: IslandGiftTotal[] } | undefined;
+export function islandGiftFor(accountId: string, key: string, islandId: string) {
+  return giftInbox?.accountId === accountId ? giftInbox.totals.find(g => g.key === key && g.islandId === islandId) : undefined;
+}
+
+export interface GiftIsland { key: string; islandId: string; name: string; mode: string; active: boolean }
+export interface GiftRecipient { recipientId: string; islands: GiftIsland[] }
+export const giftAccess = (who: string) => api<{ canGive: boolean }>("/island-gifts/access", "GET", undefined, who);
+export const findGiftIslands = (who: string, email: string) => api<GiftRecipient>("/island-gifts/islands", "POST", { email }, who);
+export const sendIslandGift = (who: string, recipientId: string, island: GiftIsland, amount: number, requestId: string) =>
+  api<{ amount: number; requestId: string }>("/island-gifts/send", "POST", { recipientId, saveKey: island.key, islandId: island.islandId, amount, requestId }, who);
+
 type CloudSave = {
   key: string;
   version: number;
@@ -115,10 +129,10 @@ export async function decodeSave(value: string): Promise<string> {
   return new Response(decoded).text();
 }
 const pathFor = (key: string) => "/saves/" + encodeURIComponent(key);
-async function remote(who: string, meta: CloudSave, signal?: AbortSignal) {
+async function remote(who: string, meta: CloudSave, signal?: AbortSignal, stored = false) {
   if (meta.deleted) return { version: meta.version, data: "null" };
   const v = await api<CloudSave & { data: string | null }>(
-    pathFor(meta.key),
+    pathFor(meta.key) + (stored ? "?stored=1" : ""),
     "GET",
     undefined,
     who,
@@ -147,13 +161,14 @@ async function send(
 let inFlight: Promise<void> | undefined;
 async function reconcile(who: string, download: boolean, signal?: AbortSignal) {
   await flushDevice();
-  const { saves } = await api<{ saves: CloudSave[] }>(
+  const { saves, islandGifts = [] } = await api<{ saves: CloudSave[]; islandGifts?: IslandGiftTotal[] }>(
     "/saves",
     "GET",
     undefined,
     who,
     signal,
   );
+  if (currentPlayer()?.id === who) giftInbox = { accountId: who, totals: islandGifts };
   const local = new Map((await readRecords(who)).map((r) => [r.key, r]));
   const cloud = new Map(
     saves.filter((s) => isPlayerKey(s.key)).map((s) => [s.key, s]),
@@ -169,7 +184,7 @@ async function reconcile(who: string, download: boolean, signal?: AbortSignal) {
     if (c && c.version !== (r?.version ?? 0)) {
       if (r?.dirty) {
         // A response might have been lost after a successful commit. Identical contents need no conflict dialog.
-        const payload = await remote(who, c, signal);
+        const payload = await remote(who, c, signal, true);
         if (payload.data === r.data) {
           await acknowledgeUpload(r, payload.version);
           continue;

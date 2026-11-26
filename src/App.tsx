@@ -1,8 +1,9 @@
 import { canDecorateForChristmas, christmasActionLabel, toggleChristmasDecorations } from "./game/christmasDecorations";
 import { strokeRoadAxis } from "./game/roadCorridors";
 import { downloadWorld, importWorldIntoSlot, readLinkedWorld, type TransferWorld } from "./game/worldTransfer";
-import { autosync, scheduleAccountSync } from "./game/accountSync";
-import { readPlayerItem, writePlayerItem, deviceIssue, onDeviceChange, flushDevice } from "./game/deviceSaves";
+import { creditIslandGift, giftIslandId, newIslandId } from "./game/islandGifts.mjs";
+import { autosync, islandGiftFor, scheduleAccountSync, watchSync } from "./game/accountSync";
+import { currentPlayer, slotKey, readPlayerItem, writePlayerItem, deviceIssue, onDeviceChange, flushDevice } from "./game/deviceSaves";
 import { RailOperations } from "./components/RailOperations";
 import { rememberBuildingEdit, undoBuildingEdit } from "./game/constructionHistory";
 import { dispatchFire } from "./game/projectOperations";
@@ -610,6 +611,27 @@ export const App: React.FC = () => {
   const openFix=useCallback((fix:IssueFix)=>{setBuildQuery("");setBuildFix(fix);openSheet("build");},[openSheet]);
   const showLayer=useCallback((layer:HeatmapKind)=>{setActiveHeatmap(layer);openSheet("layers");setSheetHeight("peek");},[openSheet]);
   const openMore=useCallback((page:MorePage)=>{openSheet("more");setMorePage(page);},[openSheet]);
+
+  useEffect(() => {
+    const receive = () => {
+      const player = currentPlayer();
+      if (!player) return;
+      const state = stateRef.current;
+      const named = activeSave.current;
+      const key = named ? slotKey(named.index) : islandSaveKey(state);
+      const gift = islandGiftFor(player.id, key, giftIslandId(state));
+      if (!gift) return;
+      const next = { ...state };
+      const amount = creditIslandGift(next, player.id, key, gift);
+      if (!amount) return;
+      stateRef.current = next;
+      setGameState(next);
+      saveActiveMode(next);
+      showToast({ id: "island-gift", title: "Island gift received", subtitle: "$" + amount.toLocaleString() + " added to your treasury." });
+    };
+    receive();
+    return watchSync(receive);
+  }, [activeSlotIndex, gameState.mode, gameState.exampleWorldId, gameState.islandId, saveActiveMode, showToast]);
 
   const navigation=useRef({sheet,morePage,pendingWorks,pendingRoadStroke,bulkSelectMode,dispatchTarget,worksTool,inspectorDetailOpen,quickBuild,quickDrawerOpen});
   navigation.current={sheet,morePage,pendingWorks,pendingRoadStroke,bulkSelectMode,dispatchTarget,worksTool,inspectorDetailOpen,quickBuild,quickDrawerOpen};
@@ -1739,7 +1761,10 @@ export const App: React.FC = () => {
     if (activeSave.current?.index !== slotIndex && !saveActiveMode(current)) return;
     const savedName = name.trim() || `Civilization ${slotIndex + 1}`;
     try {
-      persistNamedIsland(slotIndex, savedName, current);
+      const next = activeSave.current?.index === slotIndex ? current : { ...current, islandId: newIslandId() };
+      persistNamedIsland(slotIndex, savedName, next);
+      stateRef.current = next;
+      setGameState(next);
       useNamedIsland(slotIndex, savedName);
       setSlotError("");
       setSaveSlots(loadSaveSlots());
