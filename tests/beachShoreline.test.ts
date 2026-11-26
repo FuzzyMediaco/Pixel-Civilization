@@ -6,7 +6,7 @@ import { cellIndex, GRID_SIZE } from "../src/game/mapBounds";
 import { ELEMENT_BY_ID } from "../src/game/catalog";
 import { rememberBuildingEdit, undoBuildingEdit } from "../src/game/constructionHistory";
 import { createInitialGameState, type PlacedElement } from "../src/game/simulation";
-import { applyLandformPlacement, ensureInfrastructure, SEA } from "../src/game/terrain";
+import { applyLandformPlacement, ensureInfrastructure, getTerrainCell, SEA } from "../src/game/terrain";
 import { restoreBeachGround } from "../src/game/terrainInteraction";
 import { buildDesignVoxels } from "../src/game/voxelArchitect";
 import { sampleTerrainAt, sampleVoxelColumn, voxelToTileLocal, writeVoxelEditsToState } from "../src/game/voxelTerrain";
@@ -71,6 +71,50 @@ test("a backwards stamped beach and its overlap with the next old plot both retu
   for (const [vx, vz] of old) {
     assert.deepEqual(sampleVoxelColumn(state, vx, vz), sampleVoxelColumn(clean, vx, vz));
   }
+});
+
+test("tile-painted beaches merge across old saltwater cells on a southern coast, including a previous repair", () => {
+  for (const grade of [undefined, 1] as const) {
+    const state = makeWorld();
+    const west = { ...site("west", 27, 77, 0, 2), spanX: 1, spanZ: 1, sculptsTerrain: true, beachGrade: grade };
+    const east = { ...west, id: "east", gx: 28 };
+    state.elements.push(west, east);
+    const infra = ensureInfrastructure(state);
+    for (const e of state.elements) {
+      const natural = getTerrainCell(state, e.gx, e.gz);
+      const elevation = natural.elevation + (e.id === "east" ? 0.05 : 0);
+      infra.cells[e.gx + "," + e.gz] = { ...natural, material: "sand", elevation, depth: SEA - elevation };
+    }
+    assert.equal(sampleTerrainAt(state, 114.125, 309.125).water, "salt");
+    restoreBeachGround(state);
+    assert.equal(sampleTerrainAt(state, 114.125, 309.125).water, "dry");
+    for (let x = 108.125; x < 116; x += 0.25) {
+      let wet = false;
+      for (let z = 302.125; z < 326; z += 0.25) {
+        const depth = sampleTerrainAt(state, x, z).depth;
+        if (wet) assert.ok(depth > 0.01, "saved tile splits the beach with an inland pool");
+        wet ||= depth > 0.01;
+      }
+      assert.ok(wet);
+    }
+    const saved = JSON.stringify(state);
+    restoreBeachGround(state);
+    assert.equal(JSON.stringify(state), saved);
+  }
+});
+
+test("repairing a tile-painted beach retains excavated cells and water controls", () => {
+  const state = makeWorld(), infra = ensureInfrastructure(state);
+  const beach = { ...site("edited", 27, 77, 0, 1), sculptsTerrain: true };
+  state.elements.push(beach);
+  const key = "27,77", existing = getTerrainCell(state, 27, 77);
+  infra.cells[key] = { ...existing, material: "sand", gate: "closed", gateKind: "lock", freeLevel: SEA + 0.1 };
+  infra.cells["28,77"] = { ...getTerrainCell(state, 28, 77), material: "sand", elevation: -3, excavated: true };
+  const left = sampleTerrainAt(state, 109, 309), right = sampleTerrainAt(state, 113, 309);
+  restoreBeachGround(state);
+  assert.deepEqual(sampleTerrainAt(state, 109, 309), left);
+  assert.deepEqual(sampleTerrainAt(state, 113, 309), right);
+  assert.equal(infra.cells[key].gate, "closed");
 });
 
 test("an isolated offshore beach has a rounded tidal edge and an inland beach remains dry", () => {
