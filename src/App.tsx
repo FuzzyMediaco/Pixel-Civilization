@@ -111,6 +111,7 @@ import {
   type GameMode,
   STAGES,
   getMaxElementLevel,
+  getMaxPlacementLevel,
   getStandardFootprintForLevel,
 } from "./game/catalog";
 import {
@@ -2050,7 +2051,8 @@ export const App: React.FC = () => {
   // Context layer: any specialized menu, sheet, tool, ring, or modal takes clean screen focus and hides outer chrome.
   const brushDef=brush.kind==="place"&&brush.defId?ELEMENT_BY_ID[brush.defId]:undefined;
   const movingEl=brush.kind==="move"?gameState.elements.find(e=>e.id===brush.movingElementId):undefined;
-  const brushCost = brushDef ? constructionCost(gameState, brushDef) : 0;
+  const maxPlacementLevel = brushDef ? getMaxPlacementLevel(brushDef, gameState.mode) : 1;
+  const brushCost = brushDef ? constructionCost(gameState, brushDef, brush.level) : 0;
   const roadStrokeStats = useMemo(() => {
     if (!pendingRoadStroke || pendingRoadStroke.points.length < 2) return null;
     const def = ELEMENT_BY_ID[pendingRoadStroke.defId];
@@ -2592,7 +2594,7 @@ export const App: React.FC = () => {
       </div>}
 
       {/* Context layer */}
-      {brushDef&&<PlacementBar label="Placing" def={brushDef} title={eraElementName(brushDef.id,gameState.showOriginalNames ? "original" : displayedEra)+(gameState.mode==="god"?" · Lv "+brush.level:"")}
+      {brushDef&&<PlacementBar label="Placing" def={brushDef} title={eraElementName(brushDef.id,gameState.showOriginalNames ? "original" : displayedEra)+(maxPlacementLevel>1?" · Lv "+brush.level:"")}
         subtitle={(brushCost?"$"+brushCost.toLocaleString()+(brushDef.isNetwork?" / tile":" each"):"Free")+(placeStats?.defId===brushDef.id?" · "+placeStats.count+" placed"+(placeStats.spent?" = $"+placeStats.spent.toLocaleString():""):"")}
         hint={
           pendingRoadStroke
@@ -2608,10 +2610,10 @@ export const App: React.FC = () => {
         }
         hintBad={!!hoverBad && !pendingRoadStroke}>
         {!brushDef.isNetwork&&<IconButton aria-label="Rotate 90° (R)" icon={<RotateCw size={18}/>} onClick={()=>setBrush(b=>({...b,rotation:(b.rotation+1)%4,faceManually:true}))}/>}
-        {gameState.mode==="god"&&<span className="ui-level" role="group" aria-label="Placement level">
+        {maxPlacementLevel>1&&<span className="ui-level" role="group" aria-label="Placement level">
           <IconButton variant="quiet" aria-label="Lower placement level" icon={<Minus size={16}/>} disabled={brush.level<=1} onClick={()=>setBrush(b=>({...b,level:Math.max(1,b.level-1)}))}/>
           <span>Lv{brush.level}</span>
-          <IconButton variant="quiet" aria-label="Raise placement level" icon={<Plus size={16}/>} disabled={brush.level>=getMaxElementLevel(brushDef.id)} onClick={()=>setBrush(b=>({...b,level:Math.min(getMaxElementLevel(brushDef.id),b.level+1)}))}/>
+          <IconButton variant="quiet" aria-label="Raise placement level" icon={<Plus size={16}/>} disabled={brush.level>=maxPlacementLevel} onClick={()=>setBrush(b=>({...b,level:Math.min(maxPlacementLevel,b.level+1)}))}/>
         </span>}
         <IconButton variant="primary" aria-label="Done placing" icon={<Check size={20}/>} onClick={()=>{setPendingRoadStroke(null);setBrush(idleBrush);}}/>
       </PlacementBar>}

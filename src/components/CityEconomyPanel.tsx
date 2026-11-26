@@ -9,6 +9,7 @@ import {
   CATEGORY_META,
   ELEMENT_BY_ID,
   getMaxElementLevel,
+  getElementUnlockStage,
   getStandardFootprintForLevel,
   type CivElementDef,
   STAGES,
@@ -186,7 +187,7 @@ function buildSiteSpecificRows(
   if (rows.length < 2) {
     const cat = CATEGORY_META.find((c) => c.id === def.category)?.label ?? def.category;
     push("Category", cat);
-    push("Stage unlock", "Stage " + def.stage);
+    push("Stage unlock", "Stage " + getElementUnlockStage(def, s.mode));
     push("Placement domain", DOMAIN_LABELS[def.domain] ?? def.domain);
     push("Build cost", def.cost > 0 ? money(def.cost) : "Free");
   }
@@ -520,7 +521,7 @@ export function CityEconomyPanel({
                 </h3>
               )}
               <p className="ui-site-meta">
-                Plot ({site.gx}, {site.gz}) · {site.spanX}×{site.spanZ} tiles · {catLabel} · Stage {def.stage} · {statusLabel}
+                Plot ({site.gx}, {site.gz}) · {site.spanX}×{site.spanZ} tiles · {catLabel} · Stage {getElementUnlockStage(def, s.mode)} · {statusLabel}
               </p>
               {def.description && <p className="ui-site-desc">{def.description}</p>}
               {VEHICLE_ROADS.has(site.defId) ? (
@@ -576,6 +577,7 @@ export function CityEconomyPanel({
                   <p className="ui-card-copy">
                     {VEHICLE_ROADS.has(site.defId)
                       ? "Next stage adds capacity and street equipment."
+                      : upgrade.goal === 0 ? `${upgrade.label} · ${next.join("×")} tiles.`
                       : `${upgrade.label} · ${Math.floor(upgrade.value).toLocaleString()} / ${upgrade.goal.toLocaleString()}${!def.isNetwork ? ` · ${next.join("×")} tiles` : ""}.`}
                   </p>
                   {preview && !def.isNetwork && (site.spanX !== next[0] || site.spanZ !== next[1]) && (

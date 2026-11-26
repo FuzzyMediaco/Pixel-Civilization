@@ -705,7 +705,7 @@ export function UnifiedAtlas({
                 <span>{selectedEntry.cost ? money(selectedEntry.cost) : "Free"}</span>
                 <span aria-hidden="true"> · </span>
                 <span>
-                  {selectedEntry.wealthThreshold
+                  {selectedEntry.category === "christmas" ? "Any stage in Real mode" : selectedEntry.wealthThreshold
                     ? money(selectedEntry.wealthThreshold) + " wealth"
                     : selectedEntry.isStarter
                       ? "Starter"
@@ -985,7 +985,7 @@ export function UnifiedAtlas({
                     )}
                     <strong>{displayName(entry.id)}</strong>
                     <span className="pc-atlas-tile-meta">
-                      {entry.cost ? money(entry.cost) : "Free"} · {entry.isStarter ? "Start" : "S" + entry.stage}
+                      {entry.cost ? money(entry.cost) : "Free"} · {entry.category === "christmas" ? "Any stage in Real" : entry.isStarter ? "Start" : "S" + entry.stage}
                     </span>
                   </button>
                 ))}
