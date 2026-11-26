@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { openAccountDatabase } from "../src/server/localAccounts.mjs";
 
 import { randomBytes } from "node:crypto";
+import { gzipSync, gunzipSync } from "node:zlib";
 import { accountRequest } from "../worker/accounts.mjs";
 
 function setup() {
@@ -83,6 +84,39 @@ test("large account saves survive interleaved writes, retries, deletion and back
     assert.equal((await call(path, "PUT", { baseVersion: 3, data: previous.body.data }, headers)).body.version, 4);
     assert.equal((await call("saves", "GET", undefined, headers)).body.saves[0].deleted, false);
     assert.equal((await call("saves/unknown", "PUT", { baseVersion: 999, data: "x" })).body.code, "conflict");
+  } finally { sqlite.close(); }
+});
+
+test("signing in can restore imported device-format islands and their previous revisions", async () => {
+  const { sqlite, call } = setup();
+  try {
+    const account = { email: "islander@example.org", password: "a playable island" };
+    const { body: { user } } = await call("register", "POST", account);
+    const island = JSON.stringify({ name: "Coral Bay", state: { elements: [{ id: 17 }] } });
+    const packed = "pcgz1:" + gzipSync(island).toString("base64");
+    const slots = ["pixel_civ_slot_0", "pixel_civ_slot_1"];
+    for (const [index, key] of slots.entries()) {
+      sqlite.prepare("INSERT INTO game_saves(user_id,save_key,version,revision,updated_at) VALUES(?,?,1,'import',?)")
+        .run(user.id, key, Date.now());
+      const chunks = index === 0 ? [packed] : [packed.slice(0, 19), packed.slice(19)];
+      for (const [part, payload] of chunks.entries()) {
+        sqlite.prepare("INSERT INTO game_save_chunks(user_id,save_key,revision,part,payload) VALUES(?,?,'import',?,?)")
+          .run(user.id, key, part, payload);
+      }
+    }
+    await call("logout", "POST", {});
+    assert.equal((await call("login", "POST", account)).status, 200);
+    assert.deepEqual((await call("saves")).body.saves.map((s: { key: string }) => s.key), slots);
+    for (const key of slots) {
+      const path = "saves/" + key;
+      const read = await call(path);
+      assert.equal(read.status, 200);
+      assert.equal(read.body.data, packed);
+      assert.equal(gunzipSync(Buffer.from(read.body.data.slice(6), "base64")).toString(), island);
+      assert.equal((await call(path, "PUT", { baseVersion: 1, data: island })).body.version, 2);
+      assert.equal((await call(path)).body.data, island);
+      assert.equal((await call(path + "?previous=1")).body.data, packed);
+    }
   } finally { sqlite.close(); }
 });
 

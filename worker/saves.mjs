@@ -44,8 +44,13 @@ export async function readSave(db, user, key, previous) {
     : metadata(key, row.version, row.updated_at, row.deleted);
   let data = null;
   if (!item.deleted) {
-    const gzip = new Blob(chunks.results.map(chunk => decodeChunk(chunk.payload)));
-    data = await new Response(gzip.stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    if (chunks.results[0]?.payload.startsWith("pcgz1:")) {
+      // Some imported islands already contain the device's compressed save envelope.
+      data = chunks.results.map(chunk => chunk.payload).join("");
+    } else {
+      const gzip = new Blob(chunks.results.map(chunk => decodeChunk(chunk.payload)));
+      data = await new Response(gzip.stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    }
   }
   return json({ ...item, data });
 }
