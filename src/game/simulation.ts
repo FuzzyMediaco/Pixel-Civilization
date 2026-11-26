@@ -95,6 +95,7 @@ export interface PlacedElement {
   edgeOverrides?: Partial<Record<LocalSide, EdgeOverride>>;
   awaitingStreet?: boolean;
   autoDrive?: {side:LocalSide;slot:number};
+  christmasDecorated?: true;
   exteriorLighting?: "auto" | "dark" | "lit";
   connected: boolean;
   hasPoliceCover: boolean;

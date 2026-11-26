@@ -154,6 +154,14 @@ export function IslandMapFallback({ state, focus, buildingPulse, draw, following
           ctx.fillRect(x+inset, y+inset, ew-inset*2, eh-inset*2);
           ctx.strokeStyle = "rgba(255,255,255,.42)";
           ctx.strokeRect(x+inset+.5, y+inset+.5, Math.max(0,ew-inset*2-1), Math.max(0,eh-inset*2-1));
+          if (el.christmasDecorated) {
+            const colors = ["#bd3542", "#ffdb80", "#3ca57e"];
+            const spacing = Math.max(3, zoom * .23);
+            for (let i=0; i*spacing<ew-2*inset; i++) {
+              ctx.fillStyle=colors[i % colors.length];
+              ctx.fillRect(x+inset+i*spacing, y+eh-inset-2, 2, 2);
+            }
+          }
           if (el.animProgress > 0) {
             ctx.strokeStyle = `rgba(255,247,209,${el.animProgress})`;
             ctx.lineWidth = 2;

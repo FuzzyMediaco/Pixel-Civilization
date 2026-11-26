@@ -19,7 +19,7 @@ export interface BuildingEdit {
   refund:number;
 }
 const layers:GroundKey[]=["cells","voxels","spans","conduits","streets"];
-const authored = ["defId","gx","gz","spanX","spanZ","rotation","level","variant","edgeOverrides","exteriorLighting",
+const authored = ["defId","gx","gz","spanX","spanZ","rotation","level","variant","edgeOverrides","exteriorLighting","christmasDecorated",
   "overWater","waterUnderlay","sculptsTerrain","roadAxis","crossingAxis","pedestrianDeck","awaitingStreet"] as const;
 
 function layout(el:PlacedElement | undefined):string {

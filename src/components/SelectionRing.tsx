@@ -1,3 +1,4 @@
+import { christmasActionLabel } from "../game/christmasDecorations";
 import { usePeriodNames } from "./PeriodPicker";
 import React, { useEffect, useRef } from "react";
 import {
@@ -9,6 +10,7 @@ import {
   Move,
   RotateCw,
   Shuffle,
+  TreePine,
   TrainFront,
   Trash2,
   Undo2,
@@ -54,6 +56,7 @@ export function SelectionRing({
   onDemolish,
   onBulkDemolish,
   onStartBulkSelect,
+  onChristmas,
   onVariant,
   onMove,
   onRotate,
@@ -77,6 +80,7 @@ export function SelectionRing({
   onDemolish: () => void;
   onBulkDemolish?: () => void;
   onStartBulkSelect?: () => void;
+  onChristmas?: () => void;
   onVariant: () => void;
   onMove: () => void;
   onRotate: () => void;
@@ -360,6 +364,8 @@ export function SelectionRing({
       onClick: onOpenDetails,
     });
   }
+
+  if (onChristmas) actions.push({ id: "christmas", label: christmasActionLabel(el), icon: <TreePine size={18} aria-hidden="true" />, onClick: onChristmas });
 
   const orderedActions = isIdle || isManager ? actions : resolveQuickEditActions(actions, quickEditPrefs);
   const count = orderedActions.length;

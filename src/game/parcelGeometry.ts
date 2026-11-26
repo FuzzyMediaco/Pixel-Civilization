@@ -14,6 +14,7 @@ export interface ParcelAppearance {
   edges?: readonly ParcelEdge[];
   /** Local row-major tile materials, blank when the entire site uses default grass. */
   soils?: readonly Material[];
+  christmasDecorated?: boolean;
   lighting?: "auto" | "dark" | "lit";
   /** True when placed in-world atop sculpted voxel terrain so duplicate ground slabs are omitted. */
   worldSculpted?: boolean;

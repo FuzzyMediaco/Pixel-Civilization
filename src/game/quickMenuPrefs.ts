@@ -23,6 +23,7 @@ export type QuickEditActionId =
   | "upgrade"
   | "delete"
   | "bulk"
+  | "christmas"
   | "variant"
   | "move"
   | "rotate"
@@ -114,9 +115,9 @@ export const QUICK_BUILD_MODE_META: {
     id: "tree",
     name: "Exact Build",
     clicks: "4 clicks",
-    shortDesc: "Non-adaptive 7 × 7 × 6 decision tree",
+    shortDesc: "Fixed categories and subcategories",
     detail:
-      "Never changes on you: all 294 elements organized into 7 top branches → 7 sub-branches → up to 6 elements so you always know exactly where everything lives.",
+      "Find every element by category and subcategory. Christmas Village has its own branch.",
   },
   {
     id: "sculpt",
@@ -188,6 +189,7 @@ export const QUICK_EDIT_BUTTON_META: QuickEditButtonMeta[] = [
   { id: "upgrade", label: "Upgrade", desc: "Level up the selected element" },
   { id: "delete", label: "Delete", desc: "Remove the selected element", core: true },
   { id: "bulk", label: "Bulk select", desc: "Select multiple items to delete together" },
+  { id: "christmas", label: "Christmas decorations", desc: "Hang or remove holiday lights and a wreath" },
   { id: "variant", label: "Visual style", desc: "Cycle between the 4 architectural styles" },
   { id: "move", label: "Move", desc: "Relocate the element to another tile" },
   { id: "rotate", label: "Rotate 90°", desc: "Turn buildings to face another street" },

@@ -1,3 +1,4 @@
+import "./christmas";
 // Registers every element design. Import this once (main app) before rendering.
 import "./housing";
 import "./agriculture";

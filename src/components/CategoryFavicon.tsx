@@ -20,6 +20,7 @@ export const CATEGORY_LABELS: Record<BuildCategory, string> = {
   wealth_projects: "Wealth",
   all: "All",
   starter: "Starter",
+  christmas: "Christmas Village",
 };
 
 /**
@@ -46,6 +47,8 @@ export function CategoryFavicon({
   };
 
   switch (category) {
+    case "christmas":
+      return <img width={size} height={size} className={cls} alt="" src="/handbook/catalog/thumbs/christmas_tree.webp" />;
     case "housing":
       return (
         <svg {...common}>
@@ -257,6 +260,8 @@ export function DecisionParentFavicon({
   };
 
   switch (parentId) {
+    case "christmas_village":
+      return <CategoryFavicon category="christmas" size={size} className={className} />;
     case "homes_retail":
       return (
         <svg {...common}>

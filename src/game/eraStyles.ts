@@ -100,7 +100,7 @@ export function eraElementSpec(id:string, era:unknown):RomeElementSpec | undefin
   if(key==="original") return undefined;
   if(key==="rome-forum" || (key==="rome-aqueduct" && specs.has(id))) return specs.get(id);
   const def=ELEMENT_BY_ID[id];
-  if(!def) return undefined;
+  if(!def || def.category==="christmas") return undefined;
   const cacheKey=key+"/"+id;
   const cached=productionSpecs.get(cacheKey);
   if(cached) return cached;

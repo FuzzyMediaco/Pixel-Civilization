@@ -1,3 +1,4 @@
+import { christmasActionLabel } from "../game/christmasDecorations";
 import { eraLevelName } from "../game/eraStyles";
 import { usePeriodNames } from "./PeriodPicker";
 import React, { useState } from "react";
@@ -15,6 +16,7 @@ import {
   Move,
   RotateCw,
   Shuffle,
+  TreePine,
   Trash2,
   TrainFront,
   Wrench,
@@ -40,6 +42,7 @@ export function InspectorSheet({
   onLevelDown,
   onMove,
   onRotate,
+  onChristmas,
   onVariant,
   onMaintain,
   onDemolish,
@@ -60,6 +63,7 @@ export function InspectorSheet({
   onLevelDown: () => void;
   onMove: () => void;
   onRotate: () => void;
+  onChristmas?: () => void;
   onVariant: () => void;
   onMaintain: () => void;
   onDemolish: () => void;
@@ -165,6 +169,7 @@ export function InspectorSheet({
             <IconButton aria-label="Demolish" title="Demolish" variant="danger" icon={<Trash2 size={14} />} onClick={onDemolish} />
           </div>
 
+          {onChristmas && <Button small icon={<TreePine size={15} />} label={christmasActionLabel(el)} onClick={onChristmas} />}
           {!atMax && blocked && (
             <p className="ui-upgrade-note">
               {short ? "Need $" + cost.toLocaleString() + ". " : ""}

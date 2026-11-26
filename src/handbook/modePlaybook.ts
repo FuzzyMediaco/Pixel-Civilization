@@ -121,7 +121,7 @@ export const EXTRA_PLAYBOOK_CHAPTERS: ExtraPlaybookChapter[] = [
           "Tap any empty land or water tile to open your radial spiral build menu directly around your finger. Pick your preferred style anytime from the Top-Right Quick Menu or More → Settings → Quick Menus.",
           "Smart Build (Default · 3 clicks): Tap empty ground → choose 1 of 6 adaptive categories → choose 1 of 6 adaptive elements tailored to your stage, city needs, nearby terrain/roads, and personal build habits.",
           "Quick Build (2 clicks): Skips categories completely and spirals straight into the 6 elements you are most likely to place on that exact tile.",
-          "Exact Build (4 clicks): A fixed, non-adaptive 7 × 7 × 6 decision tree covering every unlocked element so you always know the exact path to any building.",
+          "Exact Build (4 clicks): A fixed tree of categories and subcategories covering every unlocked element so you always know the exact path to any building.",
           "Customize focus (Balanced, City Needs, Habits, Nearby Tile), branch order, and after-place behavior safely under More → Settings → Quick Menus.",
         ],
         examples: [],

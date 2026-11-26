@@ -2,6 +2,7 @@ import chapters from "./chapters.json";
 import neighbors from "../../public/handbook/neighbors/index.json";
 
 const categoryLesson: Record<string, string> = {
+  christmas: "christmas-village",
   agriculture: "city-food",
   civic_parks: "balance",
   commerce: "balance",

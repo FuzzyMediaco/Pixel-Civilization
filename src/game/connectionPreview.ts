@@ -1,3 +1,4 @@
+import { CHRISTMAS_ELEMENTS } from "./christmasCatalog";
 import { ELEMENTS, ELEMENT_BY_ID, getStandardFootprintForLevel } from "./catalog";
 import { cellBeyondEdge, getParcelEdges, PARCEL_SIDES, type ParcelEdge } from "./parcelEdges";
 import { buildOccupancyMap, getNetworkConnMask, type PlacedElement } from "./simulation";
@@ -90,6 +91,8 @@ meets("public_library","park");
 meets("bell_tower_chapel stone_abbey zen_shrine meditation_pavilion","graveyards");
 meets("civic_observatory","italian_gardens");
 meets("solar_spire_arcology","paths");
+for (const def of CHRISTMAS_ELEMENTS) partners[def.id] = "paths";
+
 function model(id:string,level:number,rotation:number): PlacedElement {
   const [w,h]=getStandardFootprintForLevel(ELEMENT_BY_ID[id],level);
   return {id:id+"-guide",defId:id,gx:0,gz:0,rotation,level,spanX:rotation%2?h:w,spanZ:rotation%2?w:h,

@@ -1,3 +1,5 @@
+import { canDecorateForChristmas } from "./christmasDecorations";
+import { hangChristmasTrim } from "./designs/christmasTrim";
 import { seatBeachProps } from "./beachProps";
 import {dividedCarriageway} from "./designs/carriageways";
 import { currentRomeArt, currentProductionArt } from "./eraArtLoader";
@@ -87,7 +89,8 @@ export function buildDesignVoxels(
       design.build(c);
       if (VEHICLE_ROADS.has(def.id)) paintRoadStage(c);
     };
-    if (rome && spec && (era === "rome-forum" || era === "rome-aqueduct")) {
+    if (def.category === "christmas") buildOriginal();
+    else if (rome && spec && (era === "rome-forum" || era === "rome-aqueduct")) {
       rome.buildRome(c,era,spec.family as RomeFamily,appearance.eraActivity ?? "idle",buildOriginal);
     } else if (production) {
       production.engine.buildProduction(c,production.ink,def,appearance.eraActivity === "active",buildOriginal);
@@ -96,6 +99,7 @@ export function buildDesignVoxels(
     console.error(`Design build failed for ${def.id} L${lv} V${variant}`, err);
     c.v.box(-c.hx + 2, 0, -c.hz + 2, c.hx - 2, 6, c.hz - 2, "magenta");
   }
+  if (appearance.christmasDecorated && canDecorateForChristmas(def)) hangChristmasTrim(c, def.archetype === "mall_plaza");
   trimLandscapeEdge(def, c.v, c.hx, c.hz);
   applyParcelAppearance(c, appearance, spanX, spanZ);
   clampVoxToFootprint(c.v, c.hx, c.hz);
@@ -244,7 +248,7 @@ export function getOrBuildElementAsset(
   const era = normalizeEra(appearance.era);
   const themed = Boolean(currentProductionArt(era)) || (era === "rome-forum" && currentRomeArt() && romanPilot.has(elementId));
   const styleKey = themed ? `${appearance.era}:${appearance.eraActivity ?? "idle"}` : "original";
-  const key = `${styleKey}|${appearance.worldSculpted ? "sculpted" : "model"}|${appearance.corridor?JSON.stringify(appearance.corridor):""}|${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
+  const key = `${appearance.christmasDecorated ? "christmas" : ""}|${styleKey}|${appearance.worldSculpted ? "sculpted" : "model"}|${appearance.corridor?JSON.stringify(appearance.corridor):""}|${elementId}|L${clampedLv}|V${clampedVar}|${spanX}x${spanZ}|C${def?.isNetwork ? connMask : 0}`;
   if (def && (appearance.shoreHeight || appearance.edges?.length || appearance.soils?.length || (appearance.lighting && appearance.lighting !== "auto"))) {
     const asset = buildDesignAsset(def, clampedLv, clampedVar, spanX, spanZ, connMask, appearance);
     asset.siteSpecific = true;
