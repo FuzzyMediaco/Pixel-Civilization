@@ -4261,3 +4261,8 @@ fieldset.ui-transit-fields {
 @media (prefers-reduced-motion: reduce) { .ui-tut-progress i { transition: none; } }
 .ui-hud.is-tutorial-limited .ui-hud-quick-anchor { display: none; }
 .ui-econ-nav { margin-bottom: 8px; }
+/* Spacing utilities (use instead of inline margins). */
+.ui-mt-4 { margin-top: 4px; }
+.ui-mt-8 { margin-top: 8px; }
+.ui-mt-12 { margin-top: 12px; }
+.ui-mb-8 { margin-bottom: 8px; }

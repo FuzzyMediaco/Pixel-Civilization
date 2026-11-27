@@ -528,7 +528,7 @@ export function CityEconomyPanel({
               {def.description && <p className="ui-site-desc">{def.description}</p>}
               {VEHICLE_ROADS.has(site.defId) ? (
                 <>
-                  <div className="ui-card-head" style={{marginBottom: 6}}>
+                  <div className="ui-card-head ui-mb-8">
                     <strong>Street operations</strong>
                   </div>
                   <Figures
@@ -546,7 +546,7 @@ export function CityEconomyPanel({
                       : "Traffic uses connected origin and destination gates."}
                   </p>
                   {widening && (
-                    <div className="ui-quick-links" style={{marginTop: 6}}>
+                    <div className="ui-quick-links ui-mt-8">
                       <button
                         type="button"
                         className="ui-btn is-small"
@@ -596,7 +596,7 @@ export function CityEconomyPanel({
                     <p key={x} className="ui-card-meta">{x}</p>
                   ))}
                   {!compactSite && (
-                    <div className="ui-quick-links" style={{marginTop: 8}}>
+                    <div className="ui-quick-links ui-mt-8">
                       <button
                         type="button"
                         className="ui-btn is-small is-primary"
@@ -724,7 +724,7 @@ export function CityEconomyPanel({
               />
             </label>
             <p className="ui-card-meta">Calculated · {rate(calc)}</p>
-            <div className="ui-quick-links" style={{marginTop: 6}}>
+            <div className="ui-quick-links ui-mt-8">
               <button type="button" className="ui-btn is-small" disabled={(local && !site) || value === ""} onClick={() => setControl(false)}>
                 Set once
               </button>
@@ -736,7 +736,7 @@ export function CityEconomyPanel({
           <div className="ui-panel-card">
             <details>
               <summary>Allocate total city wealth</summary>
-              <div className="ui-edge-grid" style={{marginTop: 8}}>
+              <div className="ui-edge-grid ui-mt-8">
                 <label className="ui-field">
                   <span>Total $</span>
                   <input type="number" value={allocation} onChange={(ev) => setAllocation(ev.target.value)} />
@@ -763,7 +763,7 @@ export function CityEconomyPanel({
                 </label>
               </div>
               <p className="ui-card-meta">Businesses receive {Math.max(0, 100 - Number(treasury) - Number(households))}%.</p>
-              <div className="ui-quick-links" style={{marginTop: 6}}>
+              <div className="ui-quick-links ui-mt-8">
                 {[false, true].map((hold) => (
                   <button
                     key={String(hold)}

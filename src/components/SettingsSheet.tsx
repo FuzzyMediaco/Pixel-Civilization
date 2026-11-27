@@ -383,7 +383,7 @@ export function SettingsSheet({
                           })}
                         </div>
 
-                        <p className="ui-qm-label" style={{ marginTop: 10 }}>
+                        <p className="ui-qm-label ui-mt-12">
                           Feature &amp; settings catalog
                         </p>
                         {DRAWER_GROUPS.map((grp) => (
@@ -627,7 +627,7 @@ export function SettingsSheet({
                       ))}
                     </div>
 
-                    <label className="ui-works-slider" style={{ marginTop: 4 }}>
+                    <label className="ui-works-slider ui-mt-4">
                       <span className="ui-works-slider-head">
                         <span>Stamp strength</span>
                         <strong className="tabular-nums">{Math.round(qs.strength * 100)}%</strong>
@@ -670,7 +670,7 @@ export function SettingsSheet({
                       })}
                     </div>
 
-                    <p className="ui-qm-label" style={{ marginTop: 6 }}>
+                    <p className="ui-qm-label ui-mt-8">
                       Spiral slots ({qs.tools.length}/{MAX_QUICK_SCULPT_SLOTS})
                     </p>
                     <div className="ui-qm-list">
@@ -726,7 +726,7 @@ export function SettingsSheet({
                       })}
                     </div>
 
-                    <p className="ui-qm-label" style={{ marginTop: 6 }}>
+                    <p className="ui-qm-label ui-mt-8">
                       Add / remove tools
                     </p>
                     <div className="ui-qm-catalog-chips">
@@ -824,7 +824,7 @@ export function SettingsSheet({
                       </div>
                     )}
 
-                    <p className="ui-qm-label" style={{ marginTop: 8 }}>
+                    <p className="ui-qm-label ui-mt-8">
                       Exact Build branch order
                     </p>
                     <div className="ui-qm-list">
@@ -918,7 +918,7 @@ export function SettingsSheet({
                     onClick={() => onStartTutorial(state.mode)}
                   />
                 )}
-                <div style={{ marginTop: 8 }}>
+                <div className="ui-mt-8">
                   <ChipRow label="Launch tutorial for a mode">
                     {MODES.map((m) => (
                       <Chip
@@ -984,7 +984,7 @@ export function SettingsSheet({
           </button>
           {keysOpen && (
             <div className="ui-qm-body">
-              <div className="ui-keys" style={{ marginTop: 6 }}>
+              <div className="ui-keys ui-mt-8">
                 {KEYS.map(([k, v]) => (
                   <React.Fragment key={k}>
                     <kbd>{k}</kbd>
