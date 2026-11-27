@@ -1,0 +1,18 @@
+{
+ "min": 0.12,
+ "ids": [
+  "coworking_loft",
+  "tech_startup_hub",
+  "department_store",
+  "hardware_store",
+  "grocery_store"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.184,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}

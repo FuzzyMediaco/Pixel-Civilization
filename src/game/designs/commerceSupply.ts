@@ -1,7 +1,6 @@
 /** Original department stores and builders' merchants. Each shop has a street entrance and four separate plans. */
 import { archway, awning, byLv, clockFace, door, lamp, person, truck, windows, type Ctx, type PixelVox } from "./kit";
 import { bulbs, cafeTable, disc, glassFront, spinner } from "./commerceKit";
-import { override } from "./commerceIcons";
 
 function shopWing(c: Ctx, x0: number, z0: number, x1: number, z1: number, top: number, wall: string, cornice: string) {
   const v = c.v;
@@ -238,7 +237,9 @@ function rotunda(c: Ctx) {
   }
 }
 
-override("department_store", (c) => c.vpick([clockEmporium, giftArcade, escalatorArcade, rotunda])(c));
+export function buildDepartmentStore(c: Ctx) {
+  c.vpick([clockEmporium, giftArcade, escalatorArcade, rotunda])(c);
+}
 
 function timber(v: PixelVox, x: number, z: number, w: number, rows: number) {
   for (let y = 0; y < rows; y++)
@@ -414,4 +415,6 @@ function lumberBarn(c: Ctx) {
   }
 }
 
-override("hardware_store", (c) => c.vpick([toolbox, paintDepot, boltWorks, lumberBarn])(c));
+export function buildHardwareStore(c: Ctx) {
+  c.vpick([toolbox, paintDepot, boltWorks, lumberBarn])(c);
+}

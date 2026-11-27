@@ -1,7 +1,6 @@
 /** Original workspaces built out of an old mill, a computer, terraces, a tree, or the inventions inside them. */
 import { bench, byLv, door, person, PixelVox, tree, windows, type Ctx } from "./kit";
 import { cafeTable, disc, glassFront, sculpt } from "./commerceKit";
-import { override } from "./commerceIcons";
 
 function desk(v: PixelVox, x: number, y: number, z: number) {
   v.box(x, y, z, x + 1, y + 2, z + 2, "woodDark");
@@ -210,7 +209,9 @@ function treeStudios(c: Ctx) {
   }
 }
 
-override("coworking_loft", (c) => c.vpick([millLoft, laptopLoft, studioTerraces, treeStudios])(c));
+export function buildCoworkingLoft(c: Ctx) {
+  c.vpick([millLoft, laptopLoft, studioTerraces, treeStudios])(c);
+}
 
 function rocketStudio(c: Ctx) {
   const { v, lv, hx, hz } = c;
@@ -402,4 +403,6 @@ function orbitStudios(c: Ctx) {
   }
 }
 
-override("tech_startup_hub", (c) => c.vpick([rocketStudio, lightbulbStudio, circuitStudios, orbitStudios])(c));
+export function buildTechStartupHub(c: Ctx) {
+  c.vpick([rocketStudio, lightbulbStudio, circuitStudios, orbitStudios])(c);
+}
