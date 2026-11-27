@@ -3,6 +3,7 @@
  * Exact-hash checks miss a one-voxel trim or a recolor; this compares what a player reads from the game
  * camera: the overhead height field and the two street elevations, normalised to the parcel.
  */
+import { parkedVoxels } from "./parkedVoxels";
 import { buildDesignVoxels } from "../../src/game/voxelArchitect";
 import { ELEMENT_BY_ID, getMaxElementLevel, getStandardFootprintForLevel } from "../../src/game/catalog";
 import type { EraKey } from "../../src/game/eraStyles";
@@ -45,11 +46,14 @@ export function silhouetteDistance(a: Silhouette, b: Silhouette): number {
   return 0.4 * mean(a.plan, b.plan) + 0.2 * mean(a.front, b.front) + 0.2 * mean(a.side, b.side) + 0.2 * footprint;
 }
 
-export function elementSilhouette(id: string, level: number, variant: number, era: EraKey = "original"): Silhouette {
+export type SilhouetteParts = "base" | "parked";
+
+export function elementSilhouette(
+  id: string, level: number, variant: number, era: EraKey = "original", parts: SilhouetteParts = "base",
+): Silhouette {
   const def = ELEMENT_BY_ID[id];
   const lv = Math.min(level, getMaxElementLevel(id));
   const [w, d] = getStandardFootprintForLevel(def, lv);
   const c = buildDesignVoxels(def, lv, variant, w, d, def.isNetwork ? 5 : 0, era === "original" ? {} : { era, eraActivity: "active" });
-  const map = new Map(c.v.v);
-  return silhouetteOf(map, c.hx, c.hz);
+  return silhouetteOf(parts === "parked" ? parkedVoxels(c) : c.v.v, c.hx, c.hz);
 }
