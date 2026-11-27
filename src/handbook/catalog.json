@@ -3779,14 +3779,14 @@
       "water": -4,
       "income": 115
     },
-    "description": "Columned marble financial institution multiplying city treasury revenue.",
+    "description": "Follow the guarded street door into a city bank. Four designs hold the reserve behind a great vault wheel, stacked ingots, reeded coins or thick stone chambers. The bank provides jobs and treasury income.",
     "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
-    "growth": "Gains prestige: columns and steps, then a dome and vault, then a tower rising from the banking hall and a crowned HQ with a stock ticker and golden bull.",
+    "growth": "A guarded deposit office gains a weighing room, a second reserve and a transfer hall. Its largest vault turns its locks, bullion, coins or masonry chambers into the building itself.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Teller Office",
+        "name": "Deposit Office",
         "dimensions": [
           1,
           1
@@ -3795,7 +3795,7 @@
       },
       {
         "level": 2,
-        "name": "Columned Savings Bank",
+        "name": "Weighing House",
         "dimensions": [
           2,
           1
@@ -3804,7 +3804,7 @@
       },
       {
         "level": 3,
-        "name": "Domed Vault Bank",
+        "name": "Exchange Vault",
         "dimensions": [
           2,
           2
@@ -3813,7 +3813,7 @@
       },
       {
         "level": 4,
-        "name": "Bank Tower",
+        "name": "District Treasury",
         "dimensions": [
           2,
           2
@@ -3822,7 +3822,7 @@
       },
       {
         "level": 5,
-        "name": "Financial HQ Skyscraper",
+        "name": "Grand Reserve",
         "dimensions": [
           2,
           2
@@ -3833,19 +3833,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Greek Neoclassical"
+        "name": "Gatewheel Vault"
       },
       {
         "index": 1,
-        "name": "Victorian Brick"
+        "name": "Assay Ingots"
       },
       {
         "index": 2,
-        "name": "Modern Glass"
+        "name": "Reeded Coin Mint"
       },
       {
         "index": 3,
-        "name": "Art Deco"
+        "name": "Roundhouse Reserve"
       }
     ],
     "partner": {
@@ -8581,14 +8581,14 @@
       "water": -2,
       "government": 65
     },
-    "description": "Town hall administration required once your Town hits Stage 3 (15,000+ pop).",
+    "description": "Residents cross a public square to meet the clerk and the council. A clock, carillon, lookout or signal sail marks the entrance. Staff provide government services from Stage 3.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "An illuminated clock presides over a growing set of municipal wings and a fountain square.",
+    "growth": "A clerk’s office and a civic beacon grow into a public square with assembly galleries and a skyline landmark.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Town Clerk",
+        "name": "Ward Clerk",
         "dimensions": [
           1,
           1
@@ -8597,7 +8597,7 @@
       },
       {
         "level": 2,
-        "name": "Town Hall",
+        "name": "Public Service Hall",
         "dimensions": [
           1,
           2
@@ -8606,7 +8606,7 @@
       },
       {
         "level": 3,
-        "name": "City Hall",
+        "name": "Council Square",
         "dimensions": [
           2,
           2
@@ -8615,7 +8615,7 @@
       },
       {
         "level": 4,
-        "name": "Civic Center",
+        "name": "Assembly Galleries",
         "dimensions": [
           2,
           2
@@ -8624,7 +8624,7 @@
       },
       {
         "level": 5,
-        "name": "Grand City Hall",
+        "name": "Metropolitan Forum",
         "dimensions": [
           2,
           3
@@ -8635,19 +8635,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Brick gables"
+        "name": "Copper Clock Close"
       },
       {
         "index": 1,
-        "name": "Terracotta hips"
+        "name": "Carillon Yard"
       },
       {
         "index": 2,
-        "name": "Teal mansards"
+        "name": "Horizon Council"
       },
       {
         "index": 3,
-        "name": "Steel clerestories"
+        "name": "Signal Sail Plaza"
       }
     ],
     "partner": {
@@ -8672,14 +8672,14 @@
       "government": 35,
       "income": 15
     },
-    "description": "Mail sorting hall and blue postboxes connecting every household.",
+    "description": "Mail travels from a street counter through belts, carrier racks or a turning sorter to the dispatch yard.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "A neighborhood counter adds delivery vans, loading shutters, a belt and a fleet yard.",
+    "growth": "A public letter counter gains carrier bays and an open sorting yard, then links whole dispatch halls across the parcel.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Mail Counter",
+        "name": "Letter Counter",
         "dimensions": [
           1,
           1
@@ -8688,7 +8688,7 @@
       },
       {
         "level": 2,
-        "name": "Village Post Office",
+        "name": "Carrier Station",
         "dimensions": [
           2,
           1
@@ -8697,7 +8697,7 @@
       },
       {
         "level": 3,
-        "name": "Parcel Office",
+        "name": "Sorting Yard",
         "dimensions": [
           2,
           2
@@ -8706,7 +8706,7 @@
       },
       {
         "level": 4,
-        "name": "Mail Depot",
+        "name": "Dispatch Exchange",
         "dimensions": [
           3,
           2
@@ -8715,7 +8715,7 @@
       },
       {
         "level": 5,
-        "name": "Regional Sorting Hub",
+        "name": "Regional Mailworks",
         "dimensions": [
           3,
           2
@@ -8726,19 +8726,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Blue slate"
+        "name": "Folded Letter Hall"
       },
       {
         "index": 1,
-        "name": "Crimson"
+        "name": "Railway Mail Shed"
       },
       {
         "index": 2,
-        "name": "Deep teal"
+        "name": "Pigeon Dispatch Loft"
       },
       {
         "index": 3,
-        "name": "Indigo"
+        "name": "Parcel Carousel"
       }
     ],
     "partner": {
@@ -9127,14 +9127,14 @@
       "police": 35,
       "policeRadius": 7
     },
-    "description": "Domed classical hall of justice strengthening governance and law.",
+    "description": "A raised public hearing hall strengthens governance and law. Follow the main flight to the judge’s bench.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "Golden scales crown a growing portico, court wings, reflecting pool and public colonnades.",
+    "growth": "A raised magistrate’s bench gains public seating, jury and hearing rooms, an appeals gallery and a ceremonial high court.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Magistrate’s Office",
+        "name": "Magistrate’s Bench",
         "dimensions": [
           1,
           1
@@ -9143,7 +9143,7 @@
       },
       {
         "level": 2,
-        "name": "County Court",
+        "name": "County Sessions",
         "dimensions": [
           2,
           1
@@ -9152,7 +9152,7 @@
       },
       {
         "level": 3,
-        "name": "District Court",
+        "name": "District Hearing Hall",
         "dimensions": [
           2,
           2
@@ -9161,7 +9161,7 @@
       },
       {
         "level": 4,
-        "name": "Hall of Justice",
+        "name": "Court of Appeals",
         "dimensions": [
           2,
           3
@@ -9170,7 +9170,7 @@
       },
       {
         "level": 5,
-        "name": "Supreme Court",
+        "name": "High Court of the Island",
         "dimensions": [
           3,
           3
@@ -9181,19 +9181,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Pale marble"
+        "name": "Laurel Portico"
       },
       {
         "index": 1,
-        "name": "Sandstone"
+        "name": "Jury Hemicycle"
       },
       {
         "index": 2,
-        "name": "Red brick"
+        "name": "Arch of Appeals"
       },
       {
         "index": 3,
-        "name": "Pale green stone"
+        "name": "Oculus Court"
       }
     ],
     "partner": {

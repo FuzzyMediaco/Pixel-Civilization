@@ -852,7 +852,7 @@ export const ELEMENTS: CivElementDef[] = [
     baseSpan: [2, 1],
     maxSpan: [2, 2],
     accentHex: "#d9a74a",
-    description: "Columned marble financial institution multiplying city treasury revenue.",
+    description: "Follow the guarded street door into a city bank. Four designs hold the reserve behind a great vault wheel, stacked ingots, reeded coins or thick stone chambers. The bank provides jobs and treasury income.",
   },
   {
     id: "malls",
@@ -1605,7 +1605,7 @@ export const ELEMENTS: CivElementDef[] = [
     power: -3,
     water: -2,
     accentHex: "#4c82d4",
-    description: "Town hall administration required once your Town hits Stage 3 (15,000+ pop).",
+    description: "Residents cross a public square to meet the clerk and the council. A clock, carillon, lookout or signal sail marks the entrance. Staff provide government services from Stage 3.",
   },
   {
     id: "post_offices",
@@ -1620,7 +1620,7 @@ export const ELEMENTS: CivElementDef[] = [
     income: 15,
     power: -2,
     accentHex: "#2f5696",
-    description: "Mail sorting hall and blue postboxes connecting every household.",
+    description: "Mail travels from a street counter through belts, carrier racks or a turning sorter to the dispatch yard.",
   },
   {
     id: "tax_collecting_office",
@@ -1704,7 +1704,7 @@ export const ELEMENTS: CivElementDef[] = [
     baseSpan: [2, 1],
     maxSpan: [2, 2],
     accentHex: "#f5f2ec",
-    description: "Domed classical hall of justice strengthening governance and law.",
+    description: "A raised public hearing hall strengthens governance and law. Follow the main flight to the judge’s bench.",
   },
   {
     id: "government_buildings",

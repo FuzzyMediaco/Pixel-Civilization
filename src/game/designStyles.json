@@ -162,10 +162,10 @@
     "Space-Age"
   ],
   "banks": [
-    "Greek Neoclassical",
-    "Victorian Brick",
-    "Modern Glass",
-    "Art Deco"
+    "Gatewheel Vault",
+    "Assay Ingots",
+    "Reeded Coin Mint",
+    "Roundhouse Reserve"
   ],
   "malls": [
     "'80s Americana",
@@ -780,16 +780,16 @@
     "Steel clerestories"
   ],
   "city_offices": [
-    "Brick gables",
-    "Terracotta hips",
-    "Teal mansards",
-    "Steel clerestories"
+    "Copper Clock Close",
+    "Carillon Yard",
+    "Horizon Council",
+    "Signal Sail Plaza"
   ],
   "post_offices": [
-    "Blue slate",
-    "Crimson",
-    "Deep teal",
-    "Indigo"
+    "Folded Letter Hall",
+    "Railway Mail Shed",
+    "Pigeon Dispatch Loft",
+    "Parcel Carousel"
   ],
   "tax_collecting_office": [
     "Limestone & brass",
@@ -810,10 +810,10 @@
     "Marble & violet"
   ],
   "courthouses": [
-    "Pale marble",
-    "Sandstone",
-    "Red brick",
-    "Pale green stone"
+    "Laurel Portico",
+    "Jury Hemicycle",
+    "Arch of Appeals",
+    "Oculus Court"
   ],
   "government_buildings": [
     "Marble & verdigris",

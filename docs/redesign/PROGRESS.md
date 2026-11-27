@@ -53,3 +53,5 @@
 - 2026-11-27 13:45 MT: Claude handed off to Codex at Brigham's request. All Claude scheduled runs are off.
   Start at docs/handoff/CODEX-HANDOFF-2026-11-27.md (the prompt is in docs/handoff/CODEX-PROMPT.md).
   Unmerged: redesign/slice-1-civic-five (full library), redesign/slice-1b-civic-eras (civic-four stubs).
+
+- 2026-11-27 13:54 MT — [PR #36](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/36) merged at `3357e09`. Original Public Library has four book-built designs at five levels. [Before/after](../review/civic-library/library-before-after.webp), [grayscale](../review/civic-library/library-grayscale.webp), and [silhouettes](../review/civic-library/library-silhouettes.webp). The library-only scan found zero close variants and zero flat upgrades. All 620 tests, type-check, production build and [Game checks](https://github.com/FuzzyMediaco/Pixel-Civilization/actions/runs/46066621867) passed. Next are the four Original civic services.

@@ -1,7 +1,10 @@
-import { type Ctx, type TreeKind, PixelVox, archway, awning, barrelRoof, bench, bush, clockFace, colonnade, cyl, door,
-  flag, flatRoof, flowerBed, fountain, gable, hip, lamp, lot, mansard, pediment, person, pool, ring, sawtooth, speckle,
-  spire, stairs, tree, truck, windows } from "./kit";
+import { type Ctx, type TreeKind, PixelVox, archway, barrelRoof, bench, bush, clockFace, colonnade, cyl, door,
+  flag, flatRoof, flowerBed, fountain, gable, hip, lamp, lot, mansard, pediment, person, ring, sawtooth, speckle,
+  tree, truck, windows } from "./kit";
 import { defineDesigns, type DesignEntry } from "./registry";
+import { POST_OFFICE, buildPostOffice } from "./postOffice";
+import { COURTHOUSE, buildCourthouse } from "./courthouse";
+import { CITY_OFFICES, buildCityOffices } from "./cityOffices";
 
 const regionalWalls = ["brick", "#e8b981", "cream", "#d8dde1"];
 const regionalRoofs = ["slate", "terracotta", "tealDark", "#486e88"];
@@ -371,92 +374,6 @@ function school(c: Ctx): void {
   }
 }
 
-function townHall(c: Ctx): void {
-  const { v, hx, hz, lv, variant } = c;
-  lawn(c);
-  const w = Math.min(hx - 3, 4 + lv * 2), z = -Math.floor(hz * 0.25);
-  v.box(-3, 0, z + 3, 3, 1, hz, "path");
-  const h = lv < 3 ? 7 : 9 + lv;
-  const roof = hall(c, -w, z - 4, w, z + 4, h);
-  const tw = lv < 3 ? 2 : 3;
-  const tx = variant === 1 ? -w + 2 : variant === 3 ? w - 2 : 0;
-  const top = roof + lv * 2;
-  v.hollowBox(tx - tw, h, z - tw, tx + tw + 1, top, z + tw + 1, c.vpick(regionalWalls), "limestone");
-  clockFace(v, tx, top - 2, z + tw + 1, lv >= 2 ? 2 : 1);
-  if (lv >= 2) {
-    // Each street gets a readable dial. Paint the side faces around the tower's corners.
-    clockFace(v, tx, top - 2, z - tw, 2, "warmGlow");
-    for (const xx of [tx - tw, tx + tw]) {
-      for (let dz = -1; dz <= 1; dz++) for (let dy = -1; dy <= 1; dy++) v.put(xx, top - 2 + dy, z + dz, "warmGlow", 0.6);
-      v.put(xx, top - 2, z, "iron"); v.put(xx, top - 1, z, "iron");
-    }
-  }
-  if (variant === 0) spire(v, tx, z, top, 3 + lv, tw + 1, "slate", "brass");
-  else if (variant === 1) v.dome(tx, top, z, tw + 1, "terracotta");
-  else if (variant === 2) hip(v, tx - tw - 1, top, z - tw - 1, tx + tw + 2, z + tw + 2, "tealDark");
-  else v.box(tx - tw, top, z - tw, tx + tw + 1, top + 1, z + tw + 1, "chrome");
-  if (lv >= 2) {
-    colonnade(v, -3, 4, z + 6, 1, 5, "x", 3);
-    pediment(v, -4, 5, 5, z + 3, z + 7, "marble");
-    flag(v, -hx + 2, 1, hz - 4, 7, [c.vpick(accents), "white"]);
-  }
-  if (lv >= 3) for (const s of [-1, 1]) {
-    const xx = s * (w - 2);
-    hall(c, xx - 2, z + 2, xx + 3, z + 9, h - 4);
-  }
-  if (lv >= 4) fountain(v, 0, 1, Math.floor(hz * 0.55), 3);
-  if (lv === 5) for (const side of [-1, 1]) for (let zz = 6; zz < hz - 1; zz += 5) {
-    tree(v, side * (hx - 4), 1, zz, variant === 1 ? "palm" : "cypress", 1.2);
-    bench(v, side * (hx - 6), 1, zz, "z");
-  }
-}
-
-function post(c: Ctx): void {
-  const { v, hx, hz, lv, variant } = c;
-  const color = c.vpick(["blueDark", "crimson", "tealDark", "indigo"]);
-  lot(c, "concrete2");
-  const x = lv < 2 ? 0 : -Math.floor(hx / 3);
-  const z = -Math.floor(hz / 3), w = Math.min(hx - 3, 4 + lv);
-  const h = lv >= 4 ? 9 : 6;
-  hall(c, x - w, z - 3, x + w, z + 4, h, c.vpick(regionalWalls), color);
-  // A folded envelope sign above the public counter.
-  v.box(x - 3, h - 2, z + 4, x + 4, h + 2, z + 5, "cream");
-  for (let i = -3; i <= 3; i++) v.put(x + i, h - 2 + Math.round(Math.abs(i) * 0.8), z + 4, color);
-  awning(v, x - w, x + w, h - 3, z + 4, color, "cream");
-  const boxX = -hx + 2;
-  v.box(boxX, 1, hz - 3, boxX + 2, 5, hz - 1, color); v.put(boxX, 4, hz - 2, "black");
-  if (lv >= 2) {
-    truck(v, hx - 6, 1, hz - 4, "x", "white", color);
-    v.box(hx - 9, 2, hz - 4, hx - 5, 3, hz - 3, color);
-  }
-  if (lv >= 3) {
-    const x0 = Math.max(2, x + w + 1), x1 = hx - 2;
-    v.hollowBox(x0, 1, -hz + 2, x1, 7, z + 6, "#b9b5a9");
-    for (let xx = x0 + 1; xx < x1 - 2; xx += 5) {
-      v.box(xx, 1, z + 5, xx + 3, 5, z + 6, "steelDark");
-      v.box(xx, 4, z + 5, xx + 3, 5, z + 6, "steelLight");
-      v.box(xx, 1, z + 6, xx + 2, 3, z + 8, "crate");
-    }
-    sawtooth(v, x0, 7, -hz + 2, x1, z + 6, color);
-  }
-  if (lv >= 4) {
-    // Express sorting belt with parcels under a translucent canopy.
-    const zz = Math.floor(hz / 3);
-    v.box(-hx + 3, 2, zz, 2, 3, zz + 3, "steelDark");
-    for (let xx = -hx + 4; xx < 2; xx += 4) {
-      v.box(xx, 1, zz, xx + 1, 2, zz + 3, "iron");
-      v.box(xx, 3, zz, xx + 2, 5, zz + 2, "crate");
-      v.put(xx, 4, zz + 1, "cream");
-    }
-  }
-  if (lv === 5) {
-    for (let xx = 2; xx < hx - 4; xx += 6) truck(v, xx, 1, hz - 7, "z", "white", color);
-    v.box(-3, 7, -hz + 1, 1, 12, -hz + 4, "glassDark");
-    flag(v, -1, 12, -hz + 2, 5, [color, "white"]);
-  }
-  if (variant === 1) v.box(boxX, 5, hz - 3, boxX + 2, 6, hz - 1, "gold");
-}
-
 function finance(c: Ctx): void {
   const { v, lv, hx, hz, variant } = c;
   const metal = c.vpick(["brass", "copper", "chrome", "gold"]);
@@ -587,60 +504,6 @@ function community(c: Ctx): void {
   }
 }
 
-function court(c: Ctx): void {
-  const { v, hx, hz, lv, variant } = c;
-  lot(c, "marbleShade");
-  const w = Math.min(hx - 3, 3 + 2 * lv), z = -Math.floor(hz * 0.35);
-  const wall = c.vpick(["marble", "sand", "brick2", "#cbd4d2"]);
-  const trim = c.vpick(["limestone", "#a98c70", "marble", "#809691"]);
-  const h = 5 + lv, front = z + 4;
-  v.box(-w - 1, 1, z - 4, w + 1, 3, front + 3, trim);
-  v.hollowBox(-w, 3, z - 4, w, h + 1, front, wall, trim);
-  windows(c, -w, 3, z - 4, w, h + 1, front, { h: 2, col: "glassDark" });
-  door(v, -1, 3, front - 1, "woodDark");
-  const cols = Math.min(w, 2 + lv);
-  colonnade(v, -cols, cols + 1, front + 2, 3, h + 2, "x", 2, "marble", trim);
-  hip(v, -w - 1, h + 1, z - 5, w + 1, front + 1, c.vpick(regionalRoofs), trim, 3);
-  const top = pediment(v, -cols - 1, cols + 2, h + 2, front - 1, front + 4, wall, trim);
-  stairs(v, -cols - 1, cols + 1, 1, front + 3, 2, "marble");
-  if (variant === 1) for (const s of [-1, 1]) v.dome(s * (w - 2), h + 3, z - 1, 2.3, "copper");
-  if (variant === 2) for (const s of [-1, 1]) {
-    v.box(s * (w - 1), h + 2, z - 3, s * (w - 1) + 1, h + 6, z - 1, wall);
-    v.put(s * (w - 1), h + 6, z - 2, trim);
-  }
-  if (variant === 3) v.box(-w, h + 3, z - 3, w, h + 5, z, "glassDark", 0.22);
-  // Scale pans hang from the roofline's gilt balance.
-  const arm = lv >= 3 ? 4 : 2, y = top + arm + 2, zz = front;
-  v.box(0, top, zz, 1, y + 1, zz + 1, "brass");
-  v.box(-arm, y, zz, arm + 1, y + 1, zz + 1, "gold", 0.25);
-  for (const s of [-1, 1]) {
-    const xx = s * arm;
-    v.box(xx, y - 2, zz, xx + 1, y, zz + 1, "brass");
-    v.box(xx - 1, y - 3, zz, xx + 2, y - 2, zz + 1, "gold");
-  }
-  if (lv >= 2) for (const s of [-1, 1]) lamp(v, s * (hx - 3), 1, hz - 3, 4, "iron");
-  if (lv >= 3) for (const s of [-1, 1]) {
-    const xx = s * (w - 2);
-    hall(c, xx - 2, front + 3, xx + 3, front + 9, 6, wall);
-  }
-  if (lv >= 4) {
-    pool(v, -3, front + 9, 3, hz - 3, "limestone");
-    for (const s of [-1, 1]) tree(v, s * (hx - 4), 1, hz - 4, "cypress", 1.3);
-    if (variant === 0 || variant === 2) {
-      const r = lv === 5 ? 4 : 3;
-      cyl(v, 0, z - 2, h + 2, h + 6, r, "limestone");
-      for (let a = 0; a < 8; a++) v.put(Math.round(Math.cos(a * Math.PI / 4) * r), h + 4, z - 2 + Math.round(Math.sin(a * Math.PI / 4) * r), "glassDark", 0.35);
-      v.dome(0, h + 6, z - 2, r + 0.4, variant === 0 ? "goldDark" : "copper");
-    }
-  }
-  if (lv === 5) for (const s of [-1, 1]) {
-    const xx = s * Math.floor(hx * 0.7);
-    colonnade(v, front + 6, hz - 4, xx, 1, 6, "z", 3, wall, trim);
-    v.box(xx - 1, 6, front + 5, xx + 2, 7, hz - 4, trim);
-    flag(v, xx, 1, hz - 3, 9, ["blueDark", "white"]);
-  }
-}
-
 function capitol(c: Ctx): void {
   const { v, hx, hz, lv, variant } = c;
   lawn(c);
@@ -703,13 +566,13 @@ defineDesigns({
   park: design(park, [[1,1],[2,1],[2,2],[3,2],[3,3]], ["Village Green","Playground Park","Gazebo Pond","Carousel Park","Amphitheater Park"], "A winding path links swings, a gazebo pond, turning carousel and performance lawn."),
   little_parks: design(pocket, [[1,1],[1,1],[1,1],[2,1],[2,1]], ["Bench Corner","Pocket Garden","Neighborhood Nook","Pocket Plaza","Lantern Garden"], "A tiny gathering place earns a pavilion and a canopy of evening lights."),
   gardens: design(gardens, [[1,1],[2,1],[2,2],[3,2],[3,3]], ["Raised Beds","Community Allotments","Greenhouse Garden","Conservatory Garden","Botanical Palm House"], "Allotments spread around a gardener’s shed and a ribbed glass palm house."),
-  city_offices: design(townHall, [[1,1],[1,2],[2,2],[2,2],[2,3]], ["Town Clerk","Town Hall","City Hall","Civic Center","Grand City Hall"], "An illuminated clock presides over a growing set of municipal wings and a fountain square."),
-  post_offices: design(post, [[1,1],[2,1],[2,2],[3,2],[3,2]], ["Mail Counter","Village Post Office","Parcel Office","Mail Depot","Regional Sorting Hub"], "A neighborhood counter adds delivery vans, loading shutters, a belt and a fleet yard."),
+  city_offices: design(buildCityOffices, [[1,1],[1,2],[2,2],[2,2],[2,3]], CITY_OFFICES.levels, CITY_OFFICES.growth),
+  post_offices: design(buildPostOffice, [[1,1],[2,1],[2,2],[3,2],[3,2]], POST_OFFICE.levels, POST_OFFICE.growth),
   tax_collecting_office: design(finance, [[1,1],[1,1],[1,2],[2,2],[2,2]], ["Tax Booth","Collections Office","Audit Bureau","Vault Headquarters","Treasury Fortress"], "A rolling coin rises above a round vault door, an armored van and fortified repositories."),
   fire_department: design(fire, [[1,1],[2,1],[2,2],[3,2],[3,2]], ["Volunteer Fire Shed","Firehouse","Fire Station","Fire Hall","Fire Command HQ"], "Engine bays multiply, a hose tower rises and a ladder truck joins the training yard."),
   community_centers: design(community, [[1,1],[2,1],[2,2],[3,2],[3,3]], ["Meeting Hall","Community Hall","Recreation Center","Community Campus","Civic Commons"], "A painted neighborhood hall adds a pavilion, basketball court, gym and an outdoor stage."),
   italian_gardens: design(italian, [[2,2],[2,2],[3,2],[3,3],[4,3]], ["Cypress Walk","Fountain Terrace","Parterre Garden","Statue Garden","Villa Garden Estate"], "Terraces step up through parterres, fountains and sculpture to a garden villa."),
-  courthouses: design(court, [[1,1],[2,1],[2,2],[2,3],[3,3]], ["Magistrate’s Office","County Court","District Court","Hall of Justice","Supreme Court"], "Golden scales crown a growing portico, court wings, reflecting pool and public colonnades."),
+  courthouses: design(buildCourthouse, [[1,1],[2,1],[2,2],[2,3],[3,3]], COURTHOUSE.levels, COURTHOUSE.growth),
   government_buildings: design(capitol, [[2,2],[2,2],[3,2],[3,3],[4,3]], ["Government Office","Ministry Building","State House","Capitol","Grand Capitol Dome"], "The assembly dome gains a lantern and matching legislative wings on a ceremonial mall."),
   large_parks: design(largePark, [[2,2],[3,2],[3,3],[4,3],[4,4]], ["River Meadow","Lake Park","Boathouse Park","Bandshell Park","Central Park"], "A winding lake gains an arched footbridge, boat landing, concert shell and lantern promenade."),
 });
