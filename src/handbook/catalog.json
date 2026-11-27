@@ -23451,14 +23451,14 @@
       "water": -1,
       "income": 26
     },
-    "description": "Local tool shop and timber yard supplying builders, DIYers and neighborhood projects.",
-    "usage": "Local tool shop and timber yard supplying builders, DIYers and neighborhood projects.",
-    "growth": "A corner tool counter adds covered lumber racks, loading trucks and a wide builder's showroom.",
+    "description": "Builders buy supplies from an open toolbox, a stack of paint pails, a threaded bolt or a red lumber barn.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A small tool counter opens a working yard with space to display stock, cut timber and load the next order.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Tool Shed",
+        "name": "Tool Counter",
         "dimensions": [
           1,
           1
@@ -23467,7 +23467,7 @@
       },
       {
         "level": 2,
-        "name": "Hardware Shop",
+        "name": "Supply Shop",
         "dimensions": [
           2,
           1
@@ -23476,7 +23476,7 @@
       },
       {
         "level": 3,
-        "name": "Lumber & Tools",
+        "name": "Maker's Yard",
         "dimensions": [
           2,
           2
@@ -23485,7 +23485,7 @@
       },
       {
         "level": 4,
-        "name": "Builder's Supply",
+        "name": "Builders' Exchange",
         "dimensions": [
           3,
           2
@@ -23494,7 +23494,7 @@
       },
       {
         "level": 5,
-        "name": "Home Supply Superstore",
+        "name": "Regional Toolworks",
         "dimensions": [
           3,
           3
@@ -23505,19 +23505,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Red Barn Trim"
+        "name": "Joiner's Toolbox"
       },
       {
         "index": 1,
-        "name": "Classic Brick"
+        "name": "Paint Pail Depot"
       },
       {
         "index": 2,
-        "name": "Timber Mill"
+        "name": "Bolt & Nut Works"
       },
       {
         "index": 3,
-        "name": "Modern Orange"
+        "name": "Red Lumber Barn"
       }
     ],
     "partner": {
@@ -24555,14 +24555,14 @@
       "education": 18,
       "income": 74
     },
-    "description": "Converted brick-and-glass creative loft filled with makers, designers and rooftop terrace seating.",
-    "usage": "Converted brick-and-glass creative loft filled with makers, designers and rooftop terrace seating.",
-    "growth": "A converted studio expands with wraparound glass additions, rooftop pergola and bustling work decks.",
+    "description": "Shared worktables fill a converted greenhouse mill, a giant open laptop, roof terraces or studios tucked into a tree.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "One shared desk grows into a community of workrooms with stairways, breakout decks and places to meet.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Shared Studio",
+        "name": "Shared Desk",
         "dimensions": [
           2,
           1
@@ -24571,7 +24571,7 @@
       },
       {
         "level": 2,
-        "name": "Maker Loft",
+        "name": "Maker Studio",
         "dimensions": [
           2,
           2
@@ -24580,7 +24580,7 @@
       },
       {
         "level": 3,
-        "name": "Brick Cowork",
+        "name": "Workshop Courtyard",
         "dimensions": [
           3,
           2
@@ -24589,7 +24589,7 @@
       },
       {
         "level": 4,
-        "name": "Creative Hub",
+        "name": "Creative Exchange",
         "dimensions": [
           3,
           3
@@ -24598,7 +24598,7 @@
       },
       {
         "level": 5,
-        "name": "Innovation Lofts",
+        "name": "Makers' Commons",
         "dimensions": [
           3,
           3
@@ -24609,19 +24609,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Industrial Brick"
+        "name": "Glasshouse Mill"
       },
       {
         "index": 1,
-        "name": "Timber Glass"
+        "name": "Laptop Loft"
       },
       {
         "index": 2,
-        "name": "White Minimal"
+        "name": "Cantilever Studios"
       },
       {
         "index": 3,
-        "name": "Botanical Loft"
+        "name": "Treehouse Collective"
       }
     ],
     "partner": {
@@ -24647,14 +24647,14 @@
       "education": 32,
       "income": 128
     },
-    "description": "Curved glass-and-solar innovation campus driving high-wage jobs and strong municipal tax revenue.",
-    "usage": "Curved glass-and-solar innovation campus driving high-wage jobs and strong municipal tax revenue.",
-    "growth": "A humble startup garage blossoms into a gleaming glass-and-solar campus with courtyard atrium.",
+    "description": "Inventors build a space exhibit, light a walk-in bulb, lay out a circuit-board campus or meet in a ring of labs.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A small prototype lab opens visitor galleries and test workshops, then links the campus with elevated walks.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Garage Lab",
+        "name": "Garage Prototype",
         "dimensions": [
           2,
           2
@@ -24663,7 +24663,7 @@
       },
       {
         "level": 2,
-        "name": "Incubator",
+        "name": "Incubator Lab",
         "dimensions": [
           2,
           2
@@ -24672,7 +24672,7 @@
       },
       {
         "level": 3,
-        "name": "Startup Studio",
+        "name": "Prototype Works",
         "dimensions": [
           3,
           2
@@ -24681,7 +24681,7 @@
       },
       {
         "level": 4,
-        "name": "Tech Campus",
+        "name": "Innovation Campus",
         "dimensions": [
           3,
           3
@@ -24690,7 +24690,7 @@
       },
       {
         "level": 5,
-        "name": "Global Tech HQ",
+        "name": "Discovery Institute",
         "dimensions": [
           4,
           3
@@ -24701,19 +24701,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Aqua Glass"
+        "name": "Launchpad Labs"
       },
       {
         "index": 1,
-        "name": "Solar Timber"
+        "name": "Bright Idea Works"
       },
       {
         "index": 2,
-        "name": "Carbon Sleek"
+        "name": "Printed Circuit Campus"
       },
       {
         "index": 3,
-        "name": "White Ring"
+        "name": "Orbit Court"
       }
     ],
     "partner": {
@@ -24739,14 +24739,14 @@
       "recreation": 42,
       "income": 106
     },
-    "description": "Landmark multi-story emporium with arched display windows, gilded clock and rooftop conservatory.",
-    "usage": "Landmark multi-story emporium with arched display windows, gilded clock and rooftop conservatory.",
-    "growth": "A tall corner emporium expands with ornamental domes, street-level vitrines and a gilded clock.",
+    "description": "Shoppers enter under a copper clock, a gift ribbon, a glass-roofed atrium or a giant revolving door.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "Display rooms spread into wings, upper galleries and shopping courts around a landmark street entrance.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Dry Goods",
+        "name": "Corner Merchant",
         "dimensions": [
           2,
           2
@@ -24755,7 +24755,7 @@
       },
       {
         "level": 2,
-        "name": "Corner Emporium",
+        "name": "Display Rooms",
         "dimensions": [
           2,
           2
@@ -24764,7 +24764,7 @@
       },
       {
         "level": 3,
-        "name": "Arcade Store",
+        "name": "Shopping Arcade",
         "dimensions": [
           3,
           2
@@ -24793,19 +24793,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Gilded Limestone"
+        "name": "Clock Corner Emporium"
       },
       {
         "index": 1,
-        "name": "Parisian Haussmann"
+        "name": "Ribbon Arcade"
       },
       {
         "index": 2,
-        "name": "Terracotta Classic"
+        "name": "Escalator Galleries"
       },
       {
         "index": 3,
-        "name": "Glass Flagship"
+        "name": "Revolving Rotunda"
       }
     ],
     "partner": {

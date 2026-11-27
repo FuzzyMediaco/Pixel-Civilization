@@ -30,3 +30,6 @@ import "./commerceFood";
 import "./commerceShows";
 import "./commerceHotel";
 import "./commerceMore";
+
+import "./commerceWorkplaces";
+import "./commerceSupply";

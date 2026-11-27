@@ -1518,10 +1518,10 @@
     "Neon Rooftop"
   ],
   "hardware_store": [
-    "Red Barn Trim",
-    "Classic Brick",
-    "Timber Mill",
-    "Modern Orange"
+    "Joiner's Toolbox",
+    "Paint Pail Depot",
+    "Bolt & Nut Works",
+    "Red Lumber Barn"
   ],
   "indie_bookstore": [
     "Crooked Bay Bookshop",
@@ -1590,22 +1590,22 @@
     "Grand Piano"
   ],
   "coworking_loft": [
-    "Industrial Brick",
-    "Timber Glass",
-    "White Minimal",
-    "Botanical Loft"
+    "Glasshouse Mill",
+    "Laptop Loft",
+    "Cantilever Studios",
+    "Treehouse Collective"
   ],
   "tech_startup_hub": [
-    "Aqua Glass",
-    "Solar Timber",
-    "Carbon Sleek",
-    "White Ring"
+    "Launchpad Labs",
+    "Bright Idea Works",
+    "Printed Circuit Campus",
+    "Orbit Court"
   ],
   "department_store": [
-    "Gilded Limestone",
-    "Parisian Haussmann",
-    "Terracotta Classic",
-    "Glass Flagship"
+    "Clock Corner Emporium",
+    "Ribbon Arcade",
+    "Escalator Galleries",
+    "Revolving Rotunda"
   ],
   "night_market": [
     "Lantern Canopy",
