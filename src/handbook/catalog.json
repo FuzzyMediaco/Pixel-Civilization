@@ -2960,12 +2960,12 @@
     },
     "description": "Patio bistro with striped awnings and warm string lights.",
     "usage": "Put working plots or loading yards on the same boundary. Keep road or rail access for deliveries.",
-    "growth": "A street cart becomes a diner, gains a string-lit patio, stacks up floors and finally sprouts a tower with a revolving dining room.",
+    "growth": "A counter grows into a full-service destination where the meal becomes the architecture.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Street Food Cart",
+        "name": "Street Food Stand",
         "dimensions": [
           1,
           1
@@ -2974,7 +2974,7 @@
       },
       {
         "level": 2,
-        "name": "Corner Diner",
+        "name": "Takeaway Counter",
         "dimensions": [
           1,
           1
@@ -2983,7 +2983,7 @@
       },
       {
         "level": 3,
-        "name": "Bistro with Patio",
+        "name": "Sidewalk Kitchen",
         "dimensions": [
           2,
           1
@@ -2992,7 +2992,7 @@
       },
       {
         "level": 4,
-        "name": "Three-Floor Dining House",
+        "name": "Dining Court",
         "dimensions": [
           2,
           2
@@ -3001,7 +3001,7 @@
       },
       {
         "level": 5,
-        "name": "Revolving Skyline Restaurant",
+        "name": "Walk-In Supper Club",
         "dimensions": [
           2,
           2
@@ -3012,19 +3012,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Retro '50s Diner"
+        "name": "Fork & Noodle Bowl"
       },
       {
         "index": 1,
-        "name": "Parisian Bistro"
+        "name": "Pizza Slice Kitchen"
       },
       {
         "index": 2,
-        "name": "Japanese Izakaya"
+        "name": "Sushi Supper Boat"
       },
       {
         "index": 3,
-        "name": "Taco Truck Plaza"
+        "name": "Stacked Burger House"
       }
     ],
     "partner": {
@@ -3051,12 +3051,12 @@
     },
     "description": "Window-display fashion boutique keeping islanders stylish.",
     "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
-    "growth": "Mannequin windows stack up floor by floor, a glass flagship adds a catwalk with flashing cameras, and the tower is crowned by a giant spinning hanger.",
+    "growth": "A fitting counter gains a working atelier, displays for the street and a room for its own collection.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Pop-Up Boutique",
+        "name": "Clothes Stand",
         "dimensions": [
           1,
           1
@@ -3065,7 +3065,7 @@
       },
       {
         "level": 2,
-        "name": "Two-Floor Boutique",
+        "name": "Fitting Room",
         "dimensions": [
           1,
           1
@@ -3074,7 +3074,7 @@
       },
       {
         "level": 3,
-        "name": "Fashion House",
+        "name": "Neighborhood Atelier",
         "dimensions": [
           2,
           1
@@ -3083,7 +3083,7 @@
       },
       {
         "level": 4,
-        "name": "Flagship & Runway",
+        "name": "Fashion Arcade",
         "dimensions": [
           2,
           2
@@ -3092,7 +3092,7 @@
       },
       {
         "level": 5,
-        "name": "Fashion Tower",
+        "name": "House of Fashion",
         "dimensions": [
           2,
           2
@@ -3103,19 +3103,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Paris Couture"
+        "name": "Hanger House"
       },
       {
         "index": 1,
-        "name": "Streetwear"
+        "name": "Spool & Shuttle"
       },
       {
         "index": 2,
-        "name": "Bohemian"
+        "name": "Open Runway"
       },
       {
         "index": 3,
-        "name": "Luxury Minimal"
+        "name": "Ribbon Bag Boutique"
       }
     ],
     "partner": {
@@ -3143,12 +3143,12 @@
     },
     "description": "Eclectic vintage shop that upcycles goods and delights treasure hunters.",
     "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
-    "growth": "Junk spills out ever wider: garage sale → shop with racks → emporium with a camper van → warehouse with tents → a sprawling bazaar with a junk-tower sculpture.",
+    "growth": "A few finds on a table become a shop, an outdoor exchange and a bazaar for the whole district.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Garage Sale",
+        "name": "Yard Sale",
         "dimensions": [
           1,
           1
@@ -3157,7 +3157,7 @@
       },
       {
         "level": 2,
-        "name": "Thrift Shop",
+        "name": "Secondhand Shop",
         "dimensions": [
           1,
           1
@@ -3166,7 +3166,7 @@
       },
       {
         "level": 3,
-        "name": "Vintage Emporium",
+        "name": "Curiosity Exchange",
         "dimensions": [
           2,
           1
@@ -3175,7 +3175,7 @@
       },
       {
         "level": 4,
-        "name": "Flea-Market Warehouse",
+        "name": "Vintage Courtyard",
         "dimensions": [
           2,
           2
@@ -3184,7 +3184,7 @@
       },
       {
         "level": 5,
-        "name": "Mega Flea Bazaar",
+        "name": "Great Flea Bazaar",
         "dimensions": [
           3,
           2
@@ -3195,19 +3195,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Retro '70s"
+        "name": "Patchwork Canopy"
       },
       {
         "index": 1,
-        "name": "Converted Red Barn"
+        "name": "Steamer Trunk Exchange"
       },
       {
         "index": 2,
-        "name": "Victorian Antiques"
+        "name": "Secondhand Rocker"
       },
       {
         "index": 3,
-        "name": "Shipping-Container Upcycle"
+        "name": "Roundabout Flea Market"
       }
     ],
     "partner": {
@@ -3419,7 +3419,7 @@
     },
     "description": "Cozy evening tavern and rooftop lounge boosting nightlife joy.",
     "usage": "Build a connected nightlife district. The bar signs brighten at night.",
-    "growth": "A tiny tap grows into a pub, opens a beer garden, becomes a nightclub with a queue and searchlights, then a tower with a rooftop sky-bar.",
+    "growth": "The first drinks counter gains communal seating, an outdoor lounge and a landmark gathering place after dark.",
     "maxLevel": 5,
     "levels": [
       {
@@ -3433,7 +3433,7 @@
       },
       {
         "level": 2,
-        "name": "Neighborhood Pub",
+        "name": "Neighborhood Lounge",
         "dimensions": [
           1,
           1
@@ -3442,7 +3442,7 @@
       },
       {
         "level": 3,
-        "name": "Tavern & Beer Garden",
+        "name": "Courtyard Bar",
         "dimensions": [
           2,
           1
@@ -3451,7 +3451,7 @@
       },
       {
         "level": 4,
-        "name": "Nightclub with Rooftop Lounge",
+        "name": "Evening Social Club",
         "dimensions": [
           2,
           2
@@ -3460,7 +3460,7 @@
       },
       {
         "level": 5,
-        "name": "Sky-Bar Tower",
+        "name": "Skyline Supper Bar",
         "dimensions": [
           2,
           2
@@ -3471,19 +3471,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Irish Pub"
+        "name": "Foam-Cap Stein"
       },
       {
         "index": 1,
-        "name": "Tiki Bar"
+        "name": "Olive Stem Lounge"
       },
       {
         "index": 2,
-        "name": "Neon Cocktail Lounge"
+        "name": "Palm Thatch Social"
       },
       {
         "index": 3,
-        "name": "Bavarian Beer Hall"
+        "name": "Terraced Nightclub"
       }
     ],
     "partner": {
@@ -3509,7 +3509,7 @@
     },
     "description": "Illuminated canopy with fuel pumps and mini convenience mart.",
     "usage": "Rotate the building entrance toward a local street and connect that street to the rest of the town.",
-    "growth": "A lone pump gains a canopy, then a repair garage, a truck stop with a spinning car wash and finally a solar-roofed EV charging hub with a wind turbine.",
+    "growth": "A single roadside stop grows sheltered pumps, service bays and a skyline marker visible from the highway.",
     "maxLevel": 5,
     "levels": [
       {
@@ -3523,7 +3523,7 @@
       },
       {
         "level": 2,
-        "name": "Canopy Station",
+        "name": "Service Island",
         "dimensions": [
           2,
           1
@@ -3532,7 +3532,7 @@
       },
       {
         "level": 3,
-        "name": "Service Station & Garage",
+        "name": "Motor Court",
         "dimensions": [
           2,
           2
@@ -3541,7 +3541,7 @@
       },
       {
         "level": 4,
-        "name": "Truck Stop & Car Wash",
+        "name": "Travel Plaza",
         "dimensions": [
           3,
           2
@@ -3550,7 +3550,7 @@
       },
       {
         "level": 5,
-        "name": "Solar EV Superhub",
+        "name": "Highway Landmark",
         "dimensions": [
           3,
           2
@@ -3561,19 +3561,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Route-66 Retro"
+        "name": "Starwing Service"
       },
       {
         "index": 1,
-        "name": "Modern Corporate"
+        "name": "Bent-Spout Oil Can"
       },
       {
         "index": 2,
-        "name": "Art-Deco Streamline"
+        "name": "Plug-In Motor Court"
       },
       {
         "index": 3,
-        "name": "Space-Age"
+        "name": "Globe Pump Garage"
       }
     ],
     "partner": {
