@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { EraSheetCell, hasBakedSheet, renderIsometricVoxelThumb } from "./ElementFavicon";
+import { bakedEraSheet } from "../handbook/eraSheets";
+import { EraSheetCell, renderIsometricVoxelThumb } from "./ElementFavicon";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import "../game/designs/index";
 import {
@@ -47,7 +48,8 @@ export function AtlasModel({
   const {ready,failed,retry} = useEraArt(era);
   const illustrated = useMemo(() => ready && error ? renderIsometricVoxelThumb(def,level,variant,angle,300,era,active,joined) : null,[ready,error,def,level,variant,angle,era,active,joined]);
   const description = eraElementName(def.id,era) + ", level " + level + ", style " + (variant + 1);
-  const hasSheet=hasBakedSheet(def.id,era);
+  const hasSheet=Boolean(bakedEraSheet(def.id,era));
+  useEffect(() => { onStatic?.(error || !ready); }, [onStatic,error,ready]);
   const viewer = useRef<{
     show: (d: CivElementDef, lv: number, v: number, isJoined: boolean, key: EraKey, active: boolean) => void;
     zoomBy: (factor: number) => void;
@@ -65,7 +67,6 @@ export function AtlasModel({
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     } catch {
       setError(true);
-      onStatic?.(true);
       return;
     }
 
@@ -74,11 +75,9 @@ export function AtlasModel({
       ev.preventDefault();
       host.dataset.modelReady="false";
       setError(true);
-      onStatic?.(true);
     };
     const onContextRestored = () => {
       setError(false);
-      onStatic?.(false);
       draw=true;
     };
     canvas.addEventListener("webglcontextlost", onContextLost);
@@ -268,9 +267,10 @@ export function AtlasModel({
       aria-label={description}
       aria-busy={!ready && !failed}
     >
-      {!ready && <div className="pc-model-loading" role="status">{failed
-        ? <>{hasSheet && <EraSheetCell id={def.id} era={era} level={level} variant={variant} size={144} label={description}/>}<button type="button" onClick={retry}>Retry interactive artwork</button></>
-        : "Loading time-period artwork…"}</div>}
+      {!ready && <div className="pc-model-loading" role="status">
+        {hasSheet && <EraSheetCell id={def.id} era={era} level={level} variant={variant} size={144} label={description}/>}
+        {failed ? <button type="button" onClick={retry}>Retry interactive artwork</button> : "Loading time-period artwork…"}
+      </div>}
       {error && illustrated && (
         <div className="pc-atlas-illustrated">
           <img src={illustrated} alt={description + ", angle " + (angle + 1) + " of four"} />
@@ -291,7 +291,7 @@ export function AtlasModel({
         />
       )}
     </div>
-    <div className="pc-model-controls" aria-label="Model controls">
+    {ready && (!error || illustrated) && <div className="pc-model-controls" aria-label="Model controls">
       {!error && <>
         <button type="button" onClick={() => viewer.current?.zoomBy(1.25)} aria-label="Zoom in">＋</button>
         <button type="button" onClick={() => viewer.current?.zoomBy(0.8)} aria-label="Zoom out">−</button>
@@ -303,7 +303,7 @@ export function AtlasModel({
         <button type="button" aria-pressed={paused} onClick={() => setPaused(!paused)}>{paused ? "Resume motion" : "Pause motion"}</button>
         <button type="button" onClick={() => {setPaused(false);viewer.current?.replay();}}>Replay motion</button>
       </>}
-    </div>
+    </div>}
     </>
   );
 }

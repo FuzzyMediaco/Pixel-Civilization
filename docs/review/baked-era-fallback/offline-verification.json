@@ -1,0 +1,13 @@
+{
+  "offline": {
+    "level": 4,
+    "style": 3,
+    "pixels": 1643
+  },
+  "failure": {
+    "level": 2,
+    "style": 4,
+    "pixels": 543
+  },
+  "interactiveRecovered": true
+}

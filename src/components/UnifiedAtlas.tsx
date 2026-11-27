@@ -760,7 +760,7 @@ export function UnifiedAtlas({
                   <div className="pc-atlas-stage-foot">
                     <div className="pc-atlas-style-caption">
                       <strong>{compare ? "Original artwork" : styleNames[variantZero]}</strong>
-                      <span>{staticImage ? "Illustrated angles" : "Drag to orbit 360°"}</span>
+                      <span>{staticImage ? "Model illustration" : "Drag to orbit 360°"}</span>
                     </div>
                     <div className="pc-atlas-variants" role="group" aria-label="Visual style">
                       {["A", "B", "C", "D"].map((letter, idx) => (
