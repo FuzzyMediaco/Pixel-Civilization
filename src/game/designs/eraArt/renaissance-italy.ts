@@ -4,4 +4,6 @@
  */
 import type { SignatureBuilder } from "../periodArtCatalog";
 
-export const signatures: Record<string, SignatureBuilder> = {};
+import { renCivic } from "./renCivic";
+
+export const signatures: Record<string, SignatureBuilder> = { ...renCivic };
