@@ -8763,14 +8763,14 @@
       "government": 55,
       "income": 75
     },
-    "description": "Treasury bureau that fulfills civic governance and boosts tax revenue.",
+    "description": "Clerks collect returns beneath a receipt roll, counting frame, official stamp or adding machine. The staffed bureau provides government services and supports tax collection.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "A rolling coin rises above a round vault door, an armored van and fortified repositories.",
+    "growth": "A public filing counter grows into a staffed revenue hall with separate records, assessment desks and room for residents.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Tax Booth",
+        "name": "Tax Counter",
         "dimensions": [
           1,
           1
@@ -8779,7 +8779,7 @@
       },
       {
         "level": 2,
-        "name": "Collections Office",
+        "name": "Filing Office",
         "dimensions": [
           1,
           1
@@ -8788,7 +8788,7 @@
       },
       {
         "level": 3,
-        "name": "Audit Bureau",
+        "name": "District Assessment Room",
         "dimensions": [
           1,
           2
@@ -8797,7 +8797,7 @@
       },
       {
         "level": 4,
-        "name": "Vault Headquarters",
+        "name": "Revenue Hall",
         "dimensions": [
           2,
           2
@@ -8806,7 +8806,7 @@
       },
       {
         "level": 5,
-        "name": "Treasury Fortress",
+        "name": "Metropolitan Tax Bureau",
         "dimensions": [
           2,
           2
@@ -8817,19 +8817,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Limestone & brass"
+        "name": "Receipt Roll"
       },
       {
         "index": 1,
-        "name": "Brick & copper"
+        "name": "Counting Frame"
       },
       {
         "index": 2,
-        "name": "Granite & chrome"
+        "name": "Seal & Stamp"
       },
       {
         "index": 3,
-        "name": "Teal & gold"
+        "name": "Adding Machine"
       }
     ],
     "partner": {
@@ -9218,14 +9218,14 @@
       "water": -6,
       "government": 280
     },
-    "description": "Grand ministry capitol building serving large metropolitan populations.",
+    "description": "Departments share a copper-domed capitol, garden cloister, ceremonial gate or fan of public offices. Ministry staff provide government services to large metropolitan populations.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "The assembly dome gains a lantern and matching legislative wings on a ceremonial mall.",
+    "growth": "A ministry opens its first public office, adds departments and galleries, then brings the capital’s public business together around its main entrance.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Government Office",
+        "name": "Ministry Office",
         "dimensions": [
           2,
           2
@@ -9234,7 +9234,7 @@
       },
       {
         "level": 2,
-        "name": "Ministry Building",
+        "name": "Department Hall",
         "dimensions": [
           2,
           2
@@ -9243,7 +9243,7 @@
       },
       {
         "level": 3,
-        "name": "State House",
+        "name": "Metropolitan Ministry",
         "dimensions": [
           3,
           2
@@ -9252,7 +9252,7 @@
       },
       {
         "level": 4,
-        "name": "Capitol",
+        "name": "Government Precinct",
         "dimensions": [
           3,
           3
@@ -9261,7 +9261,7 @@
       },
       {
         "level": 5,
-        "name": "Grand Capitol Dome",
+        "name": "Grand Ministry",
         "dimensions": [
           4,
           3
@@ -9272,19 +9272,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Marble & verdigris"
+        "name": "Copper Lantern Capitol"
       },
       {
         "index": 1,
-        "name": "Limestone & gold"
+        "name": "Garden Cloister"
       },
       {
         "index": 2,
-        "name": "Clay & slate"
+        "name": "Ministry Gate"
       },
       {
         "index": 3,
-        "name": "Ivory & copper"
+        "name": "Fan of Departments"
       }
     ],
     "partner": {

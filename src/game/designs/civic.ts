@@ -1,7 +1,8 @@
-import { type Ctx, type TreeKind, PixelVox, archway, barrelRoof, bench, bush, clockFace, colonnade, cyl, door,
-  flag, flatRoof, flowerBed, fountain, gable, hip, lamp, lot, mansard, pediment, person, ring, sawtooth, speckle,
+import { type Ctx, type TreeKind, PixelVox, barrelRoof, bench, clockFace, colonnade, cyl, door,
+  flag, flowerBed, fountain, gable, hip, lamp, lot, mansard, pediment, person, sawtooth, speckle,
   tree, truck, windows } from "./kit";
 import { defineDesigns, type DesignEntry } from "./registry";
+import { TAX_OFFICE, MINISTRY, buildTaxOffice, buildMinistry } from "./governmentServiceHalls";
 import { POST_OFFICE, buildPostOffice } from "./postOffice";
 import { COURTHOUSE, buildCourthouse } from "./courthouse";
 import { CITY_OFFICES, buildCityOffices } from "./cityOffices";
@@ -374,46 +375,6 @@ function school(c: Ctx): void {
   }
 }
 
-function finance(c: Ctx): void {
-  const { v, lv, hx, hz, variant } = c;
-  const metal = c.vpick(["brass", "copper", "chrome", "gold"]);
-  lot(c, "marbleShade");
-  const w = Math.min(hx - 3, 3 + lv), z = lv >= 3 ? -4 : -2, h = 5 + lv;
-  v.hollowBox(-w, 1, z - 3, w, h, z + 4, c.vpick(["limestone", "brickDark", "granite", "tealDark"]));
-  windows(c, -w, 1, z - 3, w, h, z + 4, { h: 1, faces: "new", col: "warmGlow", stepH: 3 });
-  flatRoof(c, -w - 1, h, z - 4, w + 1, z + 5, "steelDark", metal, false);
-  // Circular vault door, its spoke handle and a roof-mounted minted coin.
-  const r = lv < 3 ? 2 : 3;
-  v.ringZ(0, r + 1, z + 3, z + 5, r + 1, 0, "steelDark");
-  v.ringZ(0, r + 1, z + 5, z + 6, r, r - 1, metal);
-  v.box(-1, r + 1, z + 5, 2, r + 2, z + 6, "chrome");
-  if (lv >= 2) {
-    const coin = new PixelVox(), cr = Math.min(6, 1 + lv);
-    coin.ringZ(0.5, 0.5, -1, 1, cr, 0, metal);
-    coin.ringZ(0.5, 0.5, 1, 2, cr, cr - 1, "goldDark");
-    for (let dy = -cr + 1; dy < cr; dy++) coin.put(Math.round(Math.sin(dy) * (cr / 3)), dy, 1, "cream", 0.25);
-    c.addRotor({ vox: coin, pivot: [0, h + 2 + cr, z], axis: "y", speed: 0.28 });
-  } else v.ringZ(0.5, h + 2.5, z, z + 1, 2, 0, metal);
-  if (variant === 1) for (const s of [-1, 1]) v.box(s * (w - 1), h + 1, z - 3, s * (w - 1) + 1, h + 4, z + 3, "brickDark");
-  if (variant === 2) for (const s of [-1, 1]) cyl(v, s * w, z + 4, 1, h, 1.3, "chrome");
-  if (variant === 3) pediment(v, -w, w, h + 1, z + 2, z + 5, metal);
-  if (lv >= 3) {
-    for (const s of [-1, 1]) for (let zz = z + 7; zz < hz - 2; zz += 4) {
-      const x = s * (w - 1); v.box(x, 1, zz, x + 1, 3, zz + 1, "steelDark"); v.put(x, 3, zz, metal);
-    }
-    truck(v, 0, 1, hz - 5, "z", "steelDark", "granite");
-  }
-  if (lv >= 4) for (const s of [-1, 1]) {
-    const x = s * (hx - 4);
-    cyl(v, x, z, 1, h, 2.5, "granite");
-    cyl(v, x, z, h, h + 2, 3, metal);
-  }
-  if (lv === 5) for (const s of [-1, 1]) {
-    v.hollowBox(s * (hx - 5) - 2, 1, -hz + 2, s * (hx - 5) + 3, 7, z - 1, "granite", "steel");
-    v.box(s * (hx - 5) - 3, 7, -hz + 1, s * (hx - 5) + 4, 8, z, metal);
-  }
-}
-
 function fire(c: Ctx): void {
   const { v, hx, hz, lv, variant } = c;
   const red = c.vpick(["crimson", "#b85035", "#ba382a", "#d94f44"]);
@@ -504,59 +465,6 @@ function community(c: Ctx): void {
   }
 }
 
-function capitol(c: Ctx): void {
-  const { v, hx, hz, lv, variant } = c;
-  lawn(c);
-  const x = 0, z = -Math.floor(hz / 4), r = 2 + lv;
-  const wall = c.vpick(["marble", "limestone", "#d7a88a", "#e3e6db"]);
-  const roof = c.vpick(["tealDark", "goldDark", "slate", "#7ba99f"]);
-  const w = Math.min(hx - 4, 5 + lv * 2);
-  v.box(-3, 0, z + 3, 3, 1, hz, "path");
-  const h = 6 + lv;
-  v.hollowBox(-w, 1, z - 5, w, h, z + 6, wall, "marbleShade");
-  windows(c, -w, 1, z - 5, w, h, z + 6, { col: "glassDark", h: 2 });
-  flatRoof(c, -w - 1, h, z - 6, w + 1, z + 7, "granite", wall, false);
-  colonnade(v, -r, r + 1, z + 8, 1, h, "x", 2, "marble");
-  pediment(v, -r - 1, r + 2, h, z + 4, z + 9, wall, "marbleShade");
-  const drum = h + 1 + lv;
-  cyl(v, x, z, h + 1, drum, r, wall);
-  for (let i = 0; i < Math.max(6, r * 2); i++) {
-    const a = 2 * Math.PI * i / Math.max(6, r * 2);
-    v.put(Math.floor(Math.sin(a) * (r - 0.2)), drum - 1, z + Math.floor(Math.cos(a) * (r - 0.2)), "glassDark", 0.45);
-  }
-  if (variant === 0) v.dome(x, drum, z, r + 0.5, roof);
-  if (variant === 1) {
-    v.cone(x, drum, drum + r + 1, z, r + 1, 1.5, roof);
-    ring(v, x, z, drum + 1, drum + 2, r + 0.4, r - 0.8, "brass");
-  }
-  if (variant === 2) hip(v, -r, drum, z - r, r + 1, z + r + 1, roof, "marble");
-  if (variant === 3) for (let y = 0; y <= r; y++) cyl(v, x, z, drum + y, drum + y + 1, Math.max(1, Math.ceil(Math.sqrt(Math.max(0, r * r - y * y)) / 2) * 2), y % 3 === 0 ? "marble" : roof);
-  cyl(v, x, z, drum + r, drum + r + 2 + Math.floor(lv / 2), 1, "cream");
-  v.put(0, drum + r + 2 + Math.floor(lv / 2), z, "gold", 0.7);
-  if (lv >= 2) for (const s of [-1, 1]) {
-    const xx = s * (w - 2);
-    hall(c, xx - 3, z - 3, xx + 3, z + 7, h - 2, wall, roof);
-  }
-  if (lv >= 3) for (const s of [-1, 1]) {
-    const xx = s * Math.min(hx - 6, w + 4);
-    v.hollowBox(xx - 4, 1, z - 6, xx + 4, h - 1, z + 5, wall);
-    windows(c, xx - 4, 1, z - 6, xx + 4, h - 1, z + 5, { h: 2 });
-    hip(v, xx - 5, h - 1, z - 7, xx + 5, z + 6, roof, "marbleShade", 3);
-    flag(v, xx + 1, 1, z + 10, 8, [c.vpick(accents), "white"]);
-  }
-  if (lv >= 4) {
-    fountain(v, 0, 1, Math.floor(hz * 0.6), lv, "marble");
-    for (const s of [-1, 1]) for (let zz = z + 10; zz < hz - 1; zz += 6) tree(v, s * (hx - 5), 1, zz, "round", 1.3);
-  }
-  if (lv === 5) for (const s of [-1, 1]) {
-    const xx = s * (hx - 8);
-    for (let zz = -hz + 5; zz <= hz - 6; zz += 5) {
-      bush(v, xx, 1, zz, 1.5, "leafDark", "cream");
-      lamp(v, xx - s * 3, 1, zz, 4);
-    }
-  }
-}
-
 function design(build: (c: Ctx) => void, footprints: DesignEntry["footprints"], levels: DesignEntry["levels"], growth: string): DesignEntry {
   return { build, footprints, levels, growth };
 }
@@ -568,11 +476,11 @@ defineDesigns({
   gardens: design(gardens, [[1,1],[2,1],[2,2],[3,2],[3,3]], ["Raised Beds","Community Allotments","Greenhouse Garden","Conservatory Garden","Botanical Palm House"], "Allotments spread around a gardener’s shed and a ribbed glass palm house."),
   city_offices: design(buildCityOffices, [[1,1],[1,2],[2,2],[2,2],[2,3]], CITY_OFFICES.levels, CITY_OFFICES.growth),
   post_offices: design(buildPostOffice, [[1,1],[2,1],[2,2],[3,2],[3,2]], POST_OFFICE.levels, POST_OFFICE.growth),
-  tax_collecting_office: design(finance, [[1,1],[1,1],[1,2],[2,2],[2,2]], ["Tax Booth","Collections Office","Audit Bureau","Vault Headquarters","Treasury Fortress"], "A rolling coin rises above a round vault door, an armored van and fortified repositories."),
+  tax_collecting_office: design(buildTaxOffice, [[1,1],[1,1],[1,2],[2,2],[2,2]], TAX_OFFICE.levels, TAX_OFFICE.growth),
   fire_department: design(fire, [[1,1],[2,1],[2,2],[3,2],[3,2]], ["Volunteer Fire Shed","Firehouse","Fire Station","Fire Hall","Fire Command HQ"], "Engine bays multiply, a hose tower rises and a ladder truck joins the training yard."),
   community_centers: design(community, [[1,1],[2,1],[2,2],[3,2],[3,3]], ["Meeting Hall","Community Hall","Recreation Center","Community Campus","Civic Commons"], "A painted neighborhood hall adds a pavilion, basketball court, gym and an outdoor stage."),
   italian_gardens: design(italian, [[2,2],[2,2],[3,2],[3,3],[4,3]], ["Cypress Walk","Fountain Terrace","Parterre Garden","Statue Garden","Villa Garden Estate"], "Terraces step up through parterres, fountains and sculpture to a garden villa."),
   courthouses: design(buildCourthouse, [[1,1],[2,1],[2,2],[2,3],[3,3]], COURTHOUSE.levels, COURTHOUSE.growth),
-  government_buildings: design(capitol, [[2,2],[2,2],[3,2],[3,3],[4,3]], ["Government Office","Ministry Building","State House","Capitol","Grand Capitol Dome"], "The assembly dome gains a lantern and matching legislative wings on a ceremonial mall."),
+  government_buildings: design(buildMinistry, [[2,2],[2,2],[3,2],[3,3],[4,3]], MINISTRY.levels, MINISTRY.growth),
   large_parks: design(largePark, [[2,2],[3,2],[3,3],[4,3],[4,4]], ["River Meadow","Lake Park","Boathouse Park","Bandshell Park","Central Park"], "A winding lake gains an arched footbridge, boat landing, concert shell and lantern promenade."),
 });

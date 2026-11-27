@@ -1,55 +1,7 @@
 import type { Ctx } from "./kit";
-import { beam, entrance, facade, finish as f, loop, oval, plate, planter, shops, slab, storey, TAU, type Point3 } from "./sculpturalKit";
+import { beam, entrance, facade, finish as f, oval, plate, planter, slab, storey, TAU, type Point3 } from "./sculpturalKit";
 
-function forum(c: Ctx,x: number,z: number,rx: number,rz: number,opening: number, sweep: number) {
-  const {v,lv}=c, tiers=2+lv;
-  // The tiers are open to the sky. Leave out a wedge for the public entrance.
-  slab(v,oval(x,z,rx,rz),0,1,"#c5b38b");
-  for(let i=0;i<tiers;i++){
-    const r=0.49+0.46*i/(tiers-1),y=1+i;
-    let previous:Point3|undefined;
-    for(let j=0;j<=50;j++){
-      const a=opening+sweep/2+(TAU-sweep)*j/50;
-      const p:Point3=[x+rx*r*Math.cos(a),y,z+rz*r*Math.sin(a)];
-      if(previous)beam(v,previous,p,i%2?f.cedar:f.limestone,2);
-      if(i===tiers-1 && j%8===0){
-        const base=Math.round(y)+2;
-        v.box(p[0],base,p[2],p[0]+1,base+2+lv,p[2]+1,f.bronze);
-        v.put(p[0],base+2+lv,p[2],f.amber,0.5);
-      }
-      previous=p;
-    }
-  }
-  const dais=oval(x,z,Math.max(2,rx*0.25),Math.max(2,rz*0.23),8);
-  slab(v,dais,1,2,f.porcelain);
-  v.box(x-1,3,z-1,x+2,5,z+1,f.cedar);
-}
-
-export function boroughAssembly(c: Ctx) {
-  const {v,lv,variant:s,hx,hz}=c,rx=hx-3,rz=hz-3;
-  if(s===0||s===2){
-    forum(c,0,rz*0.15,rx*0.92,rz*0.77,s===0?Math.PI/2:0.28,s===0?1.04:2.38);
-    const back=plate(0,-rz*0.55,rx*(s===2?0.82:0.54),rz*0.3,0.44);
-    storey(v,back,back,1,4+lv,f.glass,f.limestone);
-    if(s===2)for(let j=-3;j<=3;j++){
-      const x=rx*j/4;
-      beam(v,[0,6+lv,-rz*0.72],[x,7+lv+Math.abs(j),-rz*0.22],f.copper,2);
-    }
-  }else if(s===1){
-    for(const side of [-1,1]){
-      const p=plate(side*rx*0.52,-rz*0.11,rx*0.39,rz*0.71,0.45,side*0.12);
-      for(let i=0;i<2+Math.floor(lv/2);i++)storey(v,p,p,1+4*i,4,"#778674",f.limestone);
-    }
-    forum(c,0,rz*0.37,rx*0.48,rz*0.47,Math.PI/2,1.5);
-  }else{
-    forum(c,-rx*0.38,-rz*0.18,rx*0.54,rz*0.65,0.5,0.98);
-    forum(c,rx*0.42,rz*0.19,rx*0.43,rz*0.54,2.1,1.34);
-    const roof=oval(rx*0.25,-rz*0.51,rx*0.36,rz*0.27);
-    storey(v,roof,roof,1,5+lv,f.glass,f.gold);
-  }
-  entrance(c,0,rz*0.65,2+Math.floor(lv/2));
-  if(lv>=3)for(const side of [-1,1])planter(v,side*rx*0.83,0,rz*0.8,1);
-}
+export { boroughAssembly } from "./governmentServiceHalls";
 
 export function recordsArchive(c: Ctx) {
   const {v,lv,variant:s,hx,hz}=c,rx=hx-2,rz=hz-2;
