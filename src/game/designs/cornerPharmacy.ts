@@ -110,9 +110,9 @@ function pestle(v: PixelVox, x: number, y: number, z: number, h: number, side: n
 }
 function mortarShop(c: Ctx) {
   const { v, lv } = c;
-  const x = lv < 3 ? 0 : -4,
+  const x = lv === 1 ? 0 : lv === 2 ? -2 : -4,
     z = lv < 4 ? -1 : -3,
-    r = byLv(c, [4, 6, 6, 10, 9]),
+    r = byLv(c, [4, 5, 6, 10, 9]),
     h = byLv(c, [4, 6, 6, 9, 10]);
   const stand = lv === 1 ? 1 : 4;
   if (lv > 1) {
@@ -120,8 +120,17 @@ function mortarShop(c: Ctx) {
     v.box(x - 3, 2, z + 2, x + 3, 5, z + 4, mint);
   }
   mortar(v, x, stand, z, r, h);
-  pestle(v, x, stand + h - 2, z, byLv(c, [5, 8, 9, 13, 16]), lv > 3 ? -1 : 1);
+  pestle(v, x, stand + h - 2, z, byLv(c, [5, 11, 9, 13, 16]), lv === 2 || lv > 3 ? -1 : 1);
   counter(v, x, 1, z + r - 1);
+  if (lv === 2) {
+    // A tall ingredient dresser shares the little dispensary with the lowered mixing bowl.
+    for (const zPost of [-5, -1]) v.box(6, 1, zPost, 7, 14, zPost + 1, pine);
+    for (const y of [2, 7, 12]) {
+      v.box(3, y, -5, 7, y + 1, 0, mint);
+      jar(v, 4, y + 1, -4, y === 7 ? "#b47946" : "#72936a");
+    }
+    person(v, 2, 1, 4, ivory);
+  }
   if (lv >= 3) {
     const rx = 8,
       rz = lv === 3 ? -1 : 2;
