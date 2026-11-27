@@ -9,6 +9,8 @@ const { chromium } = createRequire(import.meta.url)("playwright");
 const query = process.argv[2] ?? "cat=all";
 const out = process.argv[3] ?? "gallery.png";
 const port = process.env.GALLERY_PORT ?? "5199";
+const timeout = Number(process.env.GALLERY_TIMEOUT_MS ?? 240000);
+if (!Number.isSafeInteger(timeout) || timeout <= 0) throw new Error("GALLERY_TIMEOUT_MS must be a positive integer.");
 const formats = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp" };
 const format = formats[extname(out).toLowerCase()];
 if (!format) throw new Error("Choose a .png, .jpg, or .webp output file.");
@@ -28,7 +30,7 @@ try {
     });
   });
   async function capture() {
-    const response = await page.goto(`http://localhost:${port}/gallery.html?${query}`);
+    const response = await page.goto(`http://localhost:${port}/gallery.html?${query}`, { waitUntil: "commit", timeout });
     if (!response?.ok()) throw new Error(`Gallery returned HTTP ${response?.status() ?? "no response"}.`);
     const image = await page.waitForFunction((mime) => {
       if (window.__galleryError) throw new Error(window.__galleryError);
@@ -39,7 +41,7 @@ try {
         throw new Error(`Could not encode the ${canvas.width} × ${canvas.height} gallery. Try fewer element IDs or a smaller cell.`);
       }
       return data.slice(data.indexOf(",") + 1);
-    }, format, { timeout: 240000 });
+    }, format, { timeout });
     return image.jsonValue();
   }
   const encoded = await Promise.race([capture(), pageFailure]);

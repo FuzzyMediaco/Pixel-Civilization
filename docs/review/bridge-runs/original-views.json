@@ -1,0 +1,53 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "fixtureSha256": "ce28cb47e72c3eb4de7a0382143286adab9e3a2b5e7121e0b08c2271fc96466a",
+  "records": [
+    {
+      "view": "harbor",
+      "camera": {
+        "target": [
+          18,
+          2.5,
+          2
+        ],
+        "radius": 78,
+        "theta": 1.14,
+        "phi": 0.94,
+        "fov": 44
+      },
+      "era": "original",
+      "time": 9.2,
+      "weather": "clear",
+      "stage": 2,
+      "width": 390,
+      "height": 844,
+      "elements": 210,
+      "layoutHash": "3d0f7de02d8edd53f2e9bd9affa9d37b12253c9c21003a94fb7ef2a11385bb80"
+    },
+    {
+      "view": "lift",
+      "camera": {
+        "target": [
+          18,
+          3.5,
+          2
+        ],
+        "radius": 62,
+        "theta": 2.29,
+        "phi": 1.08,
+        "fov": 44
+      },
+      "era": "original",
+      "time": 9.2,
+      "weather": "clear",
+      "stage": 2,
+      "width": 390,
+      "height": 844,
+      "elements": 210,
+      "layoutHash": "3d0f7de02d8edd53f2e9bd9affa9d37b12253c9c21003a94fb7ef2a11385bb80"
+    }
+  ]
+}
