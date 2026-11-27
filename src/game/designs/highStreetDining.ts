@@ -15,6 +15,7 @@ function noodle(c: Ctx) {
     ring(v, x + 0.5, z + 0.5, y, y + 1, rr, Math.max(0, rr - 1.7), y % 5 === 1 ? "#e59e78" : "#a34b42");
   }
   ring(v, x + 0.5, z + 0.5, lip - 1, lip + 1, r + 0.7, r - 1, "cream");
+  for (const dx of [-1, 1]) v.put(x + dx, lip, z + r, "cream", 0.65);
   disc(v, x + 0.5, z + 0.5, lip - 1, lip, r - 0.5, "#c56b3d");
   // Loop the noodles around the bowl, then trail one strand to a fork held over the edge.
   for (let turn = 0; turn < 3; turn++) {
@@ -118,7 +119,15 @@ function sushiBoat(c: Ctx) {
       const side = Math.max(1, Math.round(half * (0.5 + (0.5 * y) / deck))),
         raised = Math.round(t ** 3 * 3);
       if (y === deck) v.box(dx, y + raised, z - side, dx + 1, y + raised + 1, z + side + 1, "woodLight");
-      else for (const sign of [-1, 1]) v.put(dx, y + raised, z + side * sign, y === deck - 1 ? "cream" : "#8d4333");
+      else
+        for (const sign of [-1, 1])
+          v.put(
+            dx,
+            y + raised,
+            z + side * sign,
+            y === deck - 1 ? "cream" : "#8d4333",
+            y === deck - 1 && dx % 4 === 0 ? 0.7 : 0,
+          );
     }
   }
   for (let dx = -r + 2; dx <= r - 2; dx += 4) {
@@ -174,7 +183,13 @@ function burger(c: Ctx) {
   for (let a = 0; a < r + 2; a++) {
     const phi = a * 2.4,
       rr = Math.sqrt((a + 1) / (r + 4)) * r * 0.85;
-    v.put(x + Math.cos(phi) * rr, y + r * 0.45 * Math.sqrt(1 - (rr / r) ** 2), z + Math.sin(phi) * rr, "cream");
+    v.put(
+      x + Math.cos(phi) * rr,
+      y + r * 0.45 * Math.sqrt(1 - (rr / r) ** 2),
+      z + Math.sin(phi) * rr,
+      "cream",
+      a % 3 === 0 ? 0.7 : 0,
+    );
   }
   if (lv >= 2) shopWindow(c, x - 3, 1, z + r - 1, 6, "oak");
   if (lv >= 3) {

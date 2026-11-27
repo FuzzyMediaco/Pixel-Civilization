@@ -29,7 +29,7 @@ function quilt(c: Ctx) {
         v.box(x0 + xi, 1, z0 + zi, x0 + xi + 1, y, z0 + zi + 1, "oak");
       if (zi === 0 || (xi === 0 && lv >= 2))
         for (let dy = 1; dy < y; dy++) v.put(x0 + xi, dy, z0 + zi, patchColors[(check + (dy >> 2)) % 6]);
-      if (zi === depth - 1 && xi % 2 === 0) v.put(x0 + xi, y - 1, z0 + zi, patchColors[check]);
+      if (zi === depth - 1 && xi % 2 === 0) v.put(x0 + xi, y - 1, z0 + zi, patchColors[check], xi % 6 === 0 ? 0.7 : 0);
     }
   counter(c, x0 + 1, z0 + depth - 2, Math.min(8, width - 2), "tealDark");
   if (lv >= 2) {
@@ -72,7 +72,7 @@ function luggage(c: Ctx) {
   v.hollowBox(x, 1, z, x + w, h + 1, z + d, "#ad7958", "#714b3d");
   for (const offset of [2, w - 3]) {
     v.box(x + offset, 1, z - 1, x + offset + 1, h + 1, z + d + 1, "#4b463c");
-    v.box(x + offset - 1, h - 1, z + d, x + offset + 2, h + 1, z + d + 1, "brass");
+    v.box(x + offset - 1, h - 1, z + d, x + offset + 2, h + 1, z + d + 1, "brass", 0.65);
   }
   const hinge = z;
   for (let rise = 0; rise < d; rise++) {
@@ -137,7 +137,9 @@ function chair(c: Ctx) {
     for (let i = -w - 1; i <= w + 1; i++) {
       v.put(x + side * w, 1 + Math.round((i / (w + 1)) ** 2 * 2), z + i, "woodDark");
     }
-  counter(c, x - Math.min(w, 3), z + w - 1, Math.min(6, w * 2), "tealDark");
+  const counterX = x - Math.min(w, 3);
+  counter(c, counterX, z + w - 1, Math.min(6, w * 2), "tealDark");
+  v.put(counterX, 3, z + w, "cream", 0.8);
   if (lv >= 2) {
     for (const side of [-1, 1]) {
       v.box(x + side * w, seat + 2, z + 1, x + side * w + 1, seat + 5, z + 3, "woodDark");
@@ -148,7 +150,7 @@ function chair(c: Ctx) {
     const px = hx - 6;
     v.cylinderY(px, 2, 1, 2, 3, "brass");
     v.box(px, 2, 2, px + 1, 9, 3, "brass");
-    v.cone(px + 0.5, 8, 13, 2.5, 3.5, 1.5, "#dfb776");
+    v.cone(px + 0.5, 8, 13, 2.5, 3.5, 1.5, "#dfb776", 0.45);
   }
   if (lv >= 4) {
     v.hollowBox(x - w + 1, seat + 2, z - w + 2, x + w, seat + 6, z + 2, "#a6a791");
@@ -181,7 +183,7 @@ function market(c: Ctx) {
         const yy = 5 + Math.max(0, depth - Math.abs(dz));
         const cloth = Math.floor((dx + half) / 2) % 2 === 0 ? colors[i % 4] : "cream";
         v.put(x + dx, yy, z + dz, cloth);
-        if (dz === depth && dx % 2 === 0) v.put(x + dx, yy - 1, z + dz, cloth);
+        if (dz === depth && dx % 2 === 0) v.put(x + dx, yy - 1, z + dz, cloth, dx % 4 === 0 ? 0.65 : 0);
       }
     for (const side of [-half + 1, half - 1]) v.box(x + side, 1, z - 1, x + side + 1, 7, z, "wood");
     counter(c, x - half + 1, z + 1, 2 * half - 1, colors[i % 4]);

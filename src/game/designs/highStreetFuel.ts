@@ -31,7 +31,13 @@ function googie(c: Ctx) {
     for (let dz = -d; dz <= d; dz++) {
       if (Math.abs(dx) > w * 0.72 && Math.abs(dz) > d * (1.18 - (0.7 * Math.abs(dx)) / w)) continue;
       const y = height + Math.round((dx / w) * (dz / d) * 4 + Math.abs(dx / w) * 2);
-      v.put(x + dx, y, z + dz, Math.abs(dx) > w - 2 || Math.abs(dz) > d - 2 ? "#cb5c4e" : "#e8dcb6");
+      v.put(
+        x + dx,
+        y,
+        z + dz,
+        Math.abs(dx) > w - 2 || Math.abs(dz) > d - 2 ? "#cb5c4e" : "#e8dcb6",
+        dz === 0 && Math.abs(dx) === w - 2 ? 0.7 : 0,
+      );
     }
   const arms = Math.min(5, Math.floor(w * 0.6));
   for (const sign of [-1, 1]) beam(v, [x, 1, z], [x + sign * arms, height + 1, z], "#527f83", 2);
@@ -79,6 +85,9 @@ function oilCan(c: Ctx) {
       r,
       y < 3 || y >= h - 1 ? "steelLight" : y > h * 0.62 && y < h * 0.78 ? "#efe0ae" : "#48867a",
     );
+  // The pale gauge strip on the tank doubles as an illuminated inspection line.
+  const gaugeY = Math.round(h * 0.7);
+  for (const dx of [-1, 1]) v.put(x + dx, gaugeY, z + r - 1, "#efe0ae", 0.7);
   v.cone(x + 0.5, h, h + 3, z + 0.5, r, Math.max(1, r - 3), "steelLight");
   const left = x + r - 1;
   beam(v, [left, h - 2, z], [x + r + Math.min(5, r), h + 4, z], "steelLight", 2);

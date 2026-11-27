@@ -69,6 +69,8 @@ function tailor(c: Ctx) {
   beam(v, [x, h - 1, z], [armX + 2, h - 1, needleZ], "#295a58", 2);
   v.box(armX + 1, 3, needleZ, armX + 3, h, needleZ + 2, "#325f5c");
   v.box(armX, 3, needleZ - 1, armX + 4, 4, needleZ + 3, "gold");
+  // A work light along the needle plate lets the sewing station read after dark.
+  v.box(armX, 3, needleZ + 2, armX + 2, 4, needleZ + 3, "gold", 0.75);
   if (lv >= 2) {
     const wheel = spinner(c, x, h + 1, z, "z", 0.5);
     wheel.ringZ(0, 0, 0, 2, r - 0.4, Math.max(0, r - 1.7), "brass");
