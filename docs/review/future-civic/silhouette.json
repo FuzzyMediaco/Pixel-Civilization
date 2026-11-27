@@ -1,0 +1,18 @@
+{
+ "min": 0.12,
+ "ids": [
+  "public_library",
+  "post_offices",
+  "courthouses",
+  "city_offices",
+  "banks"
+ ],
+ "styles": {
+  "future-3027": {
+   "worstPair": 0.168,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}

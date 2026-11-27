@@ -4,4 +4,14 @@
  */
 import type { SignatureBuilder } from "../periodArtCatalog";
 
-export const signatures: Record<string, SignatureBuilder> = {};
+import { memoryOrbit, pneumaticPost } from "./futureMemoryPost";
+import { daylightCourt, signalSquare } from "./futureCourtSquare";
+import { phaseReserve } from "./futureReserve";
+
+export const signatures: Record<string, SignatureBuilder> = {
+  public_library: (c, _ink, active) => memoryOrbit(c, active),
+  post_offices: (c, _ink, active) => pneumaticPost(c, active),
+  courthouses: (c, _ink, active) => daylightCourt(c, active),
+  city_offices: (c, _ink, active) => signalSquare(c, active),
+  banks: (c, _ink, active) => phaseReserve(c, active),
+};
