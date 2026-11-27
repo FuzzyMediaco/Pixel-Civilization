@@ -1,7 +1,8 @@
 import { type Ctx, byLv, person } from "./kit";
 import { classicCar, glassFront, neon } from "./commerceKit";
+import { beam } from "./sculpturalKit";
 import { override } from "./commerceIcons";
-import { frontage, rod, shopWindow } from "./highStreetParts";
+import { frontage, shopWindow } from "./highStreetParts";
 
 function dispenser(c: Ctx, x: number, z: number, col: string) {
   const { v } = c;
@@ -34,7 +35,7 @@ function googie(c: Ctx) {
       v.put(x + dx, y, z + dz, Math.abs(dx) > w - 2 || Math.abs(dz) > d - 2 ? "#cb5c4e" : "#e8dcb6");
     }
   const arms = Math.min(5, Math.floor(w * 0.6));
-  for (const sign of [-1, 1]) rod(v, [x, 1, z], [x + sign * arms, height + 1, z], "#527f83", 2);
+  for (const sign of [-1, 1]) beam(v, [x, 1, z], [x + sign * arms, height + 1, z], "#527f83", 2);
   dispenser(c, x - 2, z + 2, "tealDark");
   if (lv >= 2) {
     fuelIsland(c, hx - 5, 0);
@@ -52,7 +53,7 @@ function googie(c: Ctx) {
     const cy = 20;
     for (let i = 0; i < 8; i++) {
       const a = (i * Math.PI) / 4;
-      rod(v, [px, cy, pz], [px + Math.round(Math.cos(a) * 4), cy + Math.round(Math.sin(a) * 6), pz], "#e6ab58");
+      beam(v, [px, cy, pz], [px + Math.round(Math.cos(a) * 4), cy + Math.round(Math.sin(a) * 6), pz], "#e6ab58");
     }
     v.sphere(px + 0.5, cy, pz, 2, 2, 1, "#d95847", 0.5);
   }
@@ -81,8 +82,8 @@ function oilCan(c: Ctx) {
     );
   v.cone(x + 0.5, h, h + 3, z + 0.5, r, Math.max(1, r - 3), "steelLight");
   const left = x + r - 1;
-  rod(v, [left, h - 2, z], [x + r + Math.min(5, r), h + 4, z], "steelLight", 2);
-  rod(v, [x + r + Math.min(5, r), h + 4, z], [x + r + Math.min(7, r + 2), h + 5, z], "chrome", 2);
+  beam(v, [left, h - 2, z], [x + r + Math.min(5, r), h + 4, z], "steelLight", 2);
+  beam(v, [x + r + Math.min(5, r), h + 4, z], [x + r + Math.min(7, r + 2), h + 5, z], "chrome", 2);
   if (lv >= 2) {
     shopWindow(c, x - 3, 1, z + r - 1, 6, "#416458");
     for (let i = 0; i < 3; i++) v.box(x - 2 + i * 2, h + 2, z - 2, x - 1 + i * 2, h + 5, z - 1, "iron");

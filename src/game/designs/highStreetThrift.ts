@@ -1,7 +1,8 @@
 import { type Ctx, byLv, person, bench } from "./kit";
+import { beam } from "./sculpturalKit";
 import { override } from "./commerceIcons";
 import { bulbs, spinner } from "./commerceKit";
-import { frontage, counter, rod, shopWindow } from "./highStreetParts";
+import { frontage, counter, shopWindow } from "./highStreetParts";
 
 const patchColors = ["#a84754", "#d69f58", "#4e8d83", "#5a6486", "#d7bdaa", "#9c7394"];
 // The roof is a sheet of stitched quilt blocks. Corners lift to show street stalls beneath.
@@ -41,7 +42,7 @@ function quilt(c: Ctx) {
       v.put(x, 4, 2, "woodDark");
       v.box(x, 2, 2, x + 1, 4, 3, patchColors[(x + 12) % 6]);
     }
-    rod(v, [hx - 7, 1, 2], [hx - 7, 5, 2], "oak");
+    beam(v, [hx - 7, 1, 2], [hx - 7, 5, 2], "oak");
   }
   if (lv >= 4) {
     for (let i = 0; i < 3; i++) {
@@ -114,7 +115,7 @@ function chair(c: Ctx) {
     back = byLv(c, [14, 17, 21, 26, 30]);
   for (const side of [-1, 1])
     for (const end of [-1, 1]) {
-      rod(
+      beam(
         v,
         [x + side * w, 1, z + end * w],
         [x + side * (w - 1), seat, z + end * (w - 1)],
@@ -127,7 +128,7 @@ function chair(c: Ctx) {
   for (let i = -w; i <= w; i += 2) {
     const crest = back - Math.round((Math.abs(i) / w) * 3);
     const upperX = x + i + Math.round((i / w) * 2);
-    rod(v, [x + i, seat + 1, z - w], [upperX, crest, z - w - 2], "#9d704b");
+    beam(v, [x + i, seat + 1, z - w], [upperX, crest, z - w - 2], "#9d704b");
   }
   for (let i = -w - 2; i <= w + 2; i++) {
     const crest = back - Math.round((Math.abs(i) / (w + 2)) * 3);
@@ -196,7 +197,7 @@ function market(c: Ctx) {
   if (lv >= 3) {
     const mastZ = -hz + 3;
     v.box(0, 1, mastZ, 2, 13, mastZ + 2, "wood");
-    rod(v, [0, 12, mastZ], [hx - 5, 6, 0], "brass");
+    beam(v, [0, 12, mastZ], [hx - 5, 6, 0], "brass");
   }
   if (lv >= 4) {
     const r = lv === 5 ? 6 : 4;
@@ -208,7 +209,7 @@ function market(c: Ctx) {
     const signs = spinner(c, 0, 18, 1, "y", 0.45);
     for (let i = 0; i < 4; i++) {
       const a = (i * Math.PI) / 2;
-      rod(signs, [0, 0, 0], [5 * Math.cos(a), 0, 5 * Math.sin(a)], "brass");
+      beam(signs, [0, 0, 0], [5 * Math.cos(a), 0, 5 * Math.sin(a)], "brass");
       signs.put(5 * Math.cos(a), 1, 5 * Math.sin(a), colors[i]);
     }
     v.box(0, 15, 1, 1, 18, 2, "brass");

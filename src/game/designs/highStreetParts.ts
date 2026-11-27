@@ -1,16 +1,4 @@
-import { type Ctx, type PixelVox, door, lot, person } from "./kit";
-
-type Point3 = [number, number, number];
-
-/** Rasterize a rod, hose or wire between two voxel centers. */
-export function rod(v: PixelVox, a: Point3, b: Point3, color: string, width = 1, emit = 0) {
-  const steps = Math.max(1, ...a.map((n, i) => Math.abs(b[i] - n)));
-  for (let i = 0; i <= Math.ceil(steps); i++) {
-    const t = Math.min(1, i / steps);
-    const [x, y, z] = a.map((n, j) => Math.round(n + (b[j] - n) * t));
-    v.box(x, y, z, x + width, y + width, z + width, color, emit);
-  }
-}
+import { type Ctx, door, lot, person } from "./kit";
 
 export function frontage(c: Ctx, floor: string) {
   lot(c, floor, 1);

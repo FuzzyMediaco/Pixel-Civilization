@@ -1,7 +1,8 @@
 import { type Ctx, byLv, person, bench } from "./kit";
 import { spinner } from "./commerceKit";
+import { beam } from "./sculpturalKit";
 import { override } from "./commerceIcons";
-import { counter, frontage, rod, shopWindow } from "./highStreetParts";
+import { counter, frontage, shopWindow } from "./highStreetParts";
 
 function hanger(c: Ctx) {
   const { v, hx, hz, lv } = c,
@@ -22,8 +23,8 @@ function hanger(c: Ctx) {
       else for (const side of [-1, 1]) v.put(x + dx, y, z + side * depth, col);
     }
   }
-  rod(v, [x - half, h - 1, z], [x, h + 3, z], "brass");
-  rod(v, [x, h + 3, z], [x + half, h - 1, z], "brass");
+  beam(v, [x - half, h - 1, z], [x, h + 3, z], "brass");
+  beam(v, [x, h + 3, z], [x + half, h - 1, z], "brass");
   v.ringZ(x + 0.5, h + 5, z, z + 1, 2.5, 1.4, "brass");
   v.clear(x - 3, h + 2, z, x - 1, h + 5, z + 1);
   shopWindow(c, x - half + 1, 1, z + depth, Math.max(5, half * 2 - 2), "#633f59");
@@ -32,7 +33,7 @@ function hanger(c: Ctx) {
   }
   if (lv >= 3) {
     const ax = hx - 6;
-    rod(v, [ax - 2, 5, -3], [ax + 3, 5, -3], "brass");
+    beam(v, [ax - 2, 5, -3], [ax + 3, 5, -3], "brass");
     for (let i = 0; i < 3; i++) v.box(ax - 2 + i * 2, 2, -3, ax - 1 + i * 2, 5, -2, ["red", "indigo", "teal"][i]);
   }
   if (lv >= 4) {
@@ -42,8 +43,8 @@ function hanger(c: Ctx) {
   if (lv === 5) {
     for (const side of [-1, 1]) {
       const dx = side * (half - 1);
-      rod(v, [x + dx, 1, hz - 5], [x + dx, 8, hz - 5], "brass");
-      rod(v, [x + dx, 8, hz - 5], [x + dx, 11, z + depth], "cream");
+      beam(v, [x + dx, 1, hz - 5], [x + dx, 8, hz - 5], "brass");
+      beam(v, [x + dx, 8, hz - 5], [x + dx, 11, z + depth], "cream");
     }
     v.box(x - half, 1, hz - 7, x + half + 1, 2, hz - 3, "#be7171");
   }
@@ -66,14 +67,14 @@ function tailor(c: Ctx) {
     );
   const armX = x + r + 2,
     needleZ = z + 1;
-  rod(v, [x, h - 1, z], [armX + 2, h - 1, needleZ], "#295a58", 2);
+  beam(v, [x, h - 1, z], [armX + 2, h - 1, needleZ], "#295a58", 2);
   v.box(armX + 1, 3, needleZ, armX + 3, h, needleZ + 2, "#325f5c");
   v.box(armX, 3, needleZ - 1, armX + 4, 4, needleZ + 3, "gold");
   if (lv >= 2) {
     const wheel = spinner(c, x, h + 1, z, "z", 0.5);
     wheel.ringZ(0, 0, 0, 2, r - 0.4, Math.max(0, r - 1.7), "brass");
-    rod(wheel, [-r + 1, 0, 0], [r - 1, 0, 0], "brass");
-    rod(v, [armX, 5, z], [armX, 2, z], "chrome");
+    beam(wheel, [-r + 1, 0, 0], [r - 1, 0, 0], "brass");
+    beam(v, [armX, 5, z], [armX, 2, z], "chrome");
     counter(c, armX - 3, z + 3, 4, "tealDark");
   }
   if (lv >= 3) {
@@ -86,12 +87,12 @@ function tailor(c: Ctx) {
     const pz = hz - 7;
     v.cylinderY(3, pz, 1, 6, r - 1, "#b45a67");
     v.cylinderY(3, pz, 6, 7, r, "woodLight");
-    rod(v, [x, h - 2, z + r], [3, 6, pz], "#c178a3");
+    beam(v, [x, h - 2, z + r], [3, 6, pz], "#c178a3");
   }
   if (lv === 5) {
     v.box(5, 1, -hz + 4, 8, 15, -hz + 1, "#325f5c");
-    rod(v, [6, 15, -hz + 2], [armX, 15, 0], "#325f5c", 3);
-    rod(v, [armX, 15, 0], [armX, 3, 0], "silver");
+    beam(v, [6, 15, -hz + 2], [armX, 15, 0], "#325f5c", 3);
+    beam(v, [armX, 15, 0], [armX, 3, 0], "silver");
     v.box(-5, 0, 6, 2, 1, hz, "#9b6788");
     person(v, -2, 1, hz - 4, "cream");
   }
@@ -141,7 +142,7 @@ function runway(c: Ctx) {
   if (lv === 5) {
     const zz = hz - 4;
     for (const x of [-8, 8]) {
-      rod(v, [x, 1, zz], [x, 13, zz], "brass");
+      beam(v, [x, 1, zz], [x, 13, zz], "brass");
       v.sphere(x, 13, zz, 2, 2, 2, "warmGlow", 0.7);
     }
     v.box(-7, 3, z1 - 4, 8, 4, z1, "#e287a1");

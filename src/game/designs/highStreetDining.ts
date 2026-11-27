@@ -1,7 +1,8 @@
 import { type Ctx, byLv, person, ring, awning } from "./kit";
 import { cafeTable, umbrella, bulbs, disc, spinner } from "./commerceKit";
+import { beam } from "./sculpturalKit";
 import { override } from "./commerceIcons";
-import { frontage, counter, rod, shopWindow } from "./highStreetParts";
+import { frontage, counter, shopWindow } from "./highStreetParts";
 
 // Pasta served from a bowl under a monumental fork. The ribbon of noodles wraps past the dining tiers.
 function noodle(c: Ctx) {
@@ -32,9 +33,9 @@ function noodle(c: Ctx) {
     forkZ = z + Math.floor(r * 0.25);
   const rise = byLv(c, [6, 9, 13, 16, 20]),
     forkY = lip + rise;
-  rod(v, [forkX, lip + 1, forkZ], [forkX - 1, forkY - 4, forkZ], "#7a8e94", lv >= 4 ? 2 : 1);
+  beam(v, [forkX, lip + 1, forkZ], [forkX - 1, forkY - 4, forkZ], "#7a8e94", lv >= 4 ? 2 : 1);
   v.box(forkX - 3, forkY - 4, forkZ, forkX + 3, forkY - 2, forkZ + 1, "chrome");
-  for (let i = -3; i <= 2; i += 2) rod(v, [forkX + i, forkY - 2, forkZ], [forkX + i - 1, forkY + 2, forkZ], "#c2cdd1");
+  for (let i = -3; i <= 2; i += 2) beam(v, [forkX + i, forkY - 2, forkZ], [forkX + i - 1, forkY + 2, forkZ], "#c2cdd1");
   for (let i = 0; i < 32; i++) {
     const t = i / 31,
       xx = forkX + 1 + (1 - t) * (x - forkX) * 0.48;
@@ -101,19 +102,19 @@ function pie(c: Ctx) {
     v.box(x + 1, height + 5, towerZ, liftX + 2, height + 7, towerZ + 2, "iron");
     const blade = spinner(c, liftX, height + 7, towerZ, "z", 0.55);
     blade.ringZ(0, 0, 0, 2, 5, 1, "silver");
-    rod(blade, [-3, 3, 0], [3, -3, 0], "brass");
+    beam(blade, [-3, 3, 0], [3, -3, 0], "brass");
   }
 }
 
 function sushiBoat(c: Ctx) {
   const { v, hx, hz, lv } = c,
     r = byLv(c, [5, 6, 12, 13, 14]),
-    beam = byLv(c, [2, 4, 4, 6, 7]),
+    halfBeam = byLv(c, [2, 4, 4, 6, 7]),
     z = lv >= 4 ? -2 : 0;
   const deck = byLv(c, [3, 4, 5, 7, 9]);
   for (let dx = -r; dx <= r; dx++) {
     const t = Math.abs(dx / r),
-      half = Math.max(1, Math.round(beam * Math.sqrt(1 - t * t)));
+      half = Math.max(1, Math.round(halfBeam * Math.sqrt(1 - t * t)));
     for (let y = 1; y <= deck; y++) {
       const side = Math.max(1, Math.round(half * (0.5 + (0.5 * y) / deck))),
         raised = Math.round(t ** 3 * 3);
@@ -129,11 +130,11 @@ function sushiBoat(c: Ctx) {
   if (lv >= 2) {
     const mastX = -Math.round(r / 2);
     v.box(mastX, deck, z, mastX + 1, deck + 8, z + 1, "woodDark");
-    rod(v, [mastX, deck + 7, z], [mastX + 5, deck + 7, z], "oak");
+    beam(v, [mastX, deck + 7, z], [mastX + 5, deck + 7, z], "oak");
     for (let i = 0; i < 4; i++) v.box(mastX + 1 + i, deck + 2 + i, z, mastX + 2 + i, deck + 7, z + 1, "cream");
   }
   if (lv >= 3) {
-    counter(c, -r + 2, z + beam, Math.min(r, 8), "tealDark");
+    counter(c, -r + 2, z + halfBeam, Math.min(r, 8), "tealDark");
     person(v, r - 2, deck + 1, z, "cream");
   }
   if (lv >= 4) {
@@ -141,7 +142,7 @@ function sushiBoat(c: Ctx) {
       v.box(x, 1, hz - 5, x + 1, deck + 1, hz - 4, "oak");
       v.box(x - 1, deck - 1, hz - 5, x + 2, deck + 1, hz - 3, "crimson");
     }
-    v.box(-10, 1, z + beam + 1, 11, 2, hz - 3, "wood");
+    v.box(-10, 1, z + halfBeam + 1, 11, 2, hz - 3, "wood");
   }
   if (lv === 5) {
     const a = 5;
@@ -185,7 +186,7 @@ function burger(c: Ctx) {
     for (const dx of [-8, 1]) cafeTable(c, dx, hz - 5, "red");
   }
   if (lv === 5) {
-    rod(v, [x, y + 2, z], [x + 2, y + 10, z], "woodLight");
+    beam(v, [x, y + 2, z], [x + 2, y + 10, z], "woodLight");
     v.sphere(x + 2, y + 9, z, 3, 2, 2, "olive");
     umbrella(v, hx - 5, 0, "red", "cream", 1, 6);
   }

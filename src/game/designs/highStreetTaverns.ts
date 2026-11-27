@@ -1,7 +1,8 @@
 import { type Ctx, byLv, person, bench, ring } from "./kit";
 import { band, bulbs, cafeTable, glassFront, palm, spinner } from "./commerceKit";
+import { beam } from "./sculpturalKit";
 import { override } from "./commerceIcons";
-import { frontage, counter, rod, shopWindow } from "./highStreetParts";
+import { frontage, counter, shopWindow } from "./highStreetParts";
 
 function stein(c: Ctx) {
   const { v, hx, hz, lv } = c,
@@ -46,7 +47,7 @@ function stein(c: Ctx) {
   if (lv >= 2) shopWindow(c, x - 3, 1, z + r - 1, 6, "woodDark");
   if (lv >= 3) {
     counter(c, hx - 7, 1, 5, "woodDark");
-    for (let n = 0; n < 3; n++) rod(v, [hx - 7 + n * 2, 3, 1], [hx - 7 + n * 2, 6, 1], "brass");
+    for (let n = 0; n < 3; n++) beam(v, [hx - 7 + n * 2, 3, 1], [hx - 7 + n * 2, 6, 1], "brass");
   }
   if (lv >= 4) {
     for (const xx of [-8, 1]) cafeTable(c, xx, hz - 5, "woodLight");
@@ -75,7 +76,7 @@ function cocktail(c: Ctx) {
   }
   v.cylinderY(x + 0.5, z + 0.5, rim - 1, rim, r - 1, "#cda989");
   const garnish = spinner(c, x, rim, z, "y", 0.22);
-  rod(garnish, [-r * 0.45, -1, 0], [r * 0.5, 6, 0], "brass");
+  beam(garnish, [-r * 0.45, -1, 0], [r * 0.5, 6, 0], "brass");
   garnish.sphere(r * 0.25, 4, 0, 1 + r * 0.15, 1 + r * 0.14, 1 + r * 0.13, "olive");
   garnish.put(Math.round(r * 0.25), 4, Math.round(1 + r * 0.13), "red");
   counter(c, Math.max(-hx + 2, x - r + 1), z + Math.min(r, 4), Math.min(7, 2 * r), "#68536a");
@@ -190,7 +191,7 @@ function terraces(c: Ctx) {
     const x = x0 + 3;
     band(v, x, z0 + 2, y, "brass");
     for (const sx of [x0, x0 + w - 1])
-      rod(v, [sx, y, z0 + 1], [sx + (sx === x0 ? 2 : -2), y + 5, z0 + 1], "cream", 1, 0.6);
+      beam(v, [sx, y, z0 + 1], [sx + (sx === x0 ? 2 : -2), y + 5, z0 + 1], "cream", 1, 0.6);
     v.box(x0 + 1, y + 4, z0 + 1, x0 + w - 1, y + 5, z0 + 2, "#bd7888");
   }
 }
