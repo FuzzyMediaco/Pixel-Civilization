@@ -24,3 +24,8 @@ import "./safetyMilitaryExpansion";
 import "./commerceExpansion";
 import "./balancedExpansion";
 import "./skyline";
+import "./commerceIcons";
+import "./commerceArcade";
+import "./commerceFood";
+import "./commerceShows";
+import "./commerceHotel";

@@ -3234,7 +3234,7 @@
     },
     "description": "Crisp sneaker and cobbler storefront with rooftop sign.",
     "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
-    "growth": "The rooftop shoe grows bigger every level until, at Lv5, the whole building IS a colossal shoe.",
+    "growth": "A shoe sign on a kiosk grows into a shoe you can walk into, then a matched pair or a towering colossus: sneaker, shoebox stack, stiletto or cowboy boot.",
     "maxLevel": 5,
     "levels": [
       {
@@ -3257,7 +3257,7 @@
       },
       {
         "level": 3,
-        "name": "Sneaker Store",
+        "name": "Walk-In Shoe",
         "dimensions": [
           2,
           1
@@ -3286,19 +3286,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Sneaker Culture"
+        "name": "Giant Sneaker"
       },
       {
         "index": 1,
-        "name": "Western Boot Barn"
+        "name": "Shoebox Stack"
       },
       {
         "index": 2,
-        "name": "Glam Heels"
+        "name": "Stiletto Salon"
       },
       {
         "index": 3,
-        "name": "Dutch Clog Maker"
+        "name": "Cowboy Boot Outfitters"
       }
     ],
     "partner": {
@@ -23176,8 +23176,8 @@
       "income": 22
     },
     "description": "Warm brick-oven bakery filling nearby streets with fresh loaves, pastries and local jobs.",
-    "usage": "Warm brick-oven bakery filling nearby streets with fresh loaves, pastries and local jobs.",
-    "growth": "A sidewalk bread counter grows a brick hearth chimney, striped awnings and a two-story patisserie.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A market stall grows into a bakery shaped like what it sells: a scored loaf sliced open to its crumb, a tiered cake with candles, a deli with a spinning sandwich, or a cluster of cupcakes.",
     "maxLevel": 5,
     "levels": [
       {
@@ -23200,7 +23200,7 @@
       },
       {
         "level": 3,
-        "name": "Patisserie",
+        "name": "Signature Bake",
         "dimensions": [
           2,
           1
@@ -23209,7 +23209,7 @@
       },
       {
         "level": 4,
-        "name": "Boulangerie Row",
+        "name": "Bakehouse Landmark",
         "dimensions": [
           2,
           2
@@ -23229,19 +23229,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Parisian Cream"
+        "name": "Bread Loaf"
       },
       {
         "index": 1,
-        "name": "Brick Hearth"
+        "name": "Layer Cake"
       },
       {
         "index": 2,
-        "name": "Nordic Timber"
+        "name": "Spinning Sandwich"
       },
       {
         "index": 3,
-        "name": "Pastel Mint"
+        "name": "Cupcake Corner"
       }
     ],
     "partner": {
@@ -23361,8 +23361,8 @@
       "income": 28
     },
     "description": "Streamlined stainless-steel diner glowing with neon trim and checkered-floor charm.",
-    "usage": "Streamlined stainless-steel diner glowing with neon trim and checkered-floor charm.",
-    "growth": "A silver railcar diner adds a neon pylon, drive-in canopy and glowing classic car bays.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A chrome lunch car grows into a full roadside diner: stainless railcars with a clock pylon, a red drum marquee, a Googie drive-in under a starburst, or a rooftop of giant neon letters and a spinning coffee cup.",
     "maxLevel": 5,
     "levels": [
       {
@@ -23385,7 +23385,7 @@
       },
       {
         "level": 3,
-        "name": "Drive-In Diner",
+        "name": "Neon Diner",
         "dimensions": [
           2,
           1
@@ -23394,7 +23394,7 @@
       },
       {
         "level": 4,
-        "name": "Neon Boulevard Diner",
+        "name": "Boulevard Diner",
         "dimensions": [
           2,
           2
@@ -23414,19 +23414,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Cherry & Chrome"
+        "name": "Silver Streamliner"
       },
       {
         "index": 1,
-        "name": "Turquoise 50s"
+        "name": "Red Drum Marquee"
       },
       {
         "index": 2,
-        "name": "Checkerboard Gold"
+        "name": "Googie Drive-In"
       },
       {
         "index": 3,
-        "name": "Midnight Neon"
+        "name": "Neon Rooftop"
       }
     ],
     "partner": {
@@ -23821,8 +23821,8 @@
       "income": 46
     },
     "description": "Art-deco movie palace with glowing marquee, velvet lobby and rooftop vertical blade sign.",
-    "usage": "Art-deco movie palace with glowing marquee, velvet lobby and rooftop vertical blade sign.",
-    "growth": "A single-screen marquee theater expands into a grand illuminated movie palace with twin auditoriums.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A nickelodeon grows into a legendary movie house: an Egyptian Revival temple with papyrus columns and a blade sign, a Deco palace with a chaser-bulb marquee, a starlit drive-in, or a giant projector with spinning reels.",
     "maxLevel": 5,
     "levels": [
       {
@@ -23836,7 +23836,7 @@
       },
       {
         "level": 2,
-        "name": "Bijou Theater",
+        "name": "Picture House",
         "dimensions": [
           2,
           2
@@ -23845,7 +23845,7 @@
       },
       {
         "level": 3,
-        "name": "Art-Deco Cinema",
+        "name": "Movie Palace",
         "dimensions": [
           3,
           2
@@ -23854,7 +23854,7 @@
       },
       {
         "level": 4,
-        "name": "Multiplex Palace",
+        "name": "Grand Movie Palace",
         "dimensions": [
           3,
           3
@@ -23863,7 +23863,7 @@
       },
       {
         "level": 5,
-        "name": "IMAX Grand Theater",
+        "name": "Legendary Movie House",
         "dimensions": [
           3,
           3
@@ -23874,19 +23874,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Crimson Deco"
+        "name": "Egyptian Revival"
       },
       {
         "index": 1,
-        "name": "Golden Hollywood"
+        "name": "Deco Palace"
       },
       {
         "index": 2,
-        "name": "Neon Retro"
+        "name": "Starlight Drive-In"
       },
       {
         "index": 3,
-        "name": "Modern Glass"
+        "name": "Projector & Reels"
       }
     ],
     "partner": {
@@ -24005,8 +24005,8 @@
       "income": 44
     },
     "description": "Electric neon-lit video game arcade and esports lounge packed with glowing pixel signs.",
-    "usage": "Electric neon-lit video game arcade and esports lounge packed with glowing pixel signs.",
-    "growth": "A bright corner game room climbs into a multi-story neon arcade tower with giant rooftop pixel art.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A cabinet nook grows into a building shaped like the game itself: a walk-in controller, a cabinet tower crowned by a spinning token, a pixel creature, or a pinball palace.",
     "maxLevel": 5,
     "levels": [
       {
@@ -24029,7 +24029,7 @@
       },
       {
         "level": 3,
-        "name": "Pixel Palace",
+        "name": "Game-Shaped Hall",
         "dimensions": [
           2,
           2
@@ -24038,7 +24038,7 @@
       },
       {
         "level": 4,
-        "name": "Esports Lounge",
+        "name": "Arcade Landmark",
         "dimensions": [
           3,
           2
@@ -24047,7 +24047,7 @@
       },
       {
         "level": 5,
-        "name": "Cyber Arcade Tower",
+        "name": "Mega Game Tower",
         "dimensions": [
           3,
           3
@@ -24058,19 +24058,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Synthwave Purple"
+        "name": "Game Controller"
       },
       {
         "index": 1,
-        "name": "Tokyo Electric"
+        "name": "Cabinet Tower"
       },
       {
         "index": 2,
-        "name": "8-Bit Primary"
+        "name": "Pixel Jelly"
       },
       {
         "index": 3,
-        "name": "Laser Cyan"
+        "name": "Pinball Palace"
       }
     ],
     "partner": {
@@ -24279,8 +24279,8 @@
       "income": 78
     },
     "description": "Upscale traveler hotel with canopy drop-off, glowing lobby, balconies and rooftop pool terrace.",
-    "usage": "Upscale traveler hotel with canopy drop-off, glowing lobby, balconies and rooftop pool terrace.",
-    "growth": "An intimate inn climbs into a glamorous skyline hotel with porte-cochere and rooftop pool deck.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A guesthouse grows into an iconic resort: a pink lakeside palazzo with a loggia and striped umbrellas, an Alpine castle with copper spires, a glowing halo ring over a reflecting pool, or a crescent of wave terraces.",
     "maxLevel": 5,
     "levels": [
       {
@@ -24321,7 +24321,7 @@
       },
       {
         "level": 5,
-        "name": "Skyline Resort Tower",
+        "name": "Iconic Resort",
         "dimensions": [
           3,
           3
@@ -24332,19 +24332,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Belle Epoque"
+        "name": "Lakeside Grand"
       },
       {
         "index": 1,
-        "name": "Miami Pastel"
+        "name": "Alpine Palace"
       },
       {
         "index": 2,
-        "name": "Modern Glass"
+        "name": "Halo Ring"
       },
       {
         "index": 3,
-        "name": "Alpine Stone"
+        "name": "Wave Terraces"
       }
     ],
     "partner": {
@@ -24464,8 +24464,8 @@
       "income": 48
     },
     "description": "Velvet-awning music lounge radiating warm brass-and-neon nightlife across downtown streets.",
-    "usage": "Velvet-awning music lounge radiating warm brass-and-neon nightlife across downtown streets.",
-    "growth": "A subterranean music stoop rises into a glowing iron-balcony jazz hall with marquee lights.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A cellar stage grows into a landmark you can hear: giant beamed music notes, a brass horn with a walk-in bell and a spinning trumpet, a terrace stack with a band on every roof, or a grand piano with its lid raised.",
     "maxLevel": 5,
     "levels": [
       {
@@ -24517,19 +24517,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Blue Note Brick"
+        "name": "Music Note"
       },
       {
         "index": 1,
-        "name": "Bourbon Balcony"
+        "name": "Spinning Trumpet"
       },
       {
         "index": 2,
-        "name": "Golden Deco"
+        "name": "Rooftop Bandstands"
       },
       {
         "index": 3,
-        "name": "Neon Velvet"
+        "name": "Grand Piano"
       }
     ],
     "partner": {
