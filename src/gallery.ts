@@ -5,16 +5,22 @@
  * Query params
  *   cat      design module(s) to load: housing, agriculture, ... or "all" (comma list ok)
  *   ids      comma list of element ids (default: every id registered by the loaded modules)
- *   mode     levels (rows=element, cols=Lv1..5, variant=`variant`)
+ *   mode     levels (rows=element, cols=all playable levels, variant=`variant`)
  *            variants (rows=element, cols=V0..3 at level=`lv`)
- *            full (rows=element×variant, cols=Lv1..5)
- *   variant  0..3 (levels mode)       lv  1..5 (variants mode)
+ *            full (rows=element×variant, cols=all playable levels)
+ *   variant  0..3 (levels mode)       lv  desired level (variants mode, clamped per element)
+ *   era      canonical appearance ID (default original); active=1 shows an operating facility
+ *   net      mix (default), bridge, one (mask), or atlas (standard joined carriageway)
  *   cell     cell size in px (default 260)
  *   night    1 = night lighting       angle  camera azimuth in degrees (default 45)
  *   water    1 = draw ocean under cells (boats, docks)
  */
 import * as THREE from "three";
-import { ELEMENT_BY_ID, getStandardFootprintForLevel } from "./game/catalog";
+import { ELEMENT_BY_ID, getMaxElementLevel, getStandardFootprintForLevel } from "./game/catalog";
+import { loadEraArt } from "./game/eraArtLoader";
+import { ERA_LABELS, eraElementSpec, eraLevelName, normalizeEra } from "./game/eraStyles";
+import type { ParcelAppearance } from "./game/parcelGeometry";
+import { atlasPlots } from "./handbook/modelPlots";
 import { DESIGNS } from "./game/designs/registry";
 import { buildPlacedGroupFromAsset, getOrBuildElementAsset } from "./game/voxelArchitect";
 import { voxelNightUniform } from "./game/voxelCore";
@@ -80,36 +86,49 @@ function networkLayout(): [number, number, number][] {
 async function main() {
   const cats = (params.get("cat") ?? "all").split(",").filter(Boolean);
   await loadCats(cats);
-  const before = new Set<string>();
-  void before;
   let ids = (params.get("ids") ?? "").split(",").filter(Boolean);
   if (ids.length === 0) ids = Object.keys(DESIGNS);
-  ids = ids.filter((id) => ELEMENT_BY_ID[id]);
+  if (!ids.length) throw new Error("No elements registered in the selected design modules.");
+  for (const id of ids) {
+    if (!ELEMENT_BY_ID[id] || !DESIGNS[id]) throw new Error(`Unknown or unloaded element: ${id}`);
+  }
+  const eraId = params.get("era") ?? "original";
+  const era = normalizeEra(eraId);
+  if (era !== eraId) throw new Error(`Unknown gallery era: ${eraId}`);
+  await loadEraArt(era);
+  const active = params.get("active") === "1";
+  const appearance: ParcelAppearance = { era, eraActivity: active ? "active" : "idle" };
   const mode = params.get("mode") ?? "levels";
   const cell = Number(params.get("cell") ?? 260);
   const night = params.get("night") === "1";
   const azimuth = (Number(params.get("angle") ?? 45) * Math.PI) / 180;
   const waterBg = params.get("water") === "1";
+  if (!Number.isSafeInteger(cell) || cell <= 0) throw new Error("Gallery cell size must be a positive integer.");
   voxelNightUniform.value = night ? 1 : 0;
 
   type CellSpec = { id: string; lv: number; variant: number };
   const rows: CellSpec[][] = [];
   for (const id of ids) {
+    const maxLevel = getMaxElementLevel(id);
+    const levels = Array.from({ length: maxLevel }, (_, i) => i + 1);
     if (mode === "variants") {
-      const lv = Number(params.get("lv") ?? 3);
+      const requested = Number(params.get("lv") ?? 3);
+      if (!Number.isInteger(requested)) throw new Error("Gallery level must be an integer.");
+      const lv = Math.max(1, Math.min(maxLevel, requested));
       rows.push([0, 1, 2, 3].map((variant) => ({ id, lv, variant })));
     } else if (mode === "full") {
       for (let variant = 0; variant < 4; variant++) {
-        rows.push([1, 2, 3, 4, 5].map((lv) => ({ id, lv, variant })));
+        rows.push(levels.map((lv) => ({ id, lv, variant })));
       }
-    } else {
+    } else if (mode === "levels") {
       const variant = Number(params.get("variant") ?? 0);
-      rows.push([1, 2, 3, 4, 5].map((lv) => ({ id, lv, variant })));
-    }
+      if (!Number.isInteger(variant) || variant < 0 || variant > 3) throw new Error("Gallery variant must be 0 to 3.");
+      rows.push(levels.map((lv) => ({ id, lv, variant })));
+    } else throw new Error(`Unknown gallery mode: ${mode}`);
   }
 
   const cols = Math.max(...rows.map((r) => r.length));
-  const labelH = 34;
+  const labelH = era === "original" ? 34 : 64;
   const out = document.getElementById("out") as HTMLCanvasElement;
   out.width = cols * cell;
   out.height = rows.length * (cell + labelH);
@@ -134,21 +153,23 @@ async function main() {
     const built = rows[r].map((spec) => {
       const def = ELEMENT_BY_ID[spec.id]!;
       const group = new THREE.Group();
-      let fp: [number, number] = [1, 1];
-      if (def.isNetwork) {
+      const fp = getStandardFootprintForLevel(def, spec.lv);
+      if (def.isNetwork && params.get("net") !== "atlas") {
         for (const [dx, dz, mask] of networkLayout()) {
-          const asset = getOrBuildElementAsset(spec.id, spec.lv, spec.variant, 1, 1, mask);
+          const asset = getOrBuildElementAsset(spec.id, spec.lv, spec.variant, 1, 1, mask, appearance);
           const g = buildPlacedGroupFromAsset(asset);
           g.position.set(dx * tileM, 0, dz * tileM);
           group.add(g);
         }
-        fp = [5, 5];
       } else {
-        fp = getStandardFootprintForLevel(def, spec.lv);
-        const asset = getOrBuildElementAsset(spec.id, spec.lv, spec.variant, fp[0], fp[1], 0);
-        const g = buildPlacedGroupFromAsset(asset);
-        group.add(g);
-        group.userData.asset = asset;
+        const plots = atlasPlots(def, spec.lv, spec.variant, era, false, active);
+        for (const plot of plots) {
+          const asset = getOrBuildElementAsset(spec.id, spec.lv, spec.variant, ...plot.span, plot.mask, plot.appearance);
+          const g = buildPlacedGroupFromAsset(asset);
+          g.position.set(plot.x * tileM, 0, plot.z * tileM);
+          group.add(g);
+          if (plots.length === 1) group.userData.asset = asset;
+        }
       }
       const box = new THREE.Box3().setFromObject(group);
       return { spec, def, group, fp, box };
@@ -227,25 +248,45 @@ async function main() {
 
       // label
       const asset = b.group.userData.asset as { rotors?: unknown[]; smokePoints?: unknown[]; blinkers?: unknown[]; voxelCount?: number } | undefined;
-      const design = DESIGNS[b.spec.id];
-      const lvName = design?.levels[b.spec.lv - 1] ?? "";
+      const eraSpec = eraElementSpec(b.spec.id, era);
+      const fullName = eraLevelName(b.spec.id, b.spec.lv, era);
+      const namePrefix = eraSpec?.name + " · ";
+      const lvName = fullName.startsWith(namePrefix) ? fullName.slice(namePrefix.length) : fullName;
       ctx2.fillStyle = "#2c313b";
       ctx2.fillRect(x, y, cell, labelH);
       ctx2.fillStyle = "#fff";
       ctx2.font = "bold 12px system-ui";
-      ctx2.fillText(`${b.spec.id} L${b.spec.lv} V${b.spec.variant}  ${fx}x${fz}`, x + 4, y + 13);
+      ctx2.fillText(`${b.spec.id} L${b.spec.lv} V${b.spec.variant}  ${fx}x${fz}`, x + 4, y + 13, cell - 8);
       ctx2.fillStyle = "#ffd76a";
       ctx2.font = "11px system-ui";
       const extras = asset
         ? `${asset.rotors?.length ? ` ⟳${asset.rotors.length}` : ""}${asset.smokePoints?.length ? ` ☁${asset.smokePoints.length}` : ""}${asset.blinkers?.length ? ` ✦${asset.blinkers.length}` : ""}`
         : "";
-      ctx2.fillText(`${lvName}${extras}  h=${b.box.max.y.toFixed(1)}m${asset?.voxelCount ? `  ${(asset.voxelCount / 1000).toFixed(1)}k vox` : ""}`, x + 4, y + 28);
+      const stats = `h=${b.box.max.y.toFixed(1)}m${asset?.voxelCount ? `  ${(asset.voxelCount / 1000).toFixed(1)}k vox` : ""}${extras}`;
+      if (era === "original") {
+        ctx2.fillText(`${lvName}  ${stats}`, x + 4, y + 28, cell - 8);
+      } else {
+        ctx2.fillText(lvName, x + 4, y + 28, cell - 8);
+        const style = eraSpec?.variants[b.spec.variant];
+        const caption = [ERA_LABELS[era], style].filter(Boolean).join(" · ");
+        ctx2.fillStyle = "#fff";
+        ctx2.fillText(caption, x + 4, y + 43, cell - 8);
+        ctx2.fillText(stats, x + 4, y + 58, cell - 8);
+      }
       ctx2.strokeStyle = "#111";
       ctx2.strokeRect(x + 0.5, y + 0.5, cell - 1, cell + labelH - 1);
       scene.remove(b.group);
+      ground.geometry.dispose();
+      ground.material.dispose();
+      grid.geometry.dispose();
+      grid.material.dispose();
+      outline.geometry.dispose();
+      outline.material.dispose();
+      sun.shadow.dispose();
     }
     await new Promise((res) => setTimeout(res, 0));
   }
+  renderer.dispose();
   statusEl.textContent = "done";
   (window as unknown as { __galleryDone: boolean }).__galleryDone = true;
 }
