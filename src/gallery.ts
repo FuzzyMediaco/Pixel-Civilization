@@ -8,6 +8,7 @@
  *   mode     levels (rows=element, cols=all playable levels, variant=`variant`)
  *            variants (rows=element, cols=V0..3 at level=`lv`)
  *            full (rows=element×variant, cols=all playable levels)
+ *            bridge-runs (real joined spans, set=lengths, landmarks, rail or catalog; catalog uses id and optional variant)
  *   variant  0..3 (levels mode)       lv  desired level (variants mode, clamped per element)
  *   era      canonical appearance ID (default original); active=1 shows an operating facility
  *   net      mix (default), bridge, one (mask), or atlas (standard joined carriageway)
@@ -85,6 +86,13 @@ function networkLayout(): [number, number, number][] {
 }
 
 async function main() {
+  if (params.get("mode") === "bridge-runs") {
+    const { drawBridgeStudies } = await import("./review/bridgeRunGallery");
+    await drawBridgeStudies(params, document.getElementById("out") as HTMLCanvasElement);
+    statusEl.textContent = "done";
+    (window as unknown as { __galleryDone: boolean }).__galleryDone = true;
+    return;
+  }
   const cats = (params.get("cat") ?? "all").split(",").filter(Boolean);
   await loadCats(cats);
   let ids = (params.get("ids") ?? "").split(",").filter(Boolean);
