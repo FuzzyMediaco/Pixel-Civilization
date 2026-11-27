@@ -4,6 +4,7 @@
 //   civic            rows = Original + ten eras, columns = ids (default: the five civic lookalikes)
 //   matrix           rows = variants A–D, columns = levels for one id in one style
 //   eras             rows = Original + ten eras, columns = variants A–D for one id at one level
+//   five             rows = levels 1–5, columns = ids (default: the civic five) for one style and variant
 // Options (key=value)
 //   ids=a,b,c  id=public_library  era=original|<production era>  lv=3  variant=0  cell=150
 //   look=color|gray|silhouette   eras=original,ancient-egypt   (limits rows)
@@ -28,7 +29,7 @@ const CELL = Number(opt.cell ?? 150);
 const look = opt.look ?? "color";
 const lv = Number(opt.lv ?? 3);
 const variant = Number(opt.variant ?? 0);
-const styles = (opt.eras ? opt.eras.split(",") : ["original", ...PRODUCTION_ERAS]);
+const styles = (opt.eras ? opt.eras.split(",") : opt.era ? [opt.era] : ["original", ...PRODUCTION_ERAS]);
 for (const era of styles) if (era !== "original") await loadEraArt(era);
 
 const variantNames = (id, era) =>
@@ -56,6 +57,13 @@ if (board === "civic") {
   rows = styles.map((era) => ({
     label: ERA_LABELS[era] ?? era,
     cells: [0, 1, 2, 3].map((s) => ({ id, lv: Math.min(lv, getMaxElementLevel(id)), variant: s, era, caption: variantNames(id, era)[s] })),
+  }));
+} else if (board === "five") {
+  const ids = (opt.ids ?? "public_library,post_offices,courthouses,city_offices,banks").split(",");
+  const era = opt.era ?? "original";
+  rows = [1, 2, 3, 4, 5].map((level) => ({
+    label: `L${level} · ${"ABCD"[variant]} · ${ERA_LABELS[era] ?? era}`,
+    cells: ids.map((id) => ({ id, lv: Math.min(level, getMaxElementLevel(id)), variant, era, caption: levelName(id, Math.min(level, getMaxElementLevel(id)), era) })),
   }));
 } else throw new Error("unknown board " + board);
 

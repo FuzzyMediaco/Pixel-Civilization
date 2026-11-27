@@ -53,6 +53,7 @@ import {
   windows,
 } from "./kit";
 import { defineDesigns } from "./registry";
+import { BANK, buildBank } from "./bank";
 
 type V = PixelVox;
 
@@ -3530,9 +3531,9 @@ defineDesigns({
   },
   banks: {
     footprints: [[1, 1], [2, 1], [2, 2], [2, 2], [2, 2]],
-    levels: ["Teller Office", "Columned Savings Bank", "Domed Vault Bank", "Bank Tower", "Financial HQ Skyscraper"],
-    growth: "Gains prestige: columns and steps, then a dome and vault, then a tower rising from the banking hall and a crowned HQ with a stock ticker and golden bull.",
-    build: buildBanks,
+    levels: BANK.levels,
+    growth: BANK.growth,
+    build: buildBank,
   },
   malls: {
     footprints: [[2, 2], [3, 2], [3, 3], [4, 3], [4, 4]],

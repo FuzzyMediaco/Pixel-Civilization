@@ -2,6 +2,9 @@ import { type Ctx, type TreeKind, PixelVox, archway, awning, barrelRoof, bench, 
   flag, flatRoof, flowerBed, fountain, gable, hip, lamp, lot, mansard, pediment, person, pool, ring, sawtooth, speckle,
   spire, stairs, tree, truck, windows } from "./kit";
 import { defineDesigns, type DesignEntry } from "./registry";
+import { POST_OFFICE, buildPostOffice } from "./postOffice";
+import { COURTHOUSE, buildCourthouse } from "./courthouse";
+import { CITY_OFFICES, buildCityOffices } from "./cityOffices";
 
 const regionalWalls = ["brick", "#e8b981", "cream", "#d8dde1"];
 const regionalRoofs = ["slate", "terracotta", "tealDark", "#486e88"];
@@ -703,13 +706,13 @@ defineDesigns({
   park: design(park, [[1,1],[2,1],[2,2],[3,2],[3,3]], ["Village Green","Playground Park","Gazebo Pond","Carousel Park","Amphitheater Park"], "A winding path links swings, a gazebo pond, turning carousel and performance lawn."),
   little_parks: design(pocket, [[1,1],[1,1],[1,1],[2,1],[2,1]], ["Bench Corner","Pocket Garden","Neighborhood Nook","Pocket Plaza","Lantern Garden"], "A tiny gathering place earns a pavilion and a canopy of evening lights."),
   gardens: design(gardens, [[1,1],[2,1],[2,2],[3,2],[3,3]], ["Raised Beds","Community Allotments","Greenhouse Garden","Conservatory Garden","Botanical Palm House"], "Allotments spread around a gardener’s shed and a ribbed glass palm house."),
-  city_offices: design(townHall, [[1,1],[1,2],[2,2],[2,2],[2,3]], ["Town Clerk","Town Hall","City Hall","Civic Center","Grand City Hall"], "An illuminated clock presides over a growing set of municipal wings and a fountain square."),
-  post_offices: design(post, [[1,1],[2,1],[2,2],[3,2],[3,2]], ["Mail Counter","Village Post Office","Parcel Office","Mail Depot","Regional Sorting Hub"], "A neighborhood counter adds delivery vans, loading shutters, a belt and a fleet yard."),
+  city_offices: design(buildCityOffices, [[1,1],[1,2],[2,2],[2,2],[2,3]], CITY_OFFICES.levels, CITY_OFFICES.growth),
+  post_offices: design(buildPostOffice, [[1,1],[2,1],[2,2],[3,2],[3,2]], POST_OFFICE.levels, POST_OFFICE.growth),
   tax_collecting_office: design(finance, [[1,1],[1,1],[1,2],[2,2],[2,2]], ["Tax Booth","Collections Office","Audit Bureau","Vault Headquarters","Treasury Fortress"], "A rolling coin rises above a round vault door, an armored van and fortified repositories."),
   fire_department: design(fire, [[1,1],[2,1],[2,2],[3,2],[3,2]], ["Volunteer Fire Shed","Firehouse","Fire Station","Fire Hall","Fire Command HQ"], "Engine bays multiply, a hose tower rises and a ladder truck joins the training yard."),
   community_centers: design(community, [[1,1],[2,1],[2,2],[3,2],[3,3]], ["Meeting Hall","Community Hall","Recreation Center","Community Campus","Civic Commons"], "A painted neighborhood hall adds a pavilion, basketball court, gym and an outdoor stage."),
   italian_gardens: design(italian, [[2,2],[2,2],[3,2],[3,3],[4,3]], ["Cypress Walk","Fountain Terrace","Parterre Garden","Statue Garden","Villa Garden Estate"], "Terraces step up through parterres, fountains and sculpture to a garden villa."),
-  courthouses: design(court, [[1,1],[2,1],[2,2],[2,3],[3,3]], ["Magistrate’s Office","County Court","District Court","Hall of Justice","Supreme Court"], "Golden scales crown a growing portico, court wings, reflecting pool and public colonnades."),
+  courthouses: design(buildCourthouse, [[1,1],[2,1],[2,2],[2,3],[3,3]], COURTHOUSE.levels, COURTHOUSE.growth),
   government_buildings: design(capitol, [[2,2],[2,2],[3,2],[3,3],[4,3]], ["Government Office","Ministry Building","State House","Capitol","Grand Capitol Dome"], "The assembly dome gains a lantern and matching legislative wings on a ceremonial mall."),
   large_parks: design(largePark, [[2,2],[3,2],[3,3],[4,3],[4,4]], ["River Meadow","Lake Park","Boathouse Park","Bandshell Park","Central Park"], "A winding lake gains an arched footbridge, boat landing, concert shell and lantern promenade."),
 });
