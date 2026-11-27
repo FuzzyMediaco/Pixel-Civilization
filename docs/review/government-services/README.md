@@ -18,23 +18,23 @@ Open the island in the game through **More → Saves → Import & export → Imp
 
 ## Reproduce the boards
 
-The before build uses `7033c7c09d466877ca64b4fa0a11cec85e6fe15c`. The after build uses `f3ec616a2aafb00c48e367b1825e3a5e4141ead9`. Check out each revision separately, install the game dependencies in each checkout and run a local preview from each directory. The two previews must use different ports.
+The before build uses `7033c7c09d466877ca64b4fa0a11cec85e6fe15c`. Use the revision containing this review as the after build. Install the game dependencies in both checkouts and run a local preview from each directory. The two previews must use different ports.
 
 ```sh
 # Before checkout
-npm ci
+npm install --package-lock=false
 npm run build
 npx vite preview --host 127.0.0.1 --port 5352 --strictPort
 ```
 
 ```sh
 # After checkout
-npm ci
+npm install --package-lock=false
 npm run build
 npx vite preview --host 127.0.0.1 --port 5353 --strictPort
 ```
 
-Run the capture from the checkout containing this document. The review tools use Playwright and `@napi-rs/canvas`. Supply the installed Chromium path through `CHROME_PATH`, or omit it to use Playwright's installed browser.
+Run the capture from the checkout containing this document. Install the review dependencies with `npm install --no-save --package-lock=false playwright @napi-rs/canvas@1.1.1`. Supply the installed Chromium path through `CHROME_PATH`, or omit it to use Playwright's installed browser.
 
 ```sh
 CHROME_PATH=/usr/bin/chromium node docs/review/government-services/capture.mjs \
