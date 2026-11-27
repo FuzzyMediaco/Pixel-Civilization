@@ -10,7 +10,7 @@
 
 ## Checklist
 ### Part A — catalog
-- [ ] A1 Inventory worklist of all playable combinations (brief step 1), committed under docs/redesign/
+- [x] A1 [Inventory worklist](worklist/INDEX.md) of all playable combinations (brief step 1), committed under docs/redesign/
 - [ ] A2 Difficult neighborhood saved layout + Original library 5×4 matrix + per-era library & working street
 - [ ] A3 Shared art boundary implemented (voxelArchitect / designs / periodArchitecture / periodArtCatalog / packs / romePilot)
 - [ ] A4 Civic five distinct in all 11 styles
@@ -64,3 +64,4 @@
 - 2026-11-27 14:28 MT — [PR #43](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/43) merged at `799fb06`. Separated eight starter models across six retailers after comparing all 36 commercial entries. [Before/after boards](../review/commerce-entryways/). Local lint, tests, build and [Game checks](https://github.com/FuzzyMediaco/Pixel-Civilization/actions/runs/46070397860) passed.
 - 2026-11-27 14:31 MT — [PR #44](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/44) merged at `f072a22`. Finished the 23-building Original commercial pass, with matched boards for five more families and an audit of all 36 commercial IDs. [Before/after boards](../review/commerce-neighbors/). Local lint, tests, build and [Game checks](https://github.com/FuzzyMediaco/Pixel-Civilization/actions/runs/46070714905) passed.
 - 2026-11-27 — Reviewed the superseded [book-parts prototype at its original revision](https://github.com/FuzzyMediaco/Pixel-Civilization/commit/6bd33056462b1ed0347baa213760077ae2d66936). The shipped Public Library implements the shelves, paper figures, reading niches, open leaves and books directly. Retired the superseded prototype branch specified in the handoff.
+- 2026-11-27 14:35 MT — [PR #45](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/45) merged at `4fb30aa`. Rebuilt seven government departments across 140 Original building models and verified all nine government authorities in the same geometry scan. [Before/after boards](../review/government-services/). Local lint, tests, build and [Game checks](https://github.com/FuzzyMediaco/Pixel-Civilization/actions/runs/46071249364) passed.
