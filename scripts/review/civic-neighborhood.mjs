@@ -1,5 +1,5 @@
 // Compare two running local game builds with the same importable island and game camera.
-// node --import tsx scripts/review/civic-neighborhood.mjs <before-origin> <after-origin> [era] [output-dir]
+// node --import tsx scripts/review/civic-neighborhood.mjs <before-origin> <after-origin> [era] [output-dir] [world-file]
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import fs from "node:fs";
@@ -9,12 +9,13 @@ import {chromium} from "./ui-lib.mjs";
 import {PERIODS, PRODUCTION_ERAS} from "../../src/game/periods.ts";
 import {readWorldFile} from "../../src/game/worldTransfer.ts";
 
-const [before, after, era = "original", output = "docs/review/civic-neighborhood"] = process.argv.slice(2);
+const [before, after, era = "original", output = "docs/review/civic-neighborhood", worldFile] = process.argv.slice(2);
 assert.ok([before, after].every(Boolean), "Provide a before origin and an after origin");
 const origins = [before, after].map(value => new URL(value));
 assert.ok(origins.every(url => ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)), "Use local previews");
 assert.ok(era === "original" || PRODUCTION_ERAS.includes(era), "Unknown production era");
-const transfer = fs.readFileSync(new URL("../../docs/review/civic-neighborhood/island.json", import.meta.url), "utf8");
+const transfer = fs.readFileSync(worldFile ?? new URL("../../docs/review/civic-neighborhood/island.json", import.meta.url), "utf8");
+const neighborhoodName = worldFile ? JSON.parse(transfer).name : "Civic neighborhood";
 const {state} = readWorldFile(transfer)[0];
 const viewport = {width:390, height:844};
 const views = [
@@ -90,7 +91,7 @@ for (const [name, [original, redesigned]] of pairs) {
   ctx.fillStyle = "#19392f";
   ctx.font = "bold 19px sans-serif";
   const eraName = era === "original" ? "Original" : PERIODS[era].label;
-  ctx.fillText("Civic neighborhood  /  " + eraName + "  /  " + name, 12, 25);
+  ctx.fillText(neighborhoodName + "  /  " + eraName + "  /  " + name, 12, 25);
   ctx.font = "14px sans-serif";
   ctx.fillText("Before", 12, 55);
   ctx.fillText("After", width + 24, 55);
