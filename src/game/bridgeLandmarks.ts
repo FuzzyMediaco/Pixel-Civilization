@@ -29,7 +29,8 @@ function suspenderHeight(b: BridgeBay, u: number, anchors: number[]): number {
   const i = anchors.indexOf(next);
   if (i === 0) return 2 + (h - 2) * (u / next) ** 1.5;
   const t = (u - anchors[i - 1]) / (next - anchors[i - 1]);
-  const low = Math.max(3, Math.round(h * .29));
+  const sag = b.family === "suspension" ? [.29, .47, .18, .36][b.variant] : .29;
+  const low = Math.max(3, Math.round(h * sag));
   return low + (h - low) * (2 * t - 1) ** 2;
 }
 
@@ -91,19 +92,32 @@ function suspensionTower(b: BridgeBay, gothic: boolean) {
         const y = Math.round(h * f);
         b.fixed.box(-wide - 1, y, z - 1, wide + 2, y + 1, z + 2, steel.bright);
       }
-      if (b.variant === 2) {
-        const rise = Math.max(4, Math.min(8, Math.round(h * .24)));
-        for (let y = 0; y <= rise; y++) for (const sign of sides) {
-          const dx = sign * Math.round(5 * y / rise);
-          b.fixed.box(dx - 1, h - 2 + y, z, dx + 1, h - 1 + y, z + 1, steel.bright);
+      if (b.variant === 1) {
+        // Two triangular steel legs converge below the pitched portal. Their
+        // long silhouette remains visible from the banks as well as the road.
+        for (let y = 0; y <= h; y++) {
+          const dx = Math.round(6 * (1 - y / h));
+          for (const sign of sides) b.fixed.box(sign * dx - 1, y, z + s, sign * dx + 1, y + 1, z + s + 2, steel.red);
+          if (y === Math.floor(h * .35) || y === Math.floor(h * .7)) b.fixed.box(-dx, y, z + s, dx + 1, y + 1, z + s + 1, steel.bright);
         }
+      } else if (b.variant === 2) {
+        const rise = Math.max(6, Math.min(11, Math.round(h * .32)));
+        for (let y = 0; y <= rise; y++) for (const sign of sides) {
+          const dx = sign * Math.round(6 * y / rise);
+          b.fixed.box(dx - 1, h - 2 + y, z-1, dx + 2, h - 1 + y, z + 2, steel.bright);
+        }
+        for (const sign of sides) b.fixed.box(sign*6 - 1, h-2+rise, z-1, sign*6+2, h+rise+1, z+2, steel.dark);
       } else if (b.variant === 3) {
         const cap = h + Math.max(4, Math.round(h * .22));
-        b.fixed.box(-1, h, z - 1, 2, cap - 1, z + 2, steel.red);
-        b.fixed.box(-2, cap - 1, z - 1, 3, cap, z + 2, steel.dark);
-        b.fixed.box(-1, cap, z, 2, cap + 2, z + 1, steel.cream, .35);
-        b.fixed.box(-1, cap + 2, z - 1, 2, cap + 3, z + 2, steel.bright);
-        b.fixed.put(0, cap + 3, z, steel.brass);
+        // A broad observation gallery supports a glazed harbour beacon.
+        b.fixed.box(-4, Math.max(8,h-3), z-2, 5, h, z+3, steel.dark);
+        b.fixed.box(-3, h, z-2, 4, cap-1, z+3, steel.red);
+        for(const dx of [-2,0,2]) b.fixed.box(dx,h+1,z+s*2,dx+1,cap-1,z+s*2+1,steel.cream,.25);
+        b.fixed.box(-4, cap-1, z-2, 5, cap, z+3, steel.dark);
+        b.fixed.box(-2, cap, z-1, 3, cap+3, z+2, steel.cream,.4);
+        b.fixed.box(-2, cap+3, z-1, 3, cap+4, z+2, steel.bright);
+        b.fixed.box(-1, cap+4, z, 2, cap+5, z+1, steel.red);
+        b.fixed.put(0, cap+5, z, steel.brass);
       } else {
         b.fixed.box(-1, h + 1, z, 2, h + 2, z + 1, steel.bright);
         if (b.tier >= 7) b.fixed.put(0, h + 2, z, "#FFC69B", .45);
@@ -182,6 +196,45 @@ function suspend(b: BridgeBay, gothic: boolean) {
           const top = 2 + Math.floor((7 - distance) / 2);
           b.fixed.box(x, -2, z - 1, x + 1, top, z + 2, greyStone[b.variant]);
           b.fixed.box(x, top, z - 1, x + 1, top + 1, z + 2, chalk[b.variant]);
+        }
+      }
+      if (gothic && b.tier >= 4 && (b.variant === 1 || b.variant === 3)) {
+        const uTower = anchors.reduce((nearest, a) => Math.abs(a-u)<Math.abs(nearest-u)?a:nearest,anchors[0]);
+        const dist = Math.abs(u-uTower), edge = Math.min(u,last-u);
+        if (b.variant === 1) {
+          // The sandstone gate sits in a raked, full-span approach fortress.
+          // The terraced buttress reaches across bay boundaries below the web.
+          const reach = Math.min(18, Math.floor(anchors[0]*.85));
+          if (dist <= reach) {
+            const rise = Math.round(b.towerHeight*.84*(1-dist/(reach+1))**1.55);
+            const outer = z + 2*s;
+            b.fixed.box(x,0,Math.min(z,outer),x+1,rise+1,Math.max(z,outer)+1,greyStone[1]);
+            b.fixed.put(x,rise+1,outer,chalk[1]);
+            if (dist%5===1 && rise>5) b.fixed.box(x,2,outer,x+1,rise-2,outer+1,"#7D624D");
+          }
+          if (edge < anchors[0]) {
+            const arcade = 4 + Math.floor(b.tier/4);
+            b.fixed.put(x,arcade,z,chalk[1]);
+            if (edge%7<3) b.fixed.box(x,0,z,x+1,arcade,z+1,greyStone[1]);
+          }
+        } else {
+          // Mossy double watchtowers flank a lower crenellated passage along
+          // the run. Broad platform steps reach up to its elevated flanks.
+          if (dist>=3 && dist<=8) {
+            const top=b.towerHeight+5;
+            const outer=z+2*s;
+            b.fixed.box(x,b.bed,Math.min(z,outer),x+1,top,Math.max(z,outer)+1,greyStone[3]);
+            b.fixed.put(x,top,outer,chalk[3]);
+            if(dist<5||dist>6) b.fixed.box(x,top+1,Math.min(z,outer),x+1,top+4,Math.max(z,outer)+1,greyStone[3]);
+            else b.fixed.box(x,top-6,outer,x+1,top-3,outer+1,darkIron);
+          }
+          if(edge<anchors[0]){
+            const level=2+3*Math.floor(3*edge/anchors[0]);
+            const outer=z+3*s;
+            b.fixed.box(x,level,Math.min(z,outer),x+1,level+1,Math.max(z,outer)+1,chalk[3]);
+            if (edge%5<2) b.fixed.box(x,level+1,outer,x+1,level+3,outer+1,greyStone[3]);
+            if (edge%8<3) b.fixed.box(x,b.bed,outer,x+1,level,outer+1,greyStone[3]);
+          }
         }
       }
       if (u % (gothic ? 7 : 5) === 0) b.fixed.box(x, 1, z, x + 1, Math.round(y) + 1, z + 1, gothic ? rivet : steel.red);
