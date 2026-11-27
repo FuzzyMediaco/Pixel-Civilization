@@ -16,8 +16,8 @@ import { enforceModeBalance, registerCustomElement, removeCustomElement } from "
 import { buildDesignVoxels } from "../src/game/voxelArchitect";
 import { EXTRA_PLAYBOOK_CHAPTERS, PLAYBOOK_MODES, getModeChapterBrief } from "../src/handbook/modePlaybook";
 
-test("all 58 safety, military, and commerce expansion elements are registered and build valid 3D voxels", () => {
-  assert.equal(NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS.length, 58);
+test("all 60 safety, military, and commerce expansion elements are registered and build valid 3D voxels", () => {
+  assert.equal(NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS.length, 60);
   assert.ok(ELEMENTS.length >= 270, `Expected >= 270 catalog elements, got ${ELEMENTS.length}`);
 
   for (const entry of NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS) {

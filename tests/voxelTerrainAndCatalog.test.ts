@@ -26,7 +26,7 @@ import { rememberBuildingEdit, undoBuildingEdit } from "../src/game/construction
 test("Exact Build partitions the full catalog including Christmas Village", () => {
   const audit = auditDecisionTreeCoverage();
   assert.equal(audit.parentCount, 8);
-  assert.equal(audit.subcategoryCount, 56);
+  assert.equal(audit.subcategoryCount, 57);
   assert.equal(audit.minLeafSize, 3);
   assert.equal(audit.maxLeafSize, 6);
   assert.deepEqual(audit.missingIds, []);
@@ -37,8 +37,8 @@ test("Exact Build partitions the full catalog including Christmas Village", () =
     (sum, p) => sum + p.subcategories.reduce((s, sub) => s + sub.elementIds.length, 0),
     0,
   );
-  assert.equal(total, 325);
-  assert.ok(ELEMENTS.length >= 325);
+  assert.equal(total, 327);
+  assert.ok(ELEMENTS.length >= 327);
 });
 
 test("all 24 new balanced catalog elements build valid 3D voxel geometry across all 5 levels and 4 styles", () => {

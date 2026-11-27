@@ -19,6 +19,8 @@ export type Axis = "x" | "y" | "z";
 export type SmokeKind = "smoke" | "steam" | "dark" | "spark";
 
 export interface RotorSpec {
+  /** A posed display part uses its original mesh and pivot without continuous rotation. */
+  display?: import("./militaryDisplayKit").DefenseArtMotion;
   vox: PixelVox;
   /** pivot in base-voxel coordinates (rotor voxels are built relative to this point) */
   pivot: [number, number, number];

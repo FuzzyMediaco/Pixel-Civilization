@@ -52,6 +52,8 @@ import { encodeRoadSitePort } from "./roadTopology";
 import { cellBeyondEdge, getParcelEdgeKey, getParcelEdges } from "./parcelEdges";
 import { getParcelSoils } from "./parcelGeometry";
 import {roadBounds,corridorArt,strokeRoadAxis} from "./roadCorridors";
+import { alertFormationSecond, DefenseDisplayClock, nextExerciseSecond, poseDefenseDisplay, type DefenseDisplay } from "./defenseDisplay";
+import { hashStr } from "./designs/kit";
 import { buildPlacedGroupFromAsset, getOrBuildElementAsset, releaseParcelGeometry } from "./voxelArchitect";
 import {
   PixelVox,
@@ -297,6 +299,7 @@ function getVehicleGeometry(kind: RoadVehicleKind, variantSeed: number, era: Era
 
 interface PlacedRenderEntry {
   matchesFilter?: boolean;
+  displaySeed?: number;
   sampledProgress?: number;
   progressAt?: number;
   smokeActive?: boolean;
@@ -557,6 +560,7 @@ export class PixelWorldRenderer {
   private frameAt = performance.now();
   private elapsed = 0;
   private serviceClock = 0;
+  private readonly defenseClock = new DefenseDisplayClock();
   private nextShadowAt = 0;
   private readonly resetFrameTime = () => { this.frameAt = performance.now(); };
   private frameWindowSeconds = 0;
@@ -1381,7 +1385,7 @@ export class PixelWorldRenderer {
         !el.connected;
     }
     const group = entry.group;
-    const dynamic = group.userData.rotorList?.length || group.userData.bobOnWater ||
+    const dynamic = group.userData.rotorList?.length || group.userData.defenseDisplay || group.userData.bobOnWater ||
       this.gameState.mobility?.voyages[el.id] || el.animProgress > .001 ||
       group.scale.x !== 1 || group.scale.y !== 1 || group.position.y !== entry.baseY ||
       entry.disrepairBadge?.visible || entry.disconnectBadge?.visible;
@@ -1416,6 +1420,7 @@ export class PixelWorldRenderer {
   }
   public syncState(state: GameState, selectedIds: string[]): void {
     this.gameState = state;
+    this.defenseClock.sync(state.activePlaySec, state.activeAttack, this.elapsed);
     if(this.renderedGeography!==(state.terrainVersion??1)){this.clearGeography();this.buildIslandAndOcean();}
     this.selectedIds = selectedIds;
     this.engineering.sync(state, this.appearanceEra);
@@ -1524,6 +1529,7 @@ export class PixelWorldRenderer {
           spanX: el.spanX,
           spanZ: el.spanZ,
           topY: asset.topY || 2.5,
+          displaySeed: group.userData.defenseDisplay ? hashStr(el.id) : undefined,
           accentHex: def.accentHex,
           isBuilding: !def.isNetwork && !def.passiveNature,
           lastLevel: el.level,
@@ -2708,9 +2714,30 @@ export class PixelWorldRenderer {
       this.updateCameraTransform();
     }
 
+    const displayTime = this.defenseClock.sample(elapsed, this.gameState.gameOver ? 0 : this.gameState.playSpeed ?? 1);
+
     // Animate rotors, boats bobbing, merge/place squash-stretch, and badges
     for (const {el, entry} of this.placedGroup.animated.values()) {
       const grp = entry.group;
+      const display: DefenseDisplay | undefined = grp.userData.defenseDisplay;
+      if (display && entry.displaySeed !== undefined) {
+        const reduced = this.reduceMotion?.matches ?? false;
+        if (el.onFire || el.disrepair || !el.connected) {
+          poseDefenseDisplay(display, "idle", 0, reduced);
+        } else if (displayTime.alert !== undefined) {
+          const second = el.defId === "drone_swarm_base"
+            ? alertFormationSecond(displayTime.play, displayTime.alert, entry.displaySeed) : displayTime.alert;
+          poseDefenseDisplay(display, "alert", second, reduced);
+        } else if (displayTime.returnAmount > 0) {
+          const second = el.defId === "drone_swarm_base"
+            ? alertFormationSecond(displayTime.play, displayTime.lastAlert, entry.displaySeed) : displayTime.lastAlert;
+          poseDefenseDisplay(display, "alert", second, reduced, displayTime.returnAmount);
+        } else {
+          const exercise = el.defId === "drone_swarm_base"
+            ? nextExerciseSecond(displayTime.play, displayTime.sinceReturn, entry.displaySeed) : -1;
+          poseDefenseDisplay(display, exercise < 0 ? "idle" : "training", exercise, reduced);
+        }
+      }
 
       const rotorList = grp.userData.rotorList as { pivot: THREE.Group; axis: "x" | "y" | "z"; speed: number; wind: boolean }[] | undefined;
       const animateEraDetail = this.appearanceEra === "original" ||

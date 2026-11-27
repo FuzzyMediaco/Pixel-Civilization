@@ -1,3 +1,4 @@
+import { hasDefenseDisplay } from "../game/defenseDisplay";
 import { readPlayerItem, writePlayerItem } from "../game/deviceSaves";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -826,7 +827,7 @@ export function UnifiedAtlas({
                   <div className="pc-atlas-nest-body">
                     <p className="pc-atlas-prose">{selectedEntry.description}</p>
                     {spec && <p className="pc-atlas-prose">{spec.activity}</p>}
-                    {spec && ["train_stops","aqueduct","water_treatment_plant","grocery_store","spaceport"].includes(selectedEntry.id) &&
+                    {(hasDefenseDisplay(selectedEntry.id) || spec && ["train_stops","aqueduct","water_treatment_plant","grocery_store","spaceport"].includes(selectedEntry.id)) &&
                       <button type="button" aria-pressed={previewActive} className="pc-atlas-toggle-btn" onClick={() => setPreviewActive(!previewActive)}>{previewActive ? "Preview idle state" : "Preview active state"}</button>}
                     <p className="pc-atlas-prose">{getGuideUsage(selectedEntry.id, joins[0], selectedEntry.description)}</p>
                   </div>

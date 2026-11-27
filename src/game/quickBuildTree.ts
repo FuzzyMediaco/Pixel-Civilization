@@ -468,15 +468,18 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
         ],
       },
       {
+        id: "pm_readiness", label: "Recon & Readiness", iconDefId: "drone_swarm_base",
+        elementIds: ["drone_recon_base", "drone_swarm_base", "underground_missile_silo"],
+      },
+      {
         id: "pm_marines_spec",
-        label: "Marines, Recon & Med",
+        label: "Marines & Field Medicine",
         iconDefId: "marine_corps_base",
         elementIds: [
           "marine_corps_base",
           "marine_amphib_base",
           "marine_aviation_wing",
           "naval_amphibious_dock",
-          "drone_recon_base",
           "army_medical_corps",
         ],
       },

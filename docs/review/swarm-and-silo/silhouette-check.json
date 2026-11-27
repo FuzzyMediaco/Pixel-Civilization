@@ -1,0 +1,15 @@
+{
+ "min": 0.12,
+ "ids": [
+  "drone_swarm_base",
+  "underground_missile_silo"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.317,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}

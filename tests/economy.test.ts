@@ -80,6 +80,28 @@ function neighborhood(mode: GameState["mode"] = "real") {
   recalc(s);
   return s;
 }
+test("silo and swarm depots join the existing staffed defense service and survive a save round trip", () => {
+  for (const id of ["underground_missile_silo", "drone_swarm_base"]) {
+    const state = neighborhood();
+    state.currentStage = state.highestStageReached = 18;
+    put(state, "city_offices", 4, 1);
+    recalc(state);
+    const before = state.metrics.defensePower;
+    const depot = put(state, id, 1, 1);
+    depot.variant = 3;
+    recalc(state);
+    assert.ok(depot.connected && hasAuthority(state), id);
+    assert.ok(state.metrics.defensePower > before, id + " supplies defense");
+    const loaded = cloneGameStateSnapshot(state);
+    const saved = loaded.elements.find(element => element.id === depot.id);
+    assert.deepEqual(saved && [saved.defId, saved.variant, saved.rotation, saved.spanX, saved.spanZ],
+      [id, 3, depot.rotation, depot.spanX, depot.spanZ]);
+    depot.onFire = true;
+    recalc(state);
+    assert.equal(state.metrics.defensePower, before, id + " stops supplying defense while closed");
+  }
+});
+
 test("each new government office supplies Government Services and authorizes staffed crews", () => {
   assert.equal(SKYLINE_GOVERNMENT_IDS.length,8);
   for(const id of SKYLINE_GOVERNMENT_IDS){

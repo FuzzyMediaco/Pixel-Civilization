@@ -1,9 +1,11 @@
 import { emergencyDispatch } from "./emergencyDispatch";
 import { buildPublicOrderCenter } from "./publicOrderCenter";
 /**
- * Procedural 3D voxel designs for the 38 new Police, Fire, SWAT, Emergency & Military
+ * Procedural 3D voxel designs for the expanded Police, Fire, SWAT, Emergency & Military
  * (Army, Naval, Air Force & Marine Corps) civilization elements.
  */
+import { buildUndergroundMissileSilo } from "./undergroundMissileSilo";
+import { buildDroneSwarmBase } from "./droneSwarmBase";
 import {
   type Ctx,
   PixelVox,
@@ -737,6 +739,8 @@ defineDesigns({
   fighter_wing_base: entry("fighter_wing_base", (c) => buildAirForceBase(c, "fighter")),
   airlift_cargo_base: entry("airlift_cargo_base", (c) => buildAirForceBase(c, "cargo")),
   awacs_radar_base: entry("awacs_radar_base", (c) => buildAirForceBase(c, "awacs")),
+  underground_missile_silo: entry("underground_missile_silo", buildUndergroundMissileSilo),
+  drone_swarm_base: entry("drone_swarm_base", buildDroneSwarmBase),
   drone_recon_base: entry("drone_recon_base", (c) => buildAirForceBase(c, "recon")),
 
   // Marine Corps (3)

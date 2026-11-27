@@ -1481,6 +1481,18 @@
     "Solar White",
     "Obsidian"
   ],
+  "underground_missile_silo": [
+    "Orbital Dial",
+    "Zigzag Doors",
+    "Prism Quilt",
+    "Twin Moons"
+  ],
+  "drone_swarm_base": [
+    "Beacon Carousel",
+    "Kite Tail Yard",
+    "Lantern Lift Exchange",
+    "Glasswing Crescent"
+  ],
   "marine_corps_base": [
     "Scarlet & Gold",
     "Woodland Camo",
