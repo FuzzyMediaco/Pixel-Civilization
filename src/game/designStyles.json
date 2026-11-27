@@ -102,10 +102,10 @@
     "Vineyard Château"
   ],
   "shops": [
-    "Main Street Americana",
-    "Parisian",
-    "Dutch canal",
-    "Tokyo neon"
+    "Handbag Row",
+    "Parasol Court",
+    "Merchant Steps",
+    "Lantern Bazaar"
   ],
   "grocery_store": [
     "Walk-In Orchard",
@@ -114,10 +114,10 @@
     "Windmill Market Barn"
   ],
   "buildings": [
-    "Art Deco",
-    "Modern glass",
-    "Brutalist",
-    "Postmodern"
+    "Spiral Gardens",
+    "Radiogram Tower",
+    "Skybridge Twins",
+    "Woven Lantern"
   ],
   "restaurants": [
     "Fork & Noodle Bowl",
@@ -168,16 +168,16 @@
     "Roundhouse Reserve"
   ],
   "malls": [
-    "'80s Americana",
     "Glass Galleria",
-    "Desert Luxury",
-    "Asian Megamall"
+    "Spiral Atrium Terraces",
+    "Hillside Souk Steps",
+    "Ocean Liner Emporium"
   ],
   "data_centers": [
-    "Corporate",
-    "Arctic",
-    "Desert Solar",
-    "Bunker"
+    "Rack Street",
+    "Circuit Court",
+    "Cooling Crown",
+    "Fiber Loom"
   ],
   "solar_farms": [
     "Sheep meadow",
@@ -480,22 +480,22 @@
     "Marble pool coping"
   ],
   "businesses": [
-    "Brick warehouse conversion",
-    "Scandinavian timber",
-    "Silicon tech",
-    "Southwest adobe"
+    "Pinwheel Studios",
+    "Drafting Board Works",
+    "Carriage Works",
+    "Paperclip Pavilion"
   ],
   "blacksmiths": [
-    "Village timber",
-    "Nordic turf roof",
-    "Industrial brick",
-    "Tatara clay"
+    "Walk-in Anvil",
+    "Crucible Works",
+    "Horseshoe Arcade",
+    "Waterwheel Hammer House"
   ],
   "atms": [
-    "Green Savings",
-    "Crimson Express",
-    "Crypto Neon",
-    "Gold Reserve"
+    "Coin Exchange",
+    "Piggy Deposit",
+    "Swing-Door Vault",
+    "Card Reader"
   ],
   "docks": [
     "New England",
