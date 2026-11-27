@@ -70,3 +70,17 @@ These named GitHub branches carry the unmerged work. Their source state takes pr
 ## Verified release record
 
 The following entries identify this checkpoint and distinguish published work from the intentionally preserved drafts.
+
+| Slice | Pull request | Evidence |
+| --- | --- | --- |
+| Original bridges, five landmark families plus railway counterparts | [#51](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/51), merged `ed28699` | [Run lengths, playable harbor and working lift](../docs/review/bridge-runs/README.md) |
+| Ancient Egypt, 100 civic models | [#52](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/52) | [Papyrus terraces, courts, treasury and night views](../docs/review/ancient-egypt-civic-five/README.md) |
+| Ancient Greece, 100 civic models | [#53](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/53) | [Every level and variant, silhouette and grayscale](../docs/review/greek-civic-five/README.md) |
+| Rome Aqueduct City, 100 civic models | [#54](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/54) | [Full matrices and three matched phone views](../docs/review/rome-civic-five/README.md) |
+| Ancient China, 100 civic models | [#55](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/55) | [Gallery and audit](../docs/review/chinese-civic-courts/README.md) · [Matched phone street](../docs/review/chinese-civic-courts/ancient-china-street.webp) |
+| Medieval Europe, 100 civic models | [#56](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/56) | [Day and night comparisons](../docs/review/medieval-europe-civic-five/README.md) |
+| Future 3027, 100 civic models | [#57](https://github.com/FuzzyMediaco/Pixel-Civilization/pull/57) | [Full matrices, night and 245-placement phone district](../docs/review/future-civic/README.md) |
+
+The registered six-era civic work supplies 600 deliberately built presentations, in addition to the 100 Original civic presentations. The cross-era recognition panel and physical-device review remain open. The Greek phone before/after comparison timed out before generating a pair. Medieval’s evidence includes the complete gallery and night comparison.
+
+**Closing QA and deployment.** The pre-release site served offline edition `edd0a8c11201` and Worker version `8ffeb693-4da1-4472-bacf-7094019b6ed1`. The six civic art pull requests have their own small source commits and visual evidence. The offline fallback’s first combined run exposed 25 missing image files. The fallback branch with its initial five Egyptian sheets is [codex/baked-era-models](https://github.com/FuzzyMediaco/Pixel-Civilization/tree/codex/baked-era-models). The final release receipt below records whether the corrected integration and web deployment shipped.
