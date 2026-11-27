@@ -407,6 +407,31 @@ function gambrel(v: PixelVox, x0: number, x1: number, z0: number, z1: number, ba
 
 function lumberBarn(c: Ctx) {
   const { lv, v, hx, hz } = c;
+  if (lv === 1) {
+    // The red timber frame only encloses the rear. Its shed roof reaches out over an open cutting bay.
+    for (const x of [-6, 0]) v.box(x, 1, -6, x + 2, 10, -4, "#995548");
+    for (let y = 2; y < 8; y += 2) v.box(-6, y, -6, 2, y + 1, -5, "#ad6650");
+    for (let z = -7; z < 2; z++) {
+      const roof = 10 - Math.floor((z + 7) / 4);
+      v.box(-7, roof, z, 4, roof + 1, z + 1, z % 3 === 0 ? "#84938b" : "#475e65");
+    }
+    for (let i = 0; i < 4; i++) v.put(-5, 5 + i, -5 + i, "woodDark");
+
+    // Two X-frames carry a single long plank; neighboring uncut stock stands in the bins.
+    for (const x of [-6, 0]) {
+      for (let y = 0; y < 4; y++) {
+        v.put(x, y + 1, 2 + y, "woodDark");
+        v.put(x, y + 1, 5 - y, "wood");
+      }
+    }
+    v.box(-7, 4, 3, 3, 5, 5, "woodLight");
+    v.box(3, 1, -4, 8, 3, 1, "#ad614a");
+    for (let i = 0; i < 3; i++) {
+      v.box(3 + i * 2, 3, -1, 4 + i * 2, 5 + 2 * i, 0, i % 2 ? "wood" : "woodLight");
+    }
+    person(v, 4, 1, 3, "tealDark");
+    return;
+  }
   const x = -hx + 2,
     z = -hz + 2,
     X = byLv(c, [5, 6, 8, 9, 15]),
