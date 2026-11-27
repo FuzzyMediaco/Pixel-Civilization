@@ -26293,14 +26293,14 @@
       "education": 60,
       "recreation": 24
     },
-    "description": "Welcoming civic library with grand stone entry steps, arched reading-room windows and a shaded book garden.",
-    "usage": "Welcoming civic library with grand stone entry steps, arched reading-room windows and a shaded book garden.",
-    "growth": "A quiet neighborhood reading room expands with stone portico columns, skylight reading wings and a sculpture court.",
+    "description": "A lending library built from giant books, whose cloth covers, gilt spines and page-edge walls wrap reading gardens, steps and courts that open onto the street.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "One giant book opens a reading nook, a second volume or fold adds a porch or passage, the books wrap a reading court, open an open-air reading commons with ribbon bridges and stages, and finally become a giant-book athenaeum.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Reading Room",
+        "name": "Book Nook",
         "dimensions": [
           1,
           1
@@ -26309,7 +26309,7 @@
       },
       {
         "level": 2,
-        "name": "Branch Library",
+        "name": "Porch-and-Passage Branch",
         "dimensions": [
           2,
           1
@@ -26318,7 +26318,7 @@
       },
       {
         "level": 3,
-        "name": "Carnegie Hall",
+        "name": "Reading-Court Library",
         "dimensions": [
           2,
           2
@@ -26327,7 +26327,7 @@
       },
       {
         "level": 4,
-        "name": "Central Library",
+        "name": "Open-Air Reading Commons",
         "dimensions": [
           3,
           2
@@ -26336,7 +26336,7 @@
       },
       {
         "level": 5,
-        "name": "Athenaeum & Archives",
+        "name": "Giant-Book Athenaeum",
         "dimensions": [
           3,
           3
@@ -26347,19 +26347,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Beaux-Arts Stone"
+        "name": "Stacked Hardbacks"
       },
       {
         "index": 1,
-        "name": "Warm Brick"
+        "name": "Open Folio"
       },
       {
         "index": 2,
-        "name": "Nordic Timber Glass"
+        "name": "Bookend Alley"
       },
       {
         "index": 3,
-        "name": "Modern Skylight"
+        "name": "Pop-up Storybook"
       }
     ],
     "partner": {
