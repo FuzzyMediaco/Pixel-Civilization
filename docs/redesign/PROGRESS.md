@@ -42,3 +42,11 @@
     session's notes: A Stacked Hardbacks, B Open Folio, C Bookend Alley, D Pop-up Storybook.
   - NEXT: the remaining 29 commerce elements → government/civic (Part C.2) → military silos and drone
     swarms (C.3) → iconic progressive bridges (C.4) → library + civic five (A) → UI/style guide (B).
+  - PR #33 merged to main (73973b3). PR #34 (coffee_roastery, bowling_alley, flower_shop, night_market,
+    art_gallery) merged too. Builders: src/game/designs/commerceMore.ts. Commerce done: 12 of 36.
+    NEXT commerce, in this order: indie_bookstore, neighborhood_pharmacy, seafood_pier (coastal, check
+    the water domain), auto_dealership, furniture_showroom, coworking_loft, tech_startup_hub,
+    department_store, hardware_store, then the older commerce.ts set (businesses, grocery_store, shops,
+    blacksmiths, restaurants, clothing_stores, thrift_stores, bars, gas_stations, atms, buildings, banks,
+    malls, data_centers). After each batch: update designStyles.json and the expansion styleNames, run
+    ATLAS_IDS=... render-handbook, then lint/test/build, PR, merge when green.
