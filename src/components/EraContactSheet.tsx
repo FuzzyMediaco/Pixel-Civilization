@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { getMaxElementLevel, type CivElementDef } from "../game/catalog";
 import type { EraKey } from "../game/eraStyles";
-import { eraSheet, hasBakedSheet, renderIsometricVoxelThumb } from "./ElementFavicon";
+import { bakedEraSheet } from "../handbook/eraSheets";
+import { renderIsometricVoxelThumb } from "./ElementFavicon";
 import { useEraArt } from "./useEraArt";
 
 export function EraContactSheet({def,era,originalImage,caption}:{def:CivElementDef;era:EraKey;originalImage:string;caption:string}) {
   const [open,setOpen]=useState(false);
   const canvas=useRef<HTMLCanvasElement>(null);
-  const baked=hasBakedSheet(def.id,era);
-  const dynamic=era!=="original" && !baked;
+  const [unavailable,setUnavailable]=useState<string>();
+  const baked=bakedEraSheet(def.id,era);
+  const dynamic=era!=="original" && (!baked || baked===unavailable);
   const {ready}=useEraArt(open&&dynamic ? era : "original");
   const max=getMaxElementLevel(def.id);
   useEffect(()=>{
@@ -34,7 +36,7 @@ export function EraContactSheet({def,era,originalImage,caption}:{def:CivElementD
     <summary><span>2D sprite sheet (all levels &amp; styles)</span></summary>
     {open && <div className="pc-atlas-nest-body"><div className="pc-atlas-sheet-wrap">
       {dynamic ? <canvas style={{width:"100%",height:"auto"}} ref={canvas} width={96*max} height={384} aria-label={caption} role="img"/> :
-        <img src={baked ? eraSheet(def.id,era) : originalImage} alt={caption}/>}
+        <img src={baked ?? originalImage} onError={baked ? ()=>setUnavailable(baked) : undefined} alt={caption}/>}
     </div></div>}
   </details>;
 }

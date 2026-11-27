@@ -15,7 +15,11 @@ function prepareOfflineAssets(): Plugin {
         fs.rmSync(strayDir, { recursive: true, force: true });
       }
       // The first visit must cache the code needed to open an island offline.
-      const compiled = fs.readdirSync(path.join(output, "assets")).filter(name => /\.(js|css|woff2)$/.test(name)).sort();
+      const assets = fs.readdirSync(path.join(output, "assets")).sort();
+      // The five starter civic comparisons also work on a first offline visit to a different era.
+      // Additional catalog sheets and interactive geometry keep the existing on-demand caching.
+      const civicSheet = /^era-sheet-(public_library|post_offices|courthouses|city_offices|banks)-.+\.webp$/;
+      const compiled = assets.filter(name => /\.(js|css|woff2)$/.test(name) || civicSheet.test(name));
       const optionalArt = new Set(compiled.filter(name => /^(romePilot-|pack-|periodArchitecture-)/.test(name)));
       const urls = (files: Iterable<string>) => Array.from(files, name => JSON.stringify("/assets/" + name)).join(",");
       const hash = createHash("sha256").update(compiled.join("\n"));

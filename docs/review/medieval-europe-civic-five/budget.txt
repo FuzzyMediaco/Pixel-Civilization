@@ -1,0 +1,1 @@
+medieval-europe    public_library max 5807 (L5A) avg 2155 | post_offices max 4213 (L5A) avg 1652 | courthouses max 12517 (L5A) avg 4201 | city_offices max 3574 (L5A) avg 1720 | banks max 4664 (L5D) avg 2181
