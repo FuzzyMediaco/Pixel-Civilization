@@ -29083,9 +29083,9 @@
       "education": 18,
       "government": 105
     },
-    "description": "Deep bronze-edged record stacks preserve the city’s deeds, charters and maps.",
+    "description": "Retrieve deeds, charters and city plans from hanging index drawers, a fan of tabbed folders, a filing carousel or rolled map vaults.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "New stacks rise above the registry, followed by a glazed reading room and a street-facing reading wing.",
+    "growth": "Retrieval machinery and public reading rooms grow from a registry counter into a municipal archive.",
     "maxLevel": 5,
     "levels": [
       {
@@ -29137,19 +29137,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Index Drawers"
+        "name": "Hanging Index"
       },
       {
         "index": 1,
-        "name": "Fanned Folios"
+        "name": "Folio Fan"
       },
       {
         "index": 2,
-        "name": "Twin Cabinets"
+        "name": "Retrieval Carousel"
       },
       {
         "index": 3,
-        "name": "Stepped Repository"
+        "name": "Rolled Plan Vault"
       }
     ],
     "partner": {
@@ -29174,9 +29174,9 @@
       "water": -2,
       "government": 155
     },
-    "description": "Surveyors work above a walkable scale model of the island beneath an enormous drafting instrument.",
+    "description": "Surveyors, residents and planning staff gather around survey instruments, contour models, drawing desks and maps.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "The drafting wing adds survey floors, a larger city model and a high instrument over the public map court.",
+    "growth": "Public drafting rooms gain relief models, observation galleries and walkways where residents can study the next district.",
     "maxLevel": 5,
     "levels": [
       {
@@ -29199,7 +29199,7 @@
       },
       {
         "level": 3,
-        "name": "Mapping Bureau",
+        "name": "Public Map Gallery",
         "dimensions": [
           3,
           2
@@ -29208,7 +29208,7 @@
       },
       {
         "level": 4,
-        "name": "Metropolitan Planning Lab",
+        "name": "District Planning Bureau",
         "dimensions": [
           3,
           3
@@ -29217,7 +29217,7 @@
       },
       {
         "level": 5,
-        "name": "City Planning Campus",
+        "name": "Metropolitan Planning Campus",
         "dimensions": [
           4,
           3
@@ -29228,19 +29228,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Surveyor’s Compass"
+        "name": "Surveyor’s Tripod"
       },
       {
         "index": 1,
-        "name": "Armillary Studio"
+        "name": "Contour Terrace"
       },
       {
         "index": 2,
-        "name": "Triangulation Lab"
+        "name": "Cantilever Drafting Hall"
       },
       {
         "index": 3,
-        "name": "Meridian Ring"
+        "name": "Rolled Map Gallery"
       }
     ],
     "partner": {
@@ -29265,14 +29265,14 @@
       "water": -4,
       "government": 235
     },
-    "description": "Covered inspection lanes and staffed engineering offices administer public infrastructure.",
+    "description": "Crews inspect a bridge, gauge a reservoir, operate a lift or examine the layers beneath a city street.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "More inspection bays fill the open shed as the engineering wing, reservoir or lifting gantry grows overhead.",
+    "growth": "Field crews gain inspection offices, testing equipment, public viewing walks and full-size infrastructure to examine.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Works Office",
+        "name": "Field Inspection Office",
         "dimensions": [
           2,
           2
@@ -29281,7 +29281,7 @@
       },
       {
         "level": 2,
-        "name": "Inspection Yard",
+        "name": "District Inspection Yard",
         "dimensions": [
           2,
           2
@@ -29290,7 +29290,7 @@
       },
       {
         "level": 3,
-        "name": "District Works Depot",
+        "name": "Infrastructure Depot",
         "dimensions": [
           3,
           2
@@ -29308,7 +29308,7 @@
       },
       {
         "level": 5,
-        "name": "Metropolitan Works Hall",
+        "name": "Metropolitan Works Campus",
         "dimensions": [
           4,
           3
@@ -29319,19 +29319,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Sawtooth Offices"
+        "name": "Bridge Inspection Yard"
       },
       {
         "index": 1,
-        "name": "Reservoir Vault"
+        "name": "Reservoir Gauge House"
       },
       {
         "index": 2,
-        "name": "A-Frame Gantry"
+        "name": "Gantry Lift Depot"
       },
       {
         "index": 3,
-        "name": "Wave Crane Hall"
+        "name": "Street Section Hall"
       }
     ],
     "partner": {
@@ -29357,9 +29357,9 @@
       "recreation": 42,
       "government": 460
     },
-    "description": "Sweeping limestone chamber roofs gather around a glazed debating hall and a public stair.",
+    "description": "Delegates meet in open chambers framed by terraced galleries, division bridges, limestone sails or a crown of vaulted committee rooms.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "Parliamentary wings rise and spread around the central skylight, ceremonial steps and garden forecourt.",
+    "growth": "Public entrances and committee rooms gather around the chamber as each assembly gains a gallery overlooking its debates.",
     "maxLevel": 5,
     "levels": [
       {
@@ -29411,19 +29411,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Twin Sails"
+        "name": "Terraced Hemicycle"
       },
       {
         "index": 1,
-        "name": "Three Estates"
+        "name": "Division Bridges"
       },
       {
         "index": 2,
-        "name": "Diagonal Chambers"
+        "name": "Speaker’s Sails"
       },
       {
         "index": 3,
-        "name": "Crown of Chambers"
+        "name": "Committee Crown"
       }
     ],
     "partner": {
