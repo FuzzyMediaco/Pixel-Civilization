@@ -16,7 +16,7 @@
 }
 .pc-shop article[data-featured=true] { border-color: var(--ui-green); box-shadow: 0 0 0 2px var(--ui-leaf), 0 3px 10px rgba(17, 42, 35, 0.12); }
 .pc-shop article img, .pc-shop-hero { width: 100%; aspect-ratio: 1.9; object-fit: cover; border-radius: var(--ui-radius-sm); background: var(--ui-leaf); }
-.pc-shop-hero { display: grid; place-items: center; color: var(--ui-green); background: linear-gradient(135deg, var(--ui-leaf), #eef4e8); }
+.pc-shop-hero { aspect-ratio: 3.6 !important; display: grid; place-items: center; color: var(--ui-green); background: linear-gradient(135deg, var(--ui-leaf), #eef4e8); }
 .pc-shop-title { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .pc-shop-title h3 { margin: 0; font: 800 var(--ui-t-md)/1.2 var(--ui-font); color: var(--ui-ink); }
 .pc-shop .ui-tag.is-price { background: var(--ui-green); color: #fff; font-size: var(--ui-t-sm); }
