@@ -93,6 +93,12 @@ export const assizes:SignatureBuilder=(c,p,active)=>{
     }
     if(l>=4) for(const side of [-1,1]) turret(v,side*(X-2),rear+3,landing+6,2,4,slate);
     if(l===5) {
+      for(const x of [-3,3]) for(const z of [rear+1,rear+6]){
+        v.box(x-1,1,z-1,x+2,landing+2,z+2,stone);
+        v.box(x,landing+2,z,x+1,eave+8,z+1,oak);
+        brace(v,x,z,-Math.sign(x)*2,3,0,eave+3);
+      }
+      v.box(-3,eave+6,rear+1,4,eave+7,rear+7,honey);
       v.box(-3,eave+7,rear+1,4,eave+10,rear+7,lime);
       gable(v,-4,rear,5,rear+8,eave+10,4,true,tile);
     }
