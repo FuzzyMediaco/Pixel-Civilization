@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import * as THREE from "three";
 import { packVoxKey } from "../src/game/voxelCore";
@@ -125,4 +126,32 @@ test("the complete lift deck and its trim rise five metres while separate counte
     assert.ok(bay.moving.v.has(packVoxKey(1, 1, bay.halfWidth - 1)));
     assert.ok(!bay.fixed.v.has(packVoxKey(1, 1, bay.halfWidth - 1)));
   } finally { view.dispose(); }
+});
+
+test("a solitary span keeps eleven visible upgrade stages even without a landmark tower", () => {
+  for (const shape of ["suspension", "arch", "truss", "lift", "beam"] as const) {
+    const stages = new Set<string>();
+    for (let tier = 1; tier <= 11; tier++) {
+      const run = bridgeRunProfile({ ...crossing, tier, shape }, 0, 1);
+      const bay = buildBridgeBay(run, 0, 2.8, -5.5);
+      const hash = createHash("sha256");
+      for (const layer of [bay.fixed, bay.moving, bay.weights]) {
+        const entries = [...layer.v].sort(([a], [b]) => a - b);
+        hash.update(new Int32Array(entries.flat()));
+      }
+      stages.add(hash.digest("hex"));
+    }
+    assert.equal(stages.size, 11, shape);
+  }
+});
+
+test("Gothic portals keep a two-metre opening even at the first three-piece threshold", () => {
+  for (const variant of [0, 1, 2, 3]) {
+    const run = bridgeRunProfile({ ...crossing, tier: 1, shape: "arch" }, 0, 3, variant);
+    const bay = buildBridgeBay(run, 1, 2.8, -4);
+    for (let x = -8; x < 8; x++)
+      for (let y = 0; y < 8; y++)
+        for (let z = -bay.halfWidth + 1; z < bay.halfWidth - 1; z++)
+          assert.ok(!bay.fixed.v.has(packVoxKey(x, y, z)), "blocked lane in variant " + variant);
+  }
 });

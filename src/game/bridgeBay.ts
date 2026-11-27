@@ -22,8 +22,19 @@ export function buildBridgeBay(run: BridgeRunProfile, index: number, width: numb
       trim.box(4, 2, z, 5, tier >= 9 ? 5 : 4, z + 1, "#596B69");
       trim.put(4, tier >= 9 ? 5 : 4, z, "#FFE0A0", 0.55);
     }
+    if (tier >= 6) {
+      const inner = z - sign;
+      trim.box(-8, -3, inner, 8, -2, inner + 1, stone ? "#C7B194" : "#6F8988");
+    }
     if (tier >= 7) trim.box(-8, -3, z, 8, -2, z + 1, stone ? "#8B765E" : "#50666B");
+    if (tier >= 8) {
+      for (const x of [-7, 1]) trim.box(x, -4, z, x + 3, -3, z + 1, stone ? "#AD9271" : "#6D837F");
+    }
     if (tier >= 10) for (const x of [-4, 4]) trim.put(x, -3, z, "#D5B67A");
+    if (tier >= 11) {
+      for (const x of [-6, -2, 2, 6]) trim.put(x, 1, z, "#F0CF8F", 0.4);
+      trim.box(-8, -4, z - sign, 8, -3, z - sign + 1, stone ? "#887760" : "#52686E");
+    }
     if (family === "trestle") {
       fixed.box(-8, -3, z, 8, -1, z + 1, "#9A6C43");
       for (const x of [-7, 6]) fixed.box(x, bed, z, x + 1, -2, z + 1, "#72503A");

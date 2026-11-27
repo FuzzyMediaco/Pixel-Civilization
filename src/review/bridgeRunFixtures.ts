@@ -50,7 +50,7 @@ export function catalogBridgeStudies(id: string, variantParam: string | null): B
   if (!Object.hasOwn(catalogForms, id)) throw new Error("Unknown catalog bridge: " + id);
   const catalogId = id as BridgeId;
   const max = getMaxElementLevel(catalogId);
-  const variants = variantParam === null ? [0, 1, 2, 3] : [Number(variantParam)];
+  const variants = variantParam === null || variantParam === "all" ? [0, 1, 2, 3] : [Number(variantParam)];
   const tiers = variantParam === null ? [max] : Array.from({ length: max }, (_, i) => i + 1);
   return variants.flatMap(variant => {
     if (!Number.isInteger(variant) || variant < 0 || variant > 3) throw new Error("Bridge variant must be 0 to 3");
@@ -91,9 +91,12 @@ export function pitchedBridge(study: BridgeStudy) {
   }
   const first = p(left);
   const piece = state.elements.find(e => e.gx === first.gx && e.gz === first.gz)!;
-  for (let tier = 2; tier <= study.tier; tier++) {
-    const result = upgradeElementDirect(state, piece.id);
-    if (!result.ok) throw new Error(study.label + ": upgrade to level " + tier + " failed");
+  function upgradeTo(target: number) {
+    while ((state.infrastructure!.spans[first.gx + "," + first.gz].tier ?? 1) < target) {
+      const result = upgradeElementDirect(state, piece.id);
+      if (!result.ok) throw new Error(study.label + ": upgrade to level " + target + " failed");
+    }
   }
-  return { state, left, right };
+  upgradeTo(study.tier);
+  return { state, left, right, upgradeTo };
 }

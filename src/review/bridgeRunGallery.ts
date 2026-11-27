@@ -17,9 +17,11 @@ export async function drawBridgeStudies(params: URLSearchParams, out: HTMLCanvas
   const night = params.get("night") === "1";
   const angle = params.has("angle") ? Number(params.get("angle")) * Math.PI / 180 : Math.atan2(31, 83);
   voxelNightUniform.value = night ? 1 : 0;
-  const width = 570, height = 276, caption = 36;
-  const rows = Math.ceil(studies.length / 2);
-  out.width = width * 2;
+  const matrix = set === "catalog" && params.get("variant") === "all";
+  const width = matrix ? 310 : 570, height = matrix ? 150 : 276, caption = matrix ? 29 : 36;
+  const cols = matrix ? studies.length / 4 : 2;
+  const rows = Math.ceil(studies.length / cols);
+  out.width = width * cols;
   out.height = rows * (height + caption);
   const ctx = out.getContext("2d")!;
   ctx.fillStyle = "#20242c";
@@ -29,8 +31,14 @@ export async function drawBridgeStudies(params: URLSearchParams, out: HTMLCanvas
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
   try {
+    let catalogFixture: ReturnType<typeof pitchedBridge> | undefined;
     for (const [i, study] of studies.entries()) {
-      const { state, left, right } = pitchedBridge(study);
+      if (study.catalogId && (!catalogFixture || studies[i - 1]?.variant !== study.variant)) {
+        catalogFixture = pitchedBridge(study);
+      }
+      const fixture = catalogFixture ?? pitchedBridge(study);
+      fixture.upgradeTo(study.tier);
+      const { state, left, right } = fixture;
       const view = new EngineeringView();
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(night ? 0x28364E : 0xc3e3f1);
@@ -67,7 +75,7 @@ export async function drawBridgeStudies(params: URLSearchParams, out: HTMLCanvas
         camera.position.copy(target).add(alongX ? new THREE.Vector3(u, 37, v) : new THREE.Vector3(v, 37, -u));
         camera.lookAt(target);
         renderer.render(scene, camera);
-        const x = i % 2 * width, y = Math.floor(i / 2) * (height + caption);
+        const x = i % cols * width, y = Math.floor(i / cols) * (height + caption);
         ctx.drawImage(renderer.domElement, x, y);
         ctx.fillStyle = "#f5f2e9";
         ctx.font = "bold 15px system-ui";
