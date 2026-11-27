@@ -115,7 +115,7 @@ export const courthouse: SignatureBuilder = (c, p, active) => {
     }
   } else if (variant === 1) {
     const rad = Math.min(r - 1, hz - 2),
-      cz = z0 + rad;
+      cz = z0 + rad + (lv >= 4 ? Math.floor(hz * .48) : 0);
     // Half-round brick shell, open above the listeners; the apse rises in tiers behind the magistrate.
     for (let x = -rad; x <= rad; x++) {
       const rz = Math.floor(Math.sqrt(rad * rad - x * x));
