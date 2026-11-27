@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ROME_PILOT_IDS, eraElementSpec, type EraKey } from "../game/eraStyles";
+import { eraElementSpec, type EraKey } from "../game/eraStyles";
+import { bakedEraSheet } from "../handbook/eraSheets";
 import { useEraArt } from "./useEraArt";
 import { isEraArtReady } from "../game/eraArtLoader";
 import { getMaxElementLevel, type CivElementDef } from "../game/catalog";
@@ -11,17 +12,17 @@ import { getVoxelStyleColor, packVoxKey, VOXEL_SIZE, VOXELS_PER_TILE } from "../
 
 const ISO_THUMB_CACHE = new Map<string, string>();
 export const EraThumbnailContext = createContext<EraKey>("original");
-export const hasBakedSheet=(id:string,era:EraKey)=>(era==="rome-forum" || era==="rome-aqueduct") && ROME_PILOT_IDS.includes(id);
-export const eraSheet = (id:string,era:EraKey) => "./handbook/era-pilot/models/"+era+"/"+id+".webp";
+
 
 export function EraSheetCell({id,era,level,variant,size,className,label,onError}:{
   id:string;era:EraKey;level:number;variant:number;size:number;className?:string;label?:string;onError?:()=>void;
 }) {
   const columns=getMaxElementLevel(id);
-  const left=96*(Math.min(columns,Math.max(1,level))-1);
-  return <svg width={size} height={size} viewBox={left+" "+(96*variant)+" 96 96"} className={className}
+  const left=96*(Math.min(columns,Math.max(1,Math.trunc(level)))-1);
+  const top=96*Math.min(3,Math.max(0,Math.trunc(variant)));
+  return <svg width={size} height={size} viewBox={left+" "+top+" 96 96"} className={className}
     aria-hidden={label ? undefined : true} role={label ? "img" : undefined} aria-label={label}>
-    <image href={eraSheet(id,era)} width={columns*96} height={384} onError={onError}/>
+    <image href={bakedEraSheet(id,era)} width={columns*96} height={384} onError={onError}/>
   </svg>;
 }
 
@@ -204,8 +205,8 @@ export function ElementFavicon({ def, className = "", eager = false, era: overri
   const inherited = useContext(EraThumbnailContext);
   const era = override ?? inherited;
   const themed = Boolean(eraElementSpec(def.id, era));
-  const baked=hasBakedSheet(def.id,era);
-  const source=baked ? eraSheet(def.id,era) : "./handbook/catalog/thumbs/"+def.id+".webp";
+  const baked=bakedEraSheet(def.id,era);
+  const source=baked ?? "./handbook/catalog/thumbs/"+def.id+".webp";
   const [failedFor,setFailedFor] = useState("");
   const imgFailed=source===failedFor;
   const {ready} = useEraArt(themed && imgFailed ? era : "original");
