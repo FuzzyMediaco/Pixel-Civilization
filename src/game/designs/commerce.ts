@@ -53,6 +53,7 @@ import {
 } from "./kit";
 import { defineDesigns } from "./registry";
 import { BANK, buildBank } from "./bank";
+import { buildGrocery } from "./groceryMarket";
 
 type V = PixelVox;
 
@@ -130,13 +131,6 @@ function cafeTable(v: V, x: number, z: number, umb: string, y = 1, umb2 = "white
   v.put(x, y + 5, z, umb2);
 }
 
-/** Shopping cart (tiny) */
-function cart(v: V, x: number, z: number, y = 1): void {
-  v.put(x, y, z, "silver");
-  v.put(x + 1, y, z, "silver");
-  v.put(x + 1, y + 1, z, "steelLight");
-}
-
 /** String lights along x at height y between x0..x1 (alternating warm glow) */
 function stringLights(v: V, x0: number, x1: number, y: number, z: number, cols = ["warmGlow", "yellow", "pink"]): void {
   for (let x = x0; x < x1; x++) {
@@ -151,44 +145,6 @@ function bladeSign(v: V, x: number, y0: number, y1: number, z: number, col: stri
   for (let y = y0 + 1; y < y1 - 1; y += 2) v.put(x, y, z + 1, dots, 1.1);
 }
 
-/** Giant apple / fruit sphere with stem & leaf */
-function giantFruit(v: V, cx: number, y: number, cz: number, r: number, col: string, kind: "apple" | "orange" | "melon" | "carrot" | "grape"): number {
-  if (kind === "carrot") {
-    // lying-down carrot pointing +x
-    for (let i = 0; i < r * 4; i++) {
-      const rr = Math.max(0.5, r * (1 - i / (r * 4)));
-      v.sphere(cx + i - r * 2, y + r, cz, 0.6, rr, rr, "orange");
-    }
-    v.box(Math.round(cx - r * 2) - 2, y + r - 1, cz - 1, Math.round(cx - r * 2), y + r + 2, cz + 1, "leaf");
-    return y + r * 2;
-  }
-  if (kind === "grape") {
-    for (let row = 0; row < 4; row++) {
-      const n = 4 - row;
-      for (let i = 0; i < n; i++) v.sphere(cx + (i - (n - 1) / 2) * 1.6 * r * 0.5, y + (3 - row) * 1.4 * r * 0.5 + r * 0.5, cz, r * 0.45, r * 0.45, r * 0.45, "purple");
-    }
-    v.box(Math.floor(cx), y + Math.round(r * 2.6), Math.floor(cz), Math.floor(cx) + 1, y + Math.round(r * 2.6) + 2, Math.floor(cz) + 1, "woodDark");
-    return y + r * 3;
-  }
-  if (kind === "melon") {
-    // upright watermelon SLICE facing +z: green rind, white band, red flesh, black seeds
-    const R = r * 1.5;
-    for (let x = -Math.ceil(R); x <= Math.ceil(R); x++) for (let yy = 0; yy <= Math.ceil(R); yy++) {
-      const d = Math.sqrt((x + 0.5) * (x + 0.5) + (yy - 0.5) * (yy - 0.5));
-      if (d > R) continue;
-      const col2 = d > R - 1 ? "leafDark" : d > R - 1.8 ? "#e8f5c8" : ((x * 7 + yy * 3) % 5 === 0 && d < R - 2.5) ? "black" : "#ff4d5e";
-      v.box(cx + x, y + Math.ceil(R) - yy, cz - 1, cx + x + 1, y + Math.ceil(R) - yy + 1, cz + 1, col2, col2 === "#ff4d5e" ? 0.15 : 0);
-    }
-    return y + Math.ceil(R) + 1;
-  }
-  v.sphere(cx, y + r, cz, r, r * 0.92, r, col);
-  const top = y + Math.round(r * 1.9);
-  v.box(Math.floor(cx), top, Math.floor(cz), Math.floor(cx) + 1, top + 2, Math.floor(cz) + 1, "woodDark");
-  if (kind === "apple") v.box(Math.floor(cx) + 1, top + 1, Math.floor(cz), Math.floor(cx) + 3, top + 2, Math.floor(cz) + 1, "leaf");
-  if (kind === "orange") v.put(Math.floor(cx) + 1, top + 1, Math.floor(cz), "leaf");
-  return top + 2;
-}
-
 /** Produce crates in a row along x (front display): crate + coloured fruit top */
 function produceCrates(c: Ctx, x0: number, x1: number, z: number, y = 1): void {
   const cols = ["red", "orange", "yellow", "lime", "leaf", "purple", "crimson"];
@@ -196,14 +152,6 @@ function produceCrates(c: Ctx, x0: number, x1: number, z: number, y = 1): void {
     c.v.box(x, y, z, x + 2, y + 1, z + 1, "crate");
     c.v.box(x, y + 1, z, x + 2, y + 2, z + 1, c.pick(cols));
   }
-}
-
-/** Parked delivery van (5 long along x) */
-function van(v: V, x: number, z: number, body: string, stripe: string, y = 1): void {
-  v.box(x - 3, y, z - 1, x + 3, y + 3, z + 1, body);
-  v.box(x + 2, y + 1, z - 1, x + 3, y + 3, z + 1, "glassDark");
-  v.box(x - 3, y + 1, z - 1, x + 2, y + 2, z + 1, stripe);
-  v.put(x - 2, y - 0, z + 1, "rubber");
 }
 
 // =============================================================================================
@@ -504,152 +452,6 @@ defineDesigns({
     build: buildShops,
   },
 });
-
-// =============================================================================================
-// GROCERY STORE
-// =============================================================================================
-
-/**
- * GROCERY — produce stand → corner grocer → supermarket → hypermarket w/ loading docks → megamarket w/ rooftop farm.
- * A GIANT FRUIT mascot always sits on top.
- *  V0 Farmers' Market (green & timber, giant red apple)     V1 Retro 60s Supermarket (red/white googie, giant orange)
- *  V2 Organic Co-op (timber & glass, giant watermelon)      V3 Asian Night Market (red lanterns, giant grapes)
- */
-function buildGrocery(c: Ctx): void {
-  const { v, lv, hx, hz } = c;
-  const s = c.variant % 4;
-  const wall = ["cream", "white", "woodLight", "#f3e2c0"][s];
-  const accent = ["#2f9e44", "red", "oak", "crimson"][s];
-  const accent2 = ["white", "white", "leafLight", "yellow"][s];
-  const roofCol = ["leafDark", "redDark", "#5b7a3a", "crimson"][s];
-  const fruit = (["apple", "orange", "melon", "grape"] as const)[s];
-  const fruitCol = ["red", "orange", "leaf", "purple"][s];
-  lot(c, lv <= 2 ? "path" : "asphalt");
-  if (lv <= 2) speckle(c, "path2", 0.15);
-
-  const lanterns = (x0: number, x1: number, y: number, z: number) => {
-    if (s !== 3) return;
-    for (let x = x0; x < x1; x += 3) {
-      v.put(x, y, z, "red", 1);
-      v.put(x, y - 1, z, "red", 1);
-      v.put(x, y + 1, z, "charcoal");
-    }
-  };
-
-  if (lv === 1) {
-    // produce stand: wooden stall, striped awning roof, tiered crates, giant fruit on a pole
-    v.box(-hx + 2, 0, -hz + 2, hx - 2, 1, hz - 2, "woodLight");
-    const x0 = -hx + 3;
-    const x1 = hx - 3;
-    for (const px of [x0, x1 - 1]) for (const pz of [-3, 2]) v.box(px, 1, pz, px + 1, 7, pz + 1, "woodDark");
-    for (let x = x0 - 1; x < x1 + 1; x++) v.box(x, 7, -4, x + 1, 8, 4, (x & 1) ? accent2 : accent);
-    v.box(x0 - 1, 8, -2, x1 + 1, 9, 2, (x0 & 1) ? accent : accent2);
-    for (let t = 0; t < 3; t++) produceCrates(c, x0 + 1, x1 - 1, 2 - t, 1 + t);
-    lanterns(x0, x1, 6, 3);
-    v.box(-1, 9, -1, 0, 11, 0, "woodDark");
-    giantFruit(v, -0.5, 11, -0.5, 2.6, fruitCol, fruit);
-    folk(c, 0, -2);
-    folk(c, -2, hz - 3);
-    cart(v, 3, hz - 3);
-    return;
-  }
-
-  // Building block sizes per level
-  const bigBox = lv >= 3;
-  const x0 = -hx + 2;
-  const x1 = lv >= 4 ? hx - 11 : hx - 2;
-  const z0 = -hz + 2;
-  const z1 = lv === 2 ? hz - 5 : lv === 3 ? 1 : lv === 4 ? -2 : -4;
-  const h = lv === 2 ? 7 : lv === 3 ? 9 : 10;
-  if (s === 2) {
-    // timber + glass co-op
-    shell(v, x0, 1, z0, x1, h, z1, wall);
-    for (let x = x0; x < x1; x += 4) v.box(x, 1, z1 - 1, x + 1, h, z1, "woodDark");
-    v.box(x0 + 1, 2, z1 - 1, x1 - 1, h - 2, z1, "glass", 0.5);
-    for (let x = x0; x < x1; x += 4) v.box(x, 1, z1 - 1, x + 1, h, z1, "woodDark");
-    gable(v, x0 - 1, h, z0 - 1, x1 + 1, z1 + 1, "x", roofCol, "woodDark");
-  } else {
-    shell(v, x0, 1, z0, x1, h, z1, wall);
-    shopfront(v, x0 + 1, x1 - 1, 1, z1 - 1, 5, s === 3 ? "crimson" : "steelLight", "glass", "glassDark");
-    displayDots(c, x0 + 2, x1 - 2, 2, 4, z1 - 1, ["red", "orange", "yellow", "lime"], 0.25);
-    // fascia band
-    v.box(x0, h - 3, z1 - 1, x1, h, z1 + 1, accent, 0.25);
-    v.box(x0 + 2, h - 2, z1 + 1, x1 - 2, h - 1, z1 + 2, accent2, 0.8);
-    if (s === 1) {
-      // googie zig-zag roof fins
-      for (let x = x0; x < x1; x += 6) {
-        for (let k = 0; k < 4; k++) v.box(x + k, h + k, z1 - 2, x + k + 1, h + k + 1, z1 + 2, "white");
-      }
-    }
-    if (s === 3) {
-      // pagoda-ish eave
-      v.box(x0 - 1, h, z0 - 1, x1 + 1, h + 1, z1 + 2, roofCol);
-      v.box(x0 - 2, h - 1, z1 + 1, x0, h, z1 + 3, roofCol);
-      v.box(x1, h - 1, z1 + 1, x1 + 2, h, z1 + 3, roofCol);
-    }
-    flatRoof(c, x0, h, z0, x1, z1, "concreteDark", wall, false);
-  }
-  // awning & crates along front
-  awning(v, x0 + 1, x1 - 1, 5, z1, accent, accent2);
-  produceCrates(c, x0 + 1, Math.min(x1 - 1, x0 + 9), z1 + 2);
-  produceCrates(c, Math.max(x0 + 11, x1 - 9), x1 - 1, z1 + 2);
-  lanterns(x0 + 1, x1 - 1, 4, z1 + 2);
-  // giant fruit on the roof
-  const fr = byLv(c, [2.5, 3, 4, 4.5, 5]);
-  const fz = Math.floor((z0 + z1) / 2);
-  v.box(-2, h + 1, fz - 1, 2, h + 2, fz + 1, "steelDark");
-  const fy = s === 2 ? h + Math.ceil((z1 - z0 + 2) / 2) - 1 : h + 1;
-  if (s === 2) v.box(-1, h, fz, 1, fy, fz + 1, "woodDark");
-  giantFruit(v, -0.0, fy, s === 2 ? fz + 1 : fz, fr, fruitCol, fruit);
-
-  if (lv === 2) {
-    v.box(-hx, 0, z1, hx, 1, hz, "path2");
-    folk(c, -hx + 3, hz - 2);
-    folk(c, hx - 5, hz - 1);
-    cart(v, 1, hz - 2);
-    // bicycle
-    v.box(hx - 4, 1, hz - 2, hx - 1, 2, hz - 1, "teal");
-    return;
-  }
-  // L3+: parking lot in front with carts & cars
-  const pz0 = z1 + 4;
-  parking(c, -hx + 1, pz0, hx - 1, Math.min(hz - 1, pz0 + 7), { cars: 0.7, asphalt: "asphalt" });
-  if (hz - 1 - (pz0 + 7) >= 6) parking(c, -hx + 1, pz0 + 7, hx - 1, hz - 1, { cars: 0.6, asphalt: "asphalt" });
-  v.box(-hx, 0, z1, hx, 1, pz0, "concrete2");
-  for (let i = 0; i < 4; i++) cart(v, c.ri(-hx + 2, hx - 4), c.ri(pz0 + 1, hz - 2));
-  // cart corral
-  v.box(hx - 6, 1, pz0, hx - 2, 2, pz0 + 1, "silver");
-  for (let k = 0; k < 3; k++) cart(v, hx - 6 + k, pz0 + 1);
-  crowd(c, x0 + 2, z1 + 1, x1 - 2, z1 + 3, 3 + lv);
-  // pylon sign
-  pylon(v, -hx + 2, hz - 2, 9, 5, 4, accent, "steelDark", accent2);
-  if (lv >= 4) {
-    // side loading dock with delivery trucks
-    v.box(x1 - 1, 1, z0 + 2, x1, 5, z0 + 6, "steelDark");
-    v.box(x1 - 1, 1, z0 + 8, x1, 5, z0 + 12, "steelDark");
-    v.box(x1, 0, z0, hx - 1, 1, z1 + 2, "concrete");
-    truck(v, x1 + 4, 1, z0 + 4, "x", "white", accent === "oak" ? "leaf" : accent);
-    truck(v, x1 + 4, 1, z0 + 10, "x", accent2 === "white" ? "cream" : accent2, "steelDark");
-    for (let k = 0; k < 3; k++) v.box(x1 + 1 + k * 3, 1, z1 - 3, x1 + 3 + k * 3, 3, z1 - 1, "crate");
-    // rooftop: produce billboard row
-    for (let x = x0 + 3; x < x1 - 3; x += 6) acUnit(v, x, h + 1, z0 + 2);
-  }
-  if (lv >= 5) {
-    // ROOFTOP FARM: glass greenhouses + raised beds + solar
-    for (let x = x0 + 2; x < -6; x += 8) {
-      v.box(x, h + 1, z0 + 2, x + 7, h + 4, z0 + 9, "#bfe7ff", 0.15);
-      v.roofGable(x, h + 4, z0 + 2, x + 7, z0 + 9, 3, "z", "#cdeeff", "white");
-      for (let z = z0 + 3; z < z0 + 9; z += 2) v.box(x + 1, h + 1, z, x + 6, h + 2, z + 1, "leaf");
-    }
-    for (let z = z0 + 2; z < z1 - 2; z += 2) {
-      v.box(8, h + 1, z, x1 - 2, h + 2, z + 1, "soil");
-      for (let x = 8; x < x1 - 2; x += 2) v.put(x, h + 2, z, c.pick(["leaf", "lime", "red", "orange"]));
-    }
-    tree(v, x0 + 2, h + 1, z1 - 3, "fruit", 0.9, 1);
-    tree(v, x1 - 3, h + 1, z1 - 3, "fruit", 0.9, 2);
-    flag(v, x0 + 1, h + 1, z0 + 1, 7, [accent, accent2, accent]);
-  }
-}
 
 // =============================================================================================
 // BUSINESSES — small-business offices growing into a LOW-RISE corporate campus
@@ -980,8 +782,8 @@ function buildBuildings(c: Ctx): void {
 defineDesigns({
   grocery_store: {
     footprints: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
-    levels: ["Produce Stand", "Corner Grocer", "Neighborhood Supermarket", "Hypermarket & Loading Docks", "Rooftop-Farm Megamarket"],
-    growth: "A fruit stand becomes a grocer, then a supermarket with parking, a hypermarket with trucks and a megamarket farming on its roof — always crowned by a giant fruit.",
+    levels: ["Produce Stand", "Corner Greengrocer", "Neighborhood Market", "Market Exchange", "Harvest Market Hall"],
+    growth: "A produce stand grows into a walk-through orchard, a giant grocery cart, an arcade of harvest crates or a farmers’ market barn with covered stalls.",
     build: buildGrocery,
   },
   businesses: {

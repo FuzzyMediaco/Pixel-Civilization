@@ -1,3 +1,5 @@
+import { buildDepartmentStore, buildHardwareStore } from "./commerceSupply";
+import { buildCoworkingLoft, buildTechStartupHub } from "./commerceWorkplaces";
 import { buildFurnitureShowroom } from "./furnitureShowrooms";
 import { buildAutoDealership } from "./motorShowrooms";
 import { buildCornerPharmacy } from "./cornerPharmacy";
@@ -127,19 +129,7 @@ defineDesigns({
     shopper(c, 1, hz - 2);
   }),
 
-  hardware_store: entry("hardware_store", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    lot(c, "concrete2");
-    const walls = ["brick", "wood", "concrete", "orange"];
-    const { x0, x1, z0, top } = storefrontBox(c, walls[s], "steelDark", "orange", "orange", "white", Math.min(2, lv), "gable");
-    // Stacked lumber yard
-    if (lv >= 2) {
-      for (let y = 1; y <= 3; y++) v.box(x0, y, hz - 3, x0 + 6, y + 1, hz - 1, y % 2 ? "woodLight" : "wood");
-    }
-    v.box(x0 + 2, top + 1, z0 + 2, x1 - 2, top + 3, z0 + 4, "orange", 0.7);
-    shopper(c, 3, hz - 2);
-  }),
+  hardware_store: entry("hardware_store", buildHardwareStore),
 
   indie_bookstore: entry("indie_bookstore", buildIndieBookstore),
 
@@ -279,64 +269,11 @@ defineDesigns({
     shopper(c, 0, hz - 2);
   }),
 
-  coworking_loft: entry("coworking_loft", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    lot(c, "path");
-    const x0 = -hx + 2, x1 = hx - 2, z0 = -hz + 2, z1 = hz - 4;
-    const floors = 2 + lv;
-    const top = 1 + floors * 4;
-    if (s === 1 || s === 2) {
-      curtainWall(c, x0, 1, z0, x1, top, z1, "#99f6e4", s === 1 ? "wood" : "white", 3, 4);
-    } else {
-      v.box(x0, 1, z0, x1, top, z1, "brick");
-      windows(c, x0, 1, z0, x1, top, z1, { stepH: 3, stepV: 4, h: 3, emit: 0.55 });
-    }
-    flatRoof(c, x0, top, z0, x1, z1, "grass2", "woodDark", false);
-    // Rooftop pergola + greenery
-    for (let x = x0 + 2; x < x1 - 2; x += 4) v.box(x, top + 1, z0 + 2, x + 1, top + 4, z0 + 3, "woodDark");
-    v.box(x0 + 2, top + 4, z0 + 2, x1 - 2, top + 5, z0 + 6, "woodLight");
-    shopper(c, -2, hz - 2);
-  }),
+  coworking_loft: entry("coworking_loft", buildCoworkingLoft),
 
-  tech_startup_hub: entry("tech_startup_hub", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    lot(c, "grass2");
-    const x0 = -hx + 2, x1 = hx - 2, z0 = -hz + 2, z1 = hz - 5;
-    const top = 5 + lv * 4;
-    const glassCol = ["#67e8f9", "#a7f3d0", "#94a3b8", "#bae6fd"][s];
-    const frameCol = ["white", "wood", "charcoal", "silver"][s];
-    curtainWall(c, x0, 1, z0, x1, top, z1, glassCol, frameCol, 4, 4);
-    // Cantilevered upper glass ring
-    if (lv >= 3) {
-      curtainWall(c, x0 - 1, top - 4, z0 - 1, x1 + 1, top, z1 + 1, glassCol, "cyan", 4, 4);
-    }
-    flatRoof(c, x0, top, z0, x1, z1, "concreteDark", "cyan", false);
-    solarRow(v, x0 + 2, x1 - 2, top + 1, z0 + 2);
-    tree(v, -hx + 2, 1, hz - 3, "round", 1.2);
-    tree(v, hx - 3, 1, hz - 3, "round", 1.2);
-    shopper(c, 0, hz - 2);
-  }),
+  tech_startup_hub: entry("tech_startup_hub", buildTechStartupHub),
 
-  department_store: entry("department_store", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    lot(c, "path");
-    const wall = ["limestone", "cream", "terracotta", "white"][s];
-    const floors = 2 + lv;
-    const x0 = -hx + 2, x1 = hx - 2, z0 = -hz + 2, z1 = hz - 4;
-    const top = 1 + floors * 4;
-    v.box(x0, 1, z0, x1, top, z1, wall);
-    v.clear(x0 + 1, 1, z0 + 1, x1 - 1, top - 1, z1 - 1);
-    v.box(x0 + 2, 2, z1 - 1, x1 - 2, 4, z1, "warmGlow", 0.7);
-    windows(c, x0, 5, z0, x1, top, z1, { stepH: 3, stepV: 4, h: 2, sill: "gold", emit: 0.55 });
-    awning(v, x0 + 1, x1 - 1, 5, z1, "crimson", "gold");
-    mansard(v, x0, top, z0, x1, z1, "slate", "gold", "warmGlow");
-    if (lv >= 4) v.dome(0, top + 4, 0, Math.min(5, Math.floor((x1 - x0) / 4)), "copper");
-    shopper(c, -3, hz - 2);
-    shopper(c, 3, hz - 2);
-  }),
+  department_store: entry("department_store", buildDepartmentStore),
 
   night_market: entry("night_market", (c) => {
     const { v, lv, hx, hz } = c;
