@@ -4260,3 +4260,4 @@ fieldset.ui-transit-fields {
 .ui-tut-progress i { display: block; height: 100%; background: var(--ui-green); border-radius: inherit; transition: width .3s ease-out; }
 @media (prefers-reduced-motion: reduce) { .ui-tut-progress i { transition: none; } }
 .ui-hud.is-tutorial-limited .ui-hud-quick-anchor { display: none; }
+.ui-econ-nav { margin-bottom: 8px; }

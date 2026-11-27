@@ -305,12 +305,14 @@ export function CityEconomyPanel({
   };
   return (
     <div className={tab === "population" || tab === "happiness" ? "ui-people-detail" : "island-content"}>
-      <nav className="island-actions" aria-label="City reports">
+      <nav className="ui-chiprow island-actions ui-econ-nav" aria-label="City reports">
         {(Object.keys(titles) as EconomyTab[])
           .filter((t) => t !== "controls" || s.mode === "god")
           .map((t) => (
             <button
               key={t}
+              type="button"
+              className="ui-chip"
               aria-pressed={t === tab}
               onClick={() => {
                 setTab(t);
