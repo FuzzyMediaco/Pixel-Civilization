@@ -221,6 +221,7 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
         <button type="button" className="ui-btn" disabled={busy} onClick={()=>setConfirmStop(null)}>Keep renewal</button>
       </> : <button type="button" className="ui-btn" disabled={busy} onClick={()=>setConfirmStop("renewal")}>Stop Pix renewal</button>)}
     </section>}
+    {access.giftEndsAt && <p role="status">Your {productById(access.plan ?? "")?.label} gift runs through {new Date(access.giftEndsAt).toLocaleDateString()}. This gift has no recurring charge.</p>}
     {access.complimentary && <p role="status">Your account includes complimentary Pix Complete, all ten eras, Survival and God Mode.</p>}
     {access.plan && access.usage.limit > 0 && <p role="status">{productById(access.plan)?.label} · {access.usage.messages} of {access.usage.limit} messages · {dollars(access.usage.spendMicros/10000)} of {dollars(access.usage.budgetMicros/10000)} AI usage this period.</p>}
     {externalBilling && <p role="status" className="pc-shop-status"><a className="ui-btn" href={externalBilling.href}>{externalBilling.label} ↗</a></p>}
@@ -238,7 +239,7 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
       const reviewing = isPlan && available && !owned && selection?.account === access.accountId && selection?.productId === p.id;
       return <article key={p.id} data-featured={p.id===initial} data-reviewing={reviewing || undefined}>
         {p.era && <img alt="" src={tourImage(p.era,"skyline")} loading="lazy"/>}
-        <h2>{p.label}</h2><strong>{access.complimentary ? "Included with your account" : price + (p.kind==="subscription"?" / month":" once")}</strong>
+        <h2>{p.label}</h2><strong>{owned ? "Included with your account" : price + (p.kind==="subscription"?" / month":" once")}</strong>
         {p.era && <a href={"./#world="+tourId(p.era,"starter")+"&era="+p.era} target="_blank" rel="noreferrer">Explore free island ↗</a>}
         {p.kind==="mode" && <p>{p.mode==="god"?"Sculpt terrain, control time and build without limits on your own islands.":"Balance growth, upkeep and emergencies on your own islands."}</p>}
         {p.kind==="subscription" && <p>{p.messages?.toLocaleString()} messages · {dollars((p.budgetMicros??0)/10000)} AI usage. {p.id==="pix_complete"?"Includes both modes and all ten time periods.":"Includes "+p.includes.map(id=>productById(id)?.label).join(", ")+"."}</p>}
@@ -252,7 +253,7 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
       </article>;
     })}</section>
     <footer>{native && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(!access.accountId){setAccountForm(true);return;}const receipts=await native.restore();await deliver(receipts);await fetchStoreAccess();setMessage("Your purchases have been checked.");})}>Restore purchases</button>}
-      {(!access.complimentary || billing) && (native||(!storeEdition&&(access.plan || billing?.state === "revoked"))) && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(native)await native.manage();else openWebBilling(await openBillingPortal(),"Manage billing in your browser");})}>Manage subscription</button>}
+      {(!access.complimentary || billing) && (native||(!storeEdition&&((access.plan && (!access.giftEndsAt || access.hasPaidPlan)) || billing?.state === "revoked"))) && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(native)await native.manage();else openWebBilling(await openBillingPortal(),"Manage billing in your browser");})}>Manage subscription</button>}
       <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy</a><a href="/support.html" target="_blank" rel="noreferrer">Support</a>{native?.platform==="apple" && <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noreferrer">Apple terms of use</a>}
     </footer>
   </GameDialog>;

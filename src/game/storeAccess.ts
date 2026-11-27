@@ -69,6 +69,7 @@ async function offline(id: string | null): Promise<StoreAccess | null> {
       owned: grant.owned,
       plan: grant.plan,
       complimentary: grant.complimentary === true,
+      ...(grant.giftEndsAt && { giftEndsAt:grant.giftEndsAt, hasPaidPlan:grant.hasPaidPlan === true }),
       validUntil: grant.exp * 1000,
     };
   } catch {

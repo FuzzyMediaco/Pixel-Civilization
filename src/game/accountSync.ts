@@ -17,6 +17,8 @@ import {
   type SaveRecord,
 } from "./deviceSaves";
 
+import { fetchStoreAccess } from "./storeAccess";
+import { isGiftDesignKey } from "./giftDesignKeys.mjs";
 import type { IslandGiftTotal } from "./islandGifts.mjs";
 
 let giftInbox: { accountId: string; totals: IslandGiftTotal[] } | undefined;
@@ -26,10 +28,27 @@ export function islandGiftFor(accountId: string, key: string, islandId: string) 
 
 export interface GiftIsland { key: string; islandId: string; name: string; mode: string; active: boolean }
 export interface GiftRecipient { recipientId: string; islands: GiftIsland[] }
-export const giftAccess = (who: string) => api<{ canGive: boolean }>("/island-gifts/access", "GET", undefined, who);
+export const giftAccess = (who: string) => api<{ canGive: boolean; canManageAccounts?: boolean }>("/island-gifts/access", "GET", undefined, who);
 export const findGiftIslands = (who: string, email: string) => api<GiftRecipient>("/island-gifts/islands", "POST", { email }, who);
 export const sendIslandGift = (who: string, recipientId: string, island: GiftIsland, amount: number, requestId: string) =>
   api<{ amount: number; requestId: string }>("/island-gifts/send", "POST", { recipientId, saveKey: island.key, islandId: island.islandId, amount, requestId }, who);
+
+export interface DirectoryPlayer { id:string; email:string }
+export type RewardKind = "product" | "design";
+export interface PlayerRewards {
+  player:DirectoryPlayer; owned:string[]; plan:string | null;
+  rewards:{ kind:RewardKind; itemId:string; label:string; expiresAt:number | null }[];
+}
+export const directoryPage = (who:string, query:string, after = "") =>
+  api<{players:DirectoryPlayer[]; next:string | null}>("/controls/directory", "POST", {query, after}, who);
+export const playerRewards = (who:string, recipientId:string) =>
+  api<PlayerRewards>("/controls/player", "POST", {recipientId}, who);
+export const playerIslands = (who:string, recipientId:string) =>
+  api<GiftRecipient>("/controls/islands", "POST", {recipientId}, who);
+export const ownerDesigns = (who:string) =>
+  api<{ designs:{id:string; name:string}[] }>("/controls/designs", "POST", {}, who);
+export const giveReward = (who:string, recipientId:string, kind:RewardKind, itemId:string, requestId:string) =>
+  api<{label:string; expiresAt:number | null; alreadyGiven:boolean}>("/controls/give", "POST", {recipientId, kind, itemId, requestId}, who);
 
 type CloudSave = {
   key: string;
@@ -159,16 +178,23 @@ async function send(
   await acknowledgeUpload(row, res.version);
 }
 let inFlight: Promise<void> | undefined;
+let seenRewards: { account:string; version:string } | undefined;
 async function reconcile(who: string, download: boolean, signal?: AbortSignal) {
   await flushDevice();
-  const { saves, islandGifts = [] } = await api<{ saves: CloudSave[]; islandGifts?: IslandGiftTotal[] }>(
+  const { saves, islandGifts = [], rewardVersion } = await api<{ saves: CloudSave[]; islandGifts?: IslandGiftTotal[]; rewardVersion?:string }>(
     "/saves",
     "GET",
     undefined,
     who,
     signal,
   );
-  if (currentPlayer()?.id === who) giftInbox = { accountId: who, totals: islandGifts };
+  if (currentPlayer()?.id === who) {
+    giftInbox = { accountId: who, totals: islandGifts };
+    if (rewardVersion !== undefined) {
+      if (seenRewards?.account === who && seenRewards.version !== rewardVersion) void fetchStoreAccess();
+      seenRewards = { account:who, version:rewardVersion };
+    }
+  }
   const local = new Map((await readRecords(who)).map((r) => [r.key, r]));
   const cloud = new Map(
     saves.filter((s) => isPlayerKey(s.key)).map((s) => [s.key, s]),
@@ -194,7 +220,7 @@ async function reconcile(who: string, download: boolean, signal?: AbortSignal) {
       }
       // New named islands can appear in the saves list without replacing the active island
       // or any device save. Existing records continue through the explicit refresh flow.
-      if (!download && (r || !key.startsWith("pixel_civ_slot_"))) {
+      if (!download && (r || (!key.startsWith("pixel_civ_slot_") && !isGiftDesignKey(key)))) {
         updates = true;
         continue;
       }

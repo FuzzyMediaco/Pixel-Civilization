@@ -15,14 +15,14 @@ export const capacitySql = `WITH bounds(now,observed,wallet,ignore_id) AS (VALUE
   managed AS (
     SELECT COALESCE(SUM(CASE WHEN t.state='active' THEN MAX(0,t.budget_micros-(
       SELECT COALESCE(SUM(u.cost_micros),0) FROM game_pix_usage u WHERE u.user_id=t.user_id
-        AND u.started_at>=t.period_start AND u.started_at<t.period_end AND u.state='settled'
+        AND u.started_at>=t.period_start AND u.started_at<t.period_end AND u.state='settled' AND u.discretionary=0
     )) ELSE t.budget_micros END),0) AS held
     FROM game_pix_funded_terms t,bounds b WHERE t.id!=b.ignore_id AND (
       (t.state='held' AND t.hold_until>b.now) OR t.state='committed' OR (t.state='active' AND t.period_end>b.now))
   ), legacy AS (
     SELECT COALESCE(SUM(MAX(0,plans.budget-CASE WHEN p.expires_at-p.period_start<=${maxTerm} THEN (
       SELECT COALESCE(SUM(u.cost_micros),0) FROM game_pix_usage u WHERE u.user_id=p.user_id
-        AND u.started_at>=p.period_start AND u.started_at<p.expires_at AND u.state='settled'
+        AND u.started_at>=p.period_start AND u.started_at<p.expires_at AND u.state='settled' AND u.discretionary=0
     ) ELSE 0 END)),0) AS held
     FROM game_purchases p JOIN plans ON plans.product_id=p.product_id CROSS JOIN bounds b
     WHERE p.active=1 AND p.expires_at>b.now AND NOT EXISTS(
@@ -32,7 +32,7 @@ export const capacitySql = `WITH bounds(now,observed,wallet,ignore_id) AS (VALUE
   ), recent AS (
     SELECT COALESCE(SUM(u.cost_micros),0) AS spent FROM game_pix_usage u,bounds b
     WHERE u.model IN (?,?,?) AND ((u.state='settled' AND u.started_at>=b.observed-120000)
-      OR (u.state='reserved' AND EXISTS (SELECT 1 FROM game_complimentary_access g WHERE g.user_id=u.user_id)))
+      OR (u.state='reserved' AND (u.discretionary=1 OR EXISTS (SELECT 1 FROM game_complimentary_access g WHERE g.user_id=u.user_id))))
   ), capacity AS (SELECT b.wallet-managed.held-legacy.held-recent.spent AS available FROM bounds b,managed,legacy,recent)
 `;
 export function capacityParams(access, now, ignore = "") {

@@ -417,7 +417,7 @@ test("a subscription renewal switches the allowance to the actual new period and
   assert.equal((await event("customer.subscription.created", "created")).status, 200);
   assert.equal((await (await app.call("access")).json()).usage.limit, 100);
   app.sqlite
-    .prepare("INSERT INTO game_pix_usage VALUES(?,?,?,?,?,?,?,?,?)")
+    .prepare("INSERT INTO game_pix_usage(user_id,request_key,started_at,provider,model,state,input_tokens,output_tokens,cost_micros) VALUES(?,?,?,?,?,?,?,?,?)")
     .run(app.user, "past-usage", (now - 10 * day) * 1000, "gemini", "fixture", "settled", 3, 4, 5);
   assert.equal((await (await app.call("access")).json()).usage.messages, 1);
   start = now - 100;

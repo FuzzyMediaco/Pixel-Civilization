@@ -68,9 +68,11 @@ export async function activeGrants(db, user, now = Date.now()) {
     .prepare(
       `SELECT product_id,period_start,expires_at,checked_at,store FROM game_purchases
     WHERE user_id=? AND active=1 AND (expires_at IS NULL OR expires_at>?) AND (store NOT IN ('apple','google') OR checked_at>?)
-    UNION ALL SELECT 'pix_complete',NULL,NULL,NULL,'complimentary' FROM game_complimentary_access WHERE user_id=?`,
+    UNION ALL SELECT 'pix_complete',NULL,NULL,NULL,'complimentary' FROM game_complimentary_access WHERE user_id=?
+    UNION ALL SELECT item_id,created_at,expires_at,created_at,'gift' FROM game_account_rewards
+    WHERE recipient_id=? AND kind='product' AND (expires_at IS NULL OR expires_at>?)`,
     )
-    .bind(user, now, now - 2 * DAY, user)
+    .bind(user, now, now - 2 * DAY, user, user, now)
     .all();
   const permanent = rows.results.filter((r) => productById(r.product_id)?.kind !== "subscription");
   const plans = rows.results
@@ -79,9 +81,11 @@ export async function activeGrants(db, user, now = Date.now()) {
       (a, b) =>
         Number(b.store === "complimentary") - Number(a.store === "complimentary") ||
         productById(b.product_id).usdCents - productById(a.product_id).usdCents ||
+        Number(a.store === "gift") - Number(b.store === "gift") ||
         b.expires_at - a.expires_at,
     );
-  return { owned: [...new Set(permanent.map((r) => r.product_id))], plan: plans[0] };
+  const paidPlan = plans.find(r => r.store !== "complimentary" && r.store !== "gift");
+  return { owned: [...new Set(permanent.map((r) => r.product_id))], plan: plans[0], paidPlan };
 }
 export function usageWindow(grant, now = Date.now()) {
   if (grant.store === "complimentary") {
@@ -107,7 +111,8 @@ export async function getUsage(db, user, grant) {
   const result = await db
     .prepare(
       `SELECT COUNT(*) AS messages,COALESCE(SUM(cost_micros),0) AS spendMicros
-    FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed'`,
+    FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed'` +
+      (["gift","complimentary"].includes(grant.store) ? "" : " AND discretionary=0"),
     )
     .bind(user, start, end)
     .first();
@@ -131,6 +136,7 @@ export async function signAccess(env, snapshot) {
       owned: snapshot.owned,
       plan: snapshot.plan,
       ...(snapshot.complimentary && { complimentary: true }),
+      ...(snapshot.giftEndsAt && { giftEndsAt:snapshot.giftEndsAt, hasPaidPlan:snapshot.hasPaidPlan }),
       exp: Math.floor(snapshot.validUntil / 1000),
     },
     key,

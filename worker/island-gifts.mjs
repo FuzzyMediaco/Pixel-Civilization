@@ -5,7 +5,7 @@ import { creditIslandGift, giftIslandId, isIslandSaveKey } from "../src/game/isl
 const modes = new Set(["real", "god", "survival", "idle", "manager"]);
 const maxIslandBytes = 16 * 1024 * 1024;
 
-async function unpack(data) {
+export async function unpack(data) {
   if (typeof data !== "string" || !data.startsWith("pcgz1:")) return data;
   const bytes = Uint8Array.from(atob(data.slice(6)), ch => ch.charCodeAt(0));
   const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip")).getReader();
@@ -69,21 +69,25 @@ async function lookupIslands(db, email) {
     throw new AccountError(400, "Enter the player's email address.", "invalid_email");
   const user = await db.prepare("SELECT id FROM game_users WHERE email=?").bind(email.trim().toLowerCase()).first();
   if (!user) throw new AccountError(404, "There is no game account with that email.", "not_found");
+  return recipientIslands(db, user.id);
+}
+
+export async function recipientIslands(db, recipientId) {
   const { results } = await db.prepare("SELECT save_key FROM game_saves WHERE user_id=? AND deleted=0 ORDER BY updated_at DESC")
-    .bind(user.id).all();
+    .bind(recipientId).all();
   let active;
   if (results.some(r => r.save_key === "pixel_civ_last_mode")) {
-    const pointer = await unpack((await readSaveSnapshot(db,user.id,"pixel_civ_last_mode")).data);
+    const pointer = await unpack((await readSaveSnapshot(db,recipientId,"pixel_civ_last_mode")).data);
     active = /^slot-[0-9]$/.test(pointer) ? "pixel_civ_slot_" + pointer.slice(5) : "pixel_civ_save_v1_" + pointer;
   }
   const islands = [];
   for (const row of results) {
     if (!isIslandSaveKey(row.save_key)) continue;
-    const island = await islandFromSave(await readSaveSnapshot(db,user.id,row.save_key));
+    const island = await islandFromSave(await readSaveSnapshot(db,recipientId,row.save_key));
     if (island) islands.push({ key:row.save_key, islandId:giftIslandId(island.state), name:island.name, mode:island.state.mode, active:row.save_key===active });
   }
   islands.sort((a,b) => Number(b.active)-Number(a.active));
-  return { recipientId:user.id, islands };
+  return { recipientId, islands };
 }
 
 function checkReceipt(row, issuer, intent) {
@@ -128,7 +132,10 @@ export async function issueIslandGift(db, issuer, intent) {
 
 export async function islandGiftRequest(request, db, user, path) {
   const allowed = !!(await db.prepare("SELECT 1 AS allowed FROM island_gift_issuers WHERE user_id=?").bind(user).first());
-  if (path === "access" && request.method === "GET") return json({ canGive:allowed });
+  if (path === "access" && request.method === "GET") {
+    const owner = await db.prepare("SELECT 1 AS ok FROM game_account_owner WHERE user_id=?").bind(user).first();
+    return json({ canGive:allowed, ...(owner && { canManageAccounts:true }) });
+  }
   if (!allowed) throw new AccountError(403, "This account cannot give island funds.", "forbidden");
   if (request.method !== "POST") throw new AccountError(405, "Unsupported method.", "method");
   const body = await readJson(request,4096);

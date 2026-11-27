@@ -628,7 +628,7 @@ export function createInitialGameState(mode: GameMode): GameState {
 }
 
 export function buildingLockReason(def: CivElementDef, state: GameState): string | undefined {
-  if (isRealModeChristmas(def, state.mode)) return;
+  if (def.giftedDesign || isRealModeChristmas(def, state.mode)) return;
   if (state.mode === "god" && !effective(state, "stageRules", 0)) return;
   if (def.wealthThreshold) {
     const threshold = Math.ceil(def.wealthThreshold * effective(state, "wealthScale", 100) / 100);

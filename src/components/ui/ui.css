@@ -4258,6 +4258,25 @@ button.ui-row:hover { border-color: var(--ui-green); }
 .island-gifts summary { cursor: pointer; padding: .75rem 0; font-weight: 700; }
 .island-gifts[open] > p, .island-gifts form + form { margin-block: .6rem; }
 .island-gifts select { max-width: 100%; }
+.pc-owner-body { display: grid; gap: .7rem; padding-bottom: .25rem; min-width: 0; }
+.pc-owner-body > * { min-width: 0; }
+.pc-owner-search { display: flex; align-items: center; position: relative; }
+.pc-owner-search > svg { position: absolute; left: .65rem; pointer-events: none; color: var(--ui-muted); }
+.player-auth .pc-owner-search input[type=search] { padding-left: 2.1rem; }
+.pc-owner-list { list-style: none; padding: 0; margin: 0; max-height: min(34dvh, 20rem); overflow: auto; overscroll-behavior: contain; border: 1px solid var(--ui-line); border-radius: .65rem; }
+.pc-owner-list li + li { border-top: 1px solid var(--ui-line); }
+.pc-owner-list .ui-btn { width: 100%; border: 0; border-radius: 0; text-align: left; display: flex; justify-content: space-between; align-items: center; }
+.pc-owner-list span, .pc-owner-email, .pc-owner-action p { overflow-wrap: anywhere; }
+.pc-owner-list svg { flex-shrink: 0; }
+.pc-owner-email { margin: 0; font-size: 1rem; }
+.pc-owner-back { justify-self: start; }
+.pc-owner-back, .pc-owner-tabs .ui-btn { display: flex; gap: .32rem; align-items: center; justify-content: center; }
+.pc-owner-tabs { display: flex; gap: .3rem; }
+.pc-owner-tabs .ui-btn { flex: 1; flex-direction: column; min-width: 0; padding: .35rem .15rem; line-height: 1.2; font-size: .83rem; }
+.pc-owner-tabs .ui-btn[aria-pressed=true] { background: var(--ui-green,#245b48); color: white; }
+.pc-owner-body select { width: 100%; min-width: 0; min-height: 44px; }
+.pc-owner-history ul { margin: 0; padding-inline-start: 1.2rem; }
+.pc-owner-history summary { font-weight: 600; padding-block: .4rem; }
 
 .player-entry {
   height: 100dvh;

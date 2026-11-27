@@ -22,6 +22,7 @@ import {
   type CustomElementSpec,
   applyGeneratedLevelsToSpec,
   enforceModeBalance,
+  isGiftedDesign,
   listCustomElements,
   registerCustomElement,
   removeCustomElement,
@@ -521,7 +522,7 @@ export function PixBuilderModal({
                           <div>
                             <strong>{item.name}</strong>
                             <small>
-                              ${(item.levelSpecs?.[0]?.stats.cost ?? item.cost).toLocaleString()} · {item.footprintCells}×{item.footprintCells} · {item.levelSpecs?.length === 5 ? "5 levels" : item.domain}
+                              {isGiftedDesign(item.id) ? "Gift · Free to place" : "$" + (item.levelSpecs?.[0]?.stats.cost ?? item.cost).toLocaleString()} · {item.footprintCells}×{item.footprintCells} · {item.levelSpecs?.length === 5 ? "5 levels" : item.domain}
                             </small>
                           </div>
                           <div className="pix-lib-btns">
@@ -549,14 +550,14 @@ export function PixBuilderModal({
                                 Place
                               </button>
                             )}
-                            <button
+                            {!isGiftedDesign(item.id) && <button
                               type="button"
                               className="pix-icon-del"
                               aria-label={`Delete ${item.name}`}
                               onClick={() => handleDeleteCustom(item.id)}
                             >
                               <Trash2 size={15} />
-                            </button>
+                            </button>}
                           </div>
                         </div>
                       ))}

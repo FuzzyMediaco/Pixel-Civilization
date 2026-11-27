@@ -13,6 +13,8 @@ export interface StoreAccess {
   accountId: string | null;
   owned: string[];
   complimentary?: boolean;
+  giftEndsAt?: number;
+  hasPaidPlan?: boolean;
   plan: string | null;
   providers: string[];
   readyStores: string[];
