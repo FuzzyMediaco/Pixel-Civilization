@@ -692,7 +692,7 @@ export const ELEMENTS: CivElementDef[] = [
     income: 18,
     power: -1,
     accentHex: "#ff7426",
-    description: "Glowing stone forge and anvil workshop crafting tools and ironwork.",
+    description: "Smiths turn hot iron into tools at an anvil, casting pot, farrier’s arcade or water-powered hammer.",
   },
   {
     id: "restaurants",
@@ -888,7 +888,7 @@ export const ELEMENTS: CivElementDef[] = [
     baseSpan: [2, 2],
     maxSpan: [3, 2],
     accentHex: "#64f5df",
-    description: "High-tech server hall with cooling chillers and glowing rack status LEDs.",
+    description: "Step between the racks, trace a copper bus, look into a spinning cooler or walk beneath fiber-optic arches.",
   },
 
   // ===================== POWER, WASTE & INDUSTRY (Remaining 13) =====================

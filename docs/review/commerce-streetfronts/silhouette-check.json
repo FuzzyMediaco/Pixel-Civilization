@@ -1,0 +1,20 @@
+{
+ "min": 0.12,
+ "ids": [
+  "atms",
+  "buildings",
+  "businesses",
+  "shops",
+  "malls",
+  "data_centers",
+  "blacksmiths"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.142,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}

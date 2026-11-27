@@ -283,12 +283,12 @@
     },
     "description": "Local workplaces so residents earn wages and generate city tax revenue.",
     "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
-    "growth": "A garage startup grows into offices, a rooftop-terrace loft, then a low-rise office park and a sprawling HQ campus with a logo sculpture.",
+    "growth": "One desk becomes a shared studio. Connected workspaces, meeting decks and open-air courts fill the campus.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Garage Startup",
+        "name": "One-Desk Workshop",
         "dimensions": [
           1,
           1
@@ -297,7 +297,7 @@
       },
       {
         "level": 2,
-        "name": "Main-Street Office",
+        "name": "Shared Studio",
         "dimensions": [
           1,
           1
@@ -306,7 +306,7 @@
       },
       {
         "level": 3,
-        "name": "Co-Working Loft",
+        "name": "Co-working Yard",
         "dimensions": [
           2,
           1
@@ -315,7 +315,7 @@
       },
       {
         "level": 4,
-        "name": "Office Park",
+        "name": "Linked Office Court",
         "dimensions": [
           2,
           2
@@ -324,7 +324,7 @@
       },
       {
         "level": 5,
-        "name": "HQ Campus",
+        "name": "Independent Makers Campus",
         "dimensions": [
           3,
           2
@@ -335,19 +335,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Brick warehouse conversion"
+        "name": "Pinwheel Studios"
       },
       {
         "index": 1,
-        "name": "Scandinavian timber"
+        "name": "Drafting Board Works"
       },
       {
         "index": 2,
-        "name": "Silicon tech"
+        "name": "Carriage Works"
       },
       {
         "index": 3,
-        "name": "Southwest adobe"
+        "name": "Paperclip Pavilion"
       }
     ],
     "partner": {
@@ -1051,7 +1051,7 @@
     },
     "description": "Bustling corner boutiques offering shopping, jobs, and lively street life.",
     "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
-    "growth": "One shop becomes a strip, then a market street with stalls, a glass-vaulted arcade and finally a department store.",
+    "growth": "A single boutique gains neighboring sellers, a walkable shopping lane and a market quarter around its original counter.",
     "maxLevel": 5,
     "levels": [
       {
@@ -1065,7 +1065,7 @@
       },
       {
         "level": 2,
-        "name": "Strip of Shops",
+        "name": "Neighboring Stalls",
         "dimensions": [
           2,
           1
@@ -1074,7 +1074,7 @@
       },
       {
         "level": 3,
-        "name": "Market Street",
+        "name": "Shopping Lane",
         "dimensions": [
           2,
           2
@@ -1083,7 +1083,7 @@
       },
       {
         "level": 4,
-        "name": "Glass-Roofed Arcade",
+        "name": "Merchants' Court",
         "dimensions": [
           3,
           2
@@ -1092,7 +1092,7 @@
       },
       {
         "level": 5,
-        "name": "Grand Department Store",
+        "name": "Grand Market Quarter",
         "dimensions": [
           3,
           3
@@ -1103,19 +1103,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Main Street Americana"
+        "name": "Handbag Row"
       },
       {
         "index": 1,
-        "name": "Parisian"
+        "name": "Parasol Court"
       },
       {
         "index": 2,
-        "name": "Dutch canal"
+        "name": "Merchant Steps"
       },
       {
         "index": 3,
-        "name": "Tokyo neon"
+        "name": "Lantern Bazaar"
       }
     ],
     "partner": {
@@ -2865,14 +2865,14 @@
       "power": -1,
       "income": 18
     },
-    "description": "Glowing stone forge and anvil workshop crafting tools and ironwork.",
+    "description": "Smiths turn hot iron into tools at an anvil, casting pot, farrier’s arcade or water-powered hammer.",
     "usage": "Face the workshop toward a local road for access. A bordering farm opens a loading connection.",
-    "growth": "A roadside anvil gains a sheltered hearth, a flywheel-driven hammer, a casting furnace and a guild courtyard of finished ironwork.",
+    "growth": "Follow a hot billet through a walk-in anvil, a pouring crucible, a farrier’s horseshoe arcade or a waterwheel-driven hammer house.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Wayside Hearth",
+        "name": "Wayside Iron",
         "dimensions": [
           1,
           1
@@ -2881,7 +2881,7 @@
       },
       {
         "level": 2,
-        "name": "Village Smithy",
+        "name": "Smith’s Workshop",
         "dimensions": [
           1,
           1
@@ -2890,7 +2890,7 @@
       },
       {
         "level": 3,
-        "name": "Trip-Hammer Workshop",
+        "name": "Ironworking Yard",
         "dimensions": [
           2,
           1
@@ -2899,7 +2899,7 @@
       },
       {
         "level": 4,
-        "name": "Casting Yard",
+        "name": "Foundry Arcade",
         "dimensions": [
           2,
           2
@@ -2908,7 +2908,7 @@
       },
       {
         "level": 5,
-        "name": "Ironworkers' Guildhall",
+        "name": "Master Ironworks",
         "dimensions": [
           3,
           2
@@ -2919,19 +2919,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Village timber"
+        "name": "Walk-in Anvil"
       },
       {
         "index": 1,
-        "name": "Nordic turf roof"
+        "name": "Crucible Works"
       },
       {
         "index": 2,
-        "name": "Industrial brick"
+        "name": "Horseshoe Arcade"
       },
       {
         "index": 3,
-        "name": "Tatara clay"
+        "name": "Waterwheel Hammer House"
       }
     ],
     "partner": {
@@ -3599,12 +3599,12 @@
     },
     "description": "Compact cash kiosk boosting commercial convenience along streets.",
     "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
-    "growth": "Stays a street-corner prop but levels up in style and height — from a slot in a wall to an obelisk with a giant spinning coin.",
+    "growth": "A sidewalk cash machine gains a second service point, a walk-up counter and a glowing neighborhood landmark.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Wall-Slot ATM",
+        "name": "Corner Cash Slot",
         "dimensions": [
           1,
           1
@@ -3613,7 +3613,7 @@
       },
       {
         "level": 2,
-        "name": "ATM Kiosk",
+        "name": "Double-Service Kiosk",
         "dimensions": [
           1,
           1
@@ -3622,7 +3622,7 @@
       },
       {
         "level": 3,
-        "name": "Drive-Thru ATM",
+        "name": "Walk-Up Exchange",
         "dimensions": [
           1,
           1
@@ -3631,7 +3631,7 @@
       },
       {
         "level": 4,
-        "name": "24h Glass ATM Lobby",
+        "name": "Night Deposit Booth",
         "dimensions": [
           1,
           1
@@ -3640,7 +3640,7 @@
       },
       {
         "level": 5,
-        "name": "Golden Cash Tower",
+        "name": "Neighborhood Cash Landmark",
         "dimensions": [
           1,
           1
@@ -3651,19 +3651,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Green Savings"
+        "name": "Coin Exchange"
       },
       {
         "index": 1,
-        "name": "Crimson Express"
+        "name": "Piggy Deposit"
       },
       {
         "index": 2,
-        "name": "Crypto Neon"
+        "name": "Swing-Door Vault"
       },
       {
         "index": 3,
-        "name": "Gold Reserve"
+        "name": "Card Reader"
       }
     ],
     "partner": {
@@ -3690,12 +3690,12 @@
     },
     "description": "Multi-story downtown office and studio building.",
     "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
-    "growth": "Grows straight up: each level adds many floors and a more dramatic crown, ending as a beacon-topped supertall.",
+    "growth": "A street-level studio adds a public lobby, occupied upper floors and a distinctive skyline crown.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Walk-Up Commercial Block",
+        "name": "Corner Studio",
         "dimensions": [
           1,
           1
@@ -3704,7 +3704,7 @@
       },
       {
         "level": 2,
-        "name": "Mid-Rise Office",
+        "name": "Offices Above the Street",
         "dimensions": [
           1,
           1
@@ -3713,7 +3713,7 @@
       },
       {
         "level": 3,
-        "name": "Glass High-Rise",
+        "name": "Downtown Midrise",
         "dimensions": [
           1,
           1
@@ -3722,7 +3722,7 @@
       },
       {
         "level": 4,
-        "name": "Downtown Skyscraper",
+        "name": "Skyline Offices",
         "dimensions": [
           2,
           2
@@ -3731,7 +3731,7 @@
       },
       {
         "level": 5,
-        "name": "Supertall Crown Tower",
+        "name": "Landmark Commercial Tower",
         "dimensions": [
           2,
           2
@@ -3742,19 +3742,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Art Deco"
+        "name": "Spiral Gardens"
       },
       {
         "index": 1,
-        "name": "Modern glass"
+        "name": "Radiogram Tower"
       },
       {
         "index": 2,
-        "name": "Brutalist"
+        "name": "Skybridge Twins"
       },
       {
         "index": 3,
-        "name": "Postmodern"
+        "name": "Woven Lantern"
       }
     ],
     "partner": {
@@ -3874,12 +3874,12 @@
     },
     "description": "Skylit shopping galleria packed with stores, food courts, and fountains.",
     "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
-    "growth": "Sprawls into a compound: strip → skylit mall with an anchor → second anchor and food-court dome → cinema and parking garage → rooftop Ferris wheel and fountain plaza.",
+    "growth": "A walk between local shops gains an anchor store, a food court, upper promenades and a destination above the shop roofs.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Strip Mall",
+        "name": "Shop Walk",
         "dimensions": [
           2,
           2
@@ -3888,7 +3888,7 @@
       },
       {
         "level": 2,
-        "name": "Skylit Enclosed Mall",
+        "name": "Market Arcade",
         "dimensions": [
           3,
           2
@@ -3897,7 +3897,7 @@
       },
       {
         "level": 3,
-        "name": "Regional Mall & Food-Court Dome",
+        "name": "Food Court District",
         "dimensions": [
           3,
           3
@@ -3906,7 +3906,7 @@
       },
       {
         "level": 4,
-        "name": "Megamall with Cinema",
+        "name": "Grand Promenade",
         "dimensions": [
           4,
           3
@@ -3915,7 +3915,7 @@
       },
       {
         "level": 5,
-        "name": "Mega-Resort Mall",
+        "name": "Landmark Emporium",
         "dimensions": [
           4,
           4
@@ -3926,19 +3926,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "'80s Americana"
-      },
-      {
-        "index": 1,
         "name": "Glass Galleria"
       },
       {
+        "index": 1,
+        "name": "Spiral Atrium Terraces"
+      },
+      {
         "index": 2,
-        "name": "Desert Luxury"
+        "name": "Hillside Souk Steps"
       },
       {
         "index": 3,
-        "name": "Asian Megamall"
+        "name": "Ocean Liner Emporium"
       }
     ],
     "partner": {
@@ -3963,14 +3963,14 @@
       "water": -16,
       "income": 240
     },
-    "description": "High-tech server hall with cooling chillers and glowing rack status LEDs.",
+    "description": "Step between the racks, trace a copper bus, look into a spinning cooler or walk beneath fiber-optic arches.",
     "usage": "Put heat-producing equipment next to a compatible consumer to add a pipe across the shared edge.",
-    "growth": "Server halls multiply into campuses with glass control bridges, arctic intakes, desert solar fields or buried cooling ducts. Fiber towers and a tracking dish connect the largest sites.",
+    "growth": "Follow the service aisles between walk-in server racks, pin-legged processors, open cooling fans or arching bundles of fiber.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Server Hut",
+        "name": "Local Node",
         "dimensions": [
           2,
           2
@@ -3979,7 +3979,7 @@
       },
       {
         "level": 2,
-        "name": "Colocation Hall",
+        "name": "Paired Exchange",
         "dimensions": [
           2,
           2
@@ -3988,7 +3988,7 @@
       },
       {
         "level": 3,
-        "name": "Twin Data Halls",
+        "name": "Distribution Yard",
         "dimensions": [
           3,
           2
@@ -3997,7 +3997,7 @@
       },
       {
         "level": 4,
-        "name": "Server Campus",
+        "name": "Interconnect Campus",
         "dimensions": [
           3,
           3
@@ -4006,7 +4006,7 @@
       },
       {
         "level": 5,
-        "name": "Hyperscale AI Campus",
+        "name": "Regional Compute Works",
         "dimensions": [
           4,
           4
@@ -4017,19 +4017,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Corporate"
+        "name": "Rack Street"
       },
       {
         "index": 1,
-        "name": "Arctic"
+        "name": "Circuit Court"
       },
       {
         "index": 2,
-        "name": "Desert Solar"
+        "name": "Cooling Crown"
       },
       {
         "index": 3,
-        "name": "Bunker"
+        "name": "Fiber Loom"
       }
     ],
     "partner": {
