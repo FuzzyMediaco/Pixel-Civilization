@@ -105,7 +105,8 @@ import {
 } from "./game/autoCivilization";
 import { hydrateCustomElements } from "./game/customElements";
 import { applyPixWorldPlan, type PixWorldApplyResult, type PixWorldPlan } from "./game/pixWorldActions";
-import { MODE_TUTORIAL_LABELS, TUTORIAL_FLOWS, type TutorialEventKind } from "./game/tutorialFlows";
+import { MODE_TUTORIAL_LABELS, TUTORIAL_FLOWS, placementEvents, type TutorialEventKind } from "./game/tutorialFlows";
+import { loadTutorialProgress, saveTutorialProgress, shouldAutoStartTutorial } from "./game/tutorialProgress";
 import {
   type CivElementDef,
   ELEMENT_BY_ID,
@@ -521,16 +522,27 @@ export const App: React.FC = () => {
   useEffect(() => () => clearTutorialTimer(), [clearTutorialTimer]);
 
   const stopTutorial = useCallback((showCompleteToast = false, completedMode?: GameMode) => {
+    const cur = tutorialStateRef.current;
+    if (cur) saveTutorialProgress({ mode: cur.mode, stepIndex: cur.stepIndex, status: showCompleteToast ? "done" : "paused" });
     clearTutorialTimer();
     setTutorialState(null);
     if (showCompleteToast && completedMode) {
       showToast({
         id: "tutorial-done",
         title: `${MODE_TUTORIAL_LABELS[completedMode]} tutorial complete`,
-        subtitle: "All menus are now unlocked. Replay anytime in Settings.",
+        subtitle: "All menus are unlocked. Replay it anytime from More → Tutorial.",
         tone: "gold",
       });
     }
+  }, [clearTutorialTimer, showToast]);
+
+  /** Leave the tutorial without losing your place: every menu unlocks, More → Tutorial resumes. */
+  const pauseTutorial = useCallback(() => {
+    const cur = tutorialStateRef.current;
+    if (cur) saveTutorialProgress({ mode: cur.mode, stepIndex: cur.stepIndex, status: "paused" });
+    clearTutorialTimer();
+    setTutorialState(null);
+    showToast({ id: "tutorial-paused", title: "Tutorial paused", subtitle: "All menus are unlocked. Resume anytime from More → Tutorial.", tone: "normal" });
   }, [clearTutorialTimer, showToast]);
 
   const advanceTutorial = useCallback(() => {
@@ -540,11 +552,12 @@ export const App: React.FC = () => {
       const steps = TUTORIAL_FLOWS[cur.mode];
       if (cur.stepIndex + 1 >= steps.length) {
         const finishedMode = cur.mode;
+        saveTutorialProgress({ mode: finishedMode, stepIndex: steps.length - 1, status: "done" });
         window.setTimeout(() => {
           showToast({
             id: "tutorial-done",
             title: `${MODE_TUTORIAL_LABELS[finishedMode]} tutorial complete`,
-            subtitle: "All menus are now unlocked. Replay anytime in Settings.",
+            subtitle: "All menus are unlocked. Replay it anytime from More → Tutorial.",
             tone: "gold",
           });
         }, 0);
@@ -567,10 +580,11 @@ export const App: React.FC = () => {
       setTutorialState((latest) => {
         if (!latest || latest.mode !== cur.mode || latest.stepIndex !== cur.stepIndex) return latest;
         if (latest.stepIndex + 1 >= steps.length) {
+          saveTutorialProgress({ mode: latest.mode, stepIndex: latest.stepIndex, status: "done" });
           showToast({
             id: "tutorial-done",
             title: `${MODE_TUTORIAL_LABELS[latest.mode]} tutorial complete`,
-            subtitle: "All menus are now unlocked. Replay anytime in Settings.",
+            subtitle: "All menus are unlocked. Replay it anytime from More → Tutorial.",
             tone: "gold",
           });
           return null;
@@ -603,6 +617,7 @@ export const App: React.FC = () => {
     else if (next === "layers") notifyTutorial("open_layers");
     else if (next === "city") notifyTutorial("open_city");
     else if (next === "more") notifyTutorial("open_more");
+    else if (next === "sculpt") notifyTutorial("open_sculpt");
   },[notifyTutorial]);
   const openWorks=useCallback(()=>{openSheet("sculpt");},[openSheet]);
   const openSettings=useCallback(()=>{openSheet("more");setMorePage("settings");},[openSheet]);
@@ -760,7 +775,7 @@ export const App: React.FC = () => {
 
       recordPlacementHabit(def, gx, gz);
       setPlaceStats(prev=>prev&&prev.defId===brushDef.id?{defId:brushDef.id,count:prev.count+1,spent:prev.spent+charged}:{defId:brushDef.id,count:1,spent:charged});
-      notifyTutorial("place_item");
+      for (const ev of placementEvents(def)) notifyTutorial(ev);
 
       const beh = cursorBehaviorRef.current;
       if (beh === "select" || (beh === "auto" && !def.isNetwork)) {
@@ -968,7 +983,7 @@ export const App: React.FC = () => {
       });
 
       recordPlacementHabit(def, gx, gz);
-      notifyTutorial("place_item");
+      for (const ev of placementEvents(def)) notifyTutorial(ev);
       setQuickBuild(null);
       selectAfterPlacement(placedId);
     },
@@ -1082,7 +1097,7 @@ export const App: React.FC = () => {
         ? { defId: brushDef.id, count: prev.count + placedCount, spent: prev.spent + totalSpent }
         : { defId: brushDef.id, count: placedCount, spent: totalSpent },
     );
-    notifyTutorial("place_item");
+    for (const ev of placementEvents(brushDef)) notifyTutorial(ev);
     if (cursorBehaviorRef.current === "select") setBrush(idleBrush);
   }, [commitBuildingEdit, notifyTutorial, recordPlacementHabit, showToast]);
   const confirmRoadStrokeRef = useRef(handleConfirmRoadStroke);
@@ -1509,7 +1524,7 @@ export const App: React.FC = () => {
     return true;
   };
 
-  const handleStartTutorial = (mode: GameMode) => {
+  const handleStartTutorial = (mode: GameMode, stepIndex = 0) => {
     clearTutorialTimer();
     if (stateRef.current.mode !== mode) {
       if (!handleSwitchMode(mode)) return;
@@ -1520,8 +1535,34 @@ export const App: React.FC = () => {
     }
     setSheetState(null);
     setActiveHeatmap("none");
-    setTutorialState({ mode, stepIndex: 0, completed: false });
+    const steps = TUTORIAL_FLOWS[mode];
+    const at = Math.max(0, Math.min(steps.length - 1, stepIndex));
+    setTutorialState({ mode, stepIndex: at, completed: false });
+    saveTutorialProgress({ mode, stepIndex: at, status: "active" });
   };
+
+  /** More → Tutorial: pick up exactly where the player left off, or start fresh after finishing. */
+  const handleResumeTutorial = () => {
+    const mode = stateRef.current.mode;
+    const p = loadTutorialProgress();
+    handleStartTutorial(mode, p && p.mode === mode && p.status !== "done" ? p.stepIndex : 0);
+  };
+
+  // Keep the saved step in sync while a tutorial runs.
+  useEffect(() => {
+    if (tutorialState) saveTutorialProgress({ mode: tutorialState.mode, stepIndex: tutorialState.stepIndex, status: "active" });
+  }, [tutorialState?.mode, tutorialState?.stepIndex]);
+
+  // New players start in the tutorial by default; returning players resume an unfinished one.
+  useEffect(() => {
+    if (new URLSearchParams(location.search).has("notutorial") || /(^|[#&])world=/.test(location.hash)) return;
+    const p = loadTutorialProgress();
+    const cur = stateRef.current;
+    if (!shouldAutoStartTutorial(p, cur.elements.length, cur.mode)) return;
+    const mode = p?.mode && p.mode === cur.mode ? p.mode : cur.mode;
+    const at = p && p.mode === mode ? p.stepIndex : 0;
+    setTutorialState({ mode, stepIndex: Math.min(at, TUTORIAL_FLOWS[mode].length - 1), completed: false });
+  }, []);
 
   const handleSelectBrushDef = (defId: string | null) => {
     setWorksTool(null);
@@ -2547,6 +2588,7 @@ export const App: React.FC = () => {
           state={gameState}
           speed={simSpeed}
           hiddenForRing={ringOpen}
+          tutorialLimited={!!activeTutorialStep && !activeTutorialStep.visibleNav.includes("more")}
           onStat={(s) => {
             setQuickDrawerOpen(false);
             onHudStat(s);
@@ -2599,7 +2641,7 @@ export const App: React.FC = () => {
           completedStep={tutorialState.completed}
           belowHud={showHud && !ringOpen}
           onNext={advanceTutorial}
-          onExit={() => stopTutorial(false)}
+          onExit={pauseTutorial}
         />
       )}
       {showAlert&&<AlertPill issues={issues} onOpen={()=>openCity("issues")}/>}
@@ -3005,7 +3047,7 @@ export const App: React.FC = () => {
             onOpenPixBuilder={()=>{trackDrawerAction("pix_advise",0.5);openPixStudio();}}
             onChangeMode={m=>{trackDrawerAction("game_mode",0.5);stopTutorial(false);if(handleSwitchMode(m))openSheet(null);}} onCopyIsland={()=>{stopTutorial(false);copyIsland();}}
             onReset={()=>setConfirmResetOpen(true)}
-            tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial}
+            tutorialMode={tutorialState?.mode ?? null} onStartTutorial={handleStartTutorial} onResumeTutorial={handleResumeTutorial}
             view={<ViewEnvPanel activeTab={viewEnvTab} state={gameState} cameraMode={cameraMode} autoSpin={autoSpin} attackSeverity={attackSeverity}
               onChangeTab={setViewEnvTab} onChangeCameraMode={m=>{setCameraMode(m);rendererRef.current?.setCameraMode(m);}}
               onSpinLeft={()=>rendererRef.current?.rotateCameraBy(-Math.PI/4)} onSpinRight={()=>rendererRef.current?.rotateCameraBy(Math.PI/4)}

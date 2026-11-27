@@ -1,5 +1,6 @@
+import { DialogHeader } from "./ui";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { ArrowRight, Cloud, Download, Ellipsis, HardDrive, Plus, Upload, X } from "lucide-react";
+import { ArrowRight, Cloud, Download, Ellipsis, HardDrive, Plus, Save, Upload, X } from "lucide-react";
 import { GameDialog } from "./GameDialog";
 import { MODE_TUTORIAL_LABELS } from "../game/tutorialFlows";
 import { syncState, watchSync } from "../game/accountSync";
@@ -145,12 +146,7 @@ function SavedIslands({
   return (
     <GameDialog label="Saved islands" onDismiss={onClose} className="island-modal save-dialog">
       <div className="save-panel">
-        <header className="save-header">
-          <h2>Saved islands</h2>
-          <button className="save-icon" type="button" aria-label="Close saved islands" onClick={onClose} data-dialog-focus>
-            <X size={20} aria-hidden="true" />
-          </button>
-        </header>
+        <DialogHeader icon={<Save size={20} />} title="Saved islands" subtitle="Your islands on this device and your account" onClose={onClose} closeLabel="Close saved islands" focusClose />
         <div className="save-body">
           <section className="save-current" aria-label="Current island">
             <div className="save-current-title">

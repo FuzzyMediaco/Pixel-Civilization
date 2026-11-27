@@ -1,3 +1,4 @@
+import { loadTutorialProgress } from "../game/tutorialProgress";
 import React from "react";
 import { islandProductAvailable } from "../game/islandLicenses";
 import { productForMode } from "../game/storeCatalog.mjs";
@@ -64,6 +65,7 @@ export function MoreSheet({
   godTools,
   tutorialMode,
   onStartTutorial,
+  onResumeTutorial,
 }: {
   saveNow: () => boolean;
   state: GameState;
@@ -87,6 +89,7 @@ export function MoreSheet({
   godTools: React.ReactNode;
   tutorialMode?: GameMode | null;
   onStartTutorial?: (m: GameMode) => void;
+  onResumeTutorial?: () => void;
 }) {
   const stage = STAGES[Math.max(0, Math.min(STAGES.length - 1, state.currentStage - 1))];
   const modeName = MODES.find((m) => m.id === state.mode)?.title ?? state.mode;
@@ -125,6 +128,14 @@ export function MoreSheet({
               <span>Settings</span>
             </button>
             <button type="button" className="ui-more-tile" onClick={onShop}><BookOpen size={18} aria-hidden="true"/><span>Island Store</span></button>
+            {onResumeTutorial && (() => {
+              const p = loadTutorialProgress();
+              const resumable = !tutorialMode && p && p.mode === state.mode && p.status === "paused";
+              return <button type="button" className="ui-more-tile" onClick={() => { onClose(); onResumeTutorial(); }}
+                title={resumable ? `Resume at step ${p!.stepIndex + 1}` : "Learn to play step by step"}>
+                <GraduationCap size={18} aria-hidden="true"/><span>{resumable ? "Resume tutorial" : "Tutorial"}</span>
+              </button>;
+            })()}
             {onOpenPixBuilder && (
               <button type="button" className="ui-more-tile is-accent" onClick={onOpenPixBuilder} title="PixBuilder Studio & Advisor">
                 <Sparkles size={18} aria-hidden="true" />

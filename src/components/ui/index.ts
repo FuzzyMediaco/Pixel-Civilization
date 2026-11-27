@@ -7,3 +7,4 @@ export { ListRow } from "./ListRow";
 export { Tabs, type TabItem } from "./Tabs";
 export { Toasts, type UiToast } from "./Toast";
 export { ConfirmDialog } from "./ConfirmDialog";
+export { DialogHeader } from "./DialogHeader";

@@ -1,3 +1,4 @@
+import { DialogHeader } from "./ui";
 import {useStoreAccess} from "./IslandShop";
 import {currentPlayer} from "../game/deviceSaves";
 import React, { useEffect, useMemo, useState } from "react";
@@ -387,46 +388,15 @@ export function PixBuilderModal({
   return (
     <GameDialog label="PixBuilder Studio" className="ui-guide-modal ui-pix-modal" onDismiss={onClose}>
       <div className="pix-root">
-        <header className="pix-topbar">
-          <div className="pix-brand">
-            <Sparkles size={18} aria-hidden="true" />
-            <div>
-              <strong>PixBuilder</strong>
-              <span>{modeLabel[state.mode]}</span>
-            </div>
-          </div>
-
-          <nav className="pix-tabs" aria-label="PixBuilder Studio tabs">
-            <button
-              type="button"
-              aria-pressed={tab === "element"}
-              onClick={() => setTab("element")}
-            >
-              <Wand2 size={15} aria-hidden="true" />
-              <span>Create Element</span>
+        <DialogHeader icon={<Sparkles size={20} />} title="PixBuilder" subtitle={modeLabel[state.mode]} onClose={onClose} closeLabel="Close PixBuilder" />
+        <div className="ui-tabs pix-tabs" role="tablist" aria-label="PixBuilder Studio tabs">
+          {([["element", Wand2, "Create"], ["world", Hammer, "Build world"], ["advise", MessageSquare, "Advise"]] as const).map(([id, Icon, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
+              <Icon size={15} aria-hidden="true" />
+              <span>{label}</span>
             </button>
-            <button
-              type="button"
-              aria-pressed={tab === "world"}
-              onClick={() => setTab("world")}
-            >
-              <Hammer size={15} aria-hidden="true" />
-              <span>Build World</span>
-            </button>
-            <button
-              type="button"
-              aria-pressed={tab === "advise"}
-              onClick={() => setTab("advise")}
-            >
-              <MessageSquare size={15} aria-hidden="true" />
-              <span>Advise with Pix</span>
-            </button>
-          </nav>
-
-          <button type="button" className="pc-atlas-close" aria-label="Close PixBuilder" onClick={onClose}>
-            <X size={20} aria-hidden="true" />
-          </button>
-        </header>
+          ))}
+        </div>
 
         <div className="pix-model-bar" role="group" aria-label="AI Model">
           <span className="pix-model-label">Model:</span>

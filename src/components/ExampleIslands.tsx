@@ -1,7 +1,8 @@
+import { DialogHeader } from "./ui";
 import { PERIODS, PRODUCTION_ERAS } from "../game/periods";
 import { PERIOD_TOURS } from "../game/periodTours";
 import { useState } from "react";
-import { ArrowLeft, Compass, MapPin, X } from "lucide-react";
+import { ArrowLeft, Compass, Map as MapIcon, MapPin, X } from "lucide-react";
 import { EXAMPLE_WORLDS, type ExampleMode, type ExampleWorld, type ExampleWorldId } from "../game/exampleWorlds";
 import { GameDialog } from "./GameDialog";
 import "./exampleIslands.css";
@@ -18,15 +19,14 @@ export function ExampleIslands({current, currentMode, error, onOpen, onReturn, o
   const [filter,setFilter]=useState("featured");
   const tourKeys=new Map(PERIOD_TOURS.map(item=>[item.world.id,item.era]));
   const visible=EXAMPLE_WORLDS.filter(w=>filter==="all" || (filter==="featured" ? !tourKeys.has(w.id) && !w.id.startsWith("rome-") : (tourKeys.get(w.id)??(w.id.startsWith("rome-")?"rome-aqueduct":""))===filter));
-  return <GameDialog label="Example islands" className="example-islands" onDismiss={onClose}>
-    <header><div><h2>Example islands</h2><p>Each island saves your edits separately for each mode.</p></div>
-      <button type="button" aria-label="Close example islands" data-dialog-dismiss onClick={onClose}><X size={18}/></button></header>
-    <label className="example-mode">Explore in
+  return <GameDialog label="Example islands" className="example-islands ui-dialog" onDismiss={onClose}>
+    <DialogHeader icon={<MapIcon size={20}/>} title="Example islands" subtitle="Each island saves your edits separately for each mode." onClose={onClose} closeLabel="Close example islands"/>
+    <label className="example-mode ui-field">Explore in
       <select value={mode} onChange={e=>setMode(e.target.value as ExampleMode)}>
         <option value="god">God mode</option><option value="real">Real mode</option>
       </select>
     </label>
-    <label className="example-mode">Time period
+    <label className="example-mode ui-field">Time period
       <select value={filter} onChange={e=>setFilter(e.target.value)}><option value="featured">Original islands</option>{PRODUCTION_ERAS.map(key=><option key={key} value={key}>{PERIODS[key].label}</option>)}<option value="all">All islands</option></select>
     </label>
     {error && <p className="world-save-alert" role="alert">There is not enough browser storage to switch safely. Your current island is still open.</p>}

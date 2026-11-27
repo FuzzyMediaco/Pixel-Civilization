@@ -10,7 +10,12 @@ export type TutorialEventKind =
   | "pick_layer"
   | "open_city"
   | "open_transit"
-  | "open_more";
+  | "open_more"
+  | "open_sculpt"
+  | "place_road"
+  | "place_home"
+  | "place_job"
+  | "place_utility";
 
 export interface TutorialStep {
   id: string;
@@ -23,7 +28,7 @@ export interface TutorialStep {
   showHud: boolean;
   /** Which menu button (if any) pulses with a focus ring until opened. */
   highlightNav?: NavSheet;
-  /** Event kinds that satisfy this step's interactive demo. */
+  /** Event kinds that satisfy this step's interactive demo. Empty = a read-and-continue step. */
   completeOn: TutorialEventKind[];
 }
 
@@ -99,29 +104,78 @@ export const TUTORIAL_FLOWS: Record<GameMode, TutorialStep[]> = {
   ],
   real: [
     {
-      id: "real-build",
-      title: "Lay your Stage 1 foundations",
-      body: "Real mode grows your island from Village to Stage 20 on a live treasury. Open Build and place a road, house, farm, or utility from Starter 10.",
-      demoHint: "Demo: Open Build and place an element on the island",
+      id: "real-welcome",
+      title: "Welcome to your island",
+      body: "You're the planner. Grow a village into a city by giving people homes, jobs, food and power. The bar up top shows people, happiness, treasury and power. We'll unlock each menu as you need it.",
+      demoHint: "Tap Let's go to start building",
+      visibleNav: [],
+      showHud: true,
+      completeOn: [],
+    },
+    {
+      id: "real-open-build",
+      title: "Open Build",
+      body: "Build holds everything you can place. It just appeared at the bottom of the screen.",
+      demoHint: "Tap Build",
       visibleNav: ["build"],
       showHud: true,
       highlightNav: "build",
-      completeOn: ["place_item"],
+      completeOn: ["open_build"],
+    },
+    {
+      id: "real-road",
+      title: "Lay a road",
+      body: "Everything needs a road to work. Pick Roads, then drag across the grass to draw a street.",
+      demoHint: "Draw a road",
+      visibleNav: ["build"],
+      showHud: true,
+      highlightNav: "build",
+      completeOn: ["place_road"],
+    },
+    {
+      id: "real-home",
+      title: "Add homes",
+      body: "Pick House and tap next to your road. Residents move in once a home touches a road.",
+      demoHint: "Place a house beside the road",
+      visibleNav: ["build"],
+      showHud: true,
+      highlightNav: "build",
+      completeOn: ["place_home"],
+    },
+    {
+      id: "real-jobs",
+      title: "Give them jobs and food",
+      body: "People need somewhere to work and shop. Place a Grocery Store, Shops or a Farm on the road. Businesses also pay taxes into your treasury.",
+      demoHint: "Place a shop, grocery or farm",
+      visibleNav: ["build"],
+      showHud: true,
+      highlightNav: "build",
+      completeOn: ["place_job"],
+    },
+    {
+      id: "real-utility",
+      title: "Turn on power and water",
+      body: "Homes and shops use power and water. Place a power or water utility from Build and watch the power number up top.",
+      demoHint: "Place a power or water utility",
+      visibleNav: ["build"],
+      showHud: true,
+      highlightNav: "build",
+      completeOn: ["place_utility"],
     },
     {
       id: "real-select",
-      title: "Check Needs & Growth",
-      body: "Tap any building to open its Selection Ring, then tap ••• to see road access, element-specific stats, and what it needs to level up.",
-      demoHint: "Demo: Tap a placed building on the island",
+      title: "Tap a building",
+      body: "Tap anything you built. Its ring lets you upgrade it, change its look, rotate it, move it or see what it needs.",
+      demoHint: "Tap one of your buildings",
       visibleNav: ["build"],
       showHud: true,
       completeOn: ["select_element", "open_inspector"],
     },
     {
       id: "real-city",
-      title: "Treasury, Taxes & Stage Goals",
-      body: "City just unlocked! Open City to watch Issues, adjust your tax rate, check Supply vs Demand, and track population toward Stage 2. Crime stays off until Police unlock at Stage 5.",
-      demoHint: "Demo: Open the City menu",
+      title: "City: your to-do list",
+      body: "City just unlocked. Issues tells you what your people need next, Money sets taxes, and Goals shows how to reach the next stage.",
+      demoHint: "Open City",
       visibleNav: ["build", "city"],
       showHud: true,
       highlightNav: "city",
@@ -129,29 +183,29 @@ export const TUTORIAL_FLOWS: Record<GameMode, TutorialStep[]> = {
     },
     {
       id: "real-layers",
-      title: "Spot Bottlenecks with Layers",
-      body: "Layers just unlocked! Open Layers and choose Power, Water, Traffic, or Fire coverage to see where your town needs upgrades.",
-      demoHint: "Demo: Open Layers and pick an overlay",
+      title: "See the invisible",
+      body: "Layers just unlocked. Overlays show power, water, traffic and land value, so you can spot what's missing at a glance.",
+      demoHint: "Open Layers and pick an overlay",
       visibleNav: ["build", "layers", "city"],
       showHud: true,
       highlightNav: "layers",
       completeOn: ["pick_layer"],
     },
     {
-      id: "real-transit",
-      title: "Connect Workers & Food",
-      body: "Transit is right inside City! Open City → Transit to inspect routes moving residents, food harvests, and freight across neighborhoods.",
-      demoHint: "Demo: Open City → Transit",
+      id: "real-sculpt",
+      title: "Shape the land",
+      body: "Sculpt just unlocked. Raise hills, carve rivers, add landforms and build crossings over water.",
+      demoHint: "Open Sculpt",
       visibleNav: ["build", "layers", "city", "sculpt"],
       showHud: true,
-      highlightNav: "city",
-      completeOn: ["open_transit"],
+      highlightNav: "sculpt",
+      completeOn: ["open_sculpt"],
     },
     {
       id: "real-more",
-      title: "3D Atlas, Saves & PixBuilder",
-      body: "All menus are now unlocked! Open More (…) to browse the searchable 3D Atlas & Playbook, open PixBuilder, save your city, or visit example islands.",
-      demoHint: "Demo: Open More (…) to finish the Real mode tour",
+      title: "Everything else lives in More",
+      body: "Saves, the Atlas, time periods, PixBuilder, settings and the Island Store are in More. This tutorial is there too, so you can come back to it anytime.",
+      demoHint: "Open More to finish",
       visibleNav: ["build", "layers", "city", "sculpt", "more"],
       showHud: true,
       highlightNav: "more",
@@ -302,3 +356,14 @@ export const TUTORIAL_FLOWS: Record<GameMode, TutorialStep[]> = {
     },
   ],
 };
+
+/** Extra tutorial events a placed element satisfies (roads, homes, jobs, utilities). */
+export function placementEvents(def: { isRoadNetwork?: boolean; popBase?: number; jobs?: number; food?: number; power?: number; water?: number } | null | undefined): TutorialEventKind[] {
+  const out: TutorialEventKind[] = ["place_item"];
+  if (!def) return out;
+  if (def.isRoadNetwork) out.push("place_road");
+  if ((def.popBase ?? 0) > 0) out.push("place_home");
+  if (((def.jobs ?? 0) > 0 || (def.food ?? 0) > 0) && !((def.popBase ?? 0) > 0)) out.push("place_job");
+  if ((def.power ?? 0) > 0 || (def.water ?? 0) > 0) out.push("place_utility");
+  return out;
+}
