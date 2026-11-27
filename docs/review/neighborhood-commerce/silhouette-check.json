@@ -1,0 +1,19 @@
+{
+ "min": 0.12,
+ "ids": [
+  "public_library",
+  "indie_bookstore",
+  "neighborhood_pharmacy",
+  "seafood_pier",
+  "auto_dealership",
+  "furniture_showroom"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.123,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}
