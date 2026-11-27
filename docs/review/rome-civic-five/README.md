@@ -14,6 +14,8 @@ Each board compares all 20 playable Roman models for one service. Rows hold vari
 
 These five services use the normal production-era model and metadata routes. The Rome pilot’s existing baked-sheet list covers a different set of elements. Static thumbnails for the five civic services resolve from their Roman model builders. The separate Forum City pilot and Original render samples matched the baseline across the 100 cells checked for each style.
 
+At phone size the district shows how five civic parcels break up the surrounding Roman roofline. The street view shows the work yards and court from the entrance side. The overhead view removes color to make footprints and open spaces easier to compare. Both builds render the same 245 placed elements at 390 × 844, at 14:00 in clear weather. [District](rome-aqueduct-district.webp) · [Street](rome-aqueduct-street.webp) · [Overhead](rome-aqueduct-overhead.webp) · [Camera and layout measurements](rome-aqueduct-views.json) · [Importable island](../civic-neighborhood/island.json)
+
 ```sh
 bash scripts/gallery-server.sh
 node scripts/shoot-gallery.mjs 'cat=all&ids=public_library,post_offices,courthouses,city_offices,banks&mode=full&cell=174&era=rome-aqueduct' /tmp/roman-civic-five.webp
