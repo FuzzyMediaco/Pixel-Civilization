@@ -6,6 +6,8 @@ import { cachedStoreAccess, confirmStorePurchase, fetchStoreAccess, finishWebChe
 import { pixBillingConsentText } from "../game/pixBillingConsent.mjs";
 import { currentPlayer } from "../game/deviceSaves";
 import { tourId, tourImage } from "../game/periodTours";
+import { Check, ExternalLink, Gamepad2, Landmark, LifeBuoy, Lock, RefreshCw, Settings2, Shield, ShoppingBag, Sparkles, Store } from "lucide-react";
+import { DialogHeader } from "./ui";
 import "./islandShop.css";
 
 type Listing = {id:string;price:string;type:"inapp"|"subs"};
@@ -38,6 +40,7 @@ function checkoutReturn(address: string) {
   }
 }
 const kindNames={era:"Time periods",mode:"Modes",subscription:"Pix plans"} as const;
+const kindIcons={era:Landmark,mode:Gamepad2,subscription:Sparkles} as const;
 
 export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()=>void;saveNow:()=>boolean}) {
   const access=useStoreAccess(), native=nativeShop();
@@ -167,10 +170,10 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
     openWebBilling(await startWebCheckout(p.id,monthly),"Continue to Stripe checkout");
     setSelection(undefined);
   });
-  return <GameDialog label="Island Store" className="pc-shop" onDismiss={onClose}>
-    <header><div><h1>Island Store</h1><p>Original, Real, Idle and Manager are free. Explore every time period in the Atlas and sample islands.</p></div>
-      <button className="ui-btn" onClick={onClose} aria-label="Close store">Close</button></header>
-    <nav aria-label="Store categories">{(Object.keys(kindNames) as StoreProduct["kind"][]).map(k=><button key={k} type="button" className="ui-btn" aria-pressed={k===kind} onClick={()=>{setKind(k);setSelection(undefined);}}>{kindNames[k]}</button>)}</nav>
+  return <GameDialog label="Island Store" className="pc-shop ui-dialog" onDismiss={onClose}>
+    <DialogHeader icon={<Store size={20}/>} title="Island Store" subtitle="Original, Real, Idle and Manager are free. Explore every time period in the Atlas and sample islands." onClose={onClose} closeLabel="Close store"/>
+    <div className="ui-dialog-body">
+    <div className="ui-tabs pc-shop-tabs" role="tablist" aria-label="Store categories">{(Object.keys(kindNames) as StoreProduct["kind"][]).map(k=>{const Icon=kindIcons[k];return <button key={k} type="button" role="tab" aria-selected={k===kind} onClick={()=>{setKind(k);setSelection(undefined);}}><Icon size={15} aria-hidden="true"/>{kindNames[k]}</button>;})}</div>
     {accountForm && !access.accountId && <PlayerAccount saveNow={saveNow}/>}
     {kind==="subscription" && !access.complimentary && <>
       <p>Each plan includes game access and a monthly Pix allowance. Paid messages pause when you reach either limit.</p>
@@ -238,23 +241,25 @@ export function IslandShop({initial,onClose,saveNow}:{initial?:string;onClose:()
       const price=listing?.price??dollars(p.usdCents);
       const reviewing = isPlan && available && !owned && selection?.account === access.accountId && selection?.productId === p.id;
       return <article key={p.id} data-featured={p.id===initial} data-reviewing={reviewing || undefined}>
-        {p.era && <img alt="" src={tourImage(p.era,"skyline")} loading="lazy"/>}
-        <h2>{p.label}</h2><strong>{owned ? "Included with your account" : price + (p.kind==="subscription"?" / month":" once")}</strong>
-        {p.era && <a href={"./#world="+tourId(p.era,"starter")+"&era="+p.era} target="_blank" rel="noreferrer">Explore free island ↗</a>}
+        {p.era ? <img alt="" src={tourImage(p.era,"skyline")} loading="lazy"/> : <div className="pc-shop-hero" aria-hidden="true">{p.kind==="mode" ? (p.mode==="god" ? <Sparkles size={34}/> : <Shield size={34}/>) : <Sparkles size={34}/>}</div>}
+        <div className="pc-shop-title"><h3>{p.label}</h3><strong className={"ui-tag"+(owned?"":" is-price")}>{owned ? <><Check size={13} aria-hidden="true"/>Included with your account</> : price + (p.kind==="subscription"?" / month":" once")}</strong></div>
+        {p.era && <a className="pc-shop-link" href={"./#world="+tourId(p.era,"starter")+"&era="+p.era} target="_blank" rel="noreferrer"><ExternalLink size={14} aria-hidden="true"/>Explore free island ↗</a>}
         {p.kind==="mode" && <p>{p.mode==="god"?"Sculpt terrain, control time and build without limits on your own islands.":"Balance growth, upkeep and emergencies on your own islands."}</p>}
         {p.kind==="subscription" && <p>{p.messages?.toLocaleString()} messages · {dollars((p.budgetMicros??0)/10000)} AI usage. {p.id==="pix_complete"?"Includes both modes and all ten time periods.":"Includes "+p.includes.map(id=>productById(id)?.label).join(", ")+"."}</p>}
         {reviewing ? <fieldset className="pc-shop-consent">
           <legend>Monthly card authorization</legend>
           <label><input type="checkbox" autoFocus checked={selection.accepted} onChange={e=>setSelection({...selection,accepted:e.target.checked})}/><span>{pixBillingConsentText(p)}</span></label>
-          <button className="ui-btn" type="button" disabled={busy||!selection.accepted} onClick={()=>void purchase(p)}>Continue to card setup</button>
+          <button className="ui-btn is-primary" type="button" disabled={busy||!selection.accepted} onClick={()=>void purchase(p)}>Continue to card setup</button>
           <button className="ui-btn" type="button" disabled={busy} onClick={()=>setSelection(undefined)}>Back</button>
-        </fieldset> : <button className="ui-btn" disabled={busy||owned||!available} onClick={()=>void purchase(p)}>
+        </fieldset> : <button className={"ui-btn is-block"+(owned||!available?"":" is-primary")} disabled={busy||owned||!available} onClick={()=>void purchase(p)}>
+          {owned?<Check size={16} aria-hidden="true"/>:!available?<Lock size={16} aria-hidden="true"/>:<ShoppingBag size={16} aria-hidden="true"/>}
           {owned?"In your library":!available?unavailableLabel:!access.accountId?"Sign in to purchase":isPlan?"Subscribe":"Unlock "+p.label}</button>}
       </article>;
     })}</section>
-    <footer>{native && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(!access.accountId){setAccountForm(true);return;}const receipts=await native.restore();await deliver(receipts);await fetchStoreAccess();setMessage("Your purchases have been checked.");})}>Restore purchases</button>}
-      {(!access.complimentary || billing) && (native||(!storeEdition&&((access.plan && (!access.giftEndsAt || access.hasPaidPlan)) || billing?.state === "revoked"))) && <button className="ui-btn" disabled={busy} onClick={()=>void handle(async()=>{if(native)await native.manage();else openWebBilling(await openBillingPortal(),"Manage billing in your browser");})}>Manage subscription</button>}
-      <a href="/privacy.html" target="_blank" rel="noreferrer">Privacy</a><a href="/support.html" target="_blank" rel="noreferrer">Support</a>{native?.platform==="apple" && <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noreferrer">Apple terms of use</a>}
+    </div>
+    <footer className="ui-dialog-foot">{native && <button className="ui-btn is-small" disabled={busy} onClick={()=>void handle(async()=>{if(!access.accountId){setAccountForm(true);return;}const receipts=await native.restore();await deliver(receipts);await fetchStoreAccess();setMessage("Your purchases have been checked.");})}><RefreshCw size={15} aria-hidden="true"/>Restore purchases</button>}
+      {(!access.complimentary || billing) && (native||(!storeEdition&&((access.plan && (!access.giftEndsAt || access.hasPaidPlan)) || billing?.state === "revoked"))) && <button className="ui-btn is-small" disabled={busy} onClick={()=>void handle(async()=>{if(native)await native.manage();else openWebBilling(await openBillingPortal(),"Manage billing in your browser");})}><Settings2 size={15} aria-hidden="true"/>Manage subscription</button>}
+      <a href="/privacy.html" target="_blank" rel="noreferrer"><Shield size={14} aria-hidden="true"/>Privacy</a><a href="/support.html" target="_blank" rel="noreferrer"><LifeBuoy size={14} aria-hidden="true"/>Support</a>{native?.platform==="apple" && <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noreferrer">Apple terms of use</a>}
     </footer>
   </GameDialog>;
 }

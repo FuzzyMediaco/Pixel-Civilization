@@ -11,7 +11,7 @@
 }
 .island-content fieldset,
 .island-content details {
-  border: 1px solid #becab9;
+  border: 1px solid var(--ui-line);
   border-radius: 7px;
   padding: 8px;
   margin: 8px 0;
@@ -23,23 +23,23 @@
 .island-content label {
   display: grid;
   gap: 3px;
-  color: #345747;
+  color: var(--ui-green);
   margin: 6px 0;
 }
 .island-content select,
 .island-content input {
   min-width: 0;
   max-width: 100%;
-  background: #fffef6;
-  color: #203a30;
+  background: var(--ui-card);
+  color: var(--ui-ink);
   font: inherit;
   border: 1px solid #a0b09c;
   padding: 5px;
   border-radius: 5px;
 }
 .island-content button {
-  background: #fffdf3;
-  color: #244b3d;
+  background: var(--ui-card);
+  color: var(--ui-green);
   border: 1px solid #a3b6a0;
   padding: 5px 8px;
   border-radius: 6px;
@@ -68,7 +68,7 @@
 }
 .island-stats div {
   flex: 1 1 70px;
-  background: #e4ecdc;
+  background: var(--ui-leaf);
   border-radius: 6px;
   padding: 6px;
 }
@@ -80,7 +80,7 @@
   font-size: 18px;
 }
 .island-content a {
-  color: #227563;
+  color: var(--ui-good);
   text-decoration: underline;
 }
 

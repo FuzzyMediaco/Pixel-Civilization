@@ -199,9 +199,8 @@ export function defaultSculptTool(kind: Kind): InfrastructureTool {
 }
 
 const preset = defaultSculptTool("raise");
-const field = "block w-full rounded border border-stone-300 bg-white/90 p-1.5 text-xs text-stone-900";
-const btn =
-  "rounded border border-stone-300 bg-white/90 px-2 py-1.5 text-xs font-semibold text-stone-800 hover:bg-amber-50 disabled:opacity-45";
+const field = "ui-works-select";
+const btn = "ui-works-sub-btn";
 const groups: <K extends string>(a: readonly K[]) => [K, string][] = (a) =>
   a.map((k) => [k, k.charAt(0).toUpperCase() + k.slice(1)]);
 

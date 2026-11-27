@@ -143,6 +143,7 @@ export function Hud({
   onPickDrawerItem,
   onCustomizeQuickDrawer,
   hiddenForRing,
+  tutorialLimited,
 }: {
   state: GameState;
   speed: number;
@@ -156,6 +157,8 @@ export function Hud({
   onPickDrawerItem: (item: QuickDrawerItem) => void;
   onCustomizeQuickDrawer?: () => void;
   hiddenForRing?: boolean;
+  /** Early tutorial steps hide Pix and the quick menu until they are taught. */
+  tutorialLimited?: boolean;
 }) {
   const m = state.metrics;
   const limit = growthLimit(state);
@@ -166,7 +169,7 @@ export function Hud({
 
   return (
     <header
-      className={"ui-hud" + (hiddenForRing ? " is-chrome-hidden" : "")}
+      className={"ui-hud" + (hiddenForRing ? " is-chrome-hidden" : "") + (tutorialLimited ? " is-tutorial-limited" : "")}
       aria-label="City status"
       aria-hidden={hiddenForRing || undefined}
       inert={hiddenForRing}
@@ -220,7 +223,7 @@ export function Hud({
         </>}
       </div>
 
-      {onOpenPix && (
+      {onOpenPix && !tutorialLimited && (
         <button
           type="button"
           className="ui-pix-trigger"
