@@ -1,3 +1,7 @@
+import { buildFurnitureShowroom } from "./furnitureShowrooms";
+import { buildAutoDealership } from "./motorShowrooms";
+import { buildCornerPharmacy } from "./cornerPharmacy";
+import { buildIndieBookstore } from "./indieBookstore";
 /**
  * Procedural 3D voxel designs for the 20 new Commercial civilization elements.
  */
@@ -23,7 +27,7 @@ import {
   tree,
   windows,
 } from "./kit";
-import { hull, pier, quayFoundation } from "./vehicles";
+import { buildSeafoodPier } from "./seafoodPier";
 import { defineDesigns, type DesignEntry } from "./registry";
 import { NEW_EXPANSION_BY_ID } from "../expansionSafetyMilitaryCommerce";
 
@@ -137,19 +141,7 @@ defineDesigns({
     shopper(c, 3, hz - 2);
   }),
 
-  indie_bookstore: entry("indie_bookstore", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    lot(c, "path");
-    const walls = ["#115e59", "brick", "#1e3a8a", "wood"];
-    const { top } = storefrontBox(c, walls[s], "slate", "gold", "gold", "cream", Math.min(3, lv), s === 2 ? "mansard" : "gable");
-    // Rooftop stacked colorful books emblem
-    v.box(-3, top + 1, -1, 3, top + 2, 2, "red");
-    v.box(-2, top + 2, -1, 3, top + 3, 2, "blue");
-    v.box(-3, top + 3, -1, 2, top + 4, 2, "gold");
-    lamp(v, -hx + 2, 1, hz - 2, 4);
-    shopper(c, 0, hz - 2);
-  }),
+  indie_bookstore: entry("indie_bookstore", buildIndieBookstore),
 
   flower_shop: entry("flower_shop", (c) => {
     const { v, lv, hx, hz } = c;
@@ -168,18 +160,7 @@ defineDesigns({
     shopper(c, 2, hz - 2);
   }),
 
-  neighborhood_pharmacy: entry("neighborhood_pharmacy", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    lot(c, "concrete2");
-    const walls = ["white", "brick", "#ecfdf5", "cream"];
-    const { top, z1 } = storefrontBox(c, walls[s], "concreteDark", "lime", "lime", "white", Math.min(3, lv), "flat");
-    // Glowing emerald pharmacy cross
-    v.box(-2, top + 2, z1 - 1, 3, top + 3, z1, "lime", 1.5);
-    v.box(0, top, z1 - 1, 1, top + 5, z1, "lime", 1.5);
-    lamp(v, hx - 3, 1, hz - 2, 4);
-    shopper(c, -2, hz - 2);
-  }),
+  neighborhood_pharmacy: entry("neighborhood_pharmacy", buildCornerPharmacy),
 
   cinema_theater: entry("cinema_theater", (c) => {
     const { v, lv, hx, hz } = c;
@@ -231,33 +212,9 @@ defineDesigns({
     shopper(c, 3, hz - 2);
   }),
 
-  auto_dealership: entry("auto_dealership", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    lot(c, "asphalt");
-    const accent = ["blue", "red", "gold", "silver"][s];
-    const x0 = -hx + 2, x1 = hx - 2, z0 = -hz + 2, z1 = 1;
-    const top = 6 + lv * 2;
-    curtainWall(c, x0, 1, z0, x1, top, z1, "#93c5fd", "white", 3, 4);
-    v.box(x0 - 1, top, z0 - 1, x1 + 1, top + 1, z1 + 1, accent, 0.8);
-    // Showcase cars on front lot
-    const carCols = ["red", "blue", "yellow", "white", "silver"];
-    for (let x = -hx + 4; x < hx - 3; x += 6) car(v, x, 1, hz - 4, "z", carCols[Math.abs(x) % carCols.length]);
-    if (lv >= 3) car(v, 0, top + 1, Math.floor((z0 + z1) / 2), "x", accent);
-  }),
+  auto_dealership: entry("auto_dealership", buildAutoDealership),
 
-  furniture_showroom: entry("furniture_showroom", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    lot(c, "concrete2");
-    const wall = ["#1d4ed8", "wood", "white", "brick"][s];
-    const trim = ["yellow", "cream", "charcoal", "orange"][s];
-    const { x0, x1, z1, top } = storefrontBox(c, wall, "concreteDark", trim, trim, wall, Math.min(3, 1 + Math.floor(lv / 2)), "flat");
-    v.box(x0 + 2, top - 3, z1, x1 - 2, top - 1, z1 + 1, trim, 1.0);
-    if (lv >= 4) solarRow(v, x0 + 2, x1 - 2, top + 1, -hz + 4);
-    car(v, -hx + 5, 1, hz - 2, "x", "white");
-    shopper(c, 2, hz - 2);
-  }),
+  furniture_showroom: entry("furniture_showroom", buildFurnitureShowroom),
 
   boutique_hotel: entry("boutique_hotel", (c) => {
     const { v, lv, hx, hz } = c;
@@ -411,27 +368,5 @@ defineDesigns({
     shopper(c, 2, hz - 5);
   }),
 
-  seafood_pier: entry("seafood_pier", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    const wall = ["wood", "sky", "red", "white"][s];
-    // Timber deck over water
-    quayFoundation(v, -hx + 1, -hz + 1, hx - 1, 2, "woodDark");
-    pier(v, -hx + 2, 2, hx - 2, hz - 3, "woodLight", "woodDark", 4, 2);
-    // Waterfront seafood house
-    const x0 = -hx + 3, x1 = hx - 3, z0 = -hz + 2, z1 = 1;
-    const h = 5 + Math.min(5, lv * 2);
-    v.box(x0, 2, z0, x1, h, z1, wall);
-    windows(c, x0, 2, z0, x1, h, z1, { stepH: 3, stepV: 4, emit: 0.55 });
-    gable(v, x0 - 1, h, z0 - 1, x1 + 1, z1 + 1, "x", "slate");
-    awning(v, x0 + 1, x1 - 1, 5, z1, "sky", "white");
-    // String lights over boardwalk
-    for (let x = -hx + 3; x < hx - 3; x += 3) v.put(x, 6, 4, "warmGlow", 1.4);
-    // Moored fishing skiff beside pier
-    if (hz >= 10) {
-      hull(v, { cx: 0, y0: 0, z0: 4, z1: hz - 2, beam: 4, h: 2, col: "white", stripe: "sky", open: true });
-    }
-    shopper(c, -2, 3, 2);
-    shopper(c, 3, 3, 2);
-  }),
+  seafood_pier: entry("seafood_pier", buildSeafoodPier),
 });

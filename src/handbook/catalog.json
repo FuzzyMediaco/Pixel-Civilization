@@ -23544,9 +23544,9 @@
       "recreation": 14,
       "income": 24
     },
-    "description": "Cozy timber-and-brick bookshop with bay windows and reading terraces that boost city education.",
-    "usage": "Cozy timber-and-brick bookshop with bay windows and reading terraces that boost city education.",
-    "growth": "An outdoor book kiosk blossoms into a multi-story literary hall with rooftop reading garden.",
+    "description": "Buy a secondhand novel from the street cart, follow the spiral book stalls, climb to the treehouse shop or browse a walk-in wall of books.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A street stall with a till grows into a crooked secondhand shop, winding book market, treehouse bookstall or walk-in bookcase.",
     "maxLevel": 5,
     "levels": [
       {
@@ -23560,7 +23560,7 @@
       },
       {
         "level": 2,
-        "name": "Corner Bookshop",
+        "name": "Shopkeeper's Corner",
         "dimensions": [
           1,
           1
@@ -23569,7 +23569,7 @@
       },
       {
         "level": 3,
-        "name": "Reading House",
+        "name": "Booksellers' Row",
         "dimensions": [
           2,
           1
@@ -23578,7 +23578,7 @@
       },
       {
         "level": 4,
-        "name": "Literary Emporium",
+        "name": "Reading Loft",
         "dimensions": [
           2,
           2
@@ -23587,7 +23587,7 @@
       },
       {
         "level": 5,
-        "name": "Grand Book Hall",
+        "name": "Grand Book Bazaar",
         "dimensions": [
           2,
           2
@@ -23598,19 +23598,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Oxford Green"
+        "name": "Crooked Bay Bookshop"
       },
       {
         "index": 1,
-        "name": "Brownstone"
+        "name": "Spiral Book Market"
       },
       {
         "index": 2,
-        "name": "Parisian Blue"
+        "name": "Treehouse Bookstall"
       },
       {
         "index": 3,
-        "name": "Warm Cedar"
+        "name": "Walk-in Bookshelf"
       }
     ],
     "partner": {
@@ -23728,14 +23728,14 @@
       "recreation": 14,
       "income": 28
     },
-    "description": "Illuminated apothecary and neighborhood wellness counter with iconic glowing green cross.",
-    "usage": "Illuminated apothecary and neighborhood wellness counter with iconic glowing green cross.",
-    "growth": "A classic apothecary upgrades into a bright corner pharmacy with drive-thru lane and clinic wing.",
+    "description": "Collect a prescription at the capsule window, herb-mixing counter, illuminated green cross or open-front apothecary bottle.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A neighborhood counter expands into a capsule dispensary, working mortar, green-cross arcade or street of apothecary bottles.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Apothecary",
+        "name": "Dispensing Counter",
         "dimensions": [
           1,
           1
@@ -23753,7 +23753,7 @@
       },
       {
         "level": 3,
-        "name": "Wellness Pharmacy",
+        "name": "Prescription Shop",
         "dimensions": [
           2,
           1
@@ -23762,7 +23762,7 @@
       },
       {
         "level": 4,
-        "name": "Health Plaza",
+        "name": "Apothecary Arcade",
         "dimensions": [
           2,
           2
@@ -23771,7 +23771,7 @@
       },
       {
         "level": 5,
-        "name": "Medical Emporium",
+        "name": "Grand Dispensary",
         "dimensions": [
           2,
           2
@@ -23782,19 +23782,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Emerald Cross"
+        "name": "Capsule Dispensary"
       },
       {
         "index": 1,
-        "name": "Heritage Brick"
+        "name": "Mortar and Pestle"
       },
       {
         "index": 2,
-        "name": "Clean Clinical"
+        "name": "Emerald Cross Arcade"
       },
       {
         "index": 3,
-        "name": "Art Deco Cream"
+        "name": "Glass Bottle Row"
       }
     ],
     "partner": {
@@ -24095,14 +24095,14 @@
       "water": -3,
       "income": 58
     },
-    "description": "Glass-walled car showroom with pennant flags, display turntables and sleek parked vehicles.",
-    "usage": "Glass-walled car showroom with pennant flags, display turntables and sleek parked vehicles.",
-    "growth": "A pennant-lined car lot transforms into a multi-level glass showroom with rooftop vehicle display.",
+    "description": "Car galleries display original coupes on stacked platforms, a rotating turntable, inside a whitewall tire or on a skyhook above the forecourt.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A test-drive stand gains a service desk, display gallery, viewing lanes and a landmark presentation for its cars.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Car Lot",
+        "name": "Kerbside Test Drive",
         "dimensions": [
           2,
           1
@@ -24111,7 +24111,7 @@
       },
       {
         "level": 2,
-        "name": "Motor Showroom",
+        "name": "Keys and Service",
         "dimensions": [
           2,
           2
@@ -24120,7 +24120,7 @@
       },
       {
         "level": 3,
-        "name": "Glass Pavilion",
+        "name": "Motor Gallery",
         "dimensions": [
           3,
           2
@@ -24129,7 +24129,7 @@
       },
       {
         "level": 4,
-        "name": "Auto Plaza",
+        "name": "Exhibition Drive",
         "dimensions": [
           3,
           3
@@ -24138,7 +24138,7 @@
       },
       {
         "level": 5,
-        "name": "Grand Mobility Center",
+        "name": "Motorworks Landmark",
         "dimensions": [
           3,
           3
@@ -24149,19 +24149,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Blue Glass"
+        "name": "Carousel Car Vault"
       },
       {
         "index": 1,
-        "name": "Racing Red"
+        "name": "Revolving Motor Salon"
       },
       {
         "index": 2,
-        "name": "Luxury Obsidian"
+        "name": "Whitewall Motor Lodge"
       },
       {
         "index": 3,
-        "name": "Solar Silver"
+        "name": "Skyhook Motor Court"
       }
     ],
     "partner": {
@@ -24186,14 +24186,14 @@
       "water": -2,
       "income": 52
     },
-    "description": "Airy home-design gallery and flat-pack showroom stocked with timber crafts and modern interiors.",
-    "usage": "Airy home-design gallery and flat-pack showroom stocked with timber crafts and modern interiors.",
-    "growth": "A local carpentry store grows into a bold showcase warehouse with loading bays and rooftop garden.",
+    "description": "Furniture becomes the showroom itself, from a wingback chair and stacked sofas to an unfolding carton and a warm lamp loft.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A street-side sample becomes a furnished room, a public gallery, a working showroom and an inhabited furniture landmark.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Joinery Shop",
+        "name": "Maker’s Sample",
         "dimensions": [
           2,
           1
@@ -24202,7 +24202,7 @@
       },
       {
         "level": 2,
-        "name": "Design Loft",
+        "name": "Neighborhood Studio",
         "dimensions": [
           2,
           2
@@ -24211,7 +24211,7 @@
       },
       {
         "level": 3,
-        "name": "Home Gallery",
+        "name": "Room-Set Gallery",
         "dimensions": [
           3,
           2
@@ -24220,7 +24220,7 @@
       },
       {
         "level": 4,
-        "name": "Nordic Showroom",
+        "name": "Furnishing Hall",
         "dimensions": [
           3,
           3
@@ -24229,7 +24229,7 @@
       },
       {
         "level": 5,
-        "name": "Flagship Design Hall",
+        "name": "Design District",
         "dimensions": [
           3,
           3
@@ -24240,19 +24240,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Nordic Blue-Yellow"
+        "name": "Wingback Workshop"
       },
       {
         "index": 1,
-        "name": "Warm Walnut"
+        "name": "Sectional Stories"
       },
       {
         "index": 2,
-        "name": "Minimal White"
+        "name": "Unfolding Showroom"
       },
       {
         "index": 3,
-        "name": "Industrial Brick"
+        "name": "Lantern Lamp Loft"
       }
     ],
     "partner": {
@@ -24925,14 +24925,14 @@
       "recreation": 36,
       "income": 52
     },
-    "description": "Boardwalk fish market and waterfront restaurant pier with moored skiffs and warm harbor lights.",
-    "usage": "Boardwalk fish market and waterfront restaurant pier with moored skiffs and warm harbor lights.",
-    "growth": "A timber fish stall extends over the water with oyster decks, lighthouse sign and string-lit dining.",
+    "description": "A seafood counter links the shore to working floats, with a choice of a lobster-roof shack, lighthouse diner, fish auction hall or crab-claw canopy.",
+    "usage": "Put a berth beside a vessel and check the approach is deep and clear enough for its draft.",
+    "growth": "A dockside counter gains a kitchen and a working float. Dining wings and covered markets grow around a lobster bridge, glazed lookout, auction court or twin pincer gates.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Fish Stall",
+        "name": "Dockside Counter",
         "dimensions": [
           2,
           1
@@ -24941,7 +24941,7 @@
       },
       {
         "level": 2,
-        "name": "Chowder Shack",
+        "name": "Pier Kitchen",
         "dimensions": [
           2,
           2
@@ -24950,7 +24950,7 @@
       },
       {
         "level": 3,
-        "name": "Seafood Deck",
+        "name": "Working Seafood Wharf",
         "dimensions": [
           3,
           2
@@ -24959,7 +24959,7 @@
       },
       {
         "level": 4,
-        "name": "Harbor Market Pier",
+        "name": "Harbor Dining Court",
         "dimensions": [
           3,
           3
@@ -24968,7 +24968,7 @@
       },
       {
         "level": 5,
-        "name": "Grand Wharf Dining",
+        "name": "Grand Catch Landing",
         "dimensions": [
           3,
           3
@@ -24979,19 +24979,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Weathered Cedar"
+        "name": "Lobster Roll Shack"
       },
       {
         "index": 1,
-        "name": "Nautical Blue"
+        "name": "Beacon Diner"
       },
       {
         "index": 2,
-        "name": "Red Cannery"
+        "name": "Fish Auction Hall"
       },
       {
         "index": 3,
-        "name": "Coastal White"
+        "name": "Crab-Claw Canopy"
       }
     ],
     "partner": {

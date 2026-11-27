@@ -30,15 +30,17 @@ try {
   async function capture() {
     const response = await page.goto(`http://localhost:${port}/gallery.html?${query}`);
     if (!response?.ok()) throw new Error(`Gallery returned HTTP ${response?.status() ?? "no response"}.`);
-    await page.waitForFunction(() => window.__galleryDone || window.__galleryError, null, { timeout: 240000 });
-    return page.locator("#out").evaluate((canvas, mime) => {
+    const image = await page.waitForFunction((mime) => {
       if (window.__galleryError) throw new Error(window.__galleryError);
+      if (!window.__galleryDone) return false;
+      const canvas = document.querySelector("#out");
       const data = canvas.toDataURL(mime);
       if (!data.startsWith(`data:${mime};base64,`)) {
         throw new Error(`Could not encode the ${canvas.width} × ${canvas.height} gallery. Try fewer element IDs or a smaller cell.`);
       }
       return data.slice(data.indexOf(",") + 1);
-    }, format);
+    }, format, { timeout: 240000 });
+    return image.jsonValue();
   }
   const encoded = await Promise.race([capture(), pageFailure]);
   await writeFile(out, Buffer.from(encoded, "base64"));
