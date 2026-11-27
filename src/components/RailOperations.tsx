@@ -1,3 +1,5 @@
+import { TrainFront } from "lucide-react";
+import { DialogHeader } from "./ui";
 import { useMemo, useState } from "react";
 import { GameDialog } from "./GameDialog";
 import { ELEMENT_BY_ID, getUpgradeCost, getStandardFootprintForLevel } from "../game/catalog";
@@ -607,22 +609,14 @@ export function RailOperations({ state, selected, change, onClose, onTrack, onFo
   return (
     <GameDialog label="Rail Operations" className="rail-dialog" onDismiss={onClose}>
       <div className="rail-window">
-        <header>
-          <div>
-            <small>{name(selected)}</small>
-            <h2>Rail</h2>
-          </div>
-          <button data-dialog-focus onClick={onClose} aria-label="Close Rail Operations">
-            ✕
-          </button>
-        </header>
-        <nav aria-label="Rail Operations sections">
+        <DialogHeader icon={<TrainFront size={20} />} title="Rail" subtitle={name(selected)} onClose={onClose} closeLabel="Close Rail Operations" focusClose />
+        <div className="ui-tabs rail-tabs" role="tablist" aria-label="Rail Operations sections">
           {tabs.map((t) => (
-            <button key={t} aria-pressed={tab === t} onClick={() => go(t)}>
+            <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => go(t)}>
               {t}
             </button>
           ))}
-        </nav>
+        </div>
         <main key={tab + (draft ? "-edit" : "")}>
           {tab === "Lines" &&
             (editor ?? (

@@ -17,7 +17,7 @@ pipeline, the quality bar and the UI rules.
 - Use licensed characters or brands in art (original designs only).
 - Merge on red.
 
-## UI style (summary; the full guide is in the handoff section 7, then `docs/STYLE-GUIDE.md` once written)
+## UI style (summary; the full guide is `docs/STYLE-GUIDE.md`)
 - Tokens only, from `src/styles/interface.css`: font `--ui-font` (DM Sans); colors `--ui-ink`,
   `--ui-muted`, `--ui-green` (primary), `--ui-leaf`, `--ui-paper`, `--ui-card`, `--ui-line`, plus status
   colors. Type sizes are 11/13/15/19 only. Radii are 14/10/999. Tap targets are 44–48px.
