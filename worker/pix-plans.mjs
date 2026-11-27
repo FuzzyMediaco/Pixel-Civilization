@@ -159,7 +159,9 @@ export async function reserveGeneration(
   const gatewaySum = `SELECT COALESCE(SUM(cost_micros),0) AS committed FROM game_pix_usage
     WHERE model IN (?,?,?) AND state!='failed' AND (state='reserved' OR started_at>=?)`;
   // A complimentary request can use only the balance left after paying players' allowances.
-  const sharedCapacity = gateway && grant.store === "complimentary";
+  const discretionary = ["gift", "complimentary"].includes(grant.store);
+  const sharedCapacity = gateway && discretionary;
+  const countedUsage = discretionary ? "" : " AND discretionary=0";
   const discretionaryWhere = sharedCapacity ? " AND (SELECT available FROM capacity)>=?" : "";
   const gatewayWhere = gateway ? " AND (" + gatewaySum + ")+?<=?" : "";
   const gatewayParams = gateway
@@ -168,9 +170,9 @@ export async function reserveGeneration(
   const row = await db
     .prepare(
       (sharedCapacity ? capacitySql : "") +
-        `INSERT INTO game_pix_usage(user_id,request_key,started_at,provider,model,state,cost_micros)
-    SELECT ?,?,?,?,?,'reserved',? WHERE (SELECT COUNT(*) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed') < ?
-    AND (SELECT COALESCE(SUM(cost_micros),0) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed')+? <= ?${gatewayWhere}${discretionaryWhere}
+        `INSERT INTO game_pix_usage(user_id,request_key,started_at,provider,model,state,cost_micros,discretionary)
+    SELECT ?,?,?,?,?,'reserved',?,? WHERE (SELECT COUNT(*) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed'${countedUsage}) < ?
+    AND (SELECT COALESCE(SUM(cost_micros),0) FROM game_pix_usage WHERE user_id=? AND started_at>=? AND started_at<? AND state!='failed'${countedUsage})+? <= ?${gatewayWhere}${discretionaryWhere}
     ON CONFLICT(user_id,request_key) DO NOTHING RETURNING request_key`,
     )
     .bind(
@@ -181,6 +183,7 @@ export async function reserveGeneration(
       provider,
       model,
       worst,
+      Number(discretionary),
       user,
       start,
       end,
@@ -257,7 +260,7 @@ async function paidClient(env, request, provider) {
     "account_changed",
   );
   const user = session.user.id,
-    grant = (await activeGrants(db, user)).plan;
+    { plan:grant, paidPlan } = await activeGrants(db, user);
   requireStore(grant, 402, "A Pix subscription is required for this provider.", "plan_required");
   const requestId = request.headers.get("Idempotency-Key") || crypto.randomUUID();
   requireStore(/^[A-Za-z0-9_-]{8,100}$/.test(requestId), 400, "Invalid Pix request ID.", "bad_request");
@@ -273,17 +276,16 @@ async function paidClient(env, request, provider) {
           maxOutput * config.output,
       );
       if (viaGateway) checkGatewayBudget(access, worst);
-      await reserveGeneration(
-        db,
-        user,
-        requestId,
-        grant,
-        provider,
-        worst,
-        Date.now(),
-        viaGateway ? GATEWAY_MODELS[provider] : config.model,
-        access,
-      );
+      const reserve = plan => reserveGeneration(db, user, requestId, plan, provider, worst, Date.now(),
+        viaGateway ? GATEWAY_MODELS[provider] : config.model, access);
+      if (grant.store === "gift" && paidPlan) {
+        // Honor an overlapping paid allowance even when the discretionary wallet is empty.
+        try { await reserve(paidPlan); }
+        catch (error) {
+          if (error.code !== "quota_reached") throw error;
+          await reserve(grant);
+        }
+      } else await reserve(grant);
       const settle = async (state, cost, input = 0, output = 0) =>
         db
           .prepare(

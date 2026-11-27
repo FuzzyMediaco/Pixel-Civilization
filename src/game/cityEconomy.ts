@@ -221,7 +221,7 @@ export const isFreeSurvivalBusiness = (s: GameState, def: CivElementDef) =>
   s.mode === "survival" && def.category === "commerce";
 
 export function constructionCost(s: GameState, def: CivElementDef, level = 1): number {
-  if (!buildingCharges(s) || isFreeSurvivalBusiness(s, def)) return 0;
+  if (def.giftedDesign || !buildingCharges(s) || isFreeSurvivalBusiness(s, def)) return 0;
   let cost = def.cost;
   if (isRealModeChristmas(def, s.mode)) {
     const target = Math.min(Math.trunc(level), getMaxElementLevel(def.id));

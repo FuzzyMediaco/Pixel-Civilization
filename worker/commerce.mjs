@@ -24,7 +24,7 @@ async function snapshot(env, user) {
     await importLegacySlots(db, user.id);
     await refreshNative(env, user.id);
   }
-  const { owned, plan } = user ? await activeGrants(db, user.id) : { owned: [], plan: null };
+  const { owned, plan, paidPlan } = user ? await activeGrants(db, user.id) : { owned: [], plan: null };
   const readyStores = activeNativeStores(env);
   if (stripeAvailable(env)) readyStores.push("stripe");
   const providers = await enabledModels(env);
@@ -34,6 +34,7 @@ async function snapshot(env, user) {
     owned,
     plan: plan?.product_id ?? null,
     ...(plan?.store === "complimentary" && { complimentary: true }),
+    ...(plan?.store === "gift" && { giftEndsAt:plan.expires_at, hasPaidPlan:Boolean(paidPlan) }),
     usage: await getUsage(db, user?.id, plan),
     providers,
     readyStores,
@@ -85,9 +86,9 @@ export async function commerceRequest(request, env) {
       const access = await snapshot(env, user);
       requireStore(!access.complimentary, 409, "Your account already includes this item.", "owned");
       if (sku.kind === "subscription" && access.plan) {
-        const grant = (await activeGrants(env.GAME_ACCOUNTS, user.id)).plan;
-        if (grant.store === "stripe") return json(await portal(env, user));
-        throw new AccountError(
+        const { paidPlan } = await activeGrants(env.GAME_ACCOUNTS, user.id);
+        if (paidPlan?.store === "stripe") return json(await portal(env, user));
+        if (paidPlan) throw new AccountError(
           409,
           "Manage the existing plan in the store where you subscribed.",
           "manage_subscription",

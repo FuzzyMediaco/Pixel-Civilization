@@ -1,3 +1,4 @@
+import { giftDesignKey } from "../src/game/giftDesignKeys.mjs";
 import { AccountError, json, readJson } from "./account-http.mjs";
 
 const MAX_DATA = 16 * 1024 * 1024;
@@ -8,9 +9,15 @@ function metadata(key, version, updatedAt, deleted) {
   return { key, version, updatedAt, deleted: Boolean(deleted) };
 }
 export async function listSaves(db, user, islandGifts = []) {
-  const { results } = await db.prepare(`SELECT save_key,version,updated_at,deleted FROM game_saves
-    WHERE user_id=? ORDER BY save_key`).bind(user).all();
-  return json({ saves: results.map(r => metadata(r.save_key, r.version, r.updated_at, r.deleted)), islandGifts });
+  const [ordinary, designs, products] = await db.batch([
+    db.prepare("SELECT save_key,version,updated_at,deleted FROM game_saves WHERE user_id=? ORDER BY save_key").bind(user),
+    db.prepare("SELECT id,created_at FROM game_account_rewards WHERE recipient_id=? AND kind='design' ORDER BY id").bind(user),
+    db.prepare("SELECT COUNT(*) AS count,MAX(created_at) AS latest FROM game_account_rewards WHERE recipient_id=? AND kind='product' AND (expires_at IS NULL OR expires_at>?)").bind(user, Date.now()),
+  ]);
+  const saves = ordinary.results.map(r => metadata(r.save_key, r.version, r.updated_at, r.deleted));
+  for (const row of designs.results) saves.push(metadata(giftDesignKey(row.id), 1, row.created_at, false));
+  const {count,latest} = products.results[0];
+  return json({ saves, islandGifts, rewardVersion:count + "/" + (latest ?? 0) });
 }
 
 export function encodeChunk(bytes) {

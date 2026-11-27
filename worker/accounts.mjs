@@ -2,6 +2,8 @@ import { AccountError, json, readJson } from "./account-http.mjs";
 // All persisted times are Unix milliseconds. Web, Android and desktop use same-origin cookies.
 import { cancelWebSubscriptions } from "./stripe-store.mjs";
 import { giftTotals, islandGiftRequest, readGiftedSave } from "./island-gifts.mjs";
+import { accountControls, readGiftDesign } from "./account-rewards.mjs";
+import { isGiftDesignKey } from "../src/game/giftDesignKeys.mjs";
 import { writeSave, listSaves } from "./saves.mjs";
 
 const DAY = 86_400_000;
@@ -156,6 +158,10 @@ export async function accountRequest(request, env) {
       if (session) await db.prepare("DELETE FROM game_sessions WHERE token_hash=?").bind(session.tokenHash).run();
       return json({ user: null }, 200, { "Set-Cookie": cookie("", 0) });
     }
+    if (path.startsWith("controls/")) {
+      if (!session) throw new AccountError(401, "Sign in to use account controls.", "unauthorized");
+      return await accountControls(request, db, session.user.id, path.slice("controls/".length));
+    }
     if (path.startsWith("island-gifts/")) {
       if (!session) throw new AccountError(401, "Sign in to access island gifts.", "unauthorized");
       return await islandGiftRequest(request, db, session.user.id, path.slice("island-gifts/".length));
@@ -171,6 +177,7 @@ export async function accountRequest(request, env) {
     if (!key || key.length > 160 || /[\u0000-\u001f\u007f]/.test(key)) {
       throw new AccountError(400, "Invalid save name.", "invalid_key");
     }
+    if (isGiftDesignKey(key)) return await readGiftDesign(request, db, session.user.id, key);
     if (request.method === "GET") return await readGiftedSave(db, session.user.id, key, url.searchParams.get("previous") === "1", url.searchParams.get("stored") === "1");
     if (request.method === "PUT" || request.method === "DELETE") return await writeSave(db, session.user.id, key, request);
     throw new AccountError(405, "Unsupported method.", "method");

@@ -1,4 +1,5 @@
-import { readPlayerItem, writePlayerItem } from "./deviceSaves";
+import { giftDesignId } from "./giftDesignKeys.mjs";
+import { cachedGiftDesigns, onDeviceChange, readPlayerItem, writePlayerItem } from "./deviceSaves";
 import {
   type CivElementDef,
   type ElementCategory,
@@ -891,6 +892,27 @@ function buildCustomBlueprint(c: Ctx, spec: CustomElementSpec): void {
 
 const customRegistry = new Map<string, CustomElementSpec>();
 let hydrated = false;
+const gifted = new Set<string>();
+export const isGiftedDesign = (id: string) => gifted.has(id);
+
+function loadGiftedDesigns() {
+  for (const row of cachedGiftDesigns()) {
+    const id = "custom_gift_" + giftDesignId(row.key);
+    if (gifted.has(id)) continue;
+    try {
+      const raw = JSON.parse(row.data);
+      if (raw?.id !== id) continue;
+      const mode: GameMode = ["god","real","idle","manager","survival"].includes(raw.createdInMode) ? raw.createdInMode : "real";
+      const { spec } = enforceModeBalance(raw, mode, id);
+      const levels = spec.levelSpecs?.map(level => ({ ...level, ...level.stats }));
+      const safe = applyGeneratedLevelsToSpec(spec, levels, mode);
+      gifted.add(id);
+      registerCustomElement(safe, false);
+    } catch {
+      gifted.delete(id);
+    }
+  }
+}
 
 export function registerCustomElement(spec: CustomElementSpec, persist = true): CivElementDef {
   customRegistry.set(spec.id, spec);
@@ -935,6 +957,7 @@ export function registerCustomElement(spec: CustomElementSpec, persist = true): 
     name: spec.name,
     category: spec.category,
     stage: 1,
+    ...(gifted.has(spec.id) && { giftedDesign: true }),
     cost: baseStats ? baseStats.cost : spec.cost,
     archetype: archetypeForCategory(spec.category, spec.domain),
     domain: spec.domain,
@@ -979,6 +1002,7 @@ export function getCustomElementSpec(id: string): CustomElementSpec | undefined 
 }
 
 export function removeCustomElement(id: string): void {
+  if (gifted.has(id)) return;
   customRegistry.delete(id);
   delete ELEMENT_BY_ID[id];
   const idx = ELEMENTS.findIndex((e) => e.id === id);
@@ -990,7 +1014,7 @@ export function removeCustomElement(id: string): void {
 export function saveCustomElementsToStorage(): void {
   try {
     if (typeof window === "undefined" || !window.localStorage) return;
-    writePlayerItem(STORAGE_KEY, JSON.stringify(listCustomElements()));
+    writePlayerItem(STORAGE_KEY, JSON.stringify(listCustomElements().filter(spec => !gifted.has(spec.id))));
   } catch {
     // Ignore storage errors
   }
@@ -1003,20 +1027,20 @@ export function saveCustomElementsToStorage(): void {
 export function hydrateCustomElements(): CustomElementSpec[] {
   if (hydrated) return listCustomElements();
   hydrated = true;
+  onDeviceChange(loadGiftedDesigns);
   try {
     if (typeof window === "undefined" || !window.localStorage) return [];
     const raw = readPlayerItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    for (const item of parsed) {
+    const parsed = raw ? JSON.parse(raw) : [];
+    for (const item of Array.isArray(parsed) ? parsed : []) {
       if (item && typeof item === "object" && typeof item.id === "string" && isCustomElementId(item.id)) {
         const { spec } = enforceModeBalance(item, item.createdInMode || "real", item.id);
         registerCustomElement(spec, false);
       }
     }
   } catch {
-    // Ignore corrupt localStorage
+    // A damaged personal design library does not prevent delivery of account gifts.
   }
+  loadGiftedDesigns();
   return listCustomElements();
 }

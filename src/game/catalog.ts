@@ -147,6 +147,7 @@ export interface CivElementDef {
   category: Exclude<ElementCategory, "starter">;
   isStarter?: boolean;
   wealthThreshold?: number;
+  giftedDesign?: boolean;
   stage: number;
   cost: number;
   archetype: VoxelArchetype;
