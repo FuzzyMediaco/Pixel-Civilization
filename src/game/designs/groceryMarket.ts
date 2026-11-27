@@ -249,19 +249,24 @@ function barnWing(v: PixelVox, x0: number, x1: number, z0: number, z1: number, h
 function farmersBarn(c: Ctx) {
   const { v, lv, hx, hz } = c;
   if (lv === 1) {
-    for (const x of [-5, 4]) for (const z of [-3, 3]) v.box(x, 1, z, x + 1, 6, z + 1, timber);
-    for (let x = -6; x < 6; x++)
-      v.box(
-        x,
-        7 - Math.floor(Math.abs(x + 0.5) / 3),
-        -4,
-        x + 1,
-        8 - Math.floor(Math.abs(x + 0.5) / 3),
-        5,
-        x % 4 < 2 ? ivory : green,
-      );
-    produceBin(v, -4, 1, 3, colors[0]);
-    produceBin(v, 1, 1, 3, colors[1]);
+    // The first grower sells from a hay wagon. Two canvas bows shade its rear half.
+    v.box(-6, 3, -3, 6, 4, 2, timber);
+    for (const x of [-4, 3]) for (const z of [-4, 2]) wheel(v, x, 2, z, 2);
+    for (const x of [-5, -1]) {
+      for (let z = -3; z <= 2; z++) {
+        const arch = 8 - Math.floor(Math.abs(z + 0.5) * 0.9);
+        v.put(x, arch, z, ivory);
+        if (z === -3 || z === 2) v.box(x, 4, z, x + 1, arch, z + 1, green);
+      }
+    }
+    for (let x = -5; x <= -1; x++) for (let z = -3; z <= 2; z++)
+      v.put(x, 8 - Math.floor(Math.abs(z + 0.5) * 0.9), z, (x + 5) % 3 ? green : ivory);
+    produceBin(v, -5, 4, -1, colors[0]);
+    produceBin(v, 1, 4, -1, colors[1]);
+    v.box(5, 3, -1, 8, 4, 0, oak);
+    v.box(-5, 4, 3, -4, 9, 4, timber);
+    v.put(-5, 8, 4, "#ffd28c", 0.7);
+    v.box(-5, 9, 3, -1, 10, 4, "#bd6d42");
     return;
   }
   const x0 = lv === 2 ? -13 : -hx + 3,

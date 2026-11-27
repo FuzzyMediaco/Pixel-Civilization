@@ -32,6 +32,25 @@ function stall(v: PixelVox, x: number, y: number, z: number, width: number, deep
 
 function glassGalleria(c: Ctx) {
   const { v, hx, hz, lv } = c;
+  if (lv === 1) {
+    // The first shop walk is an open street between two freestanding cast-iron arches.
+    v.box(-7, 0, -10, 7, 1, 11, "#c79877");
+    const archY = (distance: number) => 4 + Math.round(6 * Math.sqrt(Math.max(0, 1 - (distance / 11) ** 2)));
+    for (const z of [-8, 6]) {
+      for (const side of [-1, 1]) {
+        const x = side < 0 ? -12 : 6;
+        stall(v, x, 1, z - 3, 6, 6, "#d6b48b", side < 0 ? shops[1] : shops[2]);
+        v.box(x, 5, z - 3, x + 6, 6, z + 2, glass, .2);
+      }
+      for (let x = -11; x <= 11; x++) {
+        const top = archY(Math.abs(x)), lower = archY(Math.abs(x) + 1);
+        v.box(x, lower, z, x + 1, top + 1, z + 2, iron);
+        v.put(x, top + 1, z, Math.abs(x) < 2 ? brass : glass, Math.abs(x) < 2 ? 0 : .18);
+      }
+    }
+    for (const x of [-10, 10]) v.box(x, 7, -8, x + 1, 8, 8, iron);
+    return;
+  }
   const w = 3 + lv, long = Math.min(hz - 5, 6 + 3 * lv), cz = -Math.floor(hz * .12);
   const sill = 5 + lv, side = Math.min(hx - w - 2, 4 + 2 * lv);
   v.box(-w - side, 0, cz - long, w + side, 1, cz + long + 2, "#c79877");
@@ -201,7 +220,8 @@ function soukSteps(c: Ctx) {
 
 function linerEmporium(c: Ctx) {
   const { v, lv, hx, hz } = c;
-  const w = Math.min(hx - 5, 5 + lv * 2), d = Math.min(hz - 3, 8 + lv * 4);
+  const w = lv === 1 ? 5 : Math.min(hx - 5, 5 + lv * 2);
+  const d = lv === 1 ? hz - 1 : Math.min(hz - 3, 8 + lv * 4);
   const base = 5 + lv, center = -1;
   // A real pointed bow at +z and rounded stern at -z. Wide doors open to the sidewalk under the promenade decks.
   const beamAt = (z: number) => {
@@ -220,6 +240,16 @@ function linerEmporium(c: Ctx) {
         v.put(x, y, center + z, color, color === "#efca87" ? .6 : 0);
       }
       if (y === base || z === -d || z === d - 1) v.box(-beam, y, center + z, beam, y + 1, center + z + 1, y === base ? "#c18d62" : "#314b58");
+    }
+  }
+  if (lv === 1) {
+    // An open promenade follows both gunwales all the way to the street-corner prow.
+    for (let z = -d + 1; z < d; z++) {
+      const beam = beamAt(z);
+      for (const x of [-beam, beam - 1]) {
+        if ((z + d) % 4 === 0) v.put(x, base + 1, center + z, brass);
+        v.put(x, base + 2, center + z, ivory);
+      }
     }
   }
   const sw = Math.max(3, w - 3), superstructure = lv >= 3 ? 2 : 1;

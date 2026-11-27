@@ -249,6 +249,34 @@ function timber(v: PixelVox, x: number, z: number, w: number, rows: number) {
 
 function toolbox(c: Ctx) {
   const { v, lv, hx, hz } = c;
+  if (lv === 1) {
+    // A hinged chest leaves its divided tray exposed to the street. The mallet leans out of its right side.
+    v.hollowBox(-7, 1, -1, 5, 5, 5, "#ae4d40");
+    v.clear(-6, 3, 0, 4, 6, 4);
+    v.box(-6, 2, 0, 4, 3, 4, "woodDark");
+    v.box(-2, 3, 0, -1, 4, 4, "woodLight");
+    v.box(-5, 3, 1, -3, 4, 2, "silver");
+    v.box(0, 3, 0, 1, 4, 3, "brass");
+    v.box(-3, 1, 4, 0, 4, 5, "glassDark");
+    v.box(-3, 0, 5, 0, 1, hz, "path");
+
+    for (let y = 0; y < 8; y++) {
+      const z = -2 - Math.floor(y / 3);
+      v.box(-7, 4 + y, z, 3, 5 + y, z + 2, "#b45444");
+      v.box(-6, 4 + y, z + 1, 2, 5 + y, z + 2, y === 0 || y === 7 ? "copper" : "#774d45");
+    }
+    v.box(-5, 11, -4, -4, 14, -2, "steelDark");
+    v.box(0, 11, -4, 1, 14, -2, "steelDark");
+    v.box(-5, 13, -4, 1, 14, -2, "woodLight");
+
+    for (let y = 0; y < 12; y++) {
+      const x = 1 + Math.floor(y / 4);
+      v.box(x, 3 + y, 1, x + 2, 4 + y, 3, "woodLight");
+    }
+    v.box(1, 15, 0, 7, 18, 4, "steelDark");
+    v.box(6, 15, 0, 8, 18, 4, "silver");
+    return;
+  }
   const w = Math.min(hx - 2, 7 + lv * 2),
     d = Math.min(hz - 2, 4 + lv),
     h = 4 + lv;
@@ -379,6 +407,31 @@ function gambrel(v: PixelVox, x0: number, x1: number, z0: number, z1: number, ba
 
 function lumberBarn(c: Ctx) {
   const { lv, v, hx, hz } = c;
+  if (lv === 1) {
+    // The red timber frame only encloses the rear. Its shed roof reaches out over an open cutting bay.
+    for (const x of [-6, 0]) v.box(x, 1, -6, x + 2, 10, -4, "#995548");
+    for (let y = 2; y < 8; y += 2) v.box(-6, y, -6, 2, y + 1, -5, "#ad6650");
+    for (let z = -7; z < 2; z++) {
+      const roof = 10 - Math.floor((z + 7) / 4);
+      v.box(-7, roof, z, 4, roof + 1, z + 1, z % 3 === 0 ? "#84938b" : "#475e65");
+    }
+    for (let i = 0; i < 4; i++) v.put(-5, 5 + i, -5 + i, "woodDark");
+
+    // Two X-frames carry a single long plank; neighboring uncut stock stands in the bins.
+    for (const x of [-6, 0]) {
+      for (let y = 0; y < 4; y++) {
+        v.put(x, y + 1, 2 + y, "woodDark");
+        v.put(x, y + 1, 5 - y, "wood");
+      }
+    }
+    v.box(-7, 4, 3, 3, 5, 5, "woodLight");
+    v.box(3, 1, -4, 8, 3, 1, "#ad614a");
+    for (let i = 0; i < 3; i++) {
+      v.box(3 + i * 2, 3, -1, 4 + i * 2, 5 + 2 * i, 0, i % 2 ? "wood" : "woodLight");
+    }
+    person(v, 4, 1, 3, "tealDark");
+    return;
+  }
   const x = -hx + 2,
     z = -hz + 2,
     X = byLv(c, [5, 6, 8, 9, 15]),

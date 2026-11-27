@@ -66,6 +66,39 @@ function millLoft(c: Ctx) {
 
 function laptopLoft(c: Ctx) {
   const { v, lv, hx, hz } = c;
+  if (lv === 1) {
+    // The keyboard is a shared desk. Separate hinges leave a band of daylight beneath its tilted screen.
+    for (const x of [-10, 4]) v.box(x, 1, -2, x + 2, 5, 3, "#5f726e");
+    v.box(-11, 5, -3, 7, 6, 5, "#dfd4b9");
+    for (let x = -9; x < 5; x += 3) {
+      for (const z of [-2, 0]) v.box(x, 6, z, x + 2, 7, z + 1, "#445968");
+    }
+    for (const x of [-10, 4]) {
+      v.box(x, 6, -3, x + 1, 12, -2, "copper");
+      v.put(x, 11, -4, "steelDark");
+    }
+    for (let row = 0; row < 8; row++) {
+      const z = -4 - Math.floor(row / 2);
+      v.box(-10, 12 + row, z, 6, 13 + row, z + 1, "#334956");
+      if (row === 0 || row === 7) continue;
+      for (let x = -9; x < 5; x++) {
+        const ridge = 2 + Math.round(1.5 * Math.cos(x / 3));
+        const ink = row === 5 && x > 1 ? "#f6ca79" : row < ridge ? "#45937c" : "#8ccbd0";
+        v.put(x, 12 + row, z, ink, 0.25);
+      }
+    }
+
+    // A seated original designer leans over the keys from a swivel chair at street level.
+    v.box(1, 1, 5, 2, 4, 6, "steelDark");
+    v.box(0, 3, 4, 3, 4, 7, "#b5774b");
+    v.box(0, 4, 6, 3, 6, 7, "#b5774b");
+    v.box(0, 4, 4, 2, 5, 6, "blueDark");
+    v.box(0, 5, 5, 2, 7, 6, "#387a81");
+    v.box(0, 7, 5, 2, 9, 6, "#c68e69");
+    v.box(0, 9, 5, 2, 10, 6, "#5b463c");
+    v.box(-1, 6, 3, 0, 7, 6, "#bb7359");
+    return;
+  }
   const w = byLv(c, [9, 12, 15, 17, 19]),
     depth = byLv(c, [5, 8, 10, 13, 14]);
   const base = lv < 3 ? 3 : 6,

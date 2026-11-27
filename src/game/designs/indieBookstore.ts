@@ -67,10 +67,18 @@ function crookedBay(
 function crookedShop(c: Ctx) {
   const { v, lv } = c;
   if (lv === 1) {
-    bookCart(v, -1, 2);
-    for (const x of [-5, 4]) v.box(x, 1, -3, x + 1, 8, -2, timber);
-    gable(v, -6, 7, -5, 6, 3, "x", "#597965");
-    counter(v, 3, 1, -1);
+    // A bookseller wheels out a freestanding, fold-out rack. Its upper shelves lean back.
+    for (let tier = 0; tier < 3; tier++) {
+      const y = 2 + tier * 4, z = 1 - tier * 2, end = 1 - tier;
+      v.box(-6, y, z - 2, end + 1, y + 1, z + 1, shelf);
+      bookRow(v, -5, y + 1, z - 1, end + 4, tier);
+      v.box(-6, y - 1, z - 2, -5, y + 4, z, green);
+      v.box(end, y - 1, z - 2, end + 1, y + 4, z, green);
+    }
+    v.box(-6, 1, -6, -5, 12, -5, timber);
+    bookCart(v, 3, 3);
+    counter(v, 3, 1, -2);
+    person(v, 3, 1, -4, "#964e58");
     return;
   }
   const x = lv === 2 ? 0 : -6,

@@ -1,0 +1,19 @@
+{
+ "min": 0.12,
+ "ids": [
+  "hardware_store",
+  "malls",
+  "indie_bookstore",
+  "neighborhood_pharmacy",
+  "grocery_store",
+  "coworking_loft"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.123,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}
