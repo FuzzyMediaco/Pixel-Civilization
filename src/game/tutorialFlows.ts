@@ -135,7 +135,7 @@ export const TUTORIAL_FLOWS: Record<GameMode, TutorialStep[]> = {
     {
       id: "real-home",
       title: "Add homes",
-      body: "Pick House and tap next to your road. Residents move in once a home touches a road.",
+      body: "Tap ✓ to finish your road, then open Build, pick House and tap the grass right beside the road. Residents move in once a home touches a road.",
       demoHint: "Place a house beside the road",
       visibleNav: ["build"],
       showHud: true,
@@ -145,7 +145,7 @@ export const TUTORIAL_FLOWS: Record<GameMode, TutorialStep[]> = {
     {
       id: "real-jobs",
       title: "Give them jobs and food",
-      body: "People need somewhere to work and shop. Place a Grocery Store, Shops or a Farm on the road. Businesses also pay taxes into your treasury.",
+      body: "Tap ✓, then open Build and place a Grocery Store, Shops or a Farm on the road. Businesses give people jobs and pay taxes into your treasury.",
       demoHint: "Place a shop, grocery or farm",
       visibleNav: ["build"],
       showHud: true,
@@ -155,8 +155,8 @@ export const TUTORIAL_FLOWS: Record<GameMode, TutorialStep[]> = {
     {
       id: "real-utility",
       title: "Turn on power and water",
-      body: "Homes and shops use power and water. Place a power or water utility from Build and watch the power number up top.",
-      demoHint: "Place a power or water utility",
+      body: "Homes and shops need power. Tap ✓, open Build, tap the ⚡ Power category and place Solar Panels near your street. The power number up top turns on.",
+      demoHint: "Build → ⚡ Power → Solar Panels",
       visibleNav: ["build"],
       showHud: true,
       highlightNav: "build",
