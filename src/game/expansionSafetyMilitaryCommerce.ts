@@ -844,7 +844,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Warm brick-oven bakery filling nearby streets with fresh loaves, pastries and local jobs.",
     footprints: f12,
     levelNames: ["Bread Stall", "Corner Bakery", "Patisserie", "Boulangerie Row", "Grand Bakehouse"],
-    styleNames: ["Parisian Cream", "Brick Hearth", "Nordic Timber", "Pastel Mint"],
+    styleNames: ["Bread Loaf", "Layer Cake", "Spinning Sandwich", "Cupcake Corner"],
     growth: "A sidewalk bread counter grows a brick hearth chimney, striped awnings and a two-story patisserie.",
   },
   {
@@ -885,7 +885,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Streamlined stainless-steel diner glowing with neon trim and checkered-floor charm.",
     footprints: f12,
     levelNames: ["Lunch Car", "Chrome Diner", "Drive-In Diner", "Neon Boulevard Diner", "All-Night Palace"],
-    styleNames: ["Cherry & Chrome", "Turquoise 50s", "Checkerboard Gold", "Midnight Neon"],
+    styleNames: ["Silver Streamliner", "Red Drum Marquee", "Googie Drive-In", "Neon Rooftop"],
     growth: "A silver railcar diner adds a neon pylon, drive-in canopy and glowing classic car bays.",
   },
   {
@@ -985,7 +985,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Art-deco movie palace with glowing marquee, velvet lobby and rooftop vertical blade sign.",
     footprints: f23,
     levelNames: ["Nickelodeon", "Bijou Theater", "Art-Deco Cinema", "Multiplex Palace", "IMAX Grand Theater"],
-    styleNames: ["Crimson Deco", "Golden Hollywood", "Neon Retro", "Modern Glass"],
+    styleNames: ["Egyptian Revival", "Deco Palace", "Starlight Drive-In", "Projector & Reels"],
     growth: "A single-screen marquee theater expands into a grand illuminated movie palace with twin auditoriums.",
   },
   {
@@ -1025,7 +1025,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Electric neon-lit video game arcade and esports lounge packed with glowing pixel signs.",
     footprints: f13,
     levelNames: ["Cabinet Nook", "Neon Arcade", "Pixel Palace", "Esports Lounge", "Cyber Arcade Tower"],
-    styleNames: ["Synthwave Purple", "Tokyo Electric", "8-Bit Primary", "Laser Cyan"],
+    styleNames: ["Game Controller", "Cabinet Tower", "Pixel Jelly", "Pinball Palace"],
     growth: "A bright corner game room climbs into a multi-story neon arcade tower with giant rooftop pixel art.",
   },
   {
@@ -1083,7 +1083,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Upscale traveler hotel with canopy drop-off, glowing lobby, balconies and rooftop pool terrace.",
     footprints: f23,
     levelNames: ["Guesthouse", "Corner Inn", "Boutique Hotel", "Grand Hotel", "Skyline Resort Tower"],
-    styleNames: ["Belle Epoque", "Miami Pastel", "Modern Glass", "Alpine Stone"],
+    styleNames: ["Lakeside Grand", "Alpine Palace", "Halo Ring", "Wave Terraces"],
     growth: "An intimate inn climbs into a glamorous skyline hotel with porte-cochere and rooftop pool deck.",
   },
   {
@@ -1124,7 +1124,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Velvet-awning music lounge radiating warm brass-and-neon nightlife across downtown streets.",
     footprints: f12,
     levelNames: ["Cellar Stage", "Velvet Lounge", "Jazz Club", "Music Hall", "Grand Supper Club"],
-    styleNames: ["Blue Note Brick", "Bourbon Balcony", "Golden Deco", "Neon Velvet"],
+    styleNames: ["Music Note", "Spinning Trumpet", "Rooftop Bandstands", "Grand Piano"],
     growth: "A subterranean music stoop rises into a glowing iron-balcony jazz hall with marquee lights.",
   },
   {
