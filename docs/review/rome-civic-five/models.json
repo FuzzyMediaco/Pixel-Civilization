@@ -1,0 +1,20 @@
+{
+  "era": "rome-aqueduct",
+  "models": 100,
+  "nightLit": 100,
+  "withinParcel": 100,
+  "maximumVoxels": 10663,
+  "unlit": [],
+  "spill": [],
+  "crossPairs": 800,
+  "worstCross": 0.16594794094794094,
+  "tooClose": [],
+  "officeHeight": [],
+  "budgets": {
+    "public_library": 9060,
+    "post_offices": 5640,
+    "courthouses": 10663,
+    "city_offices": 5489,
+    "banks": 7298
+  }
+}
