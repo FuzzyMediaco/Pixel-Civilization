@@ -1,7 +1,6 @@
 // Four ways to sell books: crooked bay shops, a spiral of book bins, treehouse decks and a walk-in bookcase.
 import { type Ctx, type PixelVox, awning, byLv, door, gable, lot, pave, person } from "./kit";
 import { bulbs, disc, glassFront, neon } from "./commerceKit";
-import { override } from "./commerceIcons";
 
 const covers = ["#7e2949", "#3d827f", "#cc9942", "#55709a", "#ad5f42", "#738049"];
 const timber = "#684434",
@@ -287,8 +286,8 @@ function shelfShop(c: Ctx) {
 }
 
 const markets = [crookedShop, spiralMarket, treeShop, shelfShop];
-override("indie_bookstore", (c) => {
+export function buildIndieBookstore(c: Ctx) {
   lot(c, "grass2");
   pave(c.v, -c.hx + 1, c.hz - 5, c.hx - 1, c.hz, "path");
   markets[c.variant % 4](c);
-});
+}

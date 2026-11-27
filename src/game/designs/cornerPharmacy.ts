@@ -1,7 +1,6 @@
 // Four dispensaries from the street: a divided capsule, a ceramic mixing bowl, a luminous cross and a row of jars.
 import { type Ctx, type PixelVox, byLv, door, lot, pave, person, ring } from "./kit";
 import { disc, glassFront, neon, sculpt } from "./commerceKit";
-import { override } from "./commerceIcons";
 
 const mint = "#4a9686",
   pine = "#255a52",
@@ -273,8 +272,8 @@ function bottleShop(c: Ctx) {
   }
 }
 const shops = [capsuleShop, mortarShop, crossShop, bottleShop];
-override("neighborhood_pharmacy", (c) => {
+export function buildCornerPharmacy(c: Ctx) {
   lot(c, "grass2");
   pave(c.v, -c.hx + 1, c.hz - 4, c.hx - 1, c.hz, "path");
   shops[c.variant % 4](c);
-});
+}

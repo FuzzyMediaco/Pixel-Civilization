@@ -1,6 +1,5 @@
 import { type Ctx, type PixelVox, car, door, lamp, person } from "./kit";
 import { bulbs, disc, glassFront, palm, sculpt, spinner } from "./commerceKit";
-import { override } from "./commerceIcons";
 
 const enamel = "#28767f", cherry = "#ed5a49", cream = "#fff0cb", chrome = "#c3d7ce";
 const paint = [cherry, "#f1ac4d", "#66beab", "#87a9d6", "#b482b2"];
@@ -228,7 +227,7 @@ function skyhookCourt(c: Ctx) {
   }
 }
 
-override("auto_dealership", c => {
+export function buildAutoDealership(c: Ctx) {
   const {v, hx, hz, lv} = c;
   v.box(-hx + 1, 0, 1 - hz, hx - 1, 1, hz - 1, "#637176");
   // Showroom forecourts have a street crossing and short bay markings where customers enter.
@@ -237,5 +236,4 @@ override("auto_dealership", c => {
     if (Math.abs(x) > 4) v.box(x, 0, hz - 7, x + 1, 1, hz - 3, "#adbaad");
   }
   [carVault, revolvingSalon, whitewallLodge, skyhookCourt][c.variant % 4](c);
-}, ["Kerbside Test Drive", "Keys and Service", "Motor Gallery", "Exhibition Drive", "Motorworks Landmark"],
-"A test-drive stand gains a service desk, display gallery, viewing lanes and a landmark presentation for its cars.");
+}

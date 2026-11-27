@@ -1,6 +1,5 @@
 import { type Ctx, type PixelVox, bench, door, lamp, person } from "./kit";
 import { disc, glassFront, sculpt } from "./commerceKit";
-import { override } from "./commerceIcons";
 
 const walnut = "#825438", ash = "#d8ad75", brass = "#d99b50";
 const velvet = "#39766c", piping = "#9bc5a2", coral = "#d97d69", ivory = "#fff0cc";
@@ -268,8 +267,7 @@ function lampLoft(c: Ctx) {
   }
 }
 
-override("furniture_showroom", c => {
+export function buildFurnitureShowroom(c: Ctx) {
   c.v.box(2 - c.hx, 0, 2 - c.hz, c.hx - 2, 1, c.hz - 2, "#bdba99");
   [wingback, sectionalStories, cartonStudio, lampLoft][c.variant % 4](c);
-}, ["Maker’s Sample", "Neighborhood Studio", "Room-Set Gallery", "Furnishing Hall", "Design District"],
-"A street-side sample becomes a furnished room, a public gallery, a working showroom and an inhabited furniture landmark.");
+}
