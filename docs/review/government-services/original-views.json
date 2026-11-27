@@ -1,0 +1,72 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "fixtureSha256": "281daaee153ac24dc264ea81addeed70fe057e7f78e3de4881593168e9327683",
+  "records": [
+    {
+      "view": "district",
+      "camera": {
+        "target": [
+          2,
+          0.6,
+          0
+        ],
+        "radius": 143,
+        "theta": 0.38,
+        "phi": 0.67,
+        "fov": 44
+      },
+      "era": "original",
+      "time": 14,
+      "stage": 16,
+      "width": 390,
+      "height": 844,
+      "elements": 240,
+      "layoutHash": "d27b6966a9deeeaab6cb21bec75765188c2f83888d4fd9ad81a89c6984df84c0"
+    },
+    {
+      "view": "street",
+      "camera": {
+        "target": [
+          2,
+          0.6,
+          -4
+        ],
+        "radius": 85,
+        "theta": 0.17,
+        "phi": 0.85,
+        "fov": 44
+      },
+      "era": "original",
+      "time": 14,
+      "stage": 16,
+      "width": 390,
+      "height": 844,
+      "elements": 240,
+      "layoutHash": "d27b6966a9deeeaab6cb21bec75765188c2f83888d4fd9ad81a89c6984df84c0"
+    },
+    {
+      "view": "overhead",
+      "camera": {
+        "target": [
+          2,
+          0.6,
+          -4
+        ],
+        "radius": 104,
+        "theta": 0,
+        "phi": 0.27,
+        "fov": 44
+      },
+      "era": "original",
+      "time": 14,
+      "stage": 16,
+      "width": 390,
+      "height": 844,
+      "elements": 240,
+      "layoutHash": "d27b6966a9deeeaab6cb21bec75765188c2f83888d4fd9ad81a89c6984df84c0"
+    }
+  ]
+}

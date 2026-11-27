@@ -1,5 +1,9 @@
 import { SKYLINE_ELEMENTS } from "../skylineCatalog";
-import { boroughAssembly, recordsArchive, planningBureau, publicWorks, nationalParliament } from "./civicInstitutions";
+import { boroughAssembly } from "./governmentServiceHalls";
+import { recordsArchive } from "./recordsArchive";
+import { planningBureau } from "./cityPlanningBureau";
+import { publicWorks } from "./publicWorksDirectorate";
+import { nationalParliament } from "./nationalParliament";
 import { megaSkyscraper, supertreeGrove, guggenheimBilbao } from "./skylineLandmarks";
 import type { Ctx } from "./kit";
 import { defineDesigns } from "./registry";

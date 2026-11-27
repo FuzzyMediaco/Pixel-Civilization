@@ -1635,7 +1635,7 @@ export const ELEMENTS: CivElementDef[] = [
     jobs: 26,
     power: -2,
     accentHex: "#d9a74a",
-    description: "Treasury bureau that fulfills civic governance and boosts tax revenue.",
+    description: "Clerks collect returns beneath a receipt roll, counting frame, official stamp or adding machine. The staffed bureau provides government services and supports tax collection.",
   },
   {
     id: "fire_department",
@@ -1721,7 +1721,7 @@ export const ELEMENTS: CivElementDef[] = [
     baseSpan: [2, 2],
     maxSpan: [3, 2],
     accentHex: "#e8dfc8",
-    description: "Grand ministry capitol building serving large metropolitan populations.",
+    description: "Departments share a copper-domed capitol, garden cloister, ceremonial gate or fan of public offices. Ministry staff provide government services to large metropolitan populations.",
   },
   {
     id: "large_parks",
