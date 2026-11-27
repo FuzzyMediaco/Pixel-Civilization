@@ -25,14 +25,16 @@ export function attendant(v: PixelVox, x: number, y: number, z: number, active: 
   v.put(x, y + 3, z, cedar);
 }
 export function oil(v: PixelVox, x: number, y: number, z: number, active: boolean) {
-  v.put(x, y, z, red);
-  v.put(x, y + 1, z, "#ffe3a0", active ? 0.8 : 0.52);
+  v.box(x - 1, y, z, x + 1, y + 1, z + 1, red, 0.13);
+  v.put(x - 1, y + 1, z, "#e8a95d", active ? 0.48 : 0.26);
+  v.put(x, y + 1, z, "#ffe3a0", active ? 0.95 : 0.68);
 }
 export function desk(v: PixelVox, x: number, y: number, z: number, active: boolean) {
   v.box(x - 2, y, z - 1, x - 1, y + 2, z + 1, cedar);
   v.box(x + 1, y, z - 1, x + 2, y + 2, z + 1, cedar);
   v.box(x - 2, y + 2, z - 1, x + 2, y + 3, z + 1, ivory);
   v.put(x, y + 3, z - 1, lapis);
+  v.put(x - 2, y + 3, z, "#e4ba79", active ? 0.5 : 0.26);
   if (active) v.put(x + 1, y + 3, z, red);
 }
 export function bundle(v: PixelVox, x: number, y: number, z: number, top: number) {

@@ -36,6 +36,7 @@ function scribeWalk(v: PixelVox, x: number, z: number, X: number, Z: number, y: 
   }
   v.box(x, y, z, X, y + 1, Z, brick);
   v.box(x, y, Z - 1, X, y + 1, Z, ivory);
+  for (let q = x + 2; q < X - 1; q += 6) v.put(q, y, Z - 1, "#e4af6a", 0.45);
 }
 function obelisk(c: Ctx, active: boolean) {
   const { v, hx, hz, lv } = c,
@@ -210,5 +211,6 @@ export const offices: SignatureBuilder = (c, _p, active) => {
     c.v.put(x - 1, 4, z, red);
     c.v.put(x, 3, z, lapis);
     attendant(c.v, x, 1, z + 2, active);
+    oil(c.v, x + 1, 4, z + 1, active);
   }
 };

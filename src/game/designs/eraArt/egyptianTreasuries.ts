@@ -35,6 +35,7 @@ function door(v: PixelVox, x: number, z: number, y: number, active: boolean) {
   v.clear(x - 1, y, z - 1, x + 2, y + 4, z + 1);
   v.box(x - 1, y, z - 2, x + 2, y + 4, z - 1, cedar);
   v.put(x, y + 2, z - 1, gold);
+  v.box(x - 1, y + 3, z - 1, x + 2, y + 4, z, "#d79e5d", active ? 0.38 : 0.24);
   attendant(v, x - 2, y, z + 1, active, lapis);
   oil(v, x + 2, y, z + 1, active);
 }
