@@ -1,0 +1,51 @@
+# era/id | visible reason | PR or brief | optional status
+original/shoe_stores | A sneaker, stepped shoebox stack, high heel and boot change the whole roof outline. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/33
+original/retro_arcade | Controller, cabinet, jelly and pinball table offer different outlines above the entrance. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/33
+original/artisan_bakery | The bread loaf and layered cake shelter the counter differently from a sandwich or cupcake. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/33
+original/retro_diner | The low streamliner, drum marquee and projecting drive-in canopy change the curb profile. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/33
+original/cinema_theater | The drive-in leaves an open audience court while a giant projector stacks two round reels. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/33
+original/jazz_club | The trumpet bell opens above the street and the grand-piano roof makes an asymmetric room. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/33
+original/boutique_hotel | The Alpine roof, halo ring and undulating terraces give the guest wings different skylines. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/33
+original/coffee_roastery | The latte cup, espresso machine, roasting drum and bean pile form distinct shop envelopes. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/34
+original/bowling_alley | The pin, ball and long lane bring three distinct proportions to the entrance. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/34
+original/flower_shop | A glazed plant house, giant flowerpot and open bloom frame a shop at different heights. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/34
+original/night_market | Lantern roofs, a sinuous dragon, stacked containers and umbrella shade make different market passages. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/34
+original/art_gallery | Visitors pass through a monumental empty frame or beneath stacked gallery volumes. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/34
+original/public_library | Open reading courts survive a horizontal hardback stack, deep folio gutter, upright spines and a paper stage. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/36
+original/post_offices | The counter and long dispatch yard stay readable around an envelope roof, rail shed, loft or sorting carousel. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/37
+original/city_offices | A clock, carillon or signal shaft stays off-center beside a public square. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/37
+original/courthouses | The high approach gives the portico, jury hemicycle, arch and oculus a shared judicial role. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/37
+original/banks | A gatewheel, ingot pile, reeded coins and low reserve drum keep weight close to the street. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/37
+original/cheesesteak_restaurants | The art brief retains the walk-in sandwich and visible order openings as its benchmark | ../ART-BRIEF.md | art brief benchmark
+original/indie_bookstore | Street sales displays frame the crooked shop, spiral stacks, tree reading nook and bookshelf front. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/43
+original/neighborhood_pharmacy | A capsule, mortar and pestle, cross and clustered bottles each create a different dispensing hall. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/43
+original/seafood_pier | Working floats sit beneath a roof lobster, lighthouse, fish auction vane or paired pincer canopy. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/39
+original/auto_dealership | A vertical car stack, turning showroom, tire ring and raised car separate the display from street traffic. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/39
+original/furniture_showroom | A giant armchair, layered sofas, unfolding package and lamp shaft house sales floors. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/39
+original/coworking_loft | Greenhouse, open laptop, terraced studios and tree pods give shared desks four distinct skylines. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/43
+original/tech_startup_hub | Rocket gantry, lightbulb, raised circuit traces and a ring campus leave different daylight gaps. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/40
+original/hardware_store | Toolbox, dripping paint can, stacked fastener and depot roof signal retail work by their outline. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/43
+original/department_store | Clock corner, wrapped boxes, escalator atrium and revolving rotunda identify separate entrances. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/40
+original/grocery_store | Fruit shells, a shopping-cart frame, stacked crates and a market barn create different produce counters. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/43
+original/mixed_use_midrise | Planted terraces step down in front of a tall rear wing; the diagonal garden stair stays legible overhead. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/penthouse_tower | Successive balconies rotate around an open planted shaft under a bright roof pool. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/borough_assembly | An open semicircle of tiered seats clearly faces the central speaking floor. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/civic_records_archive | Offset horizontal file layers and a projecting entry distinguish dense archive storage. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/city_planning_bureau | A tall surveying compass frames the model city at the foot of the office wing. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/public_works_directorate | A raised crane cabin and open linear service bays leave an equipment aisle in view. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/national_parliament | A central chamber and flag rise between low curved assembly wings. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/mega_skyscraper | The triangulated facade follows a tapering twisted shaft to a small luminous crown. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/supertree_grove | Open flower-shaped crowns are connected by light elevated walkways. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/guggenheim_bilbao | Curved silver galleries break apart around a pool and an obvious lower approach. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/32 | baseline reference; review open
+original/restaurants | A fork rises over pasta, a pizza slice opens on its cut edge, and a low sushi hull contrasts with the tall burger. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/41
+original/clothing_stores | The hanger truss, spool, runway and stacked boutique cases organize different streetside entrances. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/41
+original/thrift_stores | A hung quilt, open suitcase, stacks of salvaged furniture and a market canopy make four secondhand shops. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/44
+original/bars | The mug and cocktail glass have different open tops, while the tiki roof and stepped terrace shelter small groups. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/44
+original/gas_stations | Swept service wings, an oil can, an oversized charging plug and a pump tower frame the forecourt. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/44
+original/atms | The coin on edge, piggy bank, swinging vault door and tilted card each fill one tile differently. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/42
+original/buildings | A spiral tower, stepped radio crown, split skybridge and woven lantern make distinct distant office skylines. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/42
+original/businesses | Pinwheel workshops, drafting-board roof, carriage works and a paperclip-shaped pavilion organize separate work courts. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/42
+original/shops | A shop lane, parasol court, stepped market and lantern bazaar give each cluster a different street-facing shape. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/44
+original/malls | A glass galleria, spiral atrium, hillside souk and ocean-liner emporium create four different indoor shopping routes. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/43
+original/data_centers | Server aisles, circuit paths, cooling crowns and a fiber loom expose the work around the data halls. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/44
+original/blacksmiths | An inhabited anvil, crucible yard, horseshoe arcade and waterwheel hammer leave the working parts visible. | https://github.com/FuzzyMediaco/Pixel-Civilization/pull/42

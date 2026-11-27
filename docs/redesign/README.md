@@ -5,6 +5,7 @@ across usage resets until the work below is finished, verified and great-looking
 Scheduled sessions pick this up every ~5 hours. Read this folder first, every run.
 
 ## Files
+- [Playable catalog worklist](worklist/README.md) — current builders, per-style level and variant inventory, silhouette candidates and proposed layouts.
 - `ART-BRIEF.md` — the full art redesign brief (his attachment, verbatim). It is the spec for Part A.
 - `../handoff/STATE-2026-11-26.md` — state of the game as of Nov 26 (also on branch `ccr-5480f4a8-nj27ci`).
 - `PROGRESS.md` — running log. Every run appends a dated "where I stopped" entry and updates the checklist.
