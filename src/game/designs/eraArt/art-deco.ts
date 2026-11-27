@@ -3,5 +3,6 @@
  * Each builder owns the element's whole parcel in this era. Names: src/game/eraNames/art-deco.ts.
  */
 import type { SignatureBuilder } from "../periodArtCatalog";
+import { decoCivic } from "./decoCivic";
 
-export const signatures: Record<string, SignatureBuilder> = {};
+export const signatures: Record<string, SignatureBuilder> = { ...decoCivic };
