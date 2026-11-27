@@ -1,7 +1,14 @@
-/**
- * Deliberate ancient-egypt designs (illustrated-catalog redesign, docs/redesign/ART-BRIEF.md).
- * Each builder owns the element's whole parcel in this era. Names: src/game/eraNames/ancient-egypt.ts.
- */
 import type { SignatureBuilder } from "../periodArtCatalog";
+import { library } from "./egyptianLibrary";
+import { post } from "./egyptianPost";
+import { court } from "./egyptianCourts";
+import { offices } from "./egyptianOffices";
+import { treasury } from "./egyptianTreasuries";
 
-export const signatures: Record<string, SignatureBuilder> = {};
+export const signatures: Record<string, SignatureBuilder> = {
+  public_library: library,
+  post_offices: post,
+  courthouses: court,
+  city_offices: offices,
+  banks: treasury,
+};
