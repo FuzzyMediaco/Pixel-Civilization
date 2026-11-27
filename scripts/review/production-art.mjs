@@ -2,7 +2,7 @@
 // Complete catalog run renders every valid cell into labeled contact sheets and compares neighboring cells.
 import fs from "node:fs";
 import path from "node:path";
-import {createHash} from "node:crypto";
+import {productionArtSourceHash} from "./production-sources.mjs";
 import assert from "node:assert/strict";
 import {createCanvas} from "@napi-rs/canvas";
 import "../../src/game/designs/index.ts";
@@ -18,15 +18,7 @@ const out=path.resolve(process.env.ERA_ART_OUTPUT || "docs/review/period-product
 const ids=subset || PRODUCTION_ART_IDS;
 const cell=42,rowHeight=cell*4+24,rowsPerPage=6, maxLevels=Math.max(...ids.map(getMaxElementLevel));
 const bg="#f6f2e7",rgb=new Map();
-const source = createHash("sha256");
-for(const filename of ["src/game/voxelArchitect.ts","src/game/designs/carriageways.ts","src/game/designs/romePilot.ts",
-  ...fs.readdirSync("src/game/designs").filter(name=>name.startsWith("period") && name.endsWith(".ts")).sort().map(name=>"src/game/designs/"+name),
-  ...fs.readdirSync("src/game/designs/periods").sort().map(name=>"src/game/designs/periods/"+name),
-  ...fs.readdirSync("src/game/designs/eraArt").sort().map(name=>"src/game/designs/eraArt/"+name),
-  "scripts/voxel-illustration.mjs","scripts/review/production-art.mjs"]){
-  source.update(fs.readFileSync(filename,"utf8").replaceAll("\r\n","\n"));
-}
-const sourceSha256=source.digest("hex");
+const sourceSha256 = productionArtSourceHash();
 const color=(style,shade)=>{
   const index=style*4+shade;if(rgb.has(index))return rgb.get(index);
   const values=getVoxelStyleColor(style),light=[.71,1,.84][shade];
