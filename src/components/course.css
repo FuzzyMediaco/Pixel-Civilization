@@ -1,16 +1,19 @@
 .pc-course { box-sizing:border-box; width:min(1120px,100%); margin:0 auto; padding:clamp(14px,3vw,32px); color:var(--pc-atlas-ink,var(--ui-ink)); }
 .pc-course-intro { display:flex; justify-content:space-between; align-items:end; gap:20px; padding-block:6px 24px; }
-.pc-course-intro h1 { margin:3px 0 10px; font-size: var(--ui-t-lg); line-height:1.04; letter-spacing:-.055em; }
+.pc-course-intro h1 { margin:3px 0 10px; font: 800 var(--ui-t-lg)/1.15 var(--ui-font); letter-spacing:-.02em; color: var(--ui-ink); }
 .pc-course p { line-height:1.55; margin:0; }
-.pc-course .pc-course-kicker { color:var(--ui-muted); font-size:var(--ui-t-sm); font-weight:750; }
+.pc-course .pc-course-kicker { color:var(--ui-muted); font-size:var(--ui-t-sm); font-weight:700; }
 .pc-course-progress { box-sizing:border-box; min-width:145px; display:grid; gap:5px; font-size:var(--ui-t-sm); }
-.pc-course-progress progress { width:100%; accent-color:var(--ui-good); }
+.pc-course-progress progress { width:100%; height:6px; appearance:none; -webkit-appearance:none; border:0; border-radius:999px; background:var(--ui-leaf); overflow:hidden; }
+.pc-course-progress progress::-webkit-progress-bar { background:var(--ui-leaf); border-radius:999px; }
+.pc-course-progress progress::-webkit-progress-value { background:var(--ui-green); border-radius:999px; }
+.pc-course-progress progress::-moz-progress-bar { background:var(--ui-green); border-radius:999px; }
 .pc-course-layout { display:grid; grid-template-columns:minmax(160px,225px) minmax(0,1fr); gap:clamp(14px,3vw,32px); }
 .pc-course-outline { display:grid; align-content:start; gap:5px; }
-.pc-course button,.pc-course a { font:inherit; font-weight:670; color:var(--ui-ink); }
+.pc-course button,.pc-course a { font:inherit; font-weight:700; color:var(--ui-ink); }
 .pc-course button { min-height:42px; cursor:pointer; }
 .pc-course :is(button,a):focus-visible { outline:3px solid var(--ui-green); outline-offset:2px; }
-.pc-course-outline button { text-align:left; border:1px solid var(--ui-leaf); background:#fff; border-radius:12px; display:flex; align-items:center; gap:9px; padding:8px 10px; }
+.pc-course-outline button { text-align:left; border:1px solid var(--ui-leaf); background:var(--ui-card); border-radius:12px; display:flex; align-items:center; gap:9px; padding:8px 10px; }
 .pc-course-outline button span { display:grid; place-items:center; flex:0 0 22px; height:22px; border-radius:50%; color:var(--ui-green); background:var(--ui-paper); font-size:var(--ui-t-xs); }
 .pc-course-outline button[aria-current] { border-color:var(--ui-good); background:var(--ui-leaf); }
 .pc-course-content { min-width:0; display:grid; align-content:start; gap:14px; }
@@ -18,16 +21,16 @@
 .pc-course-image img { display:block; width:100%; height:clamp(145px,25vw,280px); object-fit:cover; }
 .pc-course-image figcaption { padding:8px 12px; color:var(--ui-muted); font-size:var(--ui-t-sm); }
 .pc-course h2,.pc-course h3 { margin:0; color:var(--ui-ink); }
-.pc-course h2 { font-size: var(--ui-t-lg); letter-spacing:-.035em; }
+.pc-course h2 { font: 800 var(--ui-t-lg)/1.2 var(--ui-font); letter-spacing:-.02em; }
 .pc-course-goal { font-weight:700; }
 .pc-course-coach { background:var(--ui-leaf); border-left:3px solid var(--ui-good); padding:12px 16px; border-radius:12px; color:var(--ui-ink); }
 .pc-course-lab { border:1px solid var(--ui-leaf); background:var(--ui-paper); border-radius:18px; padding:clamp(12px,2vw,20px); display:grid; align-items:center; grid-template-columns:minmax(0,1fr) minmax(190px,250px); gap:16px; }
 .pc-course-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
 .pc-course-lab .pc-course-actions { margin-block:12px; }
-.pc-course-actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; border:1px solid var(--ui-line); background:#fff; border-radius:10px; padding:6px 12px; }
+.pc-course-actions button { display:inline-flex; align-items:center; justify-content:center; gap:6px; border:1px solid var(--ui-line); background:var(--ui-card); border-radius:10px; padding:6px 12px; }
 .pc-course-actions button:hover,.pc-course-atlas button:hover { background:var(--ui-leaf); }
 .pc-course-actions button:disabled { opacity:.46; cursor:default; }
-.pc-course-feedback { min-height:3em; color:var(--ui-green); font-weight:650; }
+.pc-course-feedback { min-height:3em; color:var(--ui-green); font-weight:700; }
 .pc-course-board { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:3px; width:100%; }
 .pc-course-board button { padding:0; border:1px solid var(--ui-muted); background:hsl(102 31% var(--ground-light)); aspect-ratio:1; border-radius:5px; display:grid; place-items:center; }
 .pc-course-board button[data-water="true"] { background:#4b9cb1; border-color:#3a6b89; }
@@ -35,9 +38,9 @@
 .pc-course-board button:disabled { cursor:default; }
 .pc-course-atlas { display:grid; gap:8px; }
 .pc-course-atlas>div { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr)); gap:7px; }
-.pc-course-atlas button { border:1px solid var(--ui-leaf); background:#fff; border-radius:11px; padding:6px; display:flex; align-items:center; justify-content:space-between; gap:5px; text-align:left; }
+.pc-course-atlas button { border:1px solid var(--ui-leaf); background:var(--ui-card); border-radius:11px; padding:6px; display:flex; align-items:center; justify-content:space-between; gap:5px; text-align:left; }
 .pc-course-pager { justify-content:space-between; border-top:1px solid var(--ui-leaf); padding-top:12px; }
-.pc-course-back { margin:10px 12px 0; min-height:40px; border:1px solid var(--ui-line); background:white; border-radius:10px; padding-inline:12px; color:var(--ui-ink); cursor:pointer; }
+.pc-course-back { margin:10px 12px 0; min-height:40px; border:1px solid var(--ui-line); background:var(--ui-card); border-radius:10px; padding-inline:12px; color:var(--ui-ink); cursor:pointer; }
 @media (max-width:760px) {
   .pc-course-layout { grid-template-columns:1fr; }
   .pc-course-outline { min-width:0; display:flex; overflow-x:auto; padding:3px 3px 7px; scroll-snap-type:x proximity; }
@@ -60,8 +63,8 @@
 .pc-atlas-illustrated button { color:var(--ui-ink); min-height:36px; cursor:pointer; }
 .pc-era-strip,.pc-era-comparison,.pc-model-controls { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
 .pc-era-strip { padding:8px 14px; border-bottom:1px solid var(--ui-line); color:var(--ui-ink); background:var(--ui-paper); font-size:var(--ui-t-sm); }
-.pc-era-strip label { display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px; font-weight:650; max-width:100%; }
-.pc-era-strip select,.pc-course-content select { max-width:100%; border:1px solid #afc1b0; border-radius:8px; padding:5px 7px; font:inherit; color:var(--ui-ink); background:white; min-height:36px; }
+.pc-era-strip label { display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px; font-weight:700; max-width:100%; }
+.pc-era-strip select,.pc-course-content select { max-width:100%; }
 .pc-era-strip a,.pc-course-atlas a { color:var(--ui-green); }
 .pc-model-controls { padding:6px 12px 10px; }
 .pc-era-comparison { padding:7px 12px; color:inherit; font-size:var(--ui-t-sm); }
