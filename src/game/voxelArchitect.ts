@@ -84,13 +84,16 @@ export function buildDesignVoxels(
     const roman = era === "rome-forum" || era === "rome-aqueduct";
     const spec = roman && romanPilot.has(def.id) ? eraElementSpec(def.id,era) : undefined;
     const production = currentProductionArt(era);
+    const signature = production?.ink.signatures?.[def.id];
     const rome = currentRomeArt();
     const buildOriginal = () => {
       design.build(c);
       if (VEHICLE_ROADS.has(def.id)) paintRoadStage(c);
     };
     if (def.category === "christmas") buildOriginal();
-    else if (rome && spec && (era === "rome-forum" || era === "rome-aqueduct")) {
+    else if (production && signature) {
+      signature(c, production.ink, appearance.eraActivity === "active");
+    } else if (rome && spec && (era === "rome-forum" || era === "rome-aqueduct")) {
       rome.buildRome(c,era,spec.family as RomeFamily,appearance.eraActivity ?? "idle",buildOriginal);
     } else if (production) {
       production.engine.buildProduction(c,production.ink,def,appearance.eraActivity === "active",buildOriginal);

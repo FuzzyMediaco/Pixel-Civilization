@@ -1,4 +1,5 @@
 import { ELEMENT_BY_ID } from "../catalog";
+import type { Ctx } from "./kit";
 
 export const ART_VARIANTS = {
   "ancient-china": ["Lantern gate", "Canal arcade", "Jade garden", "Ridge pavilion"],
@@ -59,4 +60,11 @@ export type Ink = {
   era: ProductionEra; wall:string; shade:string; roof:string; rim:string; frame:string;
   sign:string; floor:string; leaf:string; glass:string; lamp:string; cloth:string;
   bay: number; storey: number;
+  /**
+   * Deliberate per-element designs for this era (see src/game/designs/eraArt/). An element listed here
+   * owns its footprint composition, roofline, openings and service side instead of passing through the
+   * shared family builders. Display names live in src/game/eraNames/ so menus never wait for art.
+   */
+  signatures?: Readonly<Record<string, SignatureBuilder>>;
 };
+export type SignatureBuilder = (c: Ctx, p: Ink, active: boolean) => void;

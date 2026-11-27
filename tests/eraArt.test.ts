@@ -3,7 +3,8 @@ import { test } from "node:test";
 import "../src/game/designs/index";
 import { ELEMENT_BY_ID, getMaxElementLevel, getStandardFootprintForLevel } from "../src/game/catalog";
 import { buildDesignVoxels, getOrBuildElementAsset } from "../src/game/voxelArchitect";
-import { loadEraArt } from "../src/game/eraArtLoader";
+import { currentProductionArt, loadEraArt } from "../src/game/eraArtLoader";
+import { ERA_SIGNATURE_NAMES, type EraNameTable } from "../src/game/eraNames";
 import { ERA_LABELS, eraElementName, eraElementSpec, normalizeEra, ROME_PILOT_IDS, type EraKey } from "../src/game/eraStyles";
 import { networkRoadProfile } from "../src/game/designs/networks";
 import { packVoxKey } from "../src/game/voxelCore";
@@ -58,5 +59,34 @@ test("Roman bridge art retains every traveled deck cell through corners, ramps, 
         assert.equal(themed.has(key),original.has(key),[id,era,mask,x,z].join("/"));
       }
     }
+  }
+});
+
+test("a production signature can replace a Roman pilot model and its labels while Forum keeps the pilot", async () => {
+  const era = "rome-aqueduct";
+  const id = "grocery_store";
+  await loadEraArt(era);
+  const { ink } = currentProductionArt(era)!;
+  const forumModel = vox(id, 3, 1, "rome-forum").v.v;
+  const forumName = eraElementName(id, "rome-forum");
+  const marker = packVoxKey(0, 27, 0);
+  const oldBuilders = ink.signatures;
+  const tables: Record<string, EraNameTable> = ERA_SIGNATURE_NAMES;
+  const oldNames = tables[era];
+  try {
+    ink.signatures = { ...oldBuilders, [id]: (c, _, active) => c.v.put(0, active ? 27 : 26, 0, "gold") };
+    tables[era] = { ...oldNames, [id]: {
+      name: "Covered Grocer", levels: ["Stall", "Shops", "Market", "Court", "Exchange"],
+      variants: ["Garden", "Yard", "Terrace", "River"],
+    } };
+    const themed = vox(id, 3, 1, era, 0, true).v.v;
+    assert.ok(themed.has(marker));
+    assert.ok(!vox(id, 3, 1, era).v.v.has(marker));
+    assert.equal(eraElementName(id, era), "Covered Grocer");
+    assert.deepEqual(vox(id, 3, 1, "rome-forum").v.v, forumModel);
+    assert.equal(eraElementName(id, "rome-forum"), forumName);
+  } finally {
+    ink.signatures = oldBuilders;
+    tables[era] = oldNames;
   }
 });

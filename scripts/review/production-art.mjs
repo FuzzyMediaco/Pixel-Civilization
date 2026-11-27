@@ -22,6 +22,7 @@ const source = createHash("sha256");
 for(const filename of ["src/game/voxelArchitect.ts","src/game/designs/carriageways.ts","src/game/designs/romePilot.ts",
   ...fs.readdirSync("src/game/designs").filter(name=>name.startsWith("period") && name.endsWith(".ts")).sort().map(name=>"src/game/designs/"+name),
   ...fs.readdirSync("src/game/designs/periods").sort().map(name=>"src/game/designs/periods/"+name),
+  ...fs.readdirSync("src/game/designs/eraArt").sort().map(name=>"src/game/designs/eraArt/"+name),
   "scripts/voxel-illustration.mjs","scripts/review/production-art.mjs"]){
   source.update(fs.readFileSync(filename,"utf8").replaceAll("\r\n","\n"));
 }
