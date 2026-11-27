@@ -666,7 +666,7 @@ defineDesigns({
   data_centers: {
     footprints: [[2, 2], [2, 2], [3, 2], [3, 3], [4, 4]],
     levels: ["Local Node", "Paired Exchange", "Distribution Yard", "Interconnect Campus", "Regional Compute Works"],
-    growth: "Follow the service aisles between walk-in server racks, pin-legged processors, open cooling fans or arching bundles of fiber.",
+    growth: "Follow the service aisles between walk-in server racks, paired hot and cold server aisles, open cooling fans or arching bundles of fiber.",
     build: buildDataCenters,
   },
 });

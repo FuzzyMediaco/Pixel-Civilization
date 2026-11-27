@@ -1,7 +1,7 @@
 /** Original cash kiosks, office towers, workplaces and neighborhood retail. */
-import { bench, bush, door, lot, person, type Ctx, type PixelVox } from "./kit";
+import { bench, bush, lot, person, type Ctx, type PixelVox } from "./kit";
 import { bulbs, disc, glassFront, sculpt, spinner } from "./commerceKit";
-import { beam, type Point3 } from "./sculpturalKit";
+import { beam, plate, storey, type Point3 } from "./sculpturalKit";
 
 const cream = "#fff0cb";
 const steel = "#324b57";
@@ -504,51 +504,108 @@ function counter(v: PixelVox, x: number, y: number, z: number, length: number, c
   v.put(x + length - 2, y + 3, z, "#b4d8ca", .3);
 }
 
-function bagBoutiques(c: Ctx): void {
+/** The front counter sits inside the lens hood. Developing and print services grow behind it. */
+function cameraLane(c: Ctx): void {
   const { v, lv, hx, hz } = c;
-  function bag(cx: number, cz: number, r: number, h: number, leather: string): void {
-    const depth = Math.max(3, Math.round(r * .54));
-    sculpt(v, cx - r, 1, cz - depth, cx + r, h + 1, cz + depth, (_u, t, _w, x, y, z) => {
-      const dx = Math.abs(x + .5 - cx) / r, dz = Math.abs(z + .5 - cz) / depth;
-      if (dx > .83 + .16 * t || dz > 1 - t * .23) return null;
-      if (y >= h - 1) return "#774b51";
-      if (dx > .73 + .16 * t || (dx > .49 && dx < .63)) return "#efbc80";
-      if (y === 2) return "#b36f62";
-      return leather;
-    });
-    const rr = Math.max(3, Math.round(r * .55));
-    for (const z of [cz - depth + 2, cz + depth - 2]) {
-      for (let a = 0; a <= 32; a++) {
-        const t = a * Math.PI / 32;
-        const x = cx + Math.round(rr * Math.cos(t)), y = h + Math.round(rr * Math.sin(t));
-        v.box(x, y, z, x + 1, y + 2, z + 1, "#825442");
-      }
-    }
-    const front = cz + depth - 1;
-    glassFront(v, cx - Math.round(r * .65), cx + Math.round(r * .65), 2, Math.min(6, h - 1), front, "#704951", 4, "#e7bc8b");
-    door(v, cx - 1, 1, front + 1, steel, 2, 3, false);
-    v.box(cx + rr, h - 4, front + 1, cx + rr + 2, h, front + 2, cream);
-    v.put(cx + rr, h - 1, front + 2, brass);
+  const leather = "#9f503e", alloy = "#a5b6ad", black = "#35414a";
+  const x = lv === 1 ? 0 : -Math.round(hx * .43);
+  const back = -hz + 2, front = lv < 3 ? 3 : -2;
+  const r = [4, 5, 6, 7, 8][lv - 1], cy = r + 2;
+  // An open folding-camera back, with a raised finder and a shutter release.
+  const body = plate(x, back + 2, r + 2, 3, .42);
+  storey(v, body, body, 1, cy + 4, leather, alloy);
+  v.box(x - 3, cy + 4, back, x + 2, cy + 6, back + 3, black);
+  v.box(x - 2, cy + 5, back + 2, x + 1, cy + 6, back + 3, "#a8d2cd", .45);
+  v.cylinderY(x + r - 1, back + 2, cy + 4, cy + 6, 1.5, brass);
+  // The alternating, tapered square folds expose the focusing rail from above.
+  for (let z = back + 4; z < front; z++) {
+    const t = (z - back - 4) / Math.max(1, front - back - 4);
+    const half = r + 1 - Math.floor(2 * t) - (z % 2 === 0 ? 1 : 0);
+    const color = z % 2 === 0 ? "#5a383b" : "#985f52";
+    v.hollowBox(x - half, cy - half + 1, z, x + half + 1, cy + half, z + 1, color);
   }
-  if (lv === 1) bag(0, -1, 6, 8, "#d88377");
-  else {
-    const r = Math.min(11, Math.floor(hx * .55));
-    const cz = lv < 3 ? -1 : -Math.floor(hz * .4);
-    bag(-Math.floor(hx * .43), cz, r, 8 + lv, "#c57473");
-    bag(Math.floor(hx * .47), cz + (lv > 2 ? 4 : 0), Math.floor(r * .78), 5 + lv, "#71978a");
-    if (lv >= 3) {
-      const z = lv > 3 ? 4 : 5;
-      counter(v, -hx + 3, 1, z, Math.min(10, hx - 1), "#ae765b");
-      for (const x of [-hx + 3, -4]) v.box(x, 1, z - 1, x + 1, 8, z, "#8a684f");
-      for (let x = -hx + 2; x <= -3; x++) {
-        v.box(x, 7, z - 3, x + 1, 8, z + 2, x % 4 < -1 ? "#c57a70" : cream);
+  for (const side of [-1, 1]) {
+    beam(v, [x + side * (r - 1), 1, back + 1], [x + side * (r - 1), 2, front + 2], alloy);
+  }
+  // A recessed night-lit aperture leaves room for the clerk and the photo counter.
+  v.ringZ(x, cy, front - 1, front + 1, r, 0, "#466a75");
+  v.ringZ(x, cy, front, front + 2, r, r - 1, alloy);
+  v.ringZ(x, cy, front + 1, front + 3, r - 1, r - 2, black);
+  v.ringZ(x, cy, front, front + 1, r - 2, Math.max(1, r - 3), "#7dbaba", .65);
+  v.put(x - 1, cy + 1, front + 1, cream, .65);
+  v.put(x, cy + 2, front + 1, "#c1d8dd", .35);
+  const desk = Math.min(8, 3 + lv);
+  counter(v, x - 2, 1, front + 2, desk, "#93704c");
+  person(v, x + 2, 1, front + 1, "#8d6072");
+  if (lv >= 2) {
+    // The camera's leather carrying case opens into a glass print showroom.
+    const left = x + r + 1, right = hx - 2;
+    const showroom = plate((left + right)/2, back + 4, (right - left)/2, 4, .3);
+    storey(v, showroom, showroom, 1, 6, "#8aadad", black);
+    const stand = Math.round((left + right)/2);
+    for (const side of [-1, 1]) {
+      beam(v, [stand + side * 3, 6, back + 2], [stand + side, 11, back + 2], "#ad8860");
+    }
+    v.box(stand - 3, 10, back + 1, stand + 3, 13, back + 4, leather);
+    v.ringZ(stand, 11, back + 4, back + 6, 2, 1, alloy);
+    glassFront(v, left + 1, right - 1, 2, 5, back + 7, "#685650", 4, "#d9ba8f");
+  }
+  if (lv >= 3) {
+    // Perforated color film undulates above a row of print and restoration counters.
+    const left = x + Math.floor(r * .6), right = hx - 3;
+    const colors = ["#dda961", "#79b0ad", "#bc879c"];
+    for (let xx = left; xx < right; xx++) {
+      const i = xx - left, phase = i / (right - left - 1);
+      const z = Math.round(hz * .4 + Math.sin(phase * Math.PI * 2) * 2);
+      const y = 7 + Math.round(Math.sin(phase * Math.PI) * (lv + 1));
+      const spoke = i % 7;
+      for (let j = 0; j < 6; j++) {
+        if ((j === 0 || j === 5) && spoke % 3 === 1) continue;
+        const edge = j === 0 || j === 5 || spoke === 0;
+        const stock = colors[Math.floor(i / 7) % 3];
+        const mountain = j === 1 || (j === 2 && spoke >= 3 && spoke <= 5) || (j === 3 && spoke === 4);
+        const print = spoke === 1 && j === 4 ? cream : mountain ? "#587979" : stock;
+        v.box(xx, y + j, z, xx + 1, y + j + 1, z + 2, edge ? black : print, edge ? 0 : .3);
       }
-      if (lv >= 4) {
-        bag(Math.floor(hx * .4), Math.floor(hz * .5), Math.floor(r * .7), 8, "#cc9a55");
-        bulbs(v, -hx + 4, z, -3, z, 5);
+      if (spoke === 0) {
+        v.box(xx, 1, z, xx + 1, y + 1, z + 1, alloy);
+        counter(v, xx - 1, 1, z + 1, 5, leather);
       }
     }
-    if (lv === 5) bag(-Math.floor(hx * .42), Math.floor(hz * .45), Math.floor(r * .82), 10, "#7994a9");
+  }
+  if (lv >= 4) {
+    const count = lv === 4 ? 2 : 3;
+    for (let i = 0; i < count; i++) {
+      const cx = Math.round(hx * .34) + (i % 2 ? 7 : 0), cz = back + 4 + i * 5;
+      const radius = i === 0 ? 5.2 : 4, top = 9 + 3 * i;
+      disc(v, cx, cz, 1, top, radius, (_xx, yy, _zz, d) => {
+        if (d < radius - 1.2 && yy > 1) return null;
+        return yy % 6 < 2 ? "#e2b675" : "#9c664b";
+      });
+      disc(v, cx, cz, top, top + 2, radius + 1, alloy);
+      for (let k = 0; k < 5; k++) {
+        const angle = k * 2 * Math.PI / 5;
+        const xx = Math.round(cx + Math.cos(angle) * radius * .55);
+        const zz = Math.round(cz + Math.sin(angle) * radius * .55);
+        v.box(xx - 1, top + 1, zz, xx + 1, top + 2, zz + 2, black);
+      }
+      v.put(cx, top + 2, cz, brass);
+    }
+  }
+  if (lv === 5) {
+    // Walk under a chamfered viewfinder frame and through to the film promenade.
+    const z = hz - 6, h = 18, w = 11;
+    const frame: [number, number][] = [[-w,1],[-w,h-3],[-w+3,h],[w-3,h],[w,h-3],[w,1]];
+    for (let i = 1; i < frame.length; i++) {
+      const [ax, ay] = frame[i-1], [bx, by] = frame[i];
+      beam(v, [ax, ay, z], [bx, by, z], black, 3);
+      beam(v, [ax, ay + 1, z + 3], [bx, by + 1, z + 3], alloy);
+    }
+    for (const side of [-1, 1]) {
+      v.box(side * (w - 2), h - 5, z, side * (w - 2) + 1, h - 2, z + 1, "#b4d9d5", .5);
+      beam(v, [side * (w - 2), h - 2, z], [side * (w - 4), h - 2, z], "#b4d9d5", 1, .5);
+    }
+    v.box(-w + 2, 0, z - 3, w, 1, hz, "#b9b7a5");
   }
 }
 
@@ -686,7 +743,7 @@ function lanternBoutiques(c: Ctx): void {
 
 export function shops(c: Ctx): void {
   terrace(c, "#d9c7a5");
-  [bagBoutiques, parasolCourt, stairMarket, lanternBoutiques][c.variant](c);
+  [cameraLane, parasolCourt, stairMarket, lanternBoutiques][c.variant](c);
   person(c.v, 2, 1, c.hz - 2, "#777eae", "#5b514d", "#be8b68");
   if (c.lv >= 3) {
     person(c.v, -3, 1, c.hz - 3, "#ba6e59");

@@ -1,0 +1,146 @@
+[
+ {
+  "a": "coffee_roastery",
+  "va": 2,
+  "b": "jazz_club",
+  "vb": 1,
+  "level": 1,
+  "d": 0.075
+ },
+ {
+  "a": "shoe_stores",
+  "va": 2,
+  "b": "jazz_club",
+  "vb": 0,
+  "level": 2,
+  "d": 0.087
+ },
+ {
+  "a": "artisan_bakery",
+  "va": 0,
+  "b": "jazz_club",
+  "vb": 3,
+  "level": 1,
+  "d": 0.09
+ },
+ {
+  "a": "atms",
+  "va": 1,
+  "b": "banks",
+  "vb": 3,
+  "level": 1,
+  "d": 0.093
+ },
+ {
+  "a": "shoe_stores",
+  "va": 3,
+  "b": "neighborhood_pharmacy",
+  "vb": 0,
+  "level": 1,
+  "d": 0.098
+ },
+ {
+  "a": "retro_arcade",
+  "va": 2,
+  "b": "jazz_club",
+  "vb": 3,
+  "level": 1,
+  "d": 0.098
+ },
+ {
+  "a": "coffee_roastery",
+  "va": 2,
+  "b": "night_market",
+  "vb": 0,
+  "level": 5,
+  "d": 0.106
+ },
+ {
+  "a": "artisan_bakery",
+  "va": 2,
+  "b": "night_market",
+  "vb": 0,
+  "level": 4,
+  "d": 0.109
+ },
+ {
+  "a": "bowling_alley",
+  "va": 2,
+  "b": "night_market",
+  "vb": 0,
+  "level": 4,
+  "d": 0.109
+ },
+ {
+  "a": "coffee_roastery",
+  "va": 2,
+  "b": "night_market",
+  "vb": 0,
+  "level": 4,
+  "d": 0.11
+ },
+ {
+  "a": "banks",
+  "va": 3,
+  "b": "indie_bookstore",
+  "vb": 1,
+  "level": 1,
+  "d": 0.114
+ },
+ {
+  "a": "coffee_roastery",
+  "va": 2,
+  "b": "retro_diner",
+  "vb": 3,
+  "level": 3,
+  "d": 0.114
+ },
+ {
+  "a": "retro_arcade",
+  "va": 1,
+  "b": "jazz_club",
+  "vb": 3,
+  "level": 1,
+  "d": 0.115
+ },
+ {
+  "a": "bowling_alley",
+  "va": 2,
+  "b": "night_market",
+  "vb": 0,
+  "level": 5,
+  "d": 0.115
+ },
+ {
+  "a": "bowling_alley",
+  "va": 2,
+  "b": "night_market",
+  "vb": 3,
+  "level": 5,
+  "d": 0.115
+ },
+ {
+  "a": "shops",
+  "va": 0,
+  "b": "artisan_bakery",
+  "vb": 3,
+  "level": 1,
+  "d": 0.116
+ },
+ {
+  "a": "bowling_alley",
+  "va": 2,
+  "b": "night_market",
+  "vb": 3,
+  "level": 4,
+  "d": 0.117
+ },
+ {
+  "a": "shops",
+  "va": 1,
+  "b": "banks",
+  "vb": 3,
+  "level": 1,
+  "d": 0.119
+ }
+]

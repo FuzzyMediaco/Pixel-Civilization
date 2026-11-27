@@ -1,4 +1,4 @@
-// Original data centers make the service aisles, copper bus, chiller plenum and fiber routes visible.
+// Original data centers make the service aisles, hot/cold aisle, chiller plenum and fiber routes visible.
 import { byLv, lot, person, type Ctx, type PixelVox } from "./kit";
 import { disc, spinner } from "./commerceKit";
 
@@ -94,77 +94,101 @@ function trace(v: PixelVox, x0: number, z0: number, x1: number, z1: number, col:
   v.cylinderY(x1 + 0.5, z1 + 0.5, 0, 1, 1.5, COPPER);
   v.put(x1, 0, z1, MINT, 0.45);
 }
-function processor(v: PixelVox, x: number, z: number, w: number, d: number, bottom: number, h: number) {
-  // Stepped package partly overhangs its gull-wing pins. A cut corner keys its orientation.
-  for (let a = 1; a < w - 1; a += 3) {
-    for (const b of [z - 2, z + d]) {
-      v.box(x + a, bottom - 2, b, x + a + 1, bottom + 2, b + 2, COPPER);
-      v.box(x + a, bottom - 2, b - 1, x + a + 1, bottom - 1, b + 3, "#e9bd7e");
+function bladeBank(v: PixelVox, inner: number, z: number, length: number, height: number, side: number) {
+  const outer = inner + side * 4;
+  const left = Math.min(inner, outer),
+    right = Math.max(inner, outer) + 1;
+  v.box(left, 1, z, right, 2, z + length, IRON);
+  v.box(left, 2, z, right, height, z + 1, NAVY);
+  for (let a = z; a < z + length; a += 3) {
+    const end = Math.min(a + 3, z + length);
+    v.box(left, 2, a, right, height, end - 1, "#40515c");
+    for (let y = 3; y < height - 1; y += 2) {
+      v.box(outer, y, a, outer + 1, y + 1, end, "#89979b");
+      v.box(inner, y, a, inner + 1, y + 1, end, "#7895a1");
+      v.put(inner, y, end - 1, side < 0 ? MINT : "#f1ac72", 0.65);
     }
   }
-  for (const a of [x - 2, x + w])
-    for (let b = z + 2; b < z + d - 1; b += 3) {
-      v.box(a, bottom - 2, b, a + 2, bottom + 2, b + 1, COPPER);
-    }
-  v.hollowBox(x, bottom, z, x + w, bottom + h, z + d, NAVY);
-  v.clear(x, bottom, z, x + 2, bottom + h, z + 2);
-  v.hollowBox(x + 2, bottom + h, z + 2, x + w - 2, bottom + h + 2, z + d - 2, "#a1b6be");
-  v.box(x + 3, bottom + h + 2, z + 3, x + w - 3, bottom + h + 3, z + d - 3, "#5c8997");
-  for (let a = x + 4; a < x + w - 4; a += 3)
-    v.box(a, bottom + h + 2, z + 3, a + 1, bottom + h + 3, z + d - 3, "#86abb5");
-  const doorX = x + Math.floor(w / 2) - 1;
-  v.box(doorX, 1, z + d - 1, doorX + 3, 5, z + d, "#9db8ae");
-  v.box(doorX, 1, z + d, doorX + 2, 4, z + d + 1, NAVY);
-  v.put(doorX + 1, 3, z + d, MINT, 0.65);
-  v.box(x + 2, bottom + 1, z + d - 1, x + 4, bottom + 3, z + d, MINT, 0.6);
+  v.box(left - 1, height, z - 1, right + 1, height + 1, z + length + 1, "#cfdbd7");
+  for (let a = z + 1; a < z + length - 1; a += 3) v.box(left, height, a, right, height + 1, a + 1, IRON);
 }
-function memory(v: PixelVox, x: number, z: number, w: number, h: number) {
-  v.box(x, 1, z, x + w, 3, z + 4, NAVY);
-  v.box(x, 3, z + 1, x + w, h, z + 3, "#246e69");
-  for (let a = x + 1; a < x + w - 1; a += 2) v.put(a, 3, z + 3, COPPER);
-  for (let a = x + 2; a < x + w - 3; a += 5) {
-    v.box(a, 6, z + 3, a + 3, h - 2, z + 4, NAVY);
-    v.put(a + 1, h - 3, z + 4, "#81b4ad");
+
+// A rectangular return-air duct has a real mouth with louvers. Collars follow the duct back to the plant.
+function returnDuct(v: PixelVox, x: number, z0: number, z1: number, y: number, width: number) {
+  const left = x - Math.floor(width / 2),
+    right = left + width;
+  v.hollowBox(left, y, z0, right, y + 5, z1, "#a4b5b6");
+  v.clear(left + 1, y + 1, z1 - 2, right - 1, y + 4, z1);
+  v.box(left + 1, y + 1, z1 - 3, right - 1, y + 4, z1 - 2, NAVY);
+  for (let xx = left + 2; xx < right - 1; xx += 2) v.box(xx, y + 1, z1 - 1, xx + 1, y + 4, z1, IRON);
+  for (let a = z0 + 1; a < z1; a += 6) {
+    v.box(left - 1, y, a, left, y + 5, a + 1, IRON);
+    v.box(right, y, a, right + 1, y + 5, a + 1, IRON);
+    v.box(left - 1, y + 5, a, right + 1, y + 6, a + 1, IRON);
   }
-  v.box(x + 1, h, z + 1, x + w - 1, h + 1, z + 2, MINT, 0.3);
 }
-function circuitCourt(c: Ctx) {
-  const { v, lv, hx, hz } = c;
-  const x = -hx + 6,
-    z = -hz + 7,
-    w = byLv(c, [12, 13, 15, 18, 21]),
-    d = byLv(c, [11, 13, 14, 16, 18]);
-  const h = byLv(c, [3, 5, 7, 8, 10]);
-  for (let i = 0; i < Math.floor(hx / 2) - 1; i++) {
-    const start = x + w - 1 - i;
-    trace(v, start, z + d + 1, hx - 4 - i * 2, hz - 4 - (i % 3) * 3, i % 3 === 0 ? "#76b8a8" : "#c99258");
+
+function coldAisle(c: Ctx) {
+  const { v, lv, hx, hz } = c,
+    gap = byLv(c, [3, 4, 5, 6, 7]);
+  const count = byLv(c, [1, 2, 2, 3, 4]),
+    length = byLv(c, [8, 6, 8, 8, 9]);
+  const rear = -Math.floor((count * (length + 2)) / 2);
+  const front = rear + count * (length + 2);
+  // Staff enter between cold-blue floor grilles. Hot air leaves on the outside of the opposing rows.
+  v.box(-gap, 0, rear - 2, gap + 1, 1, hz - 1, "#758683");
+  for (let z = rear - 1; z < hz - 1; z += 3) {
+    v.box(-gap + 1, 0, z, gap, 1, z + 1, "#b1c1be");
+    v.put(-gap + 1, 0, z, BLUE, 0.45);
+    v.put(gap - 1, 0, z, BLUE, 0.45);
   }
-  processor(v, x, z, w, d, 4, h);
-  c.blink(x + 2, 5, z + d - 1, MINT);
-  if (lv >= 2) {
-    const px = lv === 2 ? 2 : hx - 15,
-      pz = lv === 2 ? 4 : 0;
-    processor(v, px, pz, 10, 9, 3, 3);
+  const high = byLv(c, [6, 8, 11, 13, 15]);
+  for (let i = 0; i < count; i++) {
+    const z = rear + i * (length + 2);
+    bladeBank(v, -gap - 1, z, length, high + (i % 2) * 2, -1);
+    bladeBank(v, gap + 1, z + (i % 2), length - 1, high - 2 + (i % 2) * 2, 1);
+  }
+  const inletX = -gap - 3,
+    mastX = gap + 4,
+    hoodY = high + 3;
+  v.box(inletX - 1, 1, rear - 3, inletX + 2, hoodY + 2, rear, "#be775b");
+  if (lv === 1) {
+    // A short inlet feeds one paired rack without covering its walk-through aisle.
+    returnDuct(v, inletX, rear - 3, rear + 3, high + 1, 4);
+  } else {
+    v.box(inletX, hoodY, rear - 3, mastX + 2, hoodY + 3, rear, "#91a7ac");
+    v.box(mastX, 1, rear - 3, mastX + 2, hoodY + 1, rear, IRON);
+    returnDuct(v, inletX, rear - 4, front - 2, hoodY, 5);
   }
   if (lv >= 3) {
-    memory(v, 4, -hz + 2, Math.min(hx - 7, 19), byLv(c, [0, 0, 13, 20, 24]));
-    for (let a = -hx + 5; a < -1; a += 5) {
-      v.box(a, 1, hz - 7, a + 3, 4, hz - 2, SILVER);
-      v.box(a, 4, hz - 6, a + 3, 5, hz - 3, "#556680");
-    }
+    // Outside the aisle, the alternating hot-return pipes descend to a working fan door.
+    const end = lv === 3 ? hx - 4 : hx - 6;
+    v.box(mastX, hoodY, rear - 3, end, hoodY + 3, rear, "#b6775d");
+    v.box(end - 2, 3, rear - 3, end + 1, hoodY + 3, rear, "#b6775d");
+    v.box(end - 3, 1, rear - 3, end + 2, 6, rear + 2, IRON);
+    v.ringZ(end - 1, 4, rear + 1, rear + 2, 2, 1, SILVER);
   }
   if (lv >= 4) {
-    memory(v, x + 2, hz - 9, w, 14);
-    v.box(x + 5, h + 3, z + d, x + 8, h + 4, hz - 8, "#aab6ab");
-    for (let a = z + d; a < hz - 9; a += 3) v.put(x + 5, h + 4, a, COPPER);
+    const z = front - length,
+      deck = high + 1;
+    for (const x of [-gap - 5, gap + 4]) v.box(x, 1, z - 1, x + 2, deck, z + 2, IRON);
+    v.box(-gap - 5, deck, z - 1, gap + 6, deck + 1, z + 2, "#aeb9b5");
+    for (let x = -gap - 5; x <= gap + 5; x += 4) v.box(x, deck + 1, z + 1, x + 1, deck + 4, z + 2, COPPER);
+    v.box(-gap - 5, deck + 3, z + 1, gap + 6, deck + 4, z + 2, COPPER);
+    ladder(v, gap + 5, z + 3, deck + 1);
+    person(v, 0, deck + 1, z, "#f2a762");
   }
   if (lv === 5) {
-    processor(v, 3, -hz + 11, 17, 13, 9, 8);
-    for (const a of [6, 15]) v.box(a, 1, -hz + 16, a + 2, 8, -hz + 13, "#678d87");
-    memory(v, hx - 19, hz - 13, 16, 19);
-    for (let a = 0; a < 4; a++) trace(v, 2 + a * 2, 2, hx - 5 - a * 2, -hz + 5, "#b78b5a");
+    // The second return terminates high over the rear bays, leaving the central street open to the sky.
+    const top = hoodY + 8;
+    v.box(mastX - 1, hoodY, rear - 3, mastX + 2, top + 3, rear, IRON);
+    returnDuct(v, mastX, rear - 4, 1, top, 7);
+    v.box(mastX - 2, high, 0, mastX + 2, top + 1, 2, "#b07a64");
+    for (let y = high + 1; y < top; y += 4) v.box(mastX - 3, y, -1, mastX + 3, y + 1, 3, IRON);
+    accessCabin(v, -hx + 4, front - 2, 10, COPPER);
   }
-  person(v, x + w, 1, hz - 4, "#d9b574");
+  person(v, 1, 1, Math.min(front + 2, hz - 3), "#578b8a");
+  c.blink(-gap - 1, 3, rear + 2, MINT);
 }
 
 function fan(c: Ctx, x: number, z: number, r: number, h: number) {
@@ -319,6 +343,6 @@ function fiberLoom(c: Ctx) {
 }
 
 export function buildDataCenters(c: Ctx): void {
-  lot(c, ["#9badaf", "#478779", "#a7bdbe", "#8798a7"][c.variant % 4]);
-  [rackStreet, circuitCourt, coolant, fiberLoom][c.variant % 4](c);
+  lot(c, ["#9badaf", "#b6aca0", "#a7bdbe", "#8798a7"][c.variant % 4]);
+  [rackStreet, coldAisle, coolant, fiberLoom][c.variant % 4](c);
 }
