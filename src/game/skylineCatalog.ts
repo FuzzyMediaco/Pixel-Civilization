@@ -7,6 +7,37 @@ const campus: LevelSpanTuple = [[2,2],[2,2],[3,2],[3,3],[4,3]];
 const landmark: LevelSpanTuple = [[2,2],[3,2],[3,3],[4,3],[4,4]];
 const tower: LevelSpanTuple = [[2,2],[2,2],[3,3],[3,3],[4,4]];
 
+export const CIVIC_ADMINISTRATION_ELEMENTS: ExpandedCivElement[] = [
+  {
+    id: "climbing_city_hall", name: "Climbing-Wall City Offices", category: "civic_parks", domain: "land", archetype: "civic_hall",
+    stage: 8, cost: 640, government: 185, jobs: 42, recreation: 24, power: -5, water: -3, accentHex: "#b16d4d", footprints: campus,
+    description: "Residents file permits at street level while climbers follow colored routes up the city offices to public overlooks.",
+    searchAliases: ["climbing wall", "rock climbing", "city offices", "city hall", "permit desk", "bouldering"],
+    levelNames: ["Permit Desk", "District Offices", "Civic Climbing Court", "Council Exchange", "Summit City Hall"],
+    styleNames: ["Switchback Terrace Hall", "Overhang Registry", "Canyon Bridge Offices", "Spiral Summit Council"],
+    growth: "A permit counter beside a climbing face gains new office wings, meeting rooms and public paths to a summit council chamber.",
+  },
+  {
+    id: "civic_viaduct_exchange", name: "Civic Exchange Viaduct", category: "civic_parks", domain: "land", archetype: "civic_hall",
+    stage: 12, cost: 1070, government: 310, jobs: 63, power: -7, water: -4, accentHex: "#837651", footprints: landmark,
+    description: "Municipal departments share a footbridge above an open public passage. Residents visit service counters on the way between the two office wings.",
+    searchAliases: ["viaduct office", "civic bridge", "government bridge", "service passage", "government offices", "assembly gallery"],
+    levelNames: ["Public Service Passage", "Municipal Walk", "Interdepartmental Exchange", "Assembly Gallery", "Civic Exchange Viaduct"],
+    styleNames: ["Timber Crossing Hall", "Cascade Arcade", "Lantern Truss Hall", "Market Arch Exchange"],
+    growth: "A service passage links municipal counters, grows into a two-wing exchange and gains a public assembly gallery above the crossing.",
+  },
+  {
+    id: "levitating_civic_tower", name: "Levitating Civic Tower", category: "civic_parks", domain: "land", archetype: "civic_hall",
+    stage: 18, cost: 3200, government: 625, jobs: 96, power: -14, water: -7, accentHex: "#5c969c", footprints: tower,
+    description: "Illuminated magnetic coils suspend occupied civic chambers above a street-level public service hall.",
+    searchAliases: ["levitating office", "floating office", "split skyscraper", "energy field", "government tower", "antigravity"],
+    levelNames: ["Field Desk", "Lifted Service Hall", "District Directorate", "Metropolitan Secretariat", "High Civic Assembly"],
+    styleNames: ["Orbit Council", "Cantilever Secretariat", "Civic Sky Sail", "Prism Assembly"],
+    growth: "An elevated service chamber gains staff floors, committee galleries and a capital-wide assembly.",
+  },
+];
+export const CIVIC_ADMINISTRATION_IDS = CIVIC_ADMINISTRATION_ELEMENTS.map(def => def.id);
+
 export const SKYLINE_ELEMENTS: ExpandedCivElement[] = [
   {
     id:"borough_assembly", name:"Borough Assembly", category:"civic_parks", domain:"land", archetype:"civic_hall",
@@ -72,6 +103,7 @@ export const SKYLINE_ELEMENTS: ExpandedCivElement[] = [
     styleNames:["River Ribbon","Titanium Bouquet","Bridge Gallery","Sculpture Court"],
     growth:"Curved metal wings unfold around the atrium. The public plaza gains water, sculpture and a teaching gallery.",
   },
+  ...CIVIC_ADMINISTRATION_ELEMENTS,
 ];
 
 export const SKYLINE_DESIGNS = [BALANCED_EXPANSION_BY_ID.mixed_use_midrise, BALANCED_EXPANSION_BY_ID.penthouse_tower, ...SKYLINE_ELEMENTS];

@@ -40,7 +40,8 @@ import {
   type PlacedElement,
 } from "../src/game/simulation";
 import { applyInfrastructureStroke } from "../src/game/terrain";
-import { SKYLINE_GOVERNMENT_IDS } from "../src/game/skylineCatalog";
+import { CIVIC_ADMINISTRATION_ELEMENTS, SKYLINE_GOVERNMENT_IDS } from "../src/game/skylineCatalog";
+import { analyzeLayout } from "../src/game/cityDynamics";
 import { WEALTH_PROJECTS } from "../src/game/wealthProjects";
 function put(s: GameState, defId: string, gx: number, gz: number): PlacedElement {
   const [spanX, spanZ] = getStandardFootprintForLevel(ELEMENT_BY_ID[defId], 1);
@@ -80,7 +81,7 @@ function neighborhood(mode: GameState["mode"] = "real") {
   return s;
 }
 test("each new government office supplies Government Services and authorizes staffed crews", () => {
-  assert.equal(SKYLINE_GOVERNMENT_IDS.length,5);
+  assert.equal(SKYLINE_GOVERNMENT_IDS.length,8);
   for(const id of SKYLINE_GOVERNMENT_IDS){
     const s=neighborhood();
     const baseline=s.metrics.govSupply;
@@ -94,6 +95,40 @@ test("each new government office supplies Government Services and authorizes sta
     assert.equal(hasAuthority(s),false,id);
     assert.equal(s.metrics.govSupply,baseline,id);
   }
+});
+
+test("civic administration campuses share the existing five-tile civic district with nearby parks", () => {
+  for (const def of CIVIC_ADMINISTRATION_ELEMENTS) {
+    const s = createInitialGameState("god");
+    const office = put(s, def.id, 0, 0);
+    const near = put(s, "park", 4, 0);
+    const far = put(s, "park", 8, 0);
+    const active = (neighbor: PlacedElement) =>
+      analyzeLayout([office,neighbor], () => false).synergies.get(office.id)?.includes("civic_center") ?? false;
+    assert.ok(active(near), def.id);
+    assert.equal(active(far), false, def.id);
+  }
+});
+
+test("civic additions round-trip beside an older saved office with its occupied tiles and chosen variant", () => {
+  const s = createInitialGameState("god");
+  const prior = put(s, "city_offices", -5, 2);
+  prior.level = 4;
+  prior.variant = 3;
+  prior.rotation = 1;
+  // A pre-overhaul island can contain a footprint baked into its save.
+  prior.spanX = 1;
+  prior.spanZ = 2;
+  CIVIC_ADMINISTRATION_ELEMENTS.forEach((def,i) => {
+    const office = put(s, def.id, 5*i, 2);
+    office.variant = i+1;
+    office.level = i+3;
+    [office.spanX, office.spanZ] = getStandardFootprintForLevel(def,office.level);
+  });
+  const footprint = (e: PlacedElement) => [e.id,e.defId,e.level,e.variant,e.rotation,e.gx,e.gz,e.spanX,e.spanZ];
+  const expected = s.elements.map(footprint);
+  const loaded = cloneGameStateSnapshot(JSON.parse(JSON.stringify(s)));
+  assert.deepEqual(loaded.elements.map(footprint),expected);
 });
 
 test("Bilbao supplies parks, education and a single operating museum happiness bonus", () => {

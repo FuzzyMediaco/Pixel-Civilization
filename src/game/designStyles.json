@@ -1930,5 +1930,23 @@
     "Titanium Bouquet",
     "Bridge Gallery",
     "Sculpture Court"
+  ],
+  "climbing_city_hall": [
+    "Switchback Terrace Hall",
+    "Overhang Registry",
+    "Canyon Bridge Offices",
+    "Spiral Summit Council"
+  ],
+  "civic_viaduct_exchange": [
+    "Timber Crossing Hall",
+    "Cascade Arcade",
+    "Lantern Truss Hall",
+    "Market Arch Exchange"
+  ],
+  "levitating_civic_tower": [
+    "Orbit Council",
+    "Cantilever Secretariat",
+    "Civic Sky Sail",
+    "Prism Assembly"
   ]
 }

@@ -28,12 +28,12 @@ import { GRID_MAX, GRID_MIN, createInitialGameState, getTileTerrainKind } from "
 test("Exact Build keeps all branches and includes government offices and modern wonders", () => {
   const audit = auditDecisionTreeCoverage();
   assert.equal(audit.parentCount, 8);
-  assert.equal(audit.subcategoryCount, 55);
+  assert.equal(audit.subcategoryCount, 56);
   assert.ok(audit.minLeafSize >= 3, `Smallest leaf has ${audit.minLeafSize} items (expected >= 3)`);
   assert.ok(audit.maxLeafSize <= 6, `Largest leaf has ${audit.maxLeafSize} items (expected <= 6)`);
 
   for (const parent of QUICK_BUILD_TREE) {
-    const counts = { christmas_village:[4,20], civic_culture_faith:[8,47], landmarks_projects:[8,45] };
+    const counts = { christmas_village:[4,20], civic_culture_faith:[9,50], landmarks_projects:[8,45] };
     const [shelves,items] = counts[parent.id as keyof typeof counts] ?? [7,42];
     assert.equal(parent.subcategories.length,shelves);
     assert.equal(countParentElements(parent),items);

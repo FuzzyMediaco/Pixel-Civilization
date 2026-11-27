@@ -1,0 +1,25 @@
+{
+ "min": 0.12,
+ "ids": [
+  "city_offices",
+  "courthouses",
+  "tax_collecting_office",
+  "government_buildings",
+  "borough_assembly",
+  "civic_records_archive",
+  "city_planning_bureau",
+  "public_works_directorate",
+  "national_parliament",
+  "climbing_city_hall",
+  "civic_viaduct_exchange",
+  "levitating_civic_tower"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.168,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}

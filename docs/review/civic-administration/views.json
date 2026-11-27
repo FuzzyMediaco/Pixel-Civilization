@@ -1,0 +1,11 @@
+{
+  "title": "Civic Administration Square",
+  "fixture": "island.json",
+  "omitBefore": ["climbing_city_hall@-5,-2", "levitating_civic_tower@-2,-8", "civic_viaduct_exchange@1,-2"],
+  "views": [
+    {"name":"district", "gx":0, "gz":-2, "targetY":3, "radius":123, "theta":0.21, "phi":0.78},
+    {"name":"climbing-wall", "gx":-4, "gz":-1, "targetY":3, "radius":54, "theta":-0.35, "phi":0.94},
+    {"name":"levitating-tower", "gx":-0.5, "gz":-6.5, "targetY":9, "radius":83, "theta":-0.5, "phi":1.10},
+    {"name":"viaduct", "gx":2.5, "gz":-1, "targetY":4, "radius":62, "theta":0.50, "phi":1.00}
+  ]
+}
