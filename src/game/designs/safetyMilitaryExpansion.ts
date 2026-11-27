@@ -1,3 +1,5 @@
+import { emergencyDispatch } from "./emergencyDispatch";
+import { buildPublicOrderCenter } from "./publicOrderCenter";
 /**
  * Procedural 3D voxel designs for the 38 new Police, Fire, SWAT, Emergency & Military
  * (Army, Naval, Air Force & Marine Corps) civilization elements.
@@ -206,10 +208,10 @@ function buildHeliBase(
   guy(c, Math.max(-hx + 2, padX - padR), 1, Math.min(hz - 2, padZ + padR), cfg.stripe, "charcoal");
 }
 
-/** Civic/Safety HQ building builder (Dispatch, K9, Crime Lab, Hazmat, Fire Academy, Highway Patrol, Crisis HQ, Bunker) */
+/** Civic/Safety HQ building builder (K9, Crime Lab, Hazmat, Fire Academy, Highway Patrol, Bunker) */
 function buildSafetyFacility(
   c: Ctx,
-  kind: "dispatch" | "k9" | "lab" | "hazmat" | "academy" | "highway" | "crisis" | "bunker",
+  kind: "k9" | "lab" | "hazmat" | "academy" | "highway" | "bunker",
 ): void {
   const { v, lv, hx, hz } = c;
   const s = c.variant % 4;
@@ -236,22 +238,18 @@ function buildSafetyFacility(
   }
 
   const palettes: Record<string, string[]> = {
-    dispatch: ["brick", "white", "concrete", "limestone"],
     k9: ["wood", "brick", "slate", "sand"],
     lab: ["white", "limestone", "concrete", "copper"],
     hazmat: ["concrete", "steelLight", "white", "brick"],
     academy: ["brick", "steelDark", "concrete", "limestone"],
     highway: ["white", "camoTan", "charcoal", "steelLight"],
-    crisis: ["slate", "granite", "steelDark", "sand"],
   };
   const accents: Record<string, string> = {
-    dispatch: POLICE_BLUE,
     k9: "#4f6d9a",
     lab: "#0ea5e9",
     hazmat: "yellow",
     academy: "red",
     highway: "#1d4ed8",
-    crisis: "#334155",
   };
   const wall = palettes[kind][s];
   const accent = accents[kind];
@@ -273,13 +271,7 @@ function buildSafetyFacility(
   door(v, Math.floor((x0 + x1) / 2) - 1, 1, z1 - 1, "glassDark", 2, 3, false);
   flatRoof(c, x0, top, z0, x1, z1, "concreteDark", accent, true);
 
-  if (kind === "dispatch") {
-    const mx = Math.floor((x0 + x1) / 2);
-    const mz = Math.floor((z0 + z1) / 2);
-    v.box(mx, top + 1, mz, mx + 1, top + 10 + lv * 2, mz + 1, "steelDark");
-    c.blink(mx, top + 10 + lv * 2, mz, "red");
-    if (lv >= 3) radarDish(c, x0 + 3, top + 1, z0 + 3, 2, "white", 1.4);
-  } else if (kind === "k9") {
+  if (kind === "k9") {
     // Agility & kennel yard on +x side
     if (hx - 2 - x1 >= 6) {
       securityFence(v, x1 + 1, z0, hx - 1, hz - 2, 1, 4);
@@ -312,16 +304,6 @@ function buildSafetyFacility(
       v.put(x, 3, hz - 3, POLICE_BLUE, 1.3);
     }
     flag(v, -hx + 2, 1, z1 + 1, 9);
-  } else if (kind === "crisis") {
-    securityFence(v, -hx + 1, -hz + 1, hx - 1, hz - 1, 1, 5, [-4, 4]);
-    if (lv >= 3) {
-      const pcx = Math.floor((x0 + x1) / 2);
-      const pcz = Math.floor((z0 + z1) / 2);
-      helipad(v, pcx, top + 1, pcz, 4);
-      if (lv >= 4) helicopter(c, pcx, top + 2, pcz, "charcoal", "z", 10);
-    }
-    truck(v, -hx + 6, 1, hz - 4, "x", "charcoal", POLICE_BLUE);
-    radarDish(c, x0 + 3, top + 1, z0 + 3, 2, "silver", 1.2);
   } else if (kind === "lab") {
     v.box(x0 + 2, top + 1, z0 + 2, x1 - 2, top + 3, z1 - 2, "glass", 0.55);
     car(v, -hx + 5, 1, hz - 3, "x", "white");
@@ -719,13 +701,13 @@ defineDesigns({
   search_rescue_hq: entry("search_rescue_hq", (c) =>
     buildHeliBase(c, { padRing: "orange", heliCol: "orange", stripe: "orange", wall: "wood", roof: "slate", beacon: "yellow", lodge: true }),
   ),
-  emergency_dispatch: entry("emergency_dispatch", (c) => buildSafetyFacility(c, "dispatch")),
+  emergency_dispatch: entry("emergency_dispatch", emergencyDispatch),
   k9_police_unit: entry("k9_police_unit", (c) => buildSafetyFacility(c, "k9")),
   forensic_crime_lab: entry("forensic_crime_lab", (c) => buildSafetyFacility(c, "lab")),
   hazmat_response: entry("hazmat_response", (c) => buildSafetyFacility(c, "hazmat")),
   fire_academy: entry("fire_academy", (c) => buildSafetyFacility(c, "academy")),
   traffic_precinct: entry("traffic_precinct", (c) => buildSafetyFacility(c, "highway")),
-  riot_command_center: entry("riot_command_center", (c) => buildSafetyFacility(c, "crisis")),
+  riot_command_center: entry("riot_command_center", buildPublicOrderCenter),
   civil_defense_bunker: entry("civil_defense_bunker", (c) => buildSafetyFacility(c, "bunker")),
   coast_rescue_station: entry("coast_rescue_station", (c) => buildNavalQuayBase(c, "coast_rescue")),
   harbor_patrol_pier: entry("harbor_patrol_pier", (c) => buildNavalQuayBase(c, "harbor_police")),

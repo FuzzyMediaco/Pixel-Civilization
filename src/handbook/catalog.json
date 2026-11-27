@@ -8855,9 +8855,9 @@
       "government": 25,
       "fireRadius": 9
     },
-    "description": "Red brick firehouse with hose tower that prevents and extinguishes fires!",
+    "description": "Fire crews work from hose-reel houses, bell stations, open ladder courts and hydrant workshops.",
     "usage": "Put the facility beside a compatible neighbor so the service entrance meets the adjoining parcel.",
-    "growth": "Engine bays multiply, a hose tower rises and a ladder truck joins the training yard.",
+    "growth": "Each staffed firehouse gains yards, vehicle bays and space for the crew to train.",
     "maxLevel": 5,
     "levels": [
       {
@@ -8909,19 +8909,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Brick & slate"
+        "name": "Hose Reel House"
       },
       {
         "index": 1,
-        "name": "Brick & tile"
+        "name": "Watch Bell Station"
       },
       {
         "index": 2,
-        "name": "Concrete & teal"
+        "name": "Ladder Court"
       },
       {
         "index": 3,
-        "name": "Steel blue"
+        "name": "Hydrant Works"
       }
     ],
     "partner": {
@@ -8947,14 +8947,14 @@
       "recreation": 65,
       "government": 20
     },
-    "description": "Recreation hall, library, and youth courts bringing neighbors together.",
+    "description": "Residents meet to perform, cook, swim and trade seeds at neighborhood gathering places.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "A painted neighborhood hall adds a pavilion, basketball court, gym and an outdoor stage.",
+    "growth": "A staffed neighborhood meeting place adds shared facilities, room for classes and gatherings, and a campus for the whole district.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Meeting Hall",
+        "name": "Neighborhood Gathering Place",
         "dimensions": [
           1,
           1
@@ -8963,7 +8963,7 @@
       },
       {
         "level": 2,
-        "name": "Community Hall",
+        "name": "Community Studio",
         "dimensions": [
           2,
           1
@@ -8981,7 +8981,7 @@
       },
       {
         "level": 4,
-        "name": "Community Campus",
+        "name": "Neighborhood Campus",
         "dimensions": [
           3,
           2
@@ -9001,19 +9001,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Timber & teal"
+        "name": "Porchlight Bandshell"
       },
       {
         "index": 1,
-        "name": "Cream & clay"
+        "name": "Neighborhood Cookhouse"
       },
       {
         "index": 2,
-        "name": "Brick & blue"
+        "name": "Lantern Swim Club"
       },
       {
         "index": 3,
-        "name": "Marble & violet"
+        "name": "Seed Library Garden"
       }
     ],
     "partner": {
@@ -13674,7 +13674,7 @@
     },
     "description": "Iconic neoclassical executive mansion with portico, fountain, and wings.",
     "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
-    "growth": "A columned residence sprouts working wings, rose beds and a fountain lawn.",
+    "growth": "The executive residence adds its great porticoes, working wings and covered walks before opening the formal gardens to the public.",
     "maxLevel": 5,
     "levels": [
       {
@@ -13726,19 +13726,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Rounded portico"
+        "name": "South Lawn Balcony"
       },
       {
         "index": 1,
-        "name": "Pedimented portico"
+        "name": "North Portico Court"
       },
       {
         "index": 2,
-        "name": "Blossom lawn"
+        "name": "West Wing Rose Garden"
       },
       {
         "index": 3,
-        "name": "Ringed portico"
+        "name": "East Colonnade Walk"
       }
     ],
     "partner": {
@@ -19964,9 +19964,9 @@
       "policeRadius": 18,
       "fireRadius": 18
     },
-    "description": "Central emergency call and radio-relay hub coordinating police, fire and rescue coverage.",
-    "usage": "Central emergency call and radio-relay hub coordinating police, fire and rescue coverage.",
-    "growth": "A small radio relay office grows tall antenna arrays, backup generators and a hardened dispatch hall.",
+    "description": "Municipal dispatchers take calls, mark incident maps and relay updates to police, fire and rescue crews.",
+    "usage": "Put the facility beside a compatible neighbor so the service entrance meets the adjoining parcel.",
+    "growth": "A staffed call desk grows into a regional dispatch center with shifts of operators and rooms for the crews they coordinate.",
     "maxLevel": 5,
     "levels": [
       {
@@ -19989,7 +19989,7 @@
       },
       {
         "level": 3,
-        "name": "Relay Bunker",
+        "name": "District Exchange",
         "dimensions": [
           2,
           1
@@ -19998,7 +19998,7 @@
       },
       {
         "level": 4,
-        "name": "Regional 911 Hub",
+        "name": "Regional Dispatch Hall",
         "dimensions": [
           2,
           2
@@ -20018,19 +20018,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Civic Brick"
+        "name": "Patch-Cord Exchange"
       },
       {
         "index": 1,
-        "name": "Glass Modern"
+        "name": "Relief Map Room"
       },
       {
         "index": 2,
-        "name": "Hardened Concrete"
+        "name": "Headset Hall"
       },
       {
         "index": 3,
-        "name": "Coastal Stone"
+        "name": "Relay Dish Terrace"
       }
     ],
     "partner": {
@@ -20613,14 +20613,14 @@
       "policeRadius": 24,
       "fireRadius": 16
     },
-    "description": "Armored emergency coordination fortress combining SWAT tactics, disaster ops and rooftop helipad.",
-    "usage": "Armored emergency coordination fortress combining SWAT tactics, disaster ops and rooftop helipad.",
-    "growth": "An operations bunker adds armored rescue vans, satellite uplinks and a rooftop command helipad.",
+    "description": "Residents find public updates, interpreters, temporary shelter and council liaisons during disruptions.",
+    "usage": "Put the facility beside a compatible neighbor so the service entrance meets the adjoining parcel.",
+    "growth": "A staffed information desk grows into a civic meeting place with interpretation booths, relief services and sheltered public rooms.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Field Command",
+        "name": "Information Desk",
         "dimensions": [
           2,
           2
@@ -20629,7 +20629,7 @@
       },
       {
         "level": 2,
-        "name": "Tactical Staging",
+        "name": "Liaison Station",
         "dimensions": [
           2,
           2
@@ -20638,7 +20638,7 @@
       },
       {
         "level": 3,
-        "name": "Operations Bunker",
+        "name": "Neighborhood Forum",
         "dimensions": [
           3,
           2
@@ -20647,7 +20647,7 @@
       },
       {
         "level": 4,
-        "name": "Crisis Center",
+        "name": "Community Exchange",
         "dimensions": [
           3,
           3
@@ -20656,7 +20656,7 @@
       },
       {
         "level": 5,
-        "name": "Joint Emergency HQ",
+        "name": "City Response Commons",
         "dimensions": [
           4,
           3
@@ -20667,19 +20667,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Slate Tactical"
+        "name": "Conversation Canopies"
       },
       {
         "index": 1,
-        "name": "Civic Granite"
+        "name": "Relief Lantern Tents"
       },
       {
         "index": 2,
-        "name": "Steel Modern"
+        "name": "Liaison Amphitheater"
       },
       {
         "index": 3,
-        "name": "Desert Sand"
+        "name": "Civic Map Fold"
       }
     ],
     "partner": {

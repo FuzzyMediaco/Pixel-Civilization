@@ -798,16 +798,16 @@
     "Adding Machine"
   ],
   "fire_department": [
-    "Brick & slate",
-    "Brick & tile",
-    "Concrete & teal",
-    "Steel blue"
+    "Hose Reel House",
+    "Watch Bell Station",
+    "Ladder Court",
+    "Hydrant Works"
   ],
   "community_centers": [
-    "Timber & teal",
-    "Cream & clay",
-    "Brick & blue",
-    "Marble & violet"
+    "Porchlight Bandshell",
+    "Neighborhood Cookhouse",
+    "Lantern Swim Club",
+    "Seed Library Garden"
   ],
   "courthouses": [
     "Laurel Portico",
@@ -864,10 +864,10 @@
     "Warm ivory"
   ],
   "white_house": [
-    "Rounded portico",
-    "Pedimented portico",
-    "Blossom lawn",
-    "Ringed portico"
+    "South Lawn Balcony",
+    "North Portico Court",
+    "West Wing Rose Garden",
+    "East Colonnade Walk"
   ],
   "smithsonian": [
     "Slate towers",
@@ -1290,10 +1290,10 @@
     "Coastal Silver"
   ],
   "emergency_dispatch": [
-    "Civic Brick",
-    "Glass Modern",
-    "Hardened Concrete",
-    "Coastal Stone"
+    "Patch-Cord Exchange",
+    "Relief Map Room",
+    "Headset Hall",
+    "Relay Dish Terrace"
   ],
   "k9_police_unit": [
     "Timber Lodge",
@@ -1332,10 +1332,10 @@
     "Modern Silver"
   ],
   "riot_command_center": [
-    "Slate Tactical",
-    "Civic Granite",
-    "Steel Modern",
-    "Desert Sand"
+    "Conversation Canopies",
+    "Relief Lantern Tents",
+    "Liaison Amphitheater",
+    "Civic Map Fold"
   ],
   "search_rescue_hq": [
     "Alpine Timber",

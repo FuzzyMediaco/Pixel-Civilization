@@ -1,0 +1,27 @@
+{
+ "min": 0.12,
+ "ids": [
+  "city_offices",
+  "courthouses",
+  "tax_collecting_office",
+  "government_buildings",
+  "borough_assembly",
+  "civic_records_archive",
+  "city_planning_bureau",
+  "public_works_directorate",
+  "national_parliament",
+  "fire_department",
+  "emergency_dispatch",
+  "community_centers",
+  "riot_command_center",
+  "white_house"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.129,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}
