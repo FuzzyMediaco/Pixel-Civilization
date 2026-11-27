@@ -1,0 +1,500 @@
+{
+ "coverage": 100,
+ "min": 190,
+ "max": 10019,
+ "mean": 1873,
+ "rankings": [
+  {
+   "level": 1,
+   "lowestOffice": 18,
+   "highestNeighbor": 17
+  },
+  {
+   "level": 2,
+   "lowestOffice": 24,
+   "highestNeighbor": 20
+  },
+  {
+   "level": 3,
+   "lowestOffice": 30,
+   "highestNeighbor": 23
+  },
+  {
+   "level": 4,
+   "lowestOffice": 36,
+   "highestNeighbor": 25
+  },
+  {
+   "level": 5,
+   "lowestOffice": 43,
+   "highestNeighbor": 28
+  }
+ ],
+ "crossSlotComparisons": 800,
+ "near": [],
+ "nearest": [
+  [
+   [
+    "public_library",
+    5,
+    0
+   ],
+   [
+    "courthouses",
+    5,
+    1
+   ],
+   0.177029438789935
+  ],
+  [
+   [
+    "public_library",
+    5,
+    0
+   ],
+   [
+    "banks",
+    5,
+    3
+   ],
+   0.18149703138252757
+  ],
+  [
+   [
+    "courthouses",
+    5,
+    1
+   ],
+   [
+    "banks",
+    5,
+    2
+   ],
+   0.1904398148148148
+  ]
+ ],
+ "nearestOriginal": [
+  [
+   "courthouses",
+   4,
+   0
+  ],
+  0.14658167036215816
+ ],
+ "sameSlotBefore": [
+  [
+   "courthouses,4,0",
+   0.1788248337028825
+  ],
+  [
+   "courthouses,3,2",
+   0.21307486020769145
+  ],
+  [
+   "courthouses,5,2",
+   0.22561660561660563
+  ]
+ ],
+ "byParcel": {
+  "public_library,1,0": {
+   "voxels": 348,
+   "litVertices": 32
+  },
+  "public_library,1,1": {
+   "voxels": 284,
+   "litVertices": 32
+  },
+  "public_library,1,2": {
+   "voxels": 339,
+   "litVertices": 32
+  },
+  "public_library,1,3": {
+   "voxels": 190,
+   "litVertices": 32
+  },
+  "public_library,2,0": {
+   "voxels": 482,
+   "litVertices": 40
+  },
+  "public_library,2,1": {
+   "voxels": 322,
+   "litVertices": 32
+  },
+  "public_library,2,2": {
+   "voxels": 978,
+   "litVertices": 32
+  },
+  "public_library,2,3": {
+   "voxels": 320,
+   "litVertices": 32
+  },
+  "public_library,3,0": {
+   "voxels": 2464,
+   "litVertices": 48
+  },
+  "public_library,3,1": {
+   "voxels": 936,
+   "litVertices": 32
+  },
+  "public_library,3,2": {
+   "voxels": 1054,
+   "litVertices": 32
+  },
+  "public_library,3,3": {
+   "voxels": 635,
+   "litVertices": 32
+  },
+  "public_library,4,0": {
+   "voxels": 3465,
+   "litVertices": 64
+  },
+  "public_library,4,1": {
+   "voxels": 1487,
+   "litVertices": 32
+  },
+  "public_library,4,2": {
+   "voxels": 2278,
+   "litVertices": 32
+  },
+  "public_library,4,3": {
+   "voxels": 1261,
+   "litVertices": 48
+  },
+  "public_library,5,0": {
+   "voxels": 8415,
+   "litVertices": 60
+  },
+  "public_library,5,1": {
+   "voxels": 2369,
+   "litVertices": 48
+  },
+  "public_library,5,2": {
+   "voxels": 2693,
+   "litVertices": 28
+  },
+  "public_library,5,3": {
+   "voxels": 1992,
+   "litVertices": 48
+  },
+  "post_offices,1,0": {
+   "voxels": 337,
+   "litVertices": 36
+  },
+  "post_offices,1,1": {
+   "voxels": 211,
+   "litVertices": 32
+  },
+  "post_offices,1,2": {
+   "voxels": 316,
+   "litVertices": 36
+  },
+  "post_offices,1,3": {
+   "voxels": 412,
+   "litVertices": 24
+  },
+  "post_offices,2,0": {
+   "voxels": 871,
+   "litVertices": 52
+  },
+  "post_offices,2,1": {
+   "voxels": 358,
+   "litVertices": 36
+  },
+  "post_offices,2,2": {
+   "voxels": 551,
+   "litVertices": 52
+  },
+  "post_offices,2,3": {
+   "voxels": 744,
+   "litVertices": 36
+  },
+  "post_offices,3,0": {
+   "voxels": 1006,
+   "litVertices": 52
+  },
+  "post_offices,3,1": {
+   "voxels": 1036,
+   "litVertices": 36
+  },
+  "post_offices,3,2": {
+   "voxels": 1246,
+   "litVertices": 52
+  },
+  "post_offices,3,3": {
+   "voxels": 1320,
+   "litVertices": 36
+  },
+  "post_offices,4,0": {
+   "voxels": 2240,
+   "litVertices": 64
+  },
+  "post_offices,4,1": {
+   "voxels": 1778,
+   "litVertices": 12
+  },
+  "post_offices,4,2": {
+   "voxels": 2171,
+   "litVertices": 68
+  },
+  "post_offices,4,3": {
+   "voxels": 2108,
+   "litVertices": 36
+  },
+  "post_offices,5,0": {
+   "voxels": 2718,
+   "litVertices": 52
+  },
+  "post_offices,5,1": {
+   "voxels": 2214,
+   "litVertices": 16
+  },
+  "post_offices,5,2": {
+   "voxels": 2243,
+   "litVertices": 68
+  },
+  "post_offices,5,3": {
+   "voxels": 2452,
+   "litVertices": 36
+  },
+  "courthouses,1,0": {
+   "voxels": 448,
+   "litVertices": 76
+  },
+  "courthouses,1,1": {
+   "voxels": 425,
+   "litVertices": 64
+  },
+  "courthouses,1,2": {
+   "voxels": 599,
+   "litVertices": 112
+  },
+  "courthouses,1,3": {
+   "voxels": 590,
+   "litVertices": 48
+  },
+  "courthouses,2,0": {
+   "voxels": 695,
+   "litVertices": 36
+  },
+  "courthouses,2,1": {
+   "voxels": 759,
+   "litVertices": 96
+  },
+  "courthouses,2,2": {
+   "voxels": 886,
+   "litVertices": 112
+  },
+  "courthouses,2,3": {
+   "voxels": 1059,
+   "litVertices": 108
+  },
+  "courthouses,3,0": {
+   "voxels": 2167,
+   "litVertices": 76
+  },
+  "courthouses,3,1": {
+   "voxels": 2857,
+   "litVertices": 108
+  },
+  "courthouses,3,2": {
+   "voxels": 2383,
+   "litVertices": 104
+  },
+  "courthouses,3,3": {
+   "voxels": 2265,
+   "litVertices": 116
+  },
+  "courthouses,4,0": {
+   "voxels": 5112,
+   "litVertices": 76
+  },
+  "courthouses,4,1": {
+   "voxels": 2944,
+   "litVertices": 156
+  },
+  "courthouses,4,2": {
+   "voxels": 4606,
+   "litVertices": 224
+  },
+  "courthouses,4,3": {
+   "voxels": 3700,
+   "litVertices": 116
+  },
+  "courthouses,5,0": {
+   "voxels": 6612,
+   "litVertices": 76
+  },
+  "courthouses,5,1": {
+   "voxels": 10019,
+   "litVertices": 108
+  },
+  "courthouses,5,2": {
+   "voxels": 6010,
+   "litVertices": 224
+  },
+  "courthouses,5,3": {
+   "voxels": 5842,
+   "litVertices": 116
+  },
+  "city_offices,1,0": {
+   "voxels": 398,
+   "litVertices": 104
+  },
+  "city_offices,1,1": {
+   "voxels": 572,
+   "litVertices": 20
+  },
+  "city_offices,1,2": {
+   "voxels": 434,
+   "litVertices": 20
+  },
+  "city_offices,1,3": {
+   "voxels": 375,
+   "litVertices": 104
+  },
+  "city_offices,2,0": {
+   "voxels": 966,
+   "litVertices": 104
+  },
+  "city_offices,2,1": {
+   "voxels": 730,
+   "litVertices": 20
+  },
+  "city_offices,2,2": {
+   "voxels": 1001,
+   "litVertices": 20
+  },
+  "city_offices,2,3": {
+   "voxels": 1135,
+   "litVertices": 104
+  },
+  "city_offices,3,0": {
+   "voxels": 1708,
+   "litVertices": 120
+  },
+  "city_offices,3,1": {
+   "voxels": 1357,
+   "litVertices": 36
+  },
+  "city_offices,3,2": {
+   "voxels": 1204,
+   "litVertices": 20
+  },
+  "city_offices,3,3": {
+   "voxels": 1690,
+   "litVertices": 104
+  },
+  "city_offices,4,0": {
+   "voxels": 2338,
+   "litVertices": 104
+  },
+  "city_offices,4,1": {
+   "voxels": 1940,
+   "litVertices": 52
+  },
+  "city_offices,4,2": {
+   "voxels": 1602,
+   "litVertices": 20
+  },
+  "city_offices,4,3": {
+   "voxels": 2780,
+   "litVertices": 104
+  },
+  "city_offices,5,0": {
+   "voxels": 3326,
+   "litVertices": 120
+  },
+  "city_offices,5,1": {
+   "voxels": 2875,
+   "litVertices": 68
+  },
+  "city_offices,5,2": {
+   "voxels": 2272,
+   "litVertices": 36
+  },
+  "city_offices,5,3": {
+   "voxels": 3633,
+   "litVertices": 116
+  },
+  "banks,1,0": {
+   "voxels": 406,
+   "litVertices": 32
+  },
+  "banks,1,1": {
+   "voxels": 332,
+   "litVertices": 20
+  },
+  "banks,1,2": {
+   "voxels": 574,
+   "litVertices": 32
+  },
+  "banks,1,3": {
+   "voxels": 463,
+   "litVertices": 32
+  },
+  "banks,2,0": {
+   "voxels": 987,
+   "litVertices": 32
+  },
+  "banks,2,1": {
+   "voxels": 569,
+   "litVertices": 12
+  },
+  "banks,2,2": {
+   "voxels": 1278,
+   "litVertices": 32
+  },
+  "banks,2,3": {
+   "voxels": 939,
+   "litVertices": 32
+  },
+  "banks,3,0": {
+   "voxels": 2671,
+   "litVertices": 32
+  },
+  "banks,3,1": {
+   "voxels": 1529,
+   "litVertices": 32
+  },
+  "banks,3,2": {
+   "voxels": 1979,
+   "litVertices": 48
+  },
+  "banks,3,3": {
+   "voxels": 2032,
+   "litVertices": 48
+  },
+  "banks,4,0": {
+   "voxels": 3238,
+   "litVertices": 32
+  },
+  "banks,4,1": {
+   "voxels": 2027,
+   "litVertices": 24
+  },
+  "banks,4,2": {
+   "voxels": 2568,
+   "litVertices": 64
+  },
+  "banks,4,3": {
+   "voxels": 2238,
+   "litVertices": 48
+  },
+  "banks,5,0": {
+   "voxels": 4020,
+   "litVertices": 32
+  },
+  "banks,5,1": {
+   "voxels": 2911,
+   "litVertices": 24
+  },
+  "banks,5,2": {
+   "voxels": 2975,
+   "litVertices": 36
+  },
+  "banks,5,3": {
+   "voxels": 2623,
+   "litVertices": 48
+  }
+ }
+}
