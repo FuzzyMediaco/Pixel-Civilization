@@ -17,7 +17,7 @@ import {standardRoadLanes} from "./roadStandards";
  */
 import { type CivElementDef, ELEMENT_BY_ID } from "./catalog";
 import type { PlacedElement } from "./simulation";
-import { levelMultiplier, scaledRadius } from "./levelScaling";
+import { levelMultiplier, scaledLevel, scaledRadius } from "./levelScaling";
 import { FARM_ANCHOR_IDS, FARM_MODULE_IDS } from "./expansionCatalog";
 
 import { GRID_MIN, GRID_SIZE } from "./mapBounds";
@@ -478,6 +478,7 @@ export interface ElementLevelStats {
   education: number;
   recreation: number;
   government: number;
+  happinessBonus: number;
   police: number;
   military: number;
   /** Export earnings basis ($ per tick) */
@@ -533,6 +534,7 @@ export function elementLevelStats(def: CivElementDef, level: number): ElementLev
     education: pos(def.education) * out,
     recreation: pos(def.recreation) * out,
     government: pos(def.government) * out,
+    happinessBonus: def.happinessBonus ? def.happinessBonus + scaledLevel(level) - 1 : 0,
     police: pos(def.police) * out,
     military: pos(def.military) * out,
     income: pos(def.income) * out,

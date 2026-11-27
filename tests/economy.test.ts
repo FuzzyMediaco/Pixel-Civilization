@@ -40,6 +40,7 @@ import {
   type PlacedElement,
 } from "../src/game/simulation";
 import { applyInfrastructureStroke } from "../src/game/terrain";
+import { SKYLINE_GOVERNMENT_IDS } from "../src/game/skylineCatalog";
 import { WEALTH_PROJECTS } from "../src/game/wealthProjects";
 function put(s: GameState, defId: string, gx: number, gz: number): PlacedElement {
   const [spanX, spanZ] = getStandardFootprintForLevel(ELEMENT_BY_ID[defId], 1);
@@ -78,6 +79,44 @@ function neighborhood(mode: GameState["mode"] = "real") {
   recalc(s);
   return s;
 }
+test("each new government office supplies Government Services and authorizes staffed crews", () => {
+  assert.equal(SKYLINE_GOVERNMENT_IDS.length,5);
+  for(const id of SKYLINE_GOVERNMENT_IDS){
+    const s=neighborhood();
+    const baseline=s.metrics.govSupply;
+    assert.equal(hasAuthority(s),false);
+    const office=put(s,id,1,1);
+    recalc(s);
+    assert.ok(s.metrics.govSupply>=baseline+ELEMENT_BY_ID[id].government!,id);
+    assert.ok(hasAuthority(s),id);
+    office.onFire=true;
+    recalc(s);
+    assert.equal(hasAuthority(s),false,id);
+    assert.equal(s.metrics.govSupply,baseline,id);
+  }
+});
+
+test("Bilbao supplies parks, education and a single operating museum happiness bonus", () => {
+  const s=neighborhood(), before={...s.metrics};
+  const museum=put(s,"guggenheim_bilbao",1,1);
+  const bonus=()=>s.diagnostics.find(d=>d.id==="museum_happiness")?.deltaHappiness ?? 0;
+  recalc(s);
+  assert.ok(s.metrics.educationSupply>=before.educationSupply+300);
+  assert.ok(s.metrics.recreationSupply>=before.recreationSupply+260);
+  assert.equal(bonus(),2);
+  museum.level=5;
+  [museum.spanX,museum.spanZ]=getStandardFootprintForLevel(museum.defId,5);
+  const second=put(s,"guggenheim_bilbao",7,1);
+  recalc(s);
+  assert.equal(bonus(),6);
+  museum.disrepair=true;
+  recalc(s);
+  assert.equal(bonus(),2);
+  second.onFire=true;
+  recalc(s);
+  assert.equal(bonus(),0);
+});
+
 test("wealth balances internal transfers, limits spending and retains earned project tiers", () => {
   const s = createInitialGameState("real"),
     initial = cityWealth(s);

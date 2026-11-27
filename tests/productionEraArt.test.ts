@@ -15,7 +15,7 @@ function model(id:string,era:EraKey,conn:number,active=false){
   return buildDesignVoxels(def,level,1,...getStandardFootprintForLevel(def,level),conn,{era,eraActivity:active?"active":"idle"});
 }
 test("all production periods resolve the entire base catalog and keep separate meshes",async()=>{
-  assert.equal(PRODUCTION_ART_IDS.length,294);
+  assert.equal(PRODUCTION_ART_IDS.length,302);
   assert.equal(PRODUCTION_ERAS.length,10);
   assert.ok(PRODUCTION_ART_IDS.every(id=>Boolean(productionArtFamily(id))));
   assert.equal(productionArtFamily("my-original-custom-studio"),undefined);

@@ -1,5 +1,5 @@
 import { ELEMENT_BY_ID, ELEMENTS, getMaxElementLevel, getStandardFootprintForLevel, STAGES, type CivElementDef } from "./catalog";
-import { buildingCharges, transfer } from "./cityEconomy";
+import { AUTHORITY_BUILDINGS, buildingCharges, transfer } from "./cityEconomy";
 import { cellFromIndex, cellIndex, GRID_MIN, GRID_MAX, GRID_SIZE, withinMap } from "./mapBounds";
 import {
   buildingLockReason, buildOccupancyMap, checkPlacementValid, makeElementId,
@@ -372,7 +372,6 @@ function connectIsland(state: GameState, site: Survey, profile: AutoCivProfile, 
 
 type Need = { label: string; weight: number; output: (d: CivElementDef) => number };
 const housing: Need = {label: "New homes", weight: 1, output: d => d.popBase ?? 0};
-const civicAuthority = new Set(["city_offices","tax_collecting_office","courthouses","government_buildings"]);
 const displayCategories = new Set(["nature_terrain","landmarks","faith","maritime","wealth_projects","roads_transit","civic_parks","police_military"]);
 const deficit = (supply: number, demand: number) => demand > 0 ? Math.max(0, 1 - supply/demand) : 0;
 
@@ -397,7 +396,7 @@ function needs(state: GameState, site: Survey, turn: number): Need[] {
     {label:"Local jobs", weight: 13*deficit(m.jobsAvailable,m.jobsNeeded*1.12), output:d=>d.jobs??0},
     {label:"Schools", weight: 4*deficit(m.educationSupply,m.educationDemand), output:d=>d.education??0},
     {label:"Parks and culture", weight: 4*deficit(m.recreationSupply,m.recreationDemand), output:d=>d.recreation??0},
-    {label:"Public services", weight: 5*deficit(m.govSupply,m.govDemand) + (state.highestStageReached >= 3 && missing(d=>civicAuthority.has(d.id)) ? 8 : 0), output:d=>civicAuthority.has(d.id) ? d.government??1 : 0},
+    {label:"Public services", weight: 5*deficit(m.govSupply,m.govDemand) + (state.highestStageReached >= 3 && missing(d=>AUTHORITY_BUILDINGS.has(d.id)) ? 8 : 0), output:d=>AUTHORITY_BUILDINGS.has(d.id) ? d.government??1 : 0},
     {label:"Fire and rescue", weight: state.elements.some(e => (ELEMENT_BY_ID[e.defId]?.fireRadius??0)>0) ? Math.min(5,m.burningCount*2) : state.highestStageReached >= 4 ? 5 : 0, output:d=>d.fireRadius??0},
     {label:"Public safety", weight: Math.min(6, m.crimeDaily/4), output:d=>d.policeRadius??0},
     {label:"Civil defense", weight: state.highestStageReached >= 10 ? Math.min(5, 5*deficit(m.defenseRating,90)) : 0, output:d=>d.military??0},

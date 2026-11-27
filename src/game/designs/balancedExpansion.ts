@@ -59,6 +59,7 @@ import {
 import { defineDesigns, type DesignEntry } from "./registry";
 import { BALANCED_EXPANSION_BY_ID } from "../expansionBalancedCatalog";
 import { PixelVox } from "../voxelCore";
+import { buildMixedUseMidrise, buildPenthouseTower } from "./sculpturalHousing";
 
 function entry(id: string, build: (c: Ctx) => void): DesignEntry {
   const meta = BALANCED_EXPANSION_BY_ID[id];
@@ -195,103 +196,8 @@ defineDesigns({
     }
   }),
 
-  // 3. mixed_use_midrise — Ground-floor shops + terraced brick-and-glass apartments
-  mixed_use_midrise: entry("mixed_use_midrise", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    const upperWall = ["brick", "cream", "wood", "slateLight"][s];
-    const baseWall = ["granite", "marbleShade", "stone", "charcoal"][s];
-    const awnA = ["crimson", "teal", "orange", "blue"][s];
-    const roofCol = ["slate", "charcoal", "terracotta", "steelDark"][s];
-
-    const x0 = -hx + 2;
-    const x1 = hx - 2;
-    const z0 = -hz + 2;
-    const z1 = hz - 3;
-    const floors = 1 + lv;
-    const top = 5 + floors * 4;
-
-    footing(c, x0, z0, x1, z1, "concreteDark");
-    // Ground-floor commercial podium
-    v.box(x0, 1, z0, x1, 5, z1, baseWall);
-    v.box(x0 + 1, 2, z1, x1 - 1, 4, z1, "warmGlow", 0.72);
-    door(v, -1, 1, z1, "woodDark", 2, 3, false);
-    awning(v, x0 + 1, x1 - 1, 5, z1 + 1, awnA, "white");
-
-    // Upper residential stories with setback at higher levels
-    const splitY = lv >= 4 ? top - 6 : top;
-    v.box(x0, 6, z0, x1, splitY, z1, upperWall);
-    v.clear(x0 + 1, 6, z0 + 1, x1 - 1, splitY - 1, z1 - 1);
-    band(v, x0, 5, z0, x1, z1, "marble", 0);
-    windows(c, x0, 7, z0, x1, splitY - 1, z1, { stepH: 3, stepV: 4, h: 2, emit: 0.45 });
-    balconies(c, x0 + 2, x1 - 2, 9, splitY - 2, z1 + 1, 4, "concrete", "iron");
-
-    if (lv >= 4) {
-      const inset = 2;
-      v.box(x0 + inset, splitY + 1, z0 + inset, x1 - inset, top, z1 - inset, upperWall);
-      windows(c, x0 + inset, splitY + 2, z0 + inset, x1 - inset, top - 1, z1 - inset, {
-        stepH: 3,
-        stepV: 4,
-        h: 2,
-        emit: 0.55,
-      });
-      flatRoof(c, x0 + inset, top, z0 + inset, x1 - inset, z1 - inset, roofCol, "marble", true);
-      // Planted terrace edge
-      hedge(v, x0 + 1, z1 - 1, x1 - 1, z1 - 1, splitY + 1, 2, "leaf");
-    } else {
-      flatRoof(c, x0, splitY, z0, x1, z1, roofCol, "marble", true);
-    }
-    pave(v, x0, z1 + 1, x1, hz - 1, "concrete2");
-    lamp(v, x0 + 1, 1, hz - 1, 5);
-    person(v, 2, 1, hz - 1, awnA, "blueDark");
-  }),
-
-  // 4. penthouse_tower — Sculpted setback luxury residential spire with sky gardens
-  penthouse_tower: entry("penthouse_tower", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    const stone = ["cream", "marble", "charcoal", "white"][s];
-    const glass = ["glass", "cyan", "gold", "teal"][s];
-    const accent = ["gold", "silver", "brass", "leaf"][s];
-
-    const x0 = -hx + 2;
-    const x1 = hx - 2;
-    const z0 = -hz + 2;
-    const z1 = hz - 2;
-    const h1 = 10 + lv * 5;
-    const h2 = h1 + 8 + lv * 3;
-    const h3 = h2 + 6 + lv * 2;
-
-    footing(c, x0, z0, x1, z1, "marbleShade");
-    // Base tower shaft
-    v.box(x0, 1, z0, x1, h1, z1, stone);
-    curtainWall(c, x0, 2, z0, x1, h1 - 1, z1, glass, stone, 3, 4);
-    door(v, -1, 1, z1, "gold", 3, 4, true);
-
-    // Mid setback with planted sky terrace
-    const m = Math.min(2, Math.floor((x1 - x0) / 5));
-    if (x1 - m > x0 + m + 3 && z1 - m > z0 + m + 3) {
-      hedge(v, x0 + 1, z0 + 1, x1 - 1, z1 - 1, h1 + 1, 2, "leaf");
-      v.box(x0 + m, h1 + 1, z0 + m, x1 - m, h2, z1 - m, stone);
-      curtainWall(c, x0 + m, h1 + 2, z0 + m, x1 - m, h2 - 1, z1 - m, glass, accent, 3, 4);
-
-      // Crown penthouse lantern
-      const k = m + 2;
-      if (lv >= 3 && x1 - k > x0 + k + 2 && z1 - k > z0 + k + 2) {
-        v.box(x0 + k, h2 + 1, z0 + k, x1 - k, h3, z1 - k, glass, 0.55);
-        band(v, x0 + k, h2 + 1, z0 + k, x1 - k, z1 - k, accent, 0);
-        band(v, x0 + k, h3, z0 + k, x1 - k, z1 - k, accent, 0);
-        if (lv >= 5 && x1 - k - (x0 + k) >= 8) {
-          helipad(v, 0, h3 + 1, 0, 3);
-        } else {
-          spire(v, 0, 0, h3 + 1, 6 + lv, 1.4, accent, "warmGlow");
-        }
-        c.blink(0, h3 + (lv >= 5 ? 2 : 7 + lv), 0, "red");
-      } else {
-        flatRoof(c, x0 + m, h2, z0 + m, x1 - m, z1 - m, "slate", accent, false);
-      }
-    }
-  }),
+  mixed_use_midrise: entry("mixed_use_midrise", buildMixedUseMidrise),
+  penthouse_tower: entry("penthouse_tower", buildPenthouseTower),
 
   // 5. tram_station — Arched iron-and-timber streetcar stop with parked vintage tram
   tram_station: entry("tram_station", (c) => {

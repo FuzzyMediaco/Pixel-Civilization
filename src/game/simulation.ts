@@ -1517,6 +1517,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     m.recreationSupply += (feature?.recreation ?? 0) * scale;
   }
   let baseHousingPop = 0;
+  let museumHappiness = 0;
   let policePoints = 0;
   let uncoveredBuildings = 0;
   let coverableBuildings = 0;
@@ -1628,6 +1629,9 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     }
     if (def.recreation) {
       m.recreationSupply += Math.round(lv.recreation * (wild ? 0.25 : 1) * serviceHealth * (districts.bonuses.recreationMultiplier.get(el.id)??1) * (el.defId==="middle_school"?1.16:el.defId==="elementary_school"?1.1:1));
+    }
+    if (lv.happinessBonus && !el.disrepair) {
+      museumHappiness = Math.max(museumHappiness, lv.happinessBonus);
     }
     if (def.government) {
       m.govSupply += Math.round(lv.government * serviceHealth);
@@ -1916,7 +1920,7 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     checkNeed("rec", "Parks & Leisure", m.recreationSupply, m.recreationDemand, 12, "Add Parks, Gardens, Plazas, or Landmarks.");
 
     if (m.govDemand > 0) {
-      checkNeed("gov", "Government Services", m.govSupply, m.govDemand, 6, "Stage 3+ requires City Offices, Tax Offices, Courthouses, or Government Buildings.");
+      checkNeed("gov", "Government Services", m.govSupply, m.govDemand, 6, "Build or upgrade a civic office, assembly, archive, planning bureau, works directorate or parliament.");
     }
 
     if (m.nuisanceAffectedHomes > 0) {
@@ -2029,6 +2033,12 @@ export function recomputeConnectivityAndMetrics(state: GameState): void {
     if (mood) diags.push({ id: "tax", severity: mood < 0 ? "warning" : "info", title: `Tax rate ${rate}%`,
       detail: mood < 0 ? "Taxes above 15% make residents unhappy and more likely to leave." : "Low taxes keep residents content.",
       fixHint: "Raise taxes for revenue or lower them for happiness (15% is neutral).", deltaHappiness: mood });
+  }
+  if (museumHappiness && m.connectedHouses > 0) {
+    happiness += museumHappiness;
+    diags.push({ id: "museum_happiness", severity: "good", title: "Museum visitors",
+      detail: "The Guggenheim’s exhibitions and public sculpture court lift residents’ happiness.",
+      fixHint: "Keep the museum connected and in good repair.", deltaHappiness: museumHappiness });
   }
   const limit = m.populationLimiter;
   if (m.connectedHouses > 0 && state.population >= 0.97 * limit.cap) {

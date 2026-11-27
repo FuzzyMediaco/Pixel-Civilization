@@ -25,16 +25,18 @@ import {
 } from "../src/game/quickMenuPrefs";
 import { GRID_MAX, GRID_MIN, createInitialGameState, getTileTerrainKind } from "../src/game/simulation";
 
-test("Exact Build keeps its seven original branches and adds four Christmas Village shelves", () => {
+test("Exact Build keeps all branches and includes government offices and modern wonders", () => {
   const audit = auditDecisionTreeCoverage();
   assert.equal(audit.parentCount, 8);
-  assert.equal(audit.subcategoryCount, 53);
-  assert.ok(audit.minLeafSize >= 4, `Smallest leaf has ${audit.minLeafSize} items (expected >= 4)`);
+  assert.equal(audit.subcategoryCount, 55);
+  assert.ok(audit.minLeafSize >= 3, `Smallest leaf has ${audit.minLeafSize} items (expected >= 3)`);
   assert.ok(audit.maxLeafSize <= 6, `Largest leaf has ${audit.maxLeafSize} items (expected <= 6)`);
 
   for (const parent of QUICK_BUILD_TREE) {
-    assert.equal(parent.subcategories.length, parent.id === "christmas_village" ? 4 : 7);
-    assert.equal(countParentElements(parent), parent.id === "christmas_village" ? 20 : 42);
+    const counts = { christmas_village:[4,20], civic_culture_faith:[8,47], landmarks_projects:[8,45] };
+    const [shelves,items] = counts[parent.id as keyof typeof counts] ?? [7,42];
+    assert.equal(parent.subcategories.length,shelves);
+    assert.equal(countParentElements(parent),items);
     for (const sub of parent.subcategories) {
       assert.ok(ELEMENT_BY_ID[sub.iconDefId], `Subcategory ${sub.id} iconDefId '${sub.iconDefId}' must exist in catalog`);
     }

@@ -1632,16 +1632,16 @@
     "Coastal Cedar"
   ],
   "mixed_use_midrise": [
-    "Red Brick",
-    "Parisian Limestone",
-    "Nordic Timber",
-    "Modern Slate"
+    "Garden Steps",
+    "Ribbon Arcade",
+    "Lantern Exchange",
+    "Parasol Market"
   ],
   "penthouse_tower": [
-    "Champagne Limestone",
-    "Ice Curtain Glass",
-    "Obsidian Brass",
-    "Emerald Eco-Spire"
+    "Pivot Terraces",
+    "Cantilever Villas",
+    "Skygate Twins",
+    "Halo Residence"
   ],
   "tram_station": [
     "Heritage Crimson",
@@ -1882,5 +1882,53 @@
     "Copper Spire",
     "Double Belfry",
     "Star Crown"
+  ],
+  "borough_assembly": [
+    "Open Circle",
+    "Opposition Benches",
+    "Fan Chamber",
+    "Twin Councils"
+  ],
+  "civic_records_archive": [
+    "Index Drawers",
+    "Fanned Folios",
+    "Twin Cabinets",
+    "Stepped Repository"
+  ],
+  "city_planning_bureau": [
+    "Surveyor’s Compass",
+    "Armillary Studio",
+    "Triangulation Lab",
+    "Meridian Ring"
+  ],
+  "public_works_directorate": [
+    "Sawtooth Offices",
+    "Reservoir Vault",
+    "A-Frame Gantry",
+    "Wave Crane Hall"
+  ],
+  "national_parliament": [
+    "Twin Sails",
+    "Three Estates",
+    "Diagonal Chambers",
+    "Crown of Chambers"
+  ],
+  "mega_skyscraper": [
+    "Trihelix",
+    "Golden Escarpment",
+    "Meridian Gate",
+    "Orbital Spindle"
+  ],
+  "supertree_grove": [
+    "Orchid Chalices",
+    "Amber Rosettes",
+    "Jade Fans",
+    "Helix Crowns"
+  ],
+  "guggenheim_bilbao": [
+    "River Ribbon",
+    "Titanium Bouquet",
+    "Bridge Gallery",
+    "Sculpture Court"
   ]
 }

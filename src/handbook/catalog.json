@@ -25203,9 +25203,9 @@
       "waste": -6,
       "income": 34
     },
-    "description": "Walkable neighborhood block combining glowing ground-floor café storefronts with terraced apartments above.",
-    "usage": "Walkable neighborhood block combining glowing ground-floor café storefronts with terraced apartments above.",
-    "growth": "A corner storefront adds stacked residential balconies, striped awnings, rooftop pergolas and landscaped setbacks.",
+    "description": "A market and homes share one site as garden steps, a white ribbon arcade, linked lanterns or a timber parasol.",
+    "usage": "Give residents or shops a direct entrance to the stop and complete a route to another destination.",
+    "growth": "A shopfront gains inhabited lofts, planted setbacks, a rooftop pool, a market bridge or a timber canopy as the neighborhood grows.",
     "maxLevel": 5,
     "levels": [
       {
@@ -25257,19 +25257,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Red Brick"
+        "name": "Garden Steps"
       },
       {
         "index": 1,
-        "name": "Parisian Limestone"
+        "name": "Ribbon Arcade"
       },
       {
         "index": 2,
-        "name": "Nordic Timber"
+        "name": "Lantern Exchange"
       },
       {
         "index": 3,
-        "name": "Modern Slate"
+        "name": "Parasol Market"
       }
     ],
     "partner": {
@@ -25297,9 +25297,9 @@
       "recreation": 26,
       "income": 96
     },
-    "description": "Sculpted setback residential spire featuring glass curtain walls, planted sky terraces and a crown penthouse.",
-    "usage": "Sculpted setback residential spire featuring glass curtain walls, planted sky terraces and a crown penthouse.",
-    "growth": "A slender residential tower rises in dramatic setbacks with double-height sky gardens and a glowing lantern crown.",
+    "description": "Distinctive high-rise residences with pivoting terraces, suspended pool villas, bridged towers or a ribbed glass ovoid.",
+    "usage": "Give residents or shops a direct entrance to the stop and complete a route to another destination.",
+    "growth": "New private floors extend each design, adding roof pools, elevated gardens, skybridges or concentric facade ribs.",
     "maxLevel": 5,
     "levels": [
       {
@@ -25351,19 +25351,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Champagne Limestone"
+        "name": "Pivot Terraces"
       },
       {
         "index": 1,
-        "name": "Ice Curtain Glass"
+        "name": "Cantilever Villas"
       },
       {
         "index": 2,
-        "name": "Obsidian Brass"
+        "name": "Skygate Twins"
       },
       {
         "index": 3,
-        "name": "Emerald Eco-Spire"
+        "name": "Halo Residence"
       }
     ],
     "partner": {
@@ -28975,5 +28975,741 @@
     },
     "image": "/handbook/catalog/christmas_bell_tower.webp",
     "thumbnail": "/handbook/catalog/thumbs/christmas_bell_tower.webp"
+  },
+  {
+    "id": "borough_assembly",
+    "name": "Borough Assembly",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 195,
+    "stage": 3,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 18,
+      "power": -2,
+      "water": -1,
+      "government": 55
+    },
+    "description": "Residents take the floor in an open council chamber with rising timber benches.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "The dais gains public seating, committee rooms and illuminated galleries around the council floor.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Ward Meeting",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Public Hearing Room",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Delegates’ Chamber",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Borough Forum",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Borough Assembly",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Open Circle"
+      },
+      {
+        "index": 1,
+        "name": "Opposition Benches"
+      },
+      {
+        "index": 2,
+        "name": "Fan Chamber"
+      },
+      {
+        "index": 3,
+        "name": "Twin Councils"
+      }
+    ],
+    "partner": {
+      "id": "park",
+      "name": "Park"
+    },
+    "image": "/handbook/catalog/borough_assembly.webp",
+    "thumbnail": "/handbook/catalog/thumbs/borough_assembly.webp"
+  },
+  {
+    "id": "civic_records_archive",
+    "name": "Civic Records Archive",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 330,
+    "stage": 5,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 26,
+      "power": -3,
+      "water": -2,
+      "education": 18,
+      "government": 105
+    },
+    "description": "Deep bronze-edged record stacks preserve the city’s deeds, charters and maps.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "New stacks rise above the registry, followed by a glazed reading room and a street-facing reading wing.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Deed Office",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Index Room",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Municipal Stacks",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Public Reading Archive",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Hall of Records",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Index Drawers"
+      },
+      {
+        "index": 1,
+        "name": "Fanned Folios"
+      },
+      {
+        "index": 2,
+        "name": "Twin Cabinets"
+      },
+      {
+        "index": 3,
+        "name": "Stepped Repository"
+      }
+    ],
+    "partner": {
+      "id": "park",
+      "name": "Park"
+    },
+    "image": "/handbook/catalog/civic_records_archive.webp",
+    "thumbnail": "/handbook/catalog/thumbs/civic_records_archive.webp"
+  },
+  {
+    "id": "city_planning_bureau",
+    "name": "City Planning Bureau",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 510,
+    "stage": 7,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 38,
+      "power": -4,
+      "water": -2,
+      "government": 155
+    },
+    "description": "Surveyors work above a walkable scale model of the island beneath an enormous drafting instrument.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "The drafting wing adds survey floors, a larger city model and a high instrument over the public map court.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Survey Office",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Drafting Studio",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Mapping Bureau",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Metropolitan Planning Lab",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "City Planning Campus",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Surveyor’s Compass"
+      },
+      {
+        "index": 1,
+        "name": "Armillary Studio"
+      },
+      {
+        "index": 2,
+        "name": "Triangulation Lab"
+      },
+      {
+        "index": 3,
+        "name": "Meridian Ring"
+      }
+    ],
+    "partner": {
+      "id": "park",
+      "name": "Park"
+    },
+    "image": "/handbook/catalog/city_planning_bureau.webp",
+    "thumbnail": "/handbook/catalog/thumbs/city_planning_bureau.webp"
+  },
+  {
+    "id": "public_works_directorate",
+    "name": "Public Works Directorate",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 740,
+    "stage": 10,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 52,
+      "power": -6,
+      "water": -4,
+      "government": 235
+    },
+    "description": "Covered inspection lanes and staffed engineering offices administer public infrastructure.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "More inspection bays fill the open shed as the engineering wing, reservoir or lifting gantry grows overhead.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Works Office",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Inspection Yard",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "District Works Depot",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Engineering Directorate",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Metropolitan Works Hall",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Sawtooth Offices"
+      },
+      {
+        "index": 1,
+        "name": "Reservoir Vault"
+      },
+      {
+        "index": 2,
+        "name": "A-Frame Gantry"
+      },
+      {
+        "index": 3,
+        "name": "Wave Crane Hall"
+      }
+    ],
+    "partner": {
+      "id": "park",
+      "name": "Park"
+    },
+    "image": "/handbook/catalog/public_works_directorate.webp",
+    "thumbnail": "/handbook/catalog/thumbs/public_works_directorate.webp"
+  },
+  {
+    "id": "national_parliament",
+    "name": "National Parliament",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 2250,
+    "stage": 16,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 78,
+      "power": -10,
+      "water": -6,
+      "recreation": 42,
+      "government": 460
+    },
+    "description": "Sweeping limestone chamber roofs gather around a glazed debating hall and a public stair.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "Parliamentary wings rise and spread around the central skylight, ceremonial steps and garden forecourt.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Delegates’ Hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Legislative Chamber",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Assembly of Regions",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Parliamentary Estate",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "National Parliament",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Twin Sails"
+      },
+      {
+        "index": 1,
+        "name": "Three Estates"
+      },
+      {
+        "index": 2,
+        "name": "Diagonal Chambers"
+      },
+      {
+        "index": 3,
+        "name": "Crown of Chambers"
+      }
+    ],
+    "partner": {
+      "id": "park",
+      "name": "Park"
+    },
+    "image": "/handbook/catalog/national_parliament.webp",
+    "thumbnail": "/handbook/catalog/thumbs/national_parliament.webp"
+  },
+  {
+    "id": "mega_skyscraper",
+    "name": "Mega-Skyscraper",
+    "category": "housing",
+    "categoryName": "Housing",
+    "cost": 7800,
+    "stage": 20,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "population": 1280,
+      "jobs": 190,
+      "power": -35,
+      "water": -32,
+      "waste": -27,
+      "income": 215
+    },
+    "description": "A vertical neighborhood whose occupied upper floors rise above the previous island height record.",
+    "usage": "Serve the tower with utilities, a road and nearby transit. Upgrade through five occupied skyline districts.",
+    "growth": "Sky clubs, occupied decks and higher crowns carry four very different supertalls above the existing skyline.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "High Observatory",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Cloud District",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Sky Borough",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Stratosphere Quarter",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Summit Metropolis",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Trihelix"
+      },
+      {
+        "index": 1,
+        "name": "Golden Escarpment"
+      },
+      {
+        "index": 2,
+        "name": "Meridian Gate"
+      },
+      {
+        "index": 3,
+        "name": "Orbital Spindle"
+      }
+    ],
+    "partner": {
+      "id": "bus_stops",
+      "name": "Bus Stop"
+    },
+    "image": "/handbook/catalog/mega_skyscraper.webp",
+    "thumbnail": "/handbook/catalog/thumbs/mega_skyscraper.webp"
+  },
+  {
+    "id": "supertree_grove",
+    "name": "Supertree Grove",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 690,
+    "stage": 8,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 15,
+      "power": -4,
+      "water": -3,
+      "education": 24,
+      "recreation": 155
+    },
+    "description": "Singapore-inspired living towers flare into branching, illuminated crowns over a garden skywalk.",
+    "usage": "Connect the grove to the city for recreation and education. Upgrade to level 3 to open the canopy walk and visit after dusk to see the crown lights.",
+    "growth": "A single planted tower gains companions, elevated walks, forked canopy lights and a four-tree grove.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "First Supertree",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Twin Canopies",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Canopy Walk",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Lantern Grove",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Supertree Gardens",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Orchid Chalices"
+      },
+      {
+        "index": 1,
+        "name": "Amber Rosettes"
+      },
+      {
+        "index": 2,
+        "name": "Jade Fans"
+      },
+      {
+        "index": 3,
+        "name": "Helix Crowns"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/supertree_grove.webp",
+    "thumbnail": "/handbook/catalog/thumbs/supertree_grove.webp"
+  },
+  {
+    "id": "guggenheim_bilbao",
+    "name": "Guggenheim Museum Bilbao",
+    "category": "landmarks",
+    "categoryName": "Landmarks",
+    "cost": 2450,
+    "stage": 15,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 56,
+      "power": -8,
+      "water": -5,
+      "education": 300,
+      "recreation": 260,
+      "happinessBonus": 2,
+      "income": 65
+    },
+    "description": "Folded titanium galleries gather around a glazed atrium, reflecting pool and public sculpture court.",
+    "usage": "Connect the museum to a road for education and recreation. Its public galleries also lift resident happiness by 2 to 6 points as it grows. The strongest operating museum sets that bonus.",
+    "growth": "Curved metal wings unfold around the atrium. The public plaza gains water, sculpture and a teaching gallery.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Atrium Gallery",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "River Galleries",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Sculpture Court",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Titanium Pavilion",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Guggenheim Museum Bilbao",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "River Ribbon"
+      },
+      {
+        "index": 1,
+        "name": "Titanium Bouquet"
+      },
+      {
+        "index": 2,
+        "name": "Bridge Gallery"
+      },
+      {
+        "index": 3,
+        "name": "Sculpture Court"
+      }
+    ],
+    "partner": {
+      "id": "paths",
+      "name": "Path"
+    },
+    "image": "/handbook/catalog/guggenheim_bilbao.webp",
+    "thumbnail": "/handbook/catalog/thumbs/guggenheim_bilbao.webp"
   }
 ]

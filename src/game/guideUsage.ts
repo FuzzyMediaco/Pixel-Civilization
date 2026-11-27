@@ -57,6 +57,9 @@ const specific: Record<string, string> = {
   wind_farms: "Leave room around the turbines and clear their upwind approach to protect generation.",
   solar_panels: "Keep tall buildings out of the sunlight reaching the panels and connect the array to its consumers.",
   solar_farms: "Place the arrays on an open site where taller neighbors cast little shade.",
+  guggenheim_bilbao: "Connect the museum to a road for education and recreation. Its public galleries also lift resident happiness by 2 to 6 points as it grows. The strongest operating museum sets that bonus.",
+  supertree_grove: "Connect the grove to the city for recreation and education. Upgrade to level 3 to open the canopy walk and visit after dusk to see the crown lights.",
+  mega_skyscraper: "Serve the tower with utilities, a road and nearby transit. Upgrade through five occupied skyline districts.",
   bars: "Build a connected nightlife district. The bar signs brighten at night.",
   farms:
     "Place fields along the farm boundary, connect a local road for workers, and supply irrigation to increase harvests.",

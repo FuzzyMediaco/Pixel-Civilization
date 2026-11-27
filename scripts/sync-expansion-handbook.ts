@@ -1,3 +1,4 @@
+import { SKYLINE_DESIGNS } from "../src/game/skylineCatalog";
 import { CHRISTMAS_ELEMENTS } from "../src/game/christmasCatalog";
 /**
  * Renders crisp isometric voxel .webp thumbnails and 5×4 level/style sheets for
@@ -201,12 +202,13 @@ const sCell = Math.round(cell * sheetScale);
 const sGap = Math.round(gap * sheetScale);
 
 const christmasOnly = process.argv.includes("--christmas");
-const TARGET_ELEMENTS = christmasOnly ? CHRISTMAS_ELEMENTS : [
+const skylineOnly = process.argv.includes("--skyline");
+const TARGET_ELEMENTS = skylineOnly ? SKYLINE_DESIGNS : christmasOnly ? CHRISTMAS_ELEMENTS : [
   ...BALANCED_EXPANSION_ELEMENTS,
   ELEMENT_BY_ID["spaceport"],
 ].filter(Boolean);
 
-const christmasIds = new Set(CHRISTMAS_ELEMENTS.map(d => d.id));
+const targetIds = new Set(TARGET_ELEMENTS.map(d => d.id));
 let rendered = 0;
 for (const def of TARGET_ELEMENTS) {
   if ("styleNames" in def && Array.isArray((def as any).styleNames)) {
@@ -257,7 +259,7 @@ for (const def of TARGET_ELEMENTS) {
 // Rebuild catalog.json in exact ELEMENTS order, preserving every existing entry verbatim
 const finalCatalog = ELEMENTS.map((def) => {
   const prev = existingById.get(def.id);
-  if (prev && (christmasOnly ? !christmasIds.has(def.id) : !NEW_EXPANSION_BY_ID[def.id] && !BALANCED_EXPANSION_BY_ID[def.id])) return prev;
+  if (prev && (christmasOnly || skylineOnly ? !targetIds.has(def.id) : !NEW_EXPANSION_BY_ID[def.id] && !BALANCED_EXPANSION_BY_ID[def.id])) return prev;
   const design = DESIGNS[def.id];
   const max = getMaxElementLevel(def.id);
   const partnerId = getGuidePartner(def.id);
@@ -273,6 +275,7 @@ const finalCatalog = ELEMENTS.map((def) => {
     ["education", "education"],
     ["recreation", "recreation"],
     ["government", "government"],
+    ["happinessBonus", "happinessBonus"],
     ["police", "police"],
     ["policeRadius", "policeRadius"],
     ["fireRadius", "fireRadius"],

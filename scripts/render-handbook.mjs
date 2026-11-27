@@ -49,6 +49,7 @@ function metadata(def) {
         "education",
         "recreation",
         "government",
+        "happinessBonus",
         "police",
         "policeRadius",
         "fireRadius",
@@ -75,8 +76,11 @@ function metadata(def) {
     thumbnail: "/handbook/catalog/thumbs/" + def.id + ".webp",
   };
 }
-const rows = ELEMENTS.map(metadata);
-fs.writeFileSync(path.join(content, "catalog.json"), JSON.stringify(rows, null, 2) + "\n");
+const only = process.env.ATLAS_IDS?.split(",");
+const catalogPath = path.join(content, "catalog.json");
+const existing = new Map((only && fs.existsSync(catalogPath) ? JSON.parse(fs.readFileSync(catalogPath, "utf8")) : []).map(row => [row.id,row]));
+const rows = ELEMENTS.map(def => only && !only.includes(def.id) && existing.has(def.id) ? existing.get(def.id) : metadata(def));
+fs.writeFileSync(catalogPath, JSON.stringify(rows, null, 2) + "\n");
 function label(ctx, str, x, y, width, size, weight = "normal", limit = 2) {
   ctx.font = weight + " " + size + "px Arial";
   const words = str.split(" ");
@@ -92,7 +96,6 @@ function label(ctx, str, x, y, width, size, weight = "normal", limit = 2) {
   }
   ctx.fillText(line, x, y + k * (size + 3), width);
 }
-const only = process.env.ATLAS_IDS?.split(",");
 function sheets() {
   for (const row of rows) {
     if (only && !only.includes(row.id)) continue;
@@ -157,6 +160,7 @@ function sheets() {
 }
 sheets();
 console.log(rows.length + " catalog entries");
+if (only) process.exit(0);
 
 const examples = [
   [
