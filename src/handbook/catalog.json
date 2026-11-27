@@ -23268,8 +23268,8 @@
       "income": 24
     },
     "description": "Neighborhood espresso bar and bean roastery with sunny sidewalk tables and a rooftop coffee-cup sign.",
-    "usage": "Neighborhood espresso bar and bean roastery with sunny sidewalk tables and a rooftop coffee-cup sign.",
-    "growth": "An espresso stand evolves into a glowing glass roastery with sidewalk umbrellas and a steaming cup sign.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "An espresso cart grows into a cafe shaped like coffee itself: a giant latte cup on a saucer, a chrome espresso machine, a roastery with a turning drum, or a pile of beans you can walk into.",
     "maxLevel": 5,
     "levels": [
       {
@@ -23292,7 +23292,7 @@
       },
       {
         "level": 3,
-        "name": "Roaster Bar",
+        "name": "Signature Cafe",
         "dimensions": [
           2,
           1
@@ -23301,7 +23301,7 @@
       },
       {
         "level": 4,
-        "name": "Cafe Courtyard",
+        "name": "Cafe Landmark",
         "dimensions": [
           2,
           2
@@ -23321,19 +23321,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Warm Brick"
+        "name": "Giant Latte Cup"
       },
       {
         "index": 1,
-        "name": "Nordic Wood"
+        "name": "Espresso Machine"
       },
       {
         "index": 2,
-        "name": "Copper Loft"
+        "name": "Roaster Drum"
       },
       {
         "index": 3,
-        "name": "Botanical Green"
+        "name": "Coffee Bean Pile"
       }
     ],
     "partner": {
@@ -23637,8 +23637,8 @@
       "income": 20
     },
     "description": "Vibrant flower stalls and glasshouse conservatory brightening neighborhoods and lifting happiness.",
-    "usage": "Vibrant flower stalls and glasshouse conservatory brightening neighborhoods and lifting happiness.",
-    "growth": "A colorful flower cart grows an arched glass conservatory overflowing with blooming beds.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A flower cart grows into a florist you can spot from above: Victorian glass domes, a giant terracotta pot spilling blooms, a market under giant tulips, or a shop tucked inside an opening flower.",
     "maxLevel": 5,
     "levels": [
       {
@@ -23661,7 +23661,7 @@
       },
       {
         "level": 3,
-        "name": "Glass Conservatory",
+        "name": "Bloom House",
         "dimensions": [
           2,
           1
@@ -23690,19 +23690,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Rose Terrace"
+        "name": "Glass Conservatory"
       },
       {
         "index": 1,
-        "name": "White Glasshouse"
+        "name": "Giant Flower Pot"
       },
       {
         "index": 2,
-        "name": "Lavender Cottage"
+        "name": "Tulip Market"
       },
       {
         "index": 3,
-        "name": "Sunflower Market"
+        "name": "Giant Bloom"
       }
     ],
     "partner": {
@@ -23913,8 +23913,8 @@
       "income": 40
     },
     "description": "Mid-century bowling lanes crowned with a giant rooftop bowling pin and neon googie roof.",
-    "usage": "Mid-century bowling lanes crowned with a giant rooftop bowling pin and neon googie roof.",
-    "growth": "A retro lane hall adds a towering rooftop bowling pin, glowing neon marquee and arcade lounge.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "A six-lane alley grows into a bowling landmark: a rack of giant pins on the roof, a hall shaped like a bowling ball with finger-hole skylights, Googie zig-zag lanes, or a roof-lane where a giant ball rolls toward the pins.",
     "maxLevel": 5,
     "levels": [
       {
@@ -23937,7 +23937,7 @@
       },
       {
         "level": 3,
-        "name": "Googie Lanes",
+        "name": "Pin Palace",
         "dimensions": [
           3,
           2
@@ -23966,19 +23966,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Turquoise Googie"
+        "name": "Giant Pins"
       },
       {
         "index": 1,
-        "name": "Retro Crimson"
+        "name": "Bowling Ball Hall"
       },
       {
         "index": 2,
-        "name": "Cosmic Neon"
+        "name": "Googie Lanes"
       },
       {
         "index": 3,
-        "name": "Woodland Lodge"
+        "name": "Strike Lane"
       }
     ],
     "partner": {
@@ -24372,8 +24372,8 @@
       "income": 54
     },
     "description": "Sculptural sunlit museum gallery and sculpture plaza enriching culture, learning and tourism.",
-    "usage": "Sculptural sunlit museum gallery and sculpture plaza enriching culture, learning and tourism.",
-    "growth": "A quiet studio opens into an architectural gallery with outdoor voxel sculptures and sawtooth skylights.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "An artist studio grows into a museum you can read from the air: a monumental empty gold frame you walk through, giant paint tubes squeezing color into the plaza, a widening white spiral, or a stack of floating cubes.",
     "maxLevel": 5,
     "levels": [
       {
@@ -24425,19 +24425,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Gallery White"
+        "name": "Picture Frame"
       },
       {
         "index": 1,
-        "name": "Terracotta Modern"
+        "name": "Paint Tubes"
       },
       {
         "index": 2,
-        "name": "Glass Atrium"
+        "name": "Spiral Museum"
       },
       {
         "index": 3,
-        "name": "Brutalist Concrete"
+        "name": "Floating Cubes"
       }
     ],
     "partner": {
@@ -24833,8 +24833,8 @@
       "income": 46
     },
     "description": "Festive street-food stalls draped in glowing red and gold lanterns that come alive after dusk.",
-    "usage": "Festive street-food stalls draped in glowing red and gold lanterns that come alive after dusk.",
-    "growth": "A pair of steaming noodle stalls expands into an arched lantern-lit night bazaar humming with visitors.",
+    "usage": "Place the shops beside each other to share their shopping frontage. Turn a cashpoint toward the shop it serves.",
+    "growth": "Food carts grow into a night market you can find from the sky: criss-crossed red lanterns and a gate, a paper dragon snaking over the stalls, stacked neon shipping containers, or a ceiling of floating umbrellas.",
     "maxLevel": 5,
     "levels": [
       {
@@ -24886,19 +24886,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Crimson Lantern"
+        "name": "Lantern Canopy"
       },
       {
         "index": 1,
-        "name": "Golden Spice"
+        "name": "Paper Dragon"
       },
       {
         "index": 2,
-        "name": "Jade Pavilion"
+        "name": "Container Stack"
       },
       {
         "index": 3,
-        "name": "Neon Street"
+        "name": "Umbrella Sky"
       }
     ],
     "partner": {

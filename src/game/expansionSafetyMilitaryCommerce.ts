@@ -864,7 +864,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Neighborhood espresso bar and bean roastery with sunny sidewalk tables and a rooftop coffee-cup sign.",
     footprints: f12,
     levelNames: ["Espresso Cart", "Corner Cafe", "Roaster Bar", "Cafe Courtyard", "Flagship Roastery"],
-    styleNames: ["Warm Brick", "Nordic Wood", "Copper Loft", "Botanical Green"],
+    styleNames: ["Giant Latte Cup", "Espresso Machine", "Roaster Drum", "Coffee Bean Pile"],
     growth: "An espresso stand evolves into a glowing glass roastery with sidewalk umbrellas and a steaming cup sign.",
   },
   {
@@ -945,7 +945,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Vibrant flower stalls and glasshouse conservatory brightening neighborhoods and lifting happiness.",
     footprints: f12,
     levelNames: ["Flower Cart", "Corner Florist", "Glass Conservatory", "Botanical Shop", "Grand Flower Market"],
-    styleNames: ["Rose Terrace", "White Glasshouse", "Lavender Cottage", "Sunflower Market"],
+    styleNames: ["Glass Conservatory", "Giant Flower Pot", "Tulip Market", "Giant Bloom"],
     growth: "A colorful flower cart grows an arched glass conservatory overflowing with blooming beds.",
   },
   {
@@ -1005,7 +1005,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Mid-century bowling lanes crowned with a giant rooftop bowling pin and neon googie roof.",
     footprints: f23,
     levelNames: ["Six-Lane Alley", "Starlight Bowl", "Googie Lanes", "Championship Bowl", "Mega Strike Arena"],
-    styleNames: ["Turquoise Googie", "Retro Crimson", "Cosmic Neon", "Woodland Lodge"],
+    styleNames: ["Giant Pins", "Bowling Ball Hall", "Googie Lanes", "Strike Lane"],
     growth: "A retro lane hall adds a towering rooftop bowling pin, glowing neon marquee and arcade lounge.",
   },
   {
@@ -1104,7 +1104,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Sculptural sunlit museum gallery and sculpture plaza enriching culture, learning and tourism.",
     footprints: f23,
     levelNames: ["Artist Studio", "White-Cube Gallery", "Sculpture Court", "Contemporary Wing", "Island Art Museum"],
-    styleNames: ["Gallery White", "Terracotta Modern", "Glass Atrium", "Brutalist Concrete"],
+    styleNames: ["Picture Frame", "Paint Tubes", "Spiral Museum", "Floating Cubes"],
     growth: "A quiet studio opens into an architectural gallery with outdoor voxel sculptures and sawtooth skylights.",
   },
   {
@@ -1205,7 +1205,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     description: "Festive street-food stalls draped in glowing red and gold lanterns that come alive after dusk.",
     footprints: f23,
     levelNames: ["Food Carts", "Lantern Alley", "Street Market", "Bazaar Square", "Grand Night Bazaar"],
-    styleNames: ["Crimson Lantern", "Golden Spice", "Jade Pavilion", "Neon Street"],
+    styleNames: ["Lantern Canopy", "Paper Dragon", "Container Stack", "Umbrella Sky"],
     growth: "A pair of steaming noodle stalls expands into an arched lantern-lit night bazaar humming with visitors.",
   },
   {
