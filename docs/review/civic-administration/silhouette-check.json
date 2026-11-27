@@ -1,0 +1,16 @@
+{
+ "min": 0.12,
+ "ids": [
+  "climbing_city_hall",
+  "civic_viaduct_exchange",
+  "levitating_civic_tower"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.194,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}

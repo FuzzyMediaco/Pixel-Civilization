@@ -29711,5 +29711,279 @@
     },
     "image": "/handbook/catalog/guggenheim_bilbao.webp",
     "thumbnail": "/handbook/catalog/thumbs/guggenheim_bilbao.webp"
+  },
+  {
+    "id": "climbing_city_hall",
+    "name": "Climbing-Wall City Offices",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 640,
+    "stage": 8,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 42,
+      "power": -5,
+      "water": -3,
+      "recreation": 24,
+      "government": 185
+    },
+    "description": "Residents file permits at street level while climbers follow colored routes up the city offices to public overlooks.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "A permit counter beside a climbing face gains new office wings, meeting rooms and public paths to a summit council chamber.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Permit Desk",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "District Offices",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Civic Climbing Court",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Council Exchange",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Summit City Hall",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Switchback Terrace Hall"
+      },
+      {
+        "index": 1,
+        "name": "Overhang Registry"
+      },
+      {
+        "index": 2,
+        "name": "Canyon Bridge Offices"
+      },
+      {
+        "index": 3,
+        "name": "Spiral Summit Council"
+      }
+    ],
+    "partner": {
+      "id": "park",
+      "name": "Park"
+    },
+    "image": "/handbook/catalog/climbing_city_hall.webp",
+    "thumbnail": "/handbook/catalog/thumbs/climbing_city_hall.webp"
+  },
+  {
+    "id": "civic_viaduct_exchange",
+    "name": "Civic Exchange Viaduct",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 1070,
+    "stage": 12,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 63,
+      "power": -7,
+      "water": -4,
+      "government": 310
+    },
+    "description": "Municipal departments share a footbridge above an open public passage. Residents visit service counters on the way between the two office wings.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "A service passage links municipal counters, grows into a two-wing exchange and gains a public assembly gallery above the crossing.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Public Service Passage",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Municipal Walk",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Interdepartmental Exchange",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Assembly Gallery",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Civic Exchange Viaduct",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Timber Crossing Hall"
+      },
+      {
+        "index": 1,
+        "name": "Cascade Arcade"
+      },
+      {
+        "index": 2,
+        "name": "Lantern Truss Hall"
+      },
+      {
+        "index": 3,
+        "name": "Market Arch Exchange"
+      }
+    ],
+    "partner": {
+      "id": "park",
+      "name": "Park"
+    },
+    "image": "/handbook/catalog/civic_viaduct_exchange.webp",
+    "thumbnail": "/handbook/catalog/thumbs/civic_viaduct_exchange.webp"
+  },
+  {
+    "id": "levitating_civic_tower",
+    "name": "Levitating Civic Tower",
+    "category": "civic_parks",
+    "categoryName": "Civic & Parks",
+    "cost": 3200,
+    "stage": 18,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 96,
+      "power": -14,
+      "water": -7,
+      "government": 625
+    },
+    "description": "Illuminated magnetic coils suspend occupied civic chambers above a street-level public service hall.",
+    "usage": "Place the public grounds against the institution to carry a promenade across the boundary.",
+    "growth": "An elevated service chamber gains staff floors, committee galleries and a capital-wide assembly.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Field Desk",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Lifted Service Hall",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "District Directorate",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Metropolitan Secretariat",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "High Civic Assembly",
+        "dimensions": [
+          4,
+          4
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Orbit Council"
+      },
+      {
+        "index": 1,
+        "name": "Cantilever Secretariat"
+      },
+      {
+        "index": 2,
+        "name": "Civic Sky Sail"
+      },
+      {
+        "index": 3,
+        "name": "Prism Assembly"
+      }
+    ],
+    "partner": {
+      "id": "park",
+      "name": "Park"
+    },
+    "image": "/handbook/catalog/levitating_civic_tower.webp",
+    "thumbnail": "/handbook/catalog/thumbs/levitating_civic_tower.webp"
   }
 ]
