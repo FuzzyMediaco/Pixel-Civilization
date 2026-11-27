@@ -2,8 +2,10 @@ import type { EraKey } from "./eraStyles";
 import { terraceSandColor } from "./beachTerraces";
 import { sharesOceanSurface } from "./coastline";
 import { GRID_SIZE, GRID_HALF, cellIndex } from "./mapBounds";
-import { TILE_SIZE } from "./voxelCore";
-import {bridgeDetails} from "./bridgeWorks";
+import { buildVoxelGeometry, getPixelVoxelMaterial, TILE_SIZE, type PixelVox } from "./voxelCore";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { bridgeRunProfiles, type BridgeRunProfile } from "./bridgeWorks";
+import { buildBridgeBay } from "./bridgeBay";
 import { productionPeriod } from "./periods";
 import * as THREE from "three";
 import {
@@ -99,6 +101,14 @@ class Blocks {
     return new THREE.Mesh(geo, mat);
   }
 }
+/** Transform an indexed design slice into the engineering layer's world frame.
+ * Keep its UVs, AO, normals and light emission on the game's pixel material. */
+function bridgeGeometry(voxels: PixelVox, axis: "x" | "z", cx: number, deck: number, cz: number) {
+  const geometry = buildVoxelGeometry(voxels);
+  if (axis === "z") geometry.rotateY(-Math.PI / 2);
+  return geometry.translate(cx, deck, cz);
+}
+
 function maskFragment(channel: "r" | "g") {
   return `vec2 worksUV=(vWorksXZ+vec2(${(GRID_HALF * TILE_SIZE).toFixed(1)}))/${(GRID_SIZE * TILE_SIZE).toFixed(1)};
  if(all(greaterThanEqual(worksUV,vec2(0.0)))&&all(lessThan(worksUV,vec2(1.0)))&&texture2D(uWorksMask,worksUV).${channel}>0.5) discard;`;
@@ -193,7 +203,7 @@ export class EngineeringView {
       "|" +
       Object.keys(infra?.voxels ?? {}).length +
       "|" +
-      state.elements.map((e) => [e.id, e.gx, e.gz, e.level, e.disrepair, e.onFire].join("/")).join(";") +
+      state.elements.map((e) => [e.id, e.defId, e.gx, e.gz, e.level, e.variant, e.disrepair, e.onFire].join("/")).join(";") +
       "|" +
       state.weather +
       "|" +
@@ -834,22 +844,16 @@ export class EngineeringView {
         solid.box(x - 0.4, bottom + 0.02, z - 0.4, 0.8, 0.08, 0.8, 0xc3e9e4);
       }
     }
-    const runs = new Map<string, [number, number]>();
-    for (const [k, s] of Object.entries(infra.spans)) {
-      if (s.end) continue;
-      const [x, z] = k.split(",").map(Number),
-        n = s.axis === "x" ? x : z,
-        range = runs.get(s.run) ?? [n, n];
-      runs.set(s.run, [Math.min(n, range[0]), Math.max(n, range[1])]);
-    }
+    const profiles = bridgeRunProfiles(state);
+    const fixedRuns = new Map<BridgeRunProfile, THREE.BufferGeometry[]>();
+    const bridgeMaterial = getPixelVoxelMaterial();
     for (const [k, s] of Object.entries(infra.spans)) {
       if (s.run.startsWith("junction-")) continue;
       const [gx, gz] = k.split(",").map(Number),
         cx = gx * 4 + 2,
         cz = gz * 4 + 2;
       const g = s.shape === "lift" && !s.end ? new Blocks() : solid;
-      const counter = new Blocks();
-      const archTier=s.tier??1;
+      let movingTrim: THREE.Mesh | undefined;
       const along = (
         target: Blocks,
         a: number,
@@ -879,12 +883,6 @@ export class EngineeringView {
               : s.mode === "highway"
                 ? (s.corridorWidth===2?8:3.5)
                 : 2.8;
-      const [lo, hi] = runs.get(s.run) ?? [0, 0],
-        coordinate = s.axis === "x" ? gx : gz;
-      const bridgeColor = s.railType==="timber"?0x855d38:s.railType==="steel"||s.shape==="truss"&&archTier>=6?0x58727e:s.shape === "arch" ? 0xae9679 : s.shape === "truss" ? 0x974f37 : 0x587d83;
-      const landmark=hi-lo>=3&&archTier>=4;
-      const center = (hi + lo + 1) * 2,
-        length = Math.max(4, (hi - lo + 1) * 4);
       for (let n = 0; n < 8; n++) {
         const t = s.direction < 0 ? 1 - (n + 0.5) / 8 : (n + 0.5) / 8,
           y = s.startHeight + (s.endHeight - s.startHeight) * t;
@@ -905,20 +903,6 @@ export class EngineeringView {
             along(g,-2+n*.5-.04,y+.56,b-.14,.27,.10,.28,0xe3cba3);
           }
         }
-        if (s.shape === "lift" && !s.end) {
-          for (const side of [-1, 1]) {
-            const b = side * (width / 2 + 0.01);
-            along(g, -2 + n * 0.5, y - 0.42, b - 0.09, 0.51, 0.28, 0.18, 0x37575c);
-            along(g, -2 + n * 0.5, y + 0.72, b - 0.07, 0.51, 0.15, 0.14, 0x3c6668);
-            const diag = y + 0.18 + Math.min(n % 4, 4 - (n % 4)) * 0.26;
-            along(g, -2 + n * 0.5, diag, b - 0.06, 0.51, 0.14, 0.12, 0x669296);
-            if (n % 4 === 0) {
-              along(g, -2 + n * 0.5, y + 0.02, b - 0.09, 0.11, 0.81, 0.18, 0x3b6568);
-              along(g, -2 + n * 0.5, y + 0.5, b - 0.105, 0.13, 0.095, 0.21, 0xb6b099);
-            }
-          }
-          if (n === 0) along(g, -2, y + 0.012, -width / 2, 0.08, 0.025, width, 0x384b4f);
-        }
         if (s.mode === "rail") {
           along(g,-1.99+n*.5,y+.005,-.86,.15,.06,1.72,s.railType==="elevated"?0xb1b6af:0x755b47);
           along(g, -2 + n * 0.5, y + 0.01, -0.62, 0.51, 0.08, 0.1, 0xaeb8bb);
@@ -938,158 +922,32 @@ export class EngineeringView {
                 0xe9e3d1,
               );
         }
-        for (const edge of [-1, 1]) {
-          const z = edge * (width / 2 - 0.08);
-          along(g, -2 + n * 0.5, y + 0.24, z, 0.51, 0.08, 0.1, s.shape === "arch" ? 0xd2c5a8 : 0x8caaa9);
-          if (n % 3 === 0) along(g, -2 + n * 0.5, y, z, 0.1, 0.28, 0.1, 0x758686);
-          if (s.shape === "arch" && !s.end) {
-            const world = (coordinate + 0.5) * 4 - 2 + (n + 0.5) * 0.5,
-              ratio = Math.min(1, Math.abs((world - center) / (length / 2)));
-            const haunch =
-              0.27 + (s.deck - getTerrainCell(state, gx, gz).waterLevel - 0.4) * (1 - Math.sqrt(1 - ratio * ratio));
-            along(
-              g,
-              -2 + n * 0.5,
-              y - haunch - 0.16,
-              z - 0.1,
-              0.51,
-              Math.max(0.2, haunch),
-              0.25,
-              n % 4 === 0 ? 0xbca484 : bridgeColor,
-            );
-            along(g, -2 + n * 0.5, y - haunch - 0.2, z - 0.12, 0.51, 0.15, 0.3, n % 2 === 0 ? 0xe0ccaa : 0xc8ae87);
-            along(g, -2 + n * 0.5, y, z - 0.13, 0.51, 0.2, 0.32, 0xb89e7b);
-            along(g, -2 + n * 0.5, y + 0.2, z - 0.17, 0.51, 0.08, 0.4, 0xd9c6a5);
-          }
-          if (s.shape === "truss" && !s.end && s.railType!=="timber") {
-            along(g, -2 + n * 0.5, y + 0.35 + Math.min(n % 8, 8 - (n % 8)) * 0.26, z, 0.51, 0.2, 0.18, bridgeColor);
-            along(g, -2 + n * 0.5, y + 1.46, z, 0.51, 0.18, 0.2, bridgeColor);
-            if (n === 0 || n === 4) along(g, -2 + n * 0.5, y + 0.24, z, 0.16, 1.3, 0.19, 0xb6734d);
+        if (s.end) {
+          // The rail follows the stored grade while its rectangular steps meet the span trim.
+          const half = Math.ceil(width / (2 * VOXEL_PITCH)) * VOXEL_PITCH;
+          for (const z of [-half, half - VOXEL_PITCH]) {
+            along(g, -2 + n * 0.5, y + VOXEL_PITCH, z, 0.5, VOXEL_PITCH, VOXEL_PITCH, s.shape === "arch" ? 0xCEB995 : 0x8D9A99);
+            if (n % 4 === 0) along(g, -2 + n * 0.5, y, z, VOXEL_PITCH, VOXEL_PITCH, VOXEL_PITCH, 0x758686);
           }
         }
       }
-      const bed = getTerrainCell(state, gx, gz).elevation;
-      if (!s.end) {
-        for (const edge of [-1, 1]) {
-          const b = edge * (width / 2 - 0.14);
-          const towerTile = coordinate === lo || coordinate === hi;
-          if ((s.shape === "arch" || s.shape === "truss") && towerTile) {
-            const alongEdge = coordinate === lo ? -1.95 : 1.55;
-            along(solid, alongEdge, bed - 0.1, b - 0.18, 0.46, Math.max(0.15, s.deck - bed - 0.12), 0.46, bridgeColor);
-            along(solid, alongEdge - 0.1, bed - 0.04, b - 0.25, 0.7, 0.24, 0.63, 0x8d8270);
-          }
-          if (s.shape === "lift" || s.shape === "suspension"&&!landmark&&s.railType!=="highlevel") {
-            const top = s.deck + (s.shape === "lift" ? 5.7 : 3.25);
-            if (towerTile && s.shape === "suspension") {
-              along(solid, 0, bed, b - 0.14, 0.34, Math.max(0.25, top - bed), 0.34, bridgeColor);
-              along(solid, -0.18, top, b - 0.24, 0.64, 0.27, 0.54, 0xb0bba8);
-            }
-            const portals = lo === hi ? [-1.25, 1.25] : [coordinate === lo ? -1.25 : 1.25];
-            if (towerTile && s.shape === "lift")
-              for (const center of portals) {
-                const outer = edge * (width / 2 + 0.35),
-                  height = top - s.deck;
-                // Two portal frames, with diagonal webbing and moving cast counterweights.
-                for (const delta of [-0.48, 0.34]) {
-                  along(solid, center + delta - 0.16, bed - 0.35, outer - 0.28, 0.55, 0.95, 0.56, 0x978e73);
-                  along(solid, center + delta, bed + 0.45, outer - 0.13, 0.21, top - bed - 0.3, 0.26, 0x3c676b);
-                  for (let h = 0.5; h < height; h += 1.1)
-                    along(solid, center + delta - 0.035, s.deck + h, outer - 0.17, 0.28, 0.11, 0.34, 0x89a7a0);
-                }
-                for (let h = 0; h < height - 0.65; h += 1.35)
-                  for (let n = 0; n < 5; n++) {
-                    const f = n / 4,
-                      offset = (Math.floor(h / 1.35) % 2 === 0 ? f : 1 - f) * 0.77;
-                    along(solid, center - 0.35 + offset, s.deck + h + f * 1.08, outer - 0.1, 0.24, 0.32, 0.2, 0x629294);
-                  }
-                along(solid, center - 0.64, top - 0.23, outer - 0.34, 1.42, 0.38, 0.67, 0x34565b);
-                for (const delta of [-0.22, 0.22]) {
-                  along(solid, center + delta, s.deck + 0.15, outer - 0.04, 0.045, height - 0.15, 0.07, 0x474c47);
-                  along(solid, center + delta, top - 0.03, outer - 0.4, 0.055, 0.55, 0.71, 0x888579);
-                }
-                along(counter, center - 0.27, top - 0.99, outer - 0.28, 0.7, 0.76, 0.56, 0xc59754);
-                for (let n = 0; n < 3; n++)
-                  along(counter, center - 0.28, top - 0.89 + n * 0.22, outer - 0.3, 0.72, 0.07, 0.6, 0x886d49);
-                for (const offset of [-0.28, 0.33]) {
-                  for (let k = 0; k < 8; k++) {
-                    const a = (k * Math.PI) / 4;
-                    along(
-                      solid,
-                      center + offset + 0.24 * Math.cos(a) - 0.07,
-                      top + 0.15 + 0.24 * Math.sin(a),
-                      outer - 0.11,
-                      0.16,
-                      0.15,
-                      0.21,
-                      0xd1a55e,
-                    );
-                  }
-                }
-                if (edge === 1) {
-                  // Enclosed winding house across the top of each portal.
-                  const z = -width / 2 - 0.6;
-                  along(solid, center - 0.61, top + 0.26, z, 1.3, 0.25, width + 1.2, 0x344f51);
-                  along(solid, center - 0.45, top + 0.51, z + 0.2, 1.0, 0.54, width + 0.8, 0x60817e);
-                  for (let k = 0; k < 8; k++)
-                    along(
-                      solid,
-                      center - 0.46,
-                      top + 0.67,
-                      z + 0.32 + (k * (width + 0.42)) / 8,
-                      0.075,
-                      0.24,
-                      0.2,
-                      k % 3 === 0 ? 0x749da4 : 0xb9d0bb,
-                    );
-                  for (let n = 0; n < 3; n++)
-                    along(
-                      solid,
-                      center - 0.67 + 0.16 * n,
-                      top + 1.02 + n * 0.13,
-                      z - 0.04,
-                      1.4 - 0.32 * n,
-                      0.14,
-                      width + 1.28,
-                      n === 0 ? 0x795745 : 0xa36344,
-                    );
-                  along(solid, center - 0.04, top + 1.41, z - 0.04, 0.16, 0.12, width + 1.28, 0xbc7953);
-                  if (coordinate === lo && center < 0) {
-                    // Gate tender's projecting cabin and stair-side beacon.
-                    along(solid, center - 0.48, s.deck + 0.1, outer + 0.24, 1.0, 0.3, 0.93, 0x516568);
-                    along(solid, center - 0.39, s.deck + 0.4, outer + 0.33, 0.84, 1.04, 0.74, 0xcabb91);
-                    along(solid, center - 0.4, s.deck + 0.78, outer + 0.32, 0.86, 0.4, 0.77, 0x81a6a7);
-                    along(solid, center - 0.51, s.deck + 1.4, outer + 0.17, 1.13, 0.2, 1.02, 0x995f44);
-                  }
-                }
-                along(
-                  solid,
-                  center + 0.39,
-                  s.deck + 1.15,
-                  outer - 0.19,
-                  0.2,
-                  0.26,
-                  0.38,
-                  edge < 0 ? 0x8bd08a : 0xd67a65,
-                );
-              }
-            if (s.shape === "suspension")
-              for (let q = 0; q < 8; q++) {
-                const world = coordinate * 4 + q * 0.5 + 0.25,
-                  dist = Math.min(1, Math.abs(world - center) / (length / 2));
-                const cable = s.deck + 0.85 + 2.4 * dist * dist;
-                along(solid, -2 + q * 0.5, cable, b, 0.51, 0.11, 0.11, 0x577475);
-                if (q % 3 === 0) along(solid, -2 + q * 0.5, s.deck + 0.12, b, 0.06, cable - s.deck, 0.08, 0x839798);
-              }
-          }
+      const run = profiles.get(k);
+      if (run) {
+        const index = (s.axis === "x" ? gx : gz) - run.lo;
+        const bed = getTerrainCell(state, gx, gz).elevation;
+        const bay = buildBridgeBay(run, index, width, bed - s.deck);
+        const geometry = (v: PixelVox) => bridgeGeometry(v, s.axis, cx, s.deck, cz);
+        const slices = fixedRuns.get(run);
+        if (slices) slices.push(geometry(bay.fixed));
+        else fixedRuns.set(run, [geometry(bay.fixed)]);
+        if (bay.moving.size) movingTrim = new THREE.Mesh(geometry(bay.moving), bridgeMaterial);
+        if (bay.weights.size) {
+          const weights = new THREE.Mesh(geometry(bay.weights), bridgeMaterial);
+          weights.name = "Lift counterweight " + k;
+          this.group.add(weights);
+          this.weights.set(k, weights);
         }
       }
-      const cable=(u:number,a:number,v:number,b:number,h:number,thick:number,color:number)=>{
-        const point=(p:number,y:number,w:number)=>[cx+(s.axis==="x"?p:w),y,cz+(s.axis==="x"?w:p)];
-        const w=v-thick/2,e=v+thick/2;
-        for(const sign of [w,e])solid.face(point(u,a,sign),point(b,h,sign),point(b,h+thick,sign),point(u,a+thick,sign),color);
-        solid.face(point(u,a+thick,w),point(u,a+thick,e),point(b,h+thick,e),point(b,h+thick,w),color);
-      };
-      bridgeDetails(s,coordinate,lo,hi,width,bed,(a,y,b,len,h,w,col)=>along(solid,a,y,b,len,h,w,col),cable);
       if(s.ramp && s.mode!=="foot"){
         const a=s.direction<0?s.endHeight:s.startHeight,b=s.direction<0?s.startHeight:s.endHeight;
         const point=(u:number,v:number,h:number)=>[cx+(s.axis==="x"?u:v),h+.021,cz+(s.axis==="x"?v:u)];
@@ -1106,16 +964,21 @@ export class EngineeringView {
         if(s.mode==="rail"){strip(-.62,.1,0xaeb8bb);strip(.52,.1,0xaeb8bb);}
         else strip(-.035,.07,roman?0xb29a71:0xe6cb74);
       }
-      if (counter.positions.length) {
-        const mesh = counter.mesh(this.material);
-        this.weights.set(k, mesh);
-        this.group.add(mesh);
-      }
       if (g !== solid) {
         const mesh = g.mesh(this.material);
+        mesh.name = "Lift deck " + k;
+        if (movingTrim) mesh.add(movingTrim);
         this.group.add(mesh);
         this.moving.set(k, mesh);
       }
+    }
+    for (const slices of fixedRuns.values()) {
+      const geometry = slices.length === 1 ? slices[0] : mergeGeometries(slices)!;
+      const structure = new THREE.Mesh(geometry, bridgeMaterial);
+      structure.name = "Bridge superstructure";
+      structure.castShadow = structure.receiveShadow = true;
+      this.group.add(structure);
+      if (slices.length > 1) for (const slice of slices) slice.dispose();
     }
     const controlledStreets=Object.entries(infra.streets);
     const occupancy=controlledStreets.length?buildOccupancyMap(state.elements):undefined;
