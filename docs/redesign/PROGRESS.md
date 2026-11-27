@@ -30,3 +30,15 @@
 (Each run appends: date/time MT, what was done, PRs, where it stopped, what's next, anything needing Brigham.)
 
 - 2026-11-25 22:05 MT — Kickoff setup only. Brief and plan committed; no implementation yet. First work run: Fri Nov 27, 1:01 AM MT.
+- 2026-11-27 01:01 and 06:01 MT: both scheduled runs stopped immediately (usage limit). No work done.
+- 2026-11-27 08:33–09:15 MT (interactive session, Brigham present): Brigham reprioritised to commercial
+  first and added Part C (see README). Done:
+  - PR #33 `feat/commercial-overhaul`: Shoe Store, Pixel Arcade Hall, Artisan Bakery, Classic Chrome
+    Diner, Grand Cinema Theater, Late-Night Jazz Club and Boutique Hotel rebuilt as giant-object
+    landmarks (4 ideas × 5 levels each, Original style). Handbook regenerated. Lint, 619/619 tests and
+    build all green. Before/after: docs/review/commercial-overhaul/before-after-lv5.webp
+  - Library work parked on branch `wip/library-books` (src/game/designs/bookKit.ts: book, leaf,
+    openProfile, niche, ribbon, pencil, paperTree, paperHouse). The 4×5 library plan is in this
+    session's notes: A Stacked Hardbacks, B Open Folio, C Bookend Alley, D Pop-up Storybook.
+  - NEXT: the remaining 29 commerce elements → government/civic (Part C.2) → military silos and drone
+    swarms (C.3) → iconic progressive bridges (C.4) → library + civic five (A) → UI/style guide (B).

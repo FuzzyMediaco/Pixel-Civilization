@@ -38,6 +38,53 @@ actual phone play zoom, coverage totals, the verification in steps 7–8 of the 
    compliance text meaning; this is visual/UX consistency only. Restore-purchases and legal links stay
    reachable.
 
+## Part C — Requests added by Brigham on Fri Nov 27 (8:40–8:51 AM MT). Same priority as Part A.
+Order agreed in chat: commercial first, then government/civic, military, bridges, then the rest of Part A.
+
+1. **All commercial buildings, total overhaul** (all 36 commerce elements, every level and variant,
+   Original style first). He finds them "just squares", "lame", not worth placing. Go big, like the
+   Cheesesteak Spot. His specific asks:
+   - Shoe Store: one variant is a giant shoe. ✅ shipped in PR #33
+   - Boutique Hotel: actually boutique and cool. His reference photos: pink Italian lakeside grand hotel
+     with pool and striped umbrellas, Badrutt's-style Alpine palace, Sheraton Huzhou horseshoe ring with
+     blue lit bands, curved wave-terrace resort, Victorian red-and-stone London grand hotel, Morpheus-style
+     exoskeleton. ✅ first four in PR #33
+   - Arcade: giant game controller; a big arcade-cabinet tower with something spinning on top; a
+     pixel-creature variant. Use ORIGINAL characters only, no Pac-Man or Space Invaders. ✅ PR #33
+   - Artisan Bakery: loaf of bread; spinning sandwich on top; cake. ✅ PR #33
+   - Classic Chrome Diner: big neon sign, really reads as a chrome diner. His references: Kroll's Diner
+     (red drum "DINER" sign, yellow script sign, clock on top), stainless railcar diners with a
+     glass-block vestibule and a vertical fin "DINER" pylon. ✅ PR #33
+   - Movie theater: like the Egyptian Theatre in Park City, UT, or other iconic movie houses. ✅ PR #33
+   - Jazz club: a giant music note; a spinning trumpet; a tiered variant with a band playing on every
+     level's roof (Lv1 small with one band). ✅ PR #33
+   - Everything else in commerce still needs the same treatment (29 elements left: businesses,
+     grocery_store, shops, blacksmiths, restaurants, clothing_stores, thrift_stores, bars, gas_stations,
+     atms, buildings, banks, malls, data_centers, coffee_roastery, hardware_store, indie_bookstore,
+     flower_shop, neighborhood_pharmacy, bowling_alley, auto_dealership, furniture_showroom, art_gallery,
+     coworking_loft, tech_startup_hub, department_store, night_market, seafood_pier, cheesesteak
+     already strong). Use src/game/designs/commerceKit.ts (sculpt, neon, spinner) and the override()
+     pattern in commerceIcons.ts.
+   - He said: commit these to main.
+2. **Government and civic administration.** Upgrade the existing government service buildings, and ADD
+   new, larger government/civic-administration elements that add a lot to the government-services
+   metric. His ideas: big city offices with a rock-climbing wall on the side; a super-futuristic
+   skyscraper-sized office where the middle of the building is missing and the top levitates over a
+   glowing energy field. "But also other stuff."
+3. **More military.** New elements: missile silos that are underground, so you only see the top hatch;
+   drone-swarm bases that release drone swarms when there's an attack and occasionally run training
+   exercises, so swarms take off and do cool maneuvers even with no attack. Needs real animated drones
+   in the renderer (see the critter/rotor systems) and the attack/defense simulation hook.
+4. **Bridges.** At full upgrade they currently stop looking voxel. He wants them to stay voxel and
+   become iconic bridges (Golden Gate, Brooklyn and others) when fully upgraded and long. They should
+   grow progressively with the run length: 3 joined pieces raises a taller middle tower; 6 pieces gives
+   two towers, and so on. A fully upgraded long run should look like a real voxel Golden Gate. Do the
+   same for the other bridge types.
+5. Keep doing the UI review and style guide (Part B) and the rest of Part A afterwards.
+
+New gameplay elements (2 and 3) need catalog entries, stats, costs, Atlas/Handbook entries and tests,
+following the existing expansion catalogs (e.g. expansionSafetyMilitaryCommerce.ts, skylineCatalog.ts).
+
 ## Ground rules for every run
 - Work on branch(es) off the latest `main`, open PRs, keep `npm run lint`, `npm test`, `npm run build` green.
 - Preserve IDs, saves, footprints, costs, progression, simulation behavior (see brief step 6). Keep multiplayer paused.
