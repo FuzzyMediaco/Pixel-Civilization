@@ -1,3 +1,4 @@
+import { SKYLINE_ELEMENTS } from "./skylineCatalog";
 import { CHRISTMAS_ELEMENTS } from "./christmasCatalog";
 import {VEHICLE_ROADS,roadStageName} from "./roadStandards";
 import { EXPANSION_ELEMENTS } from "./expansionCatalog";
@@ -170,6 +171,8 @@ export interface CivElementDef {
   education?: number;
   recreation?: number;
   government?: number;
+  /** Citywide resident happiness at level one. The strongest operating site contributes. */
+  happinessBonus?: number;
   police?: number;
   policeRadius?: number; // in grid tiles
   fireRadius?: number; // in grid tiles
@@ -2560,6 +2563,7 @@ export const ELEMENTS: CivElementDef[] = [
   ...NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS,
   ...BALANCED_EXPANSION_ELEMENTS,
   ...CHRISTMAS_ELEMENTS,
+  ...SKYLINE_ELEMENTS,
 ];
 
 export const ELEMENT_BY_ID: Record<string, CivElementDef> = Object.fromEntries(

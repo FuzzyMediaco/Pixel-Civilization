@@ -1121,7 +1121,7 @@ export class PixelWorldRenderer {
       this.walkYaw = Math.PI;
       this.walkPitch = -0.06;
     } else {
-      if (pulse) {
+      if (pulse || el.defId === "mega_skyscraper") {
         // Frame the parcel and neighboring road tiles even in a narrow portrait viewport.
         const parcelAndRoads = (Math.hypot(el.spanX, el.spanZ) + 3) * TILE_SIZE;
         const viewportSpan = 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * Math.min(1, this.camera.aspect);
@@ -3817,7 +3817,8 @@ export class PixelWorldRenderer {
     this.spherical.radius = THREE.MathUtils.clamp(this.spherical.radius, 5.5, GRID_SIZE*TILE_SIZE*1.7);
     this.spherical.phi = THREE.MathUtils.clamp(this.spherical.phi, 0.06, 1.44);
     this.target.x = THREE.MathUtils.clamp(this.target.x,-GRID_HALF*TILE_SIZE,GRID_HALF*TILE_SIZE);
-    this.target.y = THREE.MathUtils.clamp(this.target.y, 0, 14);
+    // An orbit can center on the occupied floors of a supertall tower.
+    this.target.y = THREE.MathUtils.clamp(this.target.y, 0, 512 * VOXEL_SIZE);
     this.target.z = THREE.MathUtils.clamp(this.target.z,-GRID_HALF*TILE_SIZE,GRID_HALF*TILE_SIZE);
 
     const sinPhi = Math.sin(this.spherical.phi);

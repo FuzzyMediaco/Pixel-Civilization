@@ -1,3 +1,4 @@
+import { SKYLINE_GOVERNMENT_IDS } from "./skylineCatalog";
 import { CHRISTMAS_GROUPS } from "./christmasCatalog";
 import { readPlayerItem, writePlayerItem } from "./deviceSaves";
 /** Stable paths through Exact Build. The seven original branches retain their layout. */
@@ -362,6 +363,7 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
           "community_centers",
         ],
       },
+      { id: "cf_government", label: "Government Offices & Assemblies", iconDefId: "borough_assembly", elementIds: SKYLINE_GOVERNMENT_IDS },
       {
         id: "cf_parks",
         label: "Parks & Gardens",
@@ -484,6 +486,7 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
     label: "Landmarks & Projects",
     shortDesc: "Wonders, monuments & mega-projects",
     subcategories: [
+      { id: "lm_modern", label: "Modern Wonders", iconDefId: "mega_skyscraper", elementIds: ["mega_skyscraper","supertree_grove","guggenheim_bilbao"] },
       {
         id: "lm_ancient",
         label: "Ancient Wonders",

@@ -90,7 +90,9 @@ meets("tidal_sluice","rivers");
 meets("public_library","park");
 meets("bell_tower_chapel stone_abbey zen_shrine meditation_pavilion","graveyards");
 meets("civic_observatory","italian_gardens");
-meets("solar_spire_arcology","paths");
+meets("solar_spire_arcology guggenheim_bilbao supertree_grove","paths");
+meets("mega_skyscraper","bus_stops");
+meets("borough_assembly civic_records_archive city_planning_bureau public_works_directorate national_parliament","park");
 for (const def of CHRISTMAS_ELEMENTS) partners[def.id] = "paths";
 
 function model(id:string,level:number,rotation:number): PlacedElement {

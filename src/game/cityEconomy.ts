@@ -1,3 +1,4 @@
+import { SKYLINE_GOVERNMENT_IDS } from "./skylineCatalog";
 import { railFreightBonus } from "./railOperations";
 import { activeBlessing } from "./faith";
 import { FARM_ANCHOR_IDS,FARM_MODULE_IDS } from "./expansionCatalog";
@@ -354,7 +355,7 @@ export function controlValue(s: GameState, k: ControlKey, site?: string) {
     defaults[k]
   );
 }
-const govIds = new Set(["city_offices", "government_buildings", "courthouses", "tax_collecting_office"]);
+export const AUTHORITY_BUILDINGS: ReadonlySet<string> = new Set(["city_offices", "government_buildings", "courthouses", "tax_collecting_office", ...SKYLINE_GOVERNMENT_IDS]);
 export const operational = (e: PlacedElement) => e.connected && !e.onFire && !e.disrepair;
 export function professionalStaff(s: GameState, el: PlacedElement) {
   return ((economyOf(s).sites[el.id]?.workers ?? 0) * effective(s, "staffing", 100)) / 100;
@@ -363,7 +364,7 @@ export function hasAuthority(s: GameState) {
   return !!effective(
     s,
     "authority",
-    Number(s.elements.some((e) => govIds.has(e.defId) && operational(e) && professionalStaff(s, e) >= 1)),
+    Number(s.elements.some((e) => AUTHORITY_BUILDINGS.has(e.defId) && operational(e) && professionalStaff(s, e) >= 1)),
   );
 }
 const crops = CROP_SITE_IDS;

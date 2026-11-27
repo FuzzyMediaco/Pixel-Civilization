@@ -90,6 +90,7 @@ const STAT_LABELS: Record<string, string> = {
   education: "Education",
   recreation: "Recreation",
   government: "Gov",
+  happinessBonus: "Resident happiness",
   police: "Police",
   policeRadius: "Police radius",
   fireRadius: "Fire radius",

@@ -1,4 +1,5 @@
 import { PALETTE, PixelVox } from "../voxelCore";
+import { finish } from "./sculpturalKit";
 import type { Ink } from "./periodArtCatalog";
 
 const groups = {
@@ -14,8 +15,8 @@ const groups = {
   glass: "glass glassDark solarBlue",
 } as const;
 const probe = new PixelVox();
-const single = (color:string) => {
-  probe.put(0,0,0,color);
+const single = (color:string, glow=0) => {
+  probe.put(0,0,0,color,glow);
   return probe.v.values().next().value!;
 };
 const cache = new WeakMap<Ink, Map<number,number>>();
@@ -33,8 +34,26 @@ function materials(p:Ink) {
   cache.set(p,result);
   return result;
 }
-export function periodFinish(v:PixelVox,p:Ink) {
-  const mapping=materials(p);
+const architecturalCache = new WeakMap<Ink,Map<number,number>>();
+function architecturalMaterials(p: Ink) {
+  const cached=architecturalCache.get(p);
+  if(cached) return cached;
+  const mapping=new Map(materials(p));
+  const finishes = [
+    [p.rim,[finish.porcelain,finish.pearl,finish.silver,"#e2e5df","#bdc8ce"]],
+    [p.wall,[finish.limestone,"#9eafba","#c6b59e","#ae9c86"]],
+    [p.frame,[finish.bronze,finish.cedar,finish.ink]],
+    [p.sign,[finish.copper,finish.gold]],
+    [p.glass,[finish.glass,finish.nightGlass,"#326478","#966638","#31586a","#386882","#405f70"]],
+  ] as const;
+  for(const [target,colors] of finishes) for(const color of colors) for(const glow of [0,0.08,0.09,0.12,0.18]){
+    mapping.set(single(color,glow),single(target,glow));
+  }
+  architecturalCache.set(p,mapping);
+  return mapping;
+}
+export function periodFinish(v:PixelVox,p:Ink,architectural=false) {
+  const mapping=architectural ? architecturalMaterials(p) : materials(p);
   for(const [key,old] of v.v){
     const style=mapping.get(old);
     if(style!==undefined)v.v.set(key,style);

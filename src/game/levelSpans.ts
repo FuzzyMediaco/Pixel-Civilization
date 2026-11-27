@@ -1,3 +1,4 @@
+import { SKYLINE_ELEMENTS } from "./skylineCatalog";
 import { CHRISTMAS_ELEMENTS } from "./christmasCatalog";
 import { CAMPUS_FARM_ART } from "./campusFarmArt";
 import { WEALTH_PROJECTS } from "./wealthProjects";
@@ -15,6 +16,7 @@ export const ELEMENT_LEVEL_SPANS: Record<string, LevelSpanTuple> = {
   ...Object.fromEntries(WEALTH_PROJECTS.map(p => [p.id, p.footprints])),
   ...Object.fromEntries(HISTORICAL_WONDERS.map(p => [p.id, p.footprints])),
   ...Object.fromEntries(NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS.map(p => [p.id, p.footprints])),
+  ...Object.fromEntries(SKYLINE_ELEMENTS.map(p => [p.id, p.footprints])),
   ...Object.fromEntries(CHRISTMAS_ELEMENTS.map(p => [p.id, p.footprints])),
   ...Object.fromEntries(BALANCED_EXPANSION_ELEMENTS.map(p => [p.id, p.footprints])),
 

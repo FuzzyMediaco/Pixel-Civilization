@@ -1,3 +1,4 @@
+import { SKYLINE_STYLES } from "../skylineCatalog";
 import type { CivElementDef } from "../catalog";
 import { PixelVox, packVoxKey } from "../voxelCore";
 import { type Ctx, hashStr, stairs } from "./kit";
@@ -278,7 +279,7 @@ function landmark(c:Ctx,p:Ink,active:boolean) {
 function retainWorkingModel(c:Ctx,p:Ink,def:CivElementDef,family:ArtFamily,active:boolean,original:()=>void) {
   original(); const {v,variant:s,lv,hx,hz}=c;
   if(family==="road"||family==="bridge"||family==="track"){pavePeriod(v,p,s,lv);return;}
-  periodFinish(v,p);for(const rotor of c.rotors)periodFinish(rotor.vox,p);
+  periodFinish(v,p,SKYLINE_STYLES.has(def.id));for(const rotor of c.rotors)periodFinish(rotor.vox,p);
   worksCourt(c,p,family,active);
   const x=-hx+3,z=hz-3;
   if(family==="vessel"){
@@ -351,7 +352,7 @@ export function buildProduction(c:Ctx,p:Ink,def:CivElementDef,active:boolean,ori
   const family=productionArtFamily(def.id);
   if(!family){original();return;}
   if(def.archetype==="solar_array"){periodSolar(c,p,active);return;}
-  if(retained.has(def.id)){retainWorkingModel(c,p,def,family,active,original);return;}
+  if(retained.has(def.id) || SKYLINE_STYLES.has(def.id)){retainWorkingModel(c,p,def,family,active,original);return;}
   switch(family) {
     case "house":case "apartment":case "tower":residential(c,p,family);break;
     case "market":market(c,p,active);break;

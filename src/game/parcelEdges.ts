@@ -42,10 +42,10 @@ export interface ParcelEdge {
 const ids = (members: string) => new Set(members.split(" "));
 const farms = new Set([...FARM_ANCHOR_IDS,...FARM_MODULE_IDS,...ids("farm_houses farms fields orchards groves_of_olives plantations solar_canopy_orchard terraced_glasshouses")]);
 const rows = new Set([...FARM_ANCHOR_IDS,...FARM_MODULE_IDS]);
-const greens = ids("park little_parks large_parks gardens italian_gardens floodplain_park shoreline_overlook");
+const greens = ids("supertree_grove park little_parks large_parks gardens italian_gardens floodplain_park shoreline_overlook");
 const foodOutlets = ids("grocery_store restaurants cheesesteak_restaurants growers_exchange bakery_coop");
 const publicFaith = ids("churches christian_churches monasteries temples synagogues mosques lds_temples bell_tower_chapel stone_abbey zen_shrine meditation_pavilion");
-const viewers = ids("large_landmarks washington_monument white_house smithsonian eiffel_tower the_london_eye the_great_pyramids colosseum stonehenge parthenon great_wall chichen_itza moai_statues angkor_wat machu_picchu civic_observatory solar_spire_arcology");
+const viewers = ids("guggenheim_bilbao large_landmarks washington_monument white_house smithsonian eiffel_tower the_london_eye the_great_pyramids colosseum stonehenge parthenon great_wall chichen_itza moai_statues angkor_wat machu_picchu civic_observatory solar_spire_arcology");
 const fresh = ids("rivers wide_rivers canals aqueduct municipal_reservoir");
 const basins = ids("rivers wide_rivers canals water_tile lakes ponds swamps municipal_reservoir");
 const shore = ids("beaches beach_houses beach_umbrellas sand boardwalks shoreline_overlook tidal_pool_walk");
@@ -56,7 +56,7 @@ const fuelIndustry = ids("factories trash_burning_plants trash_compacting_plants
 const industrial = ids("factories landfill trash_compacting_plants coal_powerplants natural_gas_power_plants trash_burning_plants blacksmiths data_centers open_pit_mine materials_foundry freight_rail_terminal nuclear_power_plants geothermal_power_plants micro_reactor_nuclear recycling_center compost_works");
 const wetUtil = ids("water_treatment_plant water_pumping_station hydro_electric_power_plants municipal_reservoir aqueduct water_reuse_works pumped_storage_station tidal_sluice");
 const supply = ids("water_treatment_plant water_pumping_station municipal_reservoir aqueduct wells water_towers desalination_plant rainwater_cathedral water_reuse_works spring_house tidal_sluice");
-const civic = ids("city_offices government_buildings courthouses post_offices community_centers tax_collecting_office public_library");
+const civic = ids("borough_assembly civic_records_archive city_planning_bureau public_works_directorate national_parliament city_offices government_buildings courthouses post_offices community_centers tax_collecting_office public_library");
 const agencies = ids("police_precinct police_departments jails prisons military_base swat_team_hq airforce_base fire_department police_heli_pad medevac_heli_pad fire_heli_base emergency_dispatch k9_police_unit forensic_crime_lab hazmat_response fire_academy traffic_precinct riot_command_center search_rescue_hq civil_defense_bunker army_garrison army_signal_corps army_logistics_depot army_airborne_school army_engineer_base army_medical_corps strategic_bomber_wing stealth_bomber_hangar fighter_wing_base airlift_cargo_base awacs_radar_base drone_recon_base marine_corps_base marine_aviation_wing");
 const flora = ids("trees plants shrubs bushes pine_trees redwood_trees swamps ponds lakes hills mountains canyons deserts tubbleweeds alligators");
 const hardRoad = ids("highways freeways over_passes underpasses suspension_bridges stone_bridges bridges");

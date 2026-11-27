@@ -76,11 +76,11 @@ export const BALANCED_EXPANSION_ELEMENTS: ExpandedCivElement[] = [
     waste: -6,
     income: 34,
     accentHex: "#c26d52",
-    description: "Walkable neighborhood block combining glowing ground-floor café storefronts with terraced apartments above.",
+    description: "A market and homes share one site as garden steps, a white ribbon arcade, linked lanterns or a timber parasol.",
     footprints: f13,
     levelNames: ["Corner Shopfront", "Loft Block", "Arcade Midrise", "Terraced Quarter", "Avenue Promenade"],
-    styleNames: ["Red Brick", "Parisian Limestone", "Nordic Timber", "Modern Slate"],
-    growth: "A corner storefront adds stacked residential balconies, striped awnings, rooftop pergolas and landscaped setbacks.",
+    styleNames: ["Garden Steps", "Ribbon Arcade", "Lantern Exchange", "Parasol Market"],
+    growth: "A shopfront gains inhabited lofts, planted setbacks, a rooftop pool, a market bridge or a timber canopy as the neighborhood grows.",
   },
 
   // 4. hr_towers (+2 of 2)
@@ -100,11 +100,11 @@ export const BALANCED_EXPANSION_ELEMENTS: ExpandedCivElement[] = [
     recreation: 26,
     income: 96,
     accentHex: "#60a5fa",
-    description: "Sculpted setback residential spire featuring glass curtain walls, planted sky terraces and a crown penthouse.",
+    description: "Distinctive high-rise residences with pivoting terraces, suspended pool villas, bridged towers or a ribbed glass ovoid.",
     footprints: f22,
     levelNames: ["Terrace High-Rise", "Skyline Residence", "Setback Spire", "Crown Penthouse", "Celestial Residence"],
-    styleNames: ["Champagne Limestone", "Ice Curtain Glass", "Obsidian Brass", "Emerald Eco-Spire"],
-    growth: "A slender residential tower rises in dramatic setbacks with double-height sky gardens and a glowing lantern crown.",
+    styleNames: ["Pivot Terraces", "Cantilever Villas", "Skygate Twins", "Halo Residence"],
+    growth: "New private floors extend each design, adding roof pools, elevated gardens, skybridges or concentric facade ribs.",
   },
 
   // 5. tr_rail (+1)
