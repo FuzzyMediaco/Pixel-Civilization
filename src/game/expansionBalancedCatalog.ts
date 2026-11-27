@@ -333,11 +333,11 @@ export const BALANCED_EXPANSION_ELEMENTS: ExpandedCivElement[] = [
     recreation: 24,
     needsMaintenance: true,
     accentHex: "#b45309",
-    description: "Welcoming civic library with grand stone entry steps, arched reading-room windows and a shaded book garden.",
+    description: "A lending library built from giant books, whose cloth covers, gilt spines and page-edge walls wrap reading gardens, steps and courts that open onto the street.",
     footprints: f13,
-    levelNames: ["Reading Room", "Branch Library", "Carnegie Hall", "Central Library", "Athenaeum & Archives"],
-    styleNames: ["Beaux-Arts Stone", "Warm Brick", "Nordic Timber Glass", "Modern Skylight"],
-    growth: "A quiet neighborhood reading room expands with stone portico columns, skylight reading wings and a sculpture court.",
+    levelNames: ["Book Nook", "Porch-and-Passage Branch", "Reading-Court Library", "Open-Air Reading Commons", "Giant-Book Athenaeum"],
+    styleNames: ["Stacked Hardbacks", "Open Folio", "Bookend Alley", "Pop-up Storybook"],
+    growth: "One giant book opens a reading nook, a second volume or fold adds a porch or passage, the books wrap a reading court, open an open-air reading commons with ribbon bridges and stages, and finally become a giant-book athenaeum.",
   },
 
   // 16. cf_churches (+1 of 2)

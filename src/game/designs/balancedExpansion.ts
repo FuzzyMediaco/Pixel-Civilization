@@ -60,6 +60,7 @@ import { defineDesigns, type DesignEntry } from "./registry";
 import { BALANCED_EXPANSION_BY_ID } from "../expansionBalancedCatalog";
 import { PixelVox } from "../voxelCore";
 import { buildMixedUseMidrise, buildPenthouseTower } from "./sculpturalHousing";
+import { buildPublicLibrary } from "./publicLibrary";
 
 function entry(id: string, build: (c: Ctx) => void): DesignEntry {
   const meta = BALANCED_EXPANSION_BY_ID[id];
@@ -637,44 +638,10 @@ defineDesigns({
     person(v, 0, 3, z0 + 1, "yellow", "blueDark");
   }),
 
-  // 15. public_library — Classical pedimented stone library with arched reading windows
+  // 15. public_library — books are the architecture (Stacked Hardbacks / Open Folio / Bookend Alley /
+  // Pop-up Storybook); see publicLibrary.ts for the variant and level story.
   public_library: entry("public_library", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    const wall = ["marble", "brick", "woodLight", "white"][s];
-    const trim = ["marbleShade", "cream", "woodDark", "steelLight"][s];
-    const roof = ["slate", "terracotta", "copper", "glass"][s];
-
-    const x0 = -hx + 2;
-    const x1 = hx - 2;
-    const z0 = -hz + 2;
-    const z1 = hz - 4;
-    const h = 7 + lv * 2;
-
-    footing(c, x0, z0, x1, z1, "stone");
-    v.box(x0, 1, z0, x1, h, z1, wall);
-    v.clear(x0 + 1, 1, z0 + 1, x1 - 1, h - 1, z1 - 1);
-    windows(c, x0, 3, z0, x1, h - 1, z1, { stepH: 3, stepV: 4, h: 3, emit: 0.5 });
-
-    // Classical front portico with columns, pediment & broad entry steps
-    const px0 = Math.max(x0 + 1, -4);
-    const px1 = Math.min(x1 - 1, 4);
-    colonnade(v, px0, px1, z1 + 1, 2, h - 1, "x", 2, "marble", trim);
-    pediment(v, px0 - 1, px1 + 1, h - 1, z1 - 1, z1 + 2, trim, wall);
-    stairs(v, px0, px1, 0, z1 + 1, 2, "marbleShade", 1);
-    door(v, -1, 2, z1, "woodDark", 2, 3, true);
-
-    if (s === 3 || lv >= 4) {
-      // Central glass skylight lantern on roof
-      flatRoof(c, x0, h, z0, x1, z1, roof, trim, false);
-      v.box(x0 + 3, h + 1, z0 + 3, x1 - 3, h + 3, z1 - 3, "glass", 0.45);
-    } else {
-      hip(v, x0 - 1, h, z0 - 1, x1 + 1, z1 + 1, roof, trim, 4);
-    }
-    // Shaded reading bench & lamps
-    bench(v, x0 + 1, 1, hz - 2, "x", "wood");
-    lamp(v, px0 - 1, 1, hz - 2, 5);
-    lamp(v, px1 + 1, 1, hz - 2, 5);
+    buildPublicLibrary(c);
   }),
 
   // 16. bell_tower_chapel — Intimate stone chapel + slender freestanding campanile bell tower

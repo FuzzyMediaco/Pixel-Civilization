@@ -351,6 +351,9 @@ function aqueduct(c:Ctx,p:Ink,wet:boolean) {
 export function buildProduction(c:Ctx,p:Ink,def:CivElementDef,active:boolean,original:()=>void) {
   const family=productionArtFamily(def.id);
   if(!family){original();return;}
+  // A deliberate era design owns the whole parcel: no shared family massing, district craft or front kit.
+  const signature=p.signatures?.[def.id];
+  if(signature){signature(c,p,active);return;}
   if(def.archetype==="solar_array"){periodSolar(c,p,active);return;}
   if(retained.has(def.id) || SKYLINE_STYLES.has(def.id)){retainWorkingModel(c,p,def,family,active,original);return;}
   switch(family) {

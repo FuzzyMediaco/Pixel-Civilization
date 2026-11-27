@@ -2,6 +2,7 @@ import { SKYLINE_STYLES } from "./skylineCatalog";
 import { ELEMENT_BY_ID, getElementLevelName, getMaxElementLevel } from "./catalog";
 import { FEATURED_TYPES, PERIODS, productionPeriod, type ProductionEra } from "./periods";
 import { ART_VARIANTS, productionArtFamily } from "./designs/periodArtCatalog";
+import { ERA_SIGNATURE_NAMES } from "./eraNames";
 
 export type RomeDirection = "rome-forum" | "rome-aqueduct";
 export type EraKey = "original" | "rome-forum" | ProductionEra;
@@ -115,7 +116,12 @@ export function eraElementSpec(id:string, era:unknown):RomeElementSpec | undefin
   const activity=family==="market" ? families.market.activity : family==="station" ? families.station.activity :
     family==="aqueduct" ? families.aqueduct.activity : family==="water" || family==="farm" ? families.water.activity :
     def.isNetwork ? "Vehicles and services use the original connections." : "Service and maintenance use the island’s normal rules.";
-  const result={name,family,levels,variants:SKYLINE_STYLES.get(id) ?? ART_VARIANTS[key],description:period.description,activity,aliases:[name,def.name,id.replaceAll("_"," ")]};
+  const signature=ERA_SIGNATURE_NAMES[key]?.[id];
+  const result=signature ? {
+    name:signature.name,family,levels:signature.levels,variants:signature.variants,
+    description:signature.description ?? period.description,activity,
+    aliases:[signature.name,def.name,id.replaceAll("_"," "),...(signature.aliases ?? [])],
+  } : {name,family,levels,variants:SKYLINE_STYLES.get(id) ?? ART_VARIANTS[key],description:period.description,activity,aliases:[name,def.name,id.replaceAll("_"," ")]};
   productionSpecs.set(cacheKey,result);return result;
 }
 export function eraElementName(id:string, era:unknown): string {
