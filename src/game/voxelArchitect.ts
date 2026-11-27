@@ -12,6 +12,8 @@ import * as THREE from "three";
 import { type CivElementDef, ELEMENT_BY_ID, getMaxElementLevel } from "./catalog";
 import { applyParcelAppearance, type ParcelAppearance } from "./parcelGeometry";
 import { getDesign } from "./designs/registry";
+import type { DefenseArtMotion } from "./designs/militaryDisplayKit";
+import type { DisplayPart } from "./defenseDisplay";
 import { type SmokeKind, makeCtx } from "./designs/kit";
 import { type BuiltCritterPen, buildCritterPens, buildCritterPreview } from "./critterModels";
 import {
@@ -25,6 +27,7 @@ import {
 } from "./voxelCore";
 
 export interface BuiltRotor {
+  display?: {motion: DefenseArtMotion; unit:number};
   geo: THREE.BufferGeometry;
   pivot: [number, number, number];
   axis: "x" | "y" | "z";
@@ -166,7 +169,10 @@ export function buildDesignAsset(
     geo.computeBoundingBox();
     const pivot: [number, number, number] = [r.pivot[0] * fit, r.pivot[1] * fit + groundShift / VOXEL_SIZE, r.pivot[2] * fit];
     topY = Math.max(topY, pivot[1] * VOXEL_SIZE + (geo.boundingBox?.max.y ?? 0));
-    return { geo, pivot, axis: r.axis, speed: r.speed, wind: Boolean(r.wind) };
+    const allowed = (def.id === "underground_missile_silo" && r.display?.kind === "hatch") ||
+      (def.id === "drone_swarm_base" && r.display?.kind === "drone");
+    const display = allowed && r.display ? { motion: r.display, unit } : undefined;
+    return { geo, pivot, axis: r.axis, speed: r.speed, wind: Boolean(r.wind), display };
   });
   return {
     baseGeo,
@@ -289,6 +295,7 @@ export function buildPlacedGroupFromAsset(
 
   if (asset.rotors && asset.rotors.length > 0) {
     const list: { pivot: THREE.Group; axis: "x" | "y" | "z"; speed: number; wind: boolean }[] = [];
+    const displayParts: DisplayPart[] = [];
     for (const r of asset.rotors) {
       const piv = new THREE.Group();
       piv.position.set(r.pivot[0] * VOXEL_SIZE, r.pivot[1] * VOXEL_SIZE, r.pivot[2] * VOXEL_SIZE);
@@ -297,9 +304,16 @@ export function buildPlacedGroupFromAsset(
       rMesh.userData.isVoxelMesh = true;
       piv.add(rMesh);
       group.add(piv);
-      list.push({ pivot: piv, axis: r.axis, speed: r.speed, wind: r.wind });
+      if (r.display) {
+        // A flying miniature must never steal a tap from the parcel behind it.
+        if (r.display.motion.kind === "drone") rMesh.raycast = () => {};
+        displayParts.push({ pivot:piv, home:piv.position.clone(), ...r.display });
+      } else {
+        list.push({ pivot: piv, axis: r.axis, speed: r.speed, wind: r.wind });
+      }
     }
     group.userData.rotorList = list;
+    if (displayParts.length) group.userData.defenseDisplay = { parts: displayParts, roof: asset.topY };
   }
   group.userData.smokePoints = asset.smokePoints ?? [];
   // Livestock stand in rest poses here; the game's herd animator hides this and drives instanced animals.

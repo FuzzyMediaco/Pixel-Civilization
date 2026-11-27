@@ -328,7 +328,7 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
   },
 
   // =========================================================================
-  // MILITARY EXPANSION — ARMY, NAVAL, AIR FORCE & MARINE CORPS (24 elements)
+  // MILITARY EXPANSION — ARMY, NAVAL, AIR FORCE & MARINE CORPS (26 elements)
   // =========================================================================
   // --- ARMY (6) ---
   {
@@ -760,6 +760,31 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     levelNames: ["Launch Rail", "Recon Shed", "Telemetry Strip", "Recon Squadron", "Autonomous Air Wing"],
     styleNames: ["Slate Grey", "Desert Tan", "Solar White", "Obsidian"],
     growth: "A compact launch strip grows telemetry domes, solar-roofed hangars and patrolling high-altitude recon craft.",
+  },
+
+  {
+    id: "underground_missile_silo",
+    name: "Underground Missile Silo",
+    category: "police_military", archetype: "military_compound", domain: "land",
+    stage: 17, cost: 1760, military: 355, jobs: 42, power: -9, water: -3,
+    needsMaintenance: true, accentHex: "#988366", footprints: f13,
+    description: "A low watch post marks an underground installation. Its surface hatches part over a glowing recess during an island alert.",
+    searchAliases: ["missile silo", "underground base", "hatch", "blast doors", "silo"],
+    levelNames: ["Surface Hatch", "Watch Post", "Ring Court", "Hatch Gallery", "Underground Complex"],
+    styleNames: ["Orbital Dial", "Zigzag Doors", "Prism Quilt", "Twin Moons"],
+    growth: "A single marked hatch gains a watch booth, inset lights and stepped galleries around the underground complex.",
+  },
+  {
+    id: "drone_swarm_base",
+    name: "Drone Swarm Base",
+    category: "police_military", archetype: "airbase", domain: "land",
+    stage: 15, cost: 1460, military: 260, jobs: 48, power: -12, water: -4,
+    needsMaintenance: true, accentHex: "#3d8680", footprints: f24,
+    description: "Crews tend a fleet of small flying machines. The drones occasionally lift off for practice and take formation when the island comes under attack.",
+    searchAliases: ["drone depot", "swarm", "drone formation", "training flight", "airfield"],
+    levelNames: ["Lantern Landing", "Service Court", "Flight Workshop", "Formation Campus", "Grand Swarm Depot"],
+    styleNames: ["Beacon Carousel", "Kite Tail Yard", "Lantern Lift Exchange", "Glasswing Crescent"],
+    growth: "A staffed flight workshop gains landing berths, maintenance galleries and elevated viewing areas for formation flights.",
   },
 
   // --- MARINE CORPS (3) ---

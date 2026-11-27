@@ -23,6 +23,7 @@ import type { ParcelAppearance } from "./game/parcelGeometry";
 import { atlasPlots } from "./handbook/modelPlots";
 import { DESIGNS } from "./game/designs/registry";
 import { buildPlacedGroupFromAsset, getOrBuildElementAsset } from "./game/voxelArchitect";
+import { poseDefenseDisplay } from "./game/defenseDisplay";
 import { voxelNightUniform } from "./game/voxelCore";
 
 const params = new URLSearchParams(location.search);
@@ -98,6 +99,11 @@ async function main() {
   await loadEraArt(era);
   const active = params.get("active") === "1";
   const appearance: ParcelAppearance = { era, eraActivity: active ? "active" : "idle" };
+  const defensePose = params.get("defensePose") ?? "idle";
+  if (defensePose !== "idle" && defensePose !== "alert" && defensePose !== "training") throw new Error("Unknown defense pose");
+  const poseSeconds = Number(params.get("poseSec") ?? 8);
+  if (!Number.isFinite(poseSeconds) || poseSeconds < 0) throw new Error("Invalid poseSec");
+  const reducedMotion = params.get("reducedMotion") === "1";
   const mode = params.get("mode") ?? "levels";
   const cell = Number(params.get("cell") ?? 260);
   const night = params.get("night") === "1";
@@ -166,6 +172,7 @@ async function main() {
         for (const plot of plots) {
           const asset = getOrBuildElementAsset(spec.id, spec.lv, spec.variant, ...plot.span, plot.mask, plot.appearance);
           const g = buildPlacedGroupFromAsset(asset);
+          if (g.userData.defenseDisplay) poseDefenseDisplay(g.userData.defenseDisplay, defensePose, poseSeconds, reducedMotion);
           g.position.set(plot.x * tileM, 0, plot.z * tileM);
           group.add(g);
           if (plots.length === 1) group.userData.asset = asset;

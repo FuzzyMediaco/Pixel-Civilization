@@ -1,0 +1,282 @@
+[
+ {
+  "level": 1,
+  "s": 0,
+  "nearest": {
+   "id": "police_precinct",
+   "v": 0,
+   "d": 0.266958041958042
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.46592487373737373
+  }
+ },
+ {
+  "level": 1,
+  "s": 1,
+  "nearest": {
+   "id": "police_precinct",
+   "v": 3,
+   "d": 0.2520655270655271
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.41397474053724054
+  }
+ },
+ {
+  "level": 1,
+  "s": 2,
+  "nearest": {
+   "id": "emergency_dispatch",
+   "v": 2,
+   "d": 0.2776421916284244
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.3853864734299517
+  }
+ },
+ {
+  "level": 1,
+  "s": 3,
+  "nearest": {
+   "id": "police_precinct",
+   "v": 0,
+   "d": 0.21612174375332271
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.4370684523809524
+  }
+ },
+ {
+  "level": 2,
+  "s": 0,
+  "nearest": {
+   "id": "coastal_corvette",
+   "v": 0,
+   "d": 0.2404704704704705
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.4266339869281046
+  }
+ },
+ {
+  "level": 2,
+  "s": 1,
+  "nearest": {
+   "id": "emergency_dispatch",
+   "v": 3,
+   "d": 0.2535202135774218
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.4560246302408019
+  }
+ },
+ {
+  "level": 2,
+  "s": 2,
+  "nearest": {
+   "id": "emergency_dispatch",
+   "v": 3,
+   "d": 0.23601449275362318
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.3896289997480474
+  }
+ },
+ {
+  "level": 2,
+  "s": 3,
+  "nearest": {
+   "id": "emergency_dispatch",
+   "v": 1,
+   "d": 0.19263285024154592
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.4136963416015404
+  }
+ },
+ {
+  "level": 3,
+  "s": 0,
+  "nearest": {
+   "id": "coastal_corvette",
+   "v": 0,
+   "d": 0.2646481135986733
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.4155263157894737
+  }
+ },
+ {
+  "level": 3,
+  "s": 1,
+  "nearest": {
+   "id": "coastal_corvette",
+   "v": 0,
+   "d": 0.2665944925605152
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.4619123048668503
+  }
+ },
+ {
+  "level": 3,
+  "s": 2,
+  "nearest": {
+   "id": "emergency_dispatch",
+   "v": 2,
+   "d": 0.27107380520266183
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.38571428571428573
+  }
+ },
+ {
+  "level": 3,
+  "s": 3,
+  "nearest": {
+   "id": "police_precinct",
+   "v": 2,
+   "d": 0.2627665544332211
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.3943285123966943
+  }
+ },
+ {
+  "level": 4,
+  "s": 0,
+  "nearest": {
+   "id": "jails",
+   "v": 0,
+   "d": 0.2633450292397661
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.4529545454545455
+  }
+ },
+ {
+  "level": 4,
+  "s": 1,
+  "nearest": {
+   "id": "jails",
+   "v": 0,
+   "d": 0.2816601307189543
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.48660075329566865
+  }
+ },
+ {
+  "level": 4,
+  "s": 2,
+  "nearest": {
+   "id": "jails",
+   "v": 2,
+   "d": 0.30383597883597885
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.37894570707070707
+  }
+ },
+ {
+  "level": 4,
+  "s": 3,
+  "nearest": {
+   "id": "emergency_dispatch",
+   "v": 1,
+   "d": 0.25498778998779
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.44185032139577596
+  }
+ },
+ {
+  "level": 5,
+  "s": 0,
+  "nearest": {
+   "id": "emergency_dispatch",
+   "v": 1,
+   "d": 0.28212949898094025
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.474113712374582
+  }
+ },
+ {
+  "level": 5,
+  "s": 1,
+  "nearest": {
+   "id": "emergency_dispatch",
+   "v": 1,
+   "d": 0.3003398640543783
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.5012285868085241
+  }
+ },
+ {
+  "level": 5,
+  "s": 2,
+  "nearest": {
+   "id": "jails",
+   "v": 2,
+   "d": 0.22992404168874758
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.3508142758142758
+  }
+ },
+ {
+  "level": 5,
+  "s": 3,
+  "nearest": {
+   "id": "emergency_dispatch",
+   "v": 0,
+   "d": 0.25274447659730837
+  },
+  "recon": {
+   "id": "drone_recon_base",
+   "v": 0,
+   "d": 0.443425925925926
+  }
+ }
+]

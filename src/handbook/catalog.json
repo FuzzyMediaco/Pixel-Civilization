@@ -22887,6 +22887,188 @@
     "thumbnail": "/handbook/catalog/thumbs/drone_recon_base.webp"
   },
   {
+    "id": "underground_missile_silo",
+    "name": "Underground Missile Silo",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1760,
+    "stage": 17,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 42,
+      "power": -9,
+      "water": -3,
+      "military": 355
+    },
+    "description": "A low watch post marks an underground installation. Its surface hatches part over a glowing recess during an island alert.",
+    "usage": "Put the facility beside a compatible neighbor so the service entrance meets the adjoining parcel.",
+    "growth": "A single marked hatch gains a watch booth, inset lights and stepped galleries around the underground complex.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Surface Hatch",
+        "dimensions": [
+          1,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Watch Post",
+        "dimensions": [
+          2,
+          1
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Ring Court",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Hatch Gallery",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Underground Complex",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Orbital Dial"
+      },
+      {
+        "index": 1,
+        "name": "Zigzag Doors"
+      },
+      {
+        "index": 2,
+        "name": "Prism Quilt"
+      },
+      {
+        "index": 3,
+        "name": "Twin Moons"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/underground_missile_silo.webp",
+    "thumbnail": "/handbook/catalog/thumbs/underground_missile_silo.webp"
+  },
+  {
+    "id": "drone_swarm_base",
+    "name": "Drone Swarm Base",
+    "category": "police_military",
+    "categoryName": "Police & Military",
+    "cost": 1460,
+    "stage": 15,
+    "domain": "land",
+    "isStarter": false,
+    "stats": {
+      "jobs": 48,
+      "power": -12,
+      "water": -4,
+      "military": 260
+    },
+    "description": "Crews tend a fleet of small flying machines. The drones occasionally lift off for practice and take formation when the island comes under attack.",
+    "usage": "Put the facility beside a compatible neighbor so the service entrance meets the adjoining parcel.",
+    "growth": "A staffed flight workshop gains landing berths, maintenance galleries and elevated viewing areas for formation flights.",
+    "maxLevel": 5,
+    "levels": [
+      {
+        "level": 1,
+        "name": "Lantern Landing",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 2,
+        "name": "Service Court",
+        "dimensions": [
+          2,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 3,
+        "name": "Flight Workshop",
+        "dimensions": [
+          3,
+          2
+        ],
+        "legacy": false
+      },
+      {
+        "level": 4,
+        "name": "Formation Campus",
+        "dimensions": [
+          3,
+          3
+        ],
+        "legacy": false
+      },
+      {
+        "level": 5,
+        "name": "Grand Swarm Depot",
+        "dimensions": [
+          4,
+          3
+        ],
+        "legacy": false
+      }
+    ],
+    "styles": [
+      {
+        "index": 0,
+        "name": "Beacon Carousel"
+      },
+      {
+        "index": 1,
+        "name": "Kite Tail Yard"
+      },
+      {
+        "index": 2,
+        "name": "Lantern Lift Exchange"
+      },
+      {
+        "index": 3,
+        "name": "Glasswing Crescent"
+      }
+    ],
+    "partner": {
+      "id": "city_offices",
+      "name": "City Offices"
+    },
+    "image": "/handbook/catalog/drone_swarm_base.webp",
+    "thumbnail": "/handbook/catalog/thumbs/drone_swarm_base.webp"
+  },
+  {
     "id": "marine_corps_base",
     "name": "Marine Corps Base",
     "category": "police_military",

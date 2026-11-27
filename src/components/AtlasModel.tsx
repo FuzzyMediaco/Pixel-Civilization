@@ -12,6 +12,7 @@ import { getHandbookFrame } from "../game/handbookLayout";
 import { atlasPlots } from "../handbook/modelPlots";
 import { eraElementName, type EraKey } from "../game/eraStyles";
 import { useEraArt } from "./useEraArt";
+import { poseDefenseDisplay, type DefenseDisplay, type DefensePose } from "../game/defenseDisplay";
 import { TILE_SIZE, voxelNightUniform } from "../game/voxelCore";
 
 export interface AtlasModelProps {
@@ -119,6 +120,9 @@ export function AtlasModel({
 
     let model: THREE.Group | undefined;
     let radius = 10;
+    let displays: DefenseDisplay[] = [];
+    let displayPose: DefensePose = "idle";
+    let displaySeconds = 0;
     let previousSelection = "";
     let nightMode = false;
     let draw = true;
@@ -158,6 +162,9 @@ export function AtlasModel({
         clear();
         model = new THREE.Group();
         const rotors = [];
+        displays = [];
+        displaySeconds = 0;
+        displayPose = !running ? "idle" : d.id === "drone_swarm_base" ? "training" : "alert";
         for (const plot of atlasPlots(d,lv,v,key,isJoined,running)) {
           const [sx,sz] = plot.span;
           const group = buildPlacedGroupFromAsset(buildDesignAsset(plot.def,plot.level,plot.variant,sx,sz,plot.mask,plot.appearance));
@@ -165,11 +172,14 @@ export function AtlasModel({
           group.rotation.y = plot.rotation * Math.PI / 2;
           model.add(group);
           rotors.push(...(group.userData.rotorList ?? []));
+          if (group.userData.defenseDisplay) displays.push(group.userData.defenseDisplay);
         }
         model.userData.rotorList = rotors;
-        setHasMotion(rotors.length > 0);
+        setHasMotion(rotors.length > 0 || displays.length > 0 && running);
         scene.add(model);
+        for (const display of displays) poseDefenseDisplay(display, displayPose, 8, false);
         const bounds = new THREE.Box3().setFromObject(model);
+        for (const display of displays) poseDefenseDisplay(display, "idle", 0, false);
         const center = bounds.getCenter(new THREE.Vector3());
         const size = bounds.getSize(new THREE.Vector3());
         const selection = [d.id,lv,v,isJoined].join(":");
@@ -200,6 +210,7 @@ export function AtlasModel({
         controls.update(); resize();
       },
       replay() {
+        displaySeconds = 0;
         for (const part of model?.userData.rotorList ?? []) part.pivot.rotation[part.axis] = 0;
         draw = true;
       },
@@ -221,6 +232,11 @@ export function AtlasModel({
       previous = now;
       if (!reduced.matches && !pauseRef.current && model?.userData.rotorList?.length) {
         for (const part of model.userData.rotorList) part.pivot.rotation[part.axis] += dt * part.speed;
+        draw = true;
+      }
+      if (!pauseRef.current && displayPose !== "idle" && displays.length) {
+        displaySeconds += dt;
+        for (const display of displays) poseDefenseDisplay(display, displayPose, displayPose === "training" ? displaySeconds % 26 : displaySeconds, reduced.matches);
         draw = true;
       }
       if (draw) {

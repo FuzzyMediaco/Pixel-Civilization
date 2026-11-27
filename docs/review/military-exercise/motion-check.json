@@ -1,0 +1,248 @@
+[
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "reduced": false,
+    "camera": [
+      4.6,
+      0.6,
+      4.4,
+      44,
+      0.48,
+      0.79,
+      44
+    ],
+    "earlyLift": 2.589362663410995,
+    "frames": [
+      {
+        "label": "cold",
+        "play": 3,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "idle",
+        "play": 28,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "training",
+        "play": 37,
+        "raid": null,
+        "flying": 5,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "training-returned",
+        "play": 50.25,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "alert",
+        "play": 57.25,
+        "raid": 4,
+        "flying": 5,
+        "available": 5,
+        "openHatches": 2,
+        "hatchOffset": 2
+      },
+      {
+        "label": "return",
+        "play": 70,
+        "raid": null,
+        "flying": 5,
+        "available": 5,
+        "openHatches": 2,
+        "hatchOffset": 1
+      },
+      {
+        "label": "docked",
+        "play": 71.75,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      }
+    ]
+  },
+  {
+    "viewport": {
+      "width": 360,
+      "height": 740
+    },
+    "reduced": false,
+    "camera": [
+      4.6,
+      0.6,
+      4.4,
+      44,
+      0.48,
+      0.79,
+      44
+    ],
+    "earlyLift": 2.589362663410995,
+    "frames": [
+      {
+        "label": "cold",
+        "play": 3,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "idle",
+        "play": 28,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "training",
+        "play": 37,
+        "raid": null,
+        "flying": 5,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "training-returned",
+        "play": 50.25,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "alert",
+        "play": 57.25,
+        "raid": 4,
+        "flying": 5,
+        "available": 5,
+        "openHatches": 2,
+        "hatchOffset": 2
+      },
+      {
+        "label": "return",
+        "play": 70,
+        "raid": null,
+        "flying": 5,
+        "available": 5,
+        "openHatches": 2,
+        "hatchOffset": 1
+      },
+      {
+        "label": "docked",
+        "play": 71.75,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      }
+    ]
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "reduced": true,
+    "camera": [
+      4.6,
+      0.6,
+      4.4,
+      44,
+      0.48,
+      0.79,
+      44
+    ],
+    "earlyLift": 0.5838840625000055,
+    "frames": [
+      {
+        "label": "cold",
+        "play": 3,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "idle",
+        "play": 28,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "training",
+        "play": 37,
+        "raid": null,
+        "flying": 2,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "training-returned",
+        "play": 50.25,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      },
+      {
+        "label": "alert",
+        "play": 57.25,
+        "raid": 4,
+        "flying": 2,
+        "available": 5,
+        "openHatches": 2,
+        "hatchOffset": 2
+      },
+      {
+        "label": "return",
+        "play": 70,
+        "raid": null,
+        "flying": 2,
+        "available": 5,
+        "openHatches": 2,
+        "hatchOffset": 1
+      },
+      {
+        "label": "docked",
+        "play": 71.75,
+        "raid": null,
+        "flying": 0,
+        "available": 5,
+        "openHatches": 0,
+        "hatchOffset": 0
+      }
+    ]
+  }
+]

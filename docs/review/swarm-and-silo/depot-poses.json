@@ -1,0 +1,222 @@
+[
+ {
+  "level": 1,
+  "variant": 0,
+  "berths": 2,
+  "poses": {
+   "training": 2,
+   "alert": 2,
+   "alertReduced": 1,
+   "idle": 0
+  }
+ },
+ {
+  "level": 1,
+  "variant": 1,
+  "berths": 2,
+  "poses": {
+   "training": 2,
+   "alert": 2,
+   "alertReduced": 1,
+   "idle": 0
+  }
+ },
+ {
+  "level": 1,
+  "variant": 2,
+  "berths": 2,
+  "poses": {
+   "training": 2,
+   "alert": 2,
+   "alertReduced": 1,
+   "idle": 0
+  }
+ },
+ {
+  "level": 1,
+  "variant": 3,
+  "berths": 2,
+  "poses": {
+   "training": 2,
+   "alert": 2,
+   "alertReduced": 1,
+   "idle": 0
+  }
+ },
+ {
+  "level": 2,
+  "variant": 0,
+  "berths": 3,
+  "poses": {
+   "training": 3,
+   "alert": 3,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 2,
+  "variant": 1,
+  "berths": 3,
+  "poses": {
+   "training": 3,
+   "alert": 3,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 2,
+  "variant": 2,
+  "berths": 3,
+  "poses": {
+   "training": 3,
+   "alert": 3,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 2,
+  "variant": 3,
+  "berths": 3,
+  "poses": {
+   "training": 3,
+   "alert": 3,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 3,
+  "variant": 0,
+  "berths": 4,
+  "poses": {
+   "training": 4,
+   "alert": 4,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 3,
+  "variant": 1,
+  "berths": 4,
+  "poses": {
+   "training": 4,
+   "alert": 4,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 3,
+  "variant": 2,
+  "berths": 4,
+  "poses": {
+   "training": 4,
+   "alert": 4,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 3,
+  "variant": 3,
+  "berths": 4,
+  "poses": {
+   "training": 4,
+   "alert": 4,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 4,
+  "variant": 0,
+  "berths": 5,
+  "poses": {
+   "training": 5,
+   "alert": 5,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 4,
+  "variant": 1,
+  "berths": 5,
+  "poses": {
+   "training": 5,
+   "alert": 5,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 4,
+  "variant": 2,
+  "berths": 5,
+  "poses": {
+   "training": 5,
+   "alert": 5,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 4,
+  "variant": 3,
+  "berths": 5,
+  "poses": {
+   "training": 5,
+   "alert": 5,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 5,
+  "variant": 0,
+  "berths": 6,
+  "poses": {
+   "training": 6,
+   "alert": 6,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 5,
+  "variant": 1,
+  "berths": 6,
+  "poses": {
+   "training": 6,
+   "alert": 6,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 5,
+  "variant": 2,
+  "berths": 6,
+  "poses": {
+   "training": 6,
+   "alert": 6,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ },
+ {
+  "level": 5,
+  "variant": 3,
+  "berths": 6,
+  "poses": {
+   "training": 6,
+   "alert": 6,
+   "alertReduced": 2,
+   "idle": 0
+  }
+ }
+]
