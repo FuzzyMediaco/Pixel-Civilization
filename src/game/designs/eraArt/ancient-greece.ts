@@ -1,7 +1,14 @@
-/**
- * Deliberate ancient-greece designs (illustrated-catalog redesign, docs/redesign/ART-BRIEF.md).
- * Each builder owns the element's whole parcel in this era. Names: src/game/eraNames/ancient-greece.ts.
- */
 import type { SignatureBuilder } from "../periodArtCatalog";
+import { buildAgora } from "./greek/agora";
+import { buildLyceum } from "./greek/lyceum";
+import { buildMessengerStoa } from "./greek/messengers";
+import { buildTreasury } from "./greek/treasury";
+import { buildTribunal } from "./greek/tribunal";
 
-export const signatures: Record<string, SignatureBuilder> = {};
+export const signatures: Record<string, SignatureBuilder> = {
+  public_library: buildLyceum,
+  post_offices: buildMessengerStoa,
+  courthouses: buildTribunal,
+  city_offices: buildAgora,
+  banks: buildTreasury,
+};
