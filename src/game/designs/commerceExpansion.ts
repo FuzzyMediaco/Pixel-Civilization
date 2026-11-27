@@ -27,7 +27,7 @@ import {
   tree,
   windows,
 } from "./kit";
-import { hull, pier, quayFoundation } from "./vehicles";
+import { buildSeafoodPier } from "./seafoodPier";
 import { defineDesigns, type DesignEntry } from "./registry";
 import { NEW_EXPANSION_BY_ID } from "../expansionSafetyMilitaryCommerce";
 
@@ -368,27 +368,5 @@ defineDesigns({
     shopper(c, 2, hz - 5);
   }),
 
-  seafood_pier: entry("seafood_pier", (c) => {
-    const { v, lv, hx, hz } = c;
-    const s = c.variant % 4;
-    const wall = ["wood", "sky", "red", "white"][s];
-    // Timber deck over water
-    quayFoundation(v, -hx + 1, -hz + 1, hx - 1, 2, "woodDark");
-    pier(v, -hx + 2, 2, hx - 2, hz - 3, "woodLight", "woodDark", 4, 2);
-    // Waterfront seafood house
-    const x0 = -hx + 3, x1 = hx - 3, z0 = -hz + 2, z1 = 1;
-    const h = 5 + Math.min(5, lv * 2);
-    v.box(x0, 2, z0, x1, h, z1, wall);
-    windows(c, x0, 2, z0, x1, h, z1, { stepH: 3, stepV: 4, emit: 0.55 });
-    gable(v, x0 - 1, h, z0 - 1, x1 + 1, z1 + 1, "x", "slate");
-    awning(v, x0 + 1, x1 - 1, 5, z1, "sky", "white");
-    // String lights over boardwalk
-    for (let x = -hx + 3; x < hx - 3; x += 3) v.put(x, 6, 4, "warmGlow", 1.4);
-    // Moored fishing skiff beside pier
-    if (hz >= 10) {
-      hull(v, { cx: 0, y0: 0, z0: 4, z1: hz - 2, beam: 4, h: 2, col: "white", stripe: "sky", open: true });
-    }
-    shopper(c, -2, 3, 2);
-    shopper(c, 3, 3, 2);
-  }),
+  seafood_pier: entry("seafood_pier", buildSeafoodPier),
 });

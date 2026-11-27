@@ -1223,11 +1223,11 @@ export const NEW_SAFETY_MILITARY_COMMERCE_ELEMENTS: ExpandedCivElement[] = [
     power: -4,
     water: -2,
     accentHex: "#0ea5e9",
-    description: "Boardwalk fish market and waterfront restaurant pier with moored skiffs and warm harbor lights.",
+    description: "A seafood counter links the shore to working floats, with a choice of a lobster-roof shack, lighthouse diner, fish auction hall or crab-claw canopy.",
     footprints: f23,
-    levelNames: ["Fish Stall", "Chowder Shack", "Seafood Deck", "Harbor Market Pier", "Grand Wharf Dining"],
-    styleNames: ["Weathered Cedar", "Nautical Blue", "Red Cannery", "Coastal White"],
-    growth: "A timber fish stall extends over the water with oyster decks, lighthouse sign and string-lit dining.",
+    levelNames: ["Dockside Counter", "Pier Kitchen", "Working Seafood Wharf", "Harbor Dining Court", "Grand Catch Landing"],
+    styleNames: ["Lobster Roll Shack", "Beacon Diner", "Fish Auction Hall", "Crab-Claw Canopy"],
+    growth: "A dockside counter gains a kitchen and a working float. Dining wings and covered markets grow around a lobster bridge, glazed lookout, auction court or twin pincer gates.",
   },
 ];
 

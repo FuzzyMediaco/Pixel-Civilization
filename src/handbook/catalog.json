@@ -24925,14 +24925,14 @@
       "recreation": 36,
       "income": 52
     },
-    "description": "Boardwalk fish market and waterfront restaurant pier with moored skiffs and warm harbor lights.",
-    "usage": "Boardwalk fish market and waterfront restaurant pier with moored skiffs and warm harbor lights.",
-    "growth": "A timber fish stall extends over the water with oyster decks, lighthouse sign and string-lit dining.",
+    "description": "A seafood counter links the shore to working floats, with a choice of a lobster-roof shack, lighthouse diner, fish auction hall or crab-claw canopy.",
+    "usage": "Put a berth beside a vessel and check the approach is deep and clear enough for its draft.",
+    "growth": "A dockside counter gains a kitchen and a working float. Dining wings and covered markets grow around a lobster bridge, glazed lookout, auction court or twin pincer gates.",
     "maxLevel": 5,
     "levels": [
       {
         "level": 1,
-        "name": "Fish Stall",
+        "name": "Dockside Counter",
         "dimensions": [
           2,
           1
@@ -24941,7 +24941,7 @@
       },
       {
         "level": 2,
-        "name": "Chowder Shack",
+        "name": "Pier Kitchen",
         "dimensions": [
           2,
           2
@@ -24950,7 +24950,7 @@
       },
       {
         "level": 3,
-        "name": "Seafood Deck",
+        "name": "Working Seafood Wharf",
         "dimensions": [
           3,
           2
@@ -24959,7 +24959,7 @@
       },
       {
         "level": 4,
-        "name": "Harbor Market Pier",
+        "name": "Harbor Dining Court",
         "dimensions": [
           3,
           3
@@ -24968,7 +24968,7 @@
       },
       {
         "level": 5,
-        "name": "Grand Wharf Dining",
+        "name": "Grand Catch Landing",
         "dimensions": [
           3,
           3
@@ -24979,19 +24979,19 @@
     "styles": [
       {
         "index": 0,
-        "name": "Weathered Cedar"
+        "name": "Lobster Roll Shack"
       },
       {
         "index": 1,
-        "name": "Nautical Blue"
+        "name": "Beacon Diner"
       },
       {
         "index": 2,
-        "name": "Red Cannery"
+        "name": "Fish Auction Hall"
       },
       {
         "index": 3,
-        "name": "Coastal White"
+        "name": "Crab-Claw Canopy"
       }
     ],
     "partner": {
