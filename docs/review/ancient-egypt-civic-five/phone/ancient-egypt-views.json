@@ -1,0 +1,72 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "fixtureSha256": "0fdb24be1256dcbfa48c1d171e7339585bde85e297782e58ca7152e5524d6bc5",
+  "records": [
+    {
+      "view": "district",
+      "camera": {
+        "target": [
+          2,
+          0.6,
+          0
+        ],
+        "radius": 143,
+        "theta": 0.38,
+        "phi": 0.67,
+        "fov": 44
+      },
+      "era": "ancient-egypt",
+      "time": 14,
+      "stage": 8,
+      "width": 390,
+      "height": 844,
+      "elements": 245,
+      "layoutHash": "9ef27694d180d3c30d78154e72bec59e956f2beea0fc213c05d02f72db82ba6f"
+    },
+    {
+      "view": "street",
+      "camera": {
+        "target": [
+          2,
+          0.6,
+          -4
+        ],
+        "radius": 85,
+        "theta": 0.17,
+        "phi": 0.85,
+        "fov": 44
+      },
+      "era": "ancient-egypt",
+      "time": 14,
+      "stage": 8,
+      "width": 390,
+      "height": 844,
+      "elements": 245,
+      "layoutHash": "9ef27694d180d3c30d78154e72bec59e956f2beea0fc213c05d02f72db82ba6f"
+    },
+    {
+      "view": "overhead",
+      "camera": {
+        "target": [
+          2,
+          0.6,
+          -4
+        ],
+        "radius": 104,
+        "theta": 0,
+        "phi": 0.27,
+        "fov": 44
+      },
+      "era": "ancient-egypt",
+      "time": 14,
+      "stage": 8,
+      "width": 390,
+      "height": 844,
+      "elements": 245,
+      "layoutHash": "9ef27694d180d3c30d78154e72bec59e956f2beea0fc213c05d02f72db82ba6f"
+    }
+  ]
+}

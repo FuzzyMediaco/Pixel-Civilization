@@ -22,3 +22,5 @@ The [previous civic scan](before.json) flagged 144 neighboring presentations and
 | D | [Five levels](gray-3.webp) | [Five levels](silhouette-3.webp) |
 
 The artist inspected these renders. Independent player recognition and physical-device review remain open.
+
+The game also rendered the same saved civic neighborhood before and after at a 390 × 844 phone viewport. The [district](phone/ancient-egypt-district.webp), [street](phone/ancient-egypt-street.webp) and [overhead](phone/ancient-egypt-overhead.webp) views share parcel placements, camera settings and time of day. The [capture record](phone/ancient-egypt-views.json) includes the save and layout hashes.
