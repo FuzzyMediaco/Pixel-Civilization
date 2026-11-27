@@ -1,0 +1,326 @@
+# id | Overhead cue to protect or build | A | B | C | D
+ferry_landings | Passengers cross a short threshold between land and floating pontoon | T-shaped float | Cove landing stair | Covered finger jetty | Two-sided passenger island
+docks | Clear loading edge with a straight vehicle approach | Sawtooth cargo apron | U-shaped basin | Comb of finger piers | Rail-to-quay elbow
+boats | Small open hull with room to sit | Plumb bow punt | Round coracle | Forked outrigger | Pointed row skiff
+sail_boats | Negative space between mast, hull and sail | Catboat fan | Tandem schooner | Twin-hull sloop | Lateen triangle
+speed_boats | Pointed bows throw long open wakes | Needle runabout | Twin-deck launch | Catamaran cockpit | Swept hydroplane
+ship_building_areas | A bare hull follows its keel out of a working berth | Straight keel cradle | Fan of slipways | Covered rib shed | Double-ended timber ramp
+shipyards | Gantries span an exposed hull | Dry dock cut | Broadside crane line | Graving basin | Twin railway cradles
+naval_vessels | Recognizable ceremonial fleet outline | Raised forecastle | Twin funnels | Open quarterdeck | Bridge amidships
+submarines | Rounded capsule breaks the water beside its berth | Long narrow sail | Twin observation bubbles | Turtleback casing | Flush research deck
+aircraft_carriers | Flat exhibition flight deck frames bright deck lanes | Island to one side | Straight through-deck | Flared stern terrace | Twin viewing galleries
+naval_patrol_cutter | Compact hull and raised wheelhouse | Forecastle cabin | High bridge wing | Aft working bay | Swept patrol bow
+naval_frigate_ship | Ship's bridge gives a slender hull its height | Paired funnels | Mast amidships | Open stern | Stepped bridge
+naval_minesweeper | Broad stern work deck with colorful maritime markers | Reel court | Split aft deck | Tall lookout | Buoy rack aisle
+naval_hospital_ship | Large medical cross readable along a peaceful deck | Rooftop cross court | Twin ward wings | Ambulance reception bay | Open recovery terrace
+harbor_tugboat | Stubby bow under a tall wheelhouse | Single stack | Double stack | Wheelhouse forward | Raised wheelhouse over open tow deck
+boatyard_slipway | Boat cradle slides between water and repair bench | Straight tracks | Sideways launch | Split cradle | Covered hoist
+taxi_ranks | Passenger bays hug a kerb | Sawtooth pickup | Head-to-tail island | U-shaped taxi court | Fan of awnings
+roads | Road edges frame a continuous pair of lanes | Pocket-tree verge | Two-sided porch street | Median refuge chain | Colonnaded shop edge
+dirt_roads | Dirt tracks wear through the roadbed | Two wheel ruts | Range fence verge | Raised dry causeway | Orchard ditch edge
+paths | Feet link two entrances across a parcel | Straight pavers | Flagstone ribbon | Stepping pads | Pebble-edged lane
+walking_paths | A social walking promenade | Twin planting margins | Shaded pergola strip | Broken bench bays | Curved gate frames
+trails | Narrow foot route cuts through terrain | Ridge cairns | Switchback markers | Timber step runs | Fern-lined hollow
+side_walks | Front doors meet a pedestrian edge | Continuous stoop | Tree-pit rhythm | Arcade columns | Rain garden curb
+two_lane_roads | Broken center marking separates opposing lanes | Hedge-backed edge | Farm gates | Shared tree median pockets | Stone wall verge
+pretty_roads | Landscaped road invites a slow stroll | Flower-island avenue | Arched tree canopy | Fountain-side verge | Garden wall rhythm
+train_tracks | Railhead continuity at every join | Timber sleepers | Slab guideway | Ballasted ties | Service-walk edge
+train_stops | Boarding edge stays visible beside live track | Linear platform roof | Island under a bow canopy | Staggered shelters | Raised footbridge platforms
+train_depots | Rails converge at engine doors | Fan of repair bays | Turntable roundhouse | Paired inspection pits | Through engine hall
+bridges | Framed void beneath the deck grows with run length | Warren triangles | Crossed lattice | Pratt diagonals | Bowstring ribs
+stone_bridges | Open spans show the river between stone piers | Single segmental arch | Twin barrel spans | Pointed cutwaters | High central ogee
+boardwalks | Piles carry a raised pedestrian deck | Fishing alcoves | Staggered marsh hides | Beach colonnade | Harbor belvedere
+bus_stops | Clear curbside boarding face across three levels | Cantilever blade | Paired shelters | Planted rain roof | Arching shade sail
+bus_depots | Fleet bays and a turning apron | Sawtooth sheds | Depot loop | Twin wash courts | Perimeter parking comb
+taxi_depots | Garage organized around a waiting rank | Checker courtyard | Drive-through workshop | Split-level cab terrace | Radial charging bays
+highways | Wide, divided arterial with protected approaches | Planted median stripe | Soundwall pockets | Paired verge masts | Open-cut slopes
+freeways | Continuous high-capacity spine | Twin lighting spine | Stepped berms | Portal gantry rhythm | Ribbed edge barriers
+over_passes | Elevated deck exposes a crossing below | Hammerhead piers | A-frame supports | Portal bents | Single-column cantilevers
+underpasses | Road dips between two visible retaining faces | Daylight slots | Stepped planted walls | Arched lid | Plaza above portal
+suspension_bridges | Suspended deck between landmark towers | Twin portal towers | Pointed Gothic openings | Forked saddles | Stepped Deco pylons
+tram_station | Boarding platforms line tram wires | Island canopy | Staggered stops | Through pavilion | Double-ended turnback plaza
+house | A front door opens onto a human-scale porch | Tree porch | L-shaped hearth | Slope steps | Garden court
+tiny_homes | Compact room plus a useful outdoor threshold | Sleeping loft | Pull-out porch | Deck pair | Garden A-frame
+trailer_home | A narrow home can extend sideways into a yard | Screened side deck | Tandem trailers | Hitch-end porch | Shared shade roof
+cottages | Garden and roof frame the front path | Dormer pair | Walled kitchen garden | Split gable | Round chimney nook
+medium_sized_homes | Two wings shelter a family yard | Cross gable | U-shaped porch | Split level | Courtyard corner
+townhomes | Joined units mark individual doors | Stepped stoops | Shared clothesline lane | Sawtooth bays | Mews around garden
+large_homes | Quiet residential wings meet around a recognizable void | Courtyard lawn | Terrace stair | Gate lodge axis | Linked pavilions
+apartments | Shared circulation is visible from the street | Exterior stair court | Breezeway slab | Gallery horseshoe | Terraced walk-up
+beach_houses | Raised living decks turn toward the coast | Dune boardwalk | Stilted pair | Ocean-facing verandah | Split windbreak wings
+villas | Open-air living surrounds a planted retreat | Pool court | Stepped hillside wings | Loggia garden | Orchard enclosure
+apartment_buildings | Apartment wings reveal communal entrances | Double-loaded gallery | Offset slabs | Orchard courtyard | Linked corner towers
+condos | Stacked private terraces share an entrance | Terraced fan | Paired penthouses | Open atrium | Ribbon balcony
+mansions | Grand entrance organizes the estate grounds | Crescent drive | Reflecting axis | Split garden wings | Hilltop belvedere
+skyscrapers | A residential skyline has an inhabited crown | Terraced garden stack | Twisting balconies | Split shaft | Framed penthouse void
+rowhouse_duplex | Two front doors meet an intimate shared space | Paired gables | Rear clothesline | Split stoop | Mirror courts
+courtyard_villa | A single outdoor room ties the wings together | Pool atrium | Orange court | Wrapped pergola | Sunken garden
+mixed_use_midrise | Retail threshold runs beneath stacked homes | Arcaded corner | Stepped market roof | Residential bridge | Open shop court
+penthouse_tower | Distinct top-floor silhouette with a visible private terrace | Setback crown | Hanging garden | Sky courtyard | Twin penthouse wings
+mega_skyscraper | A distant silhouette with daylight through its mass | Tripod crown | Sky slot | Stacked decks | Spiraling buttresses
+businesses | A group of workplaces shares a public threshold | @variants
+grocery_store | Produce and baskets frame the entrance | @variants
+shops | Small doorways give a shopping lane its rhythm | @variants
+blacksmiths | Visible hearth and anvil mark the forge yard | @variants
+restaurants | Giant food forms shelter dining rooms | @variants
+clothing_stores | A garment or its making tools shape the shop | @variants
+thrift_stores | Reused objects shelter a secondhand market | @variants
+shoe_stores | A shoe-shaped envelope gives the shop its entrance | @variants
+cheesesteak_restaurants | Customers order through openings in the giant sandwich | @variants
+bars | Recognizable vessel over a convivial room | @variants
+gas_stations | A forecourt shelters clearly separated vehicle bays | @variants
+atms | A 1×1 kiosk frames an unmistakable transaction opening | @variants
+buildings | Downtown office floors create a recognizable distant profile | @variants
+banks | A squat closed strongroom anchors the parcel | @variants
+malls | Multiple shop entrances turn toward a common interior | @variants
+data_centers | Cooling infrastructure wraps rows of server aisles | @variants
+artisan_bakery | Customers enter a warm baked-goods silhouette | @variants
+coffee_roastery | Coffee-making equipment forms the roastery envelope | @variants
+retro_diner | A landmark service counter frames booth seating | @variants
+hardware_store | A large shop tool doubles as the building | @variants
+indie_bookstore | Street cart and sale display distinguish a bookshop from a lending room | @variants
+flower_shop | Flower forms create recognizable planted retail thresholds | @variants
+neighborhood_pharmacy | A dispensary occupies a recognizable apothecary object | @variants
+cinema_theater | The audience enters beneath a movie-making silhouette | @variants
+bowling_alley | A dramatic bowling object spans a lane hall | @variants
+retro_arcade | A cabinet-shaped threshold marks a playable interior | @variants
+auto_dealership | Displayed vehicles rise above a showroom threshold | @variants
+furniture_showroom | Household furniture becomes an inhabited shop | @variants
+boutique_hotel | The guest entry sits inside a travel landmark | @variants
+art_gallery | A framed void leads into a sculpture court | @variants
+jazz_club | The bell of an instrument opens toward the street | @variants
+coworking_loft | Shared work benches frame a communal breakout space | @variants
+tech_startup_hub | A playful invention organizes an office campus | @variants
+department_store | Display windows wrap a generous public entry | @variants
+night_market | An open passage threads between illuminated stalls | @variants
+seafood_pier | Landward counter and waterward moorings share one deck | @variants
+solar_panels | A compact array turns toward the sun | Folding fan | Paired inclined leaves | Sawtooth rack | Raised shade sail
+landfill | Distinct waste and reclaimed ground read from above | Terrace stack | Winding access cut | Capped green berm | Sorting apron
+windmills | Sails span a working mill body | Post mill | Smock mill | Round tower mill | Mill on causeway
+wind_turbines | Clear space surrounds a wind rotor | Tall tripod mast | Paired narrow masts | Helical column | Cantilever nacelle
+trash_compacting_plants | The route from loose waste to neat bales crosses an open yard | Compression court | Bale stack alley | Forked belt | Covered loading loop
+factories | Production bays lead to a visible output yard | Sawtooth workshop | Crane hall | Twin yards | Stacked line
+coal_powerplants | Fuel storage leads to a boiler and high stacks | Coal yard spine | Twin stacks | Boiler island | Rail-side bunkers
+solar_farms | Rows of collectors define the parcel | Radial mirror court | Parallel arrays | Terraced slope | Panel canopy lanes
+natural_gas_power_plants | Turbine hall and exhaust stacks flank a service yard | Drum cluster | Sawtooth turbine bays | Stack row | Pipe-rack court
+trash_burning_plants | Waste hall, furnace and scrubber stack form a sequence | Aisle to stack | Twin furnace court | Stepped scrubber hall | Wrapped heat exchangers
+wind_farms | Rotors are spaced to show a landscape beneath | Ridge line | Staggered field | Crescent around pond | Terraced rows
+hydro_electric_power_plants | Water traverses a clearly different upper and lower level | Broad spillway | Side powerhouse | Stepped falls | Arch dam
+geothermal_power_plants | Steam and pipe loops converge at a turbine shed | Wellhead fan | Cooling pond court | Paired steam towers | Cascading basins
+micro_reactor_nuclear | Compact sealed energy core beside a service annex | Seated drum | Twin shallow domes | Sunken garden rim | Offset utility wing
+nuclear_power_plants | Cooling and generation form distinct masses | Paired cooling towers | Dome and pool | Turbine spine | Crescent cooling yard
+tidal_turbine_array | Tidal gaps frame submerged power wheels | Channel line | Paired pylons | Fan of rotors | Curved causeway
+recycling_center | Trace the route from drop-off to sorted bales | Forked conveyor | Sorting carousel | Cutaway drum | Stepped bale court
+compost_works | Open windrows progress toward finished soil | Parallel beds | Spiral compost court | Drum and sieve | Branched turning lanes
+school | A play yard opens between learning spaces | Bell-gabled court | Classroom pinwheel | Open-air school | Terraced learning steps
+park | Leisure paths connect recognizable gathering spots | Meandering pond walk | Open performance lawn | Pavilion ring | Playground glade
+little_parks | A tiny quiet room in a busy block | Corner bench grove | Pocket fountain | Pergola wedge | Sunken play nook
+gardens | Paths reveal distinct planted beds | Radial beds | Walled herb rooms | Trellis passage | Glasshouse grove
+city_offices | An asymmetric civic beacon fronts a public square | @variants
+post_offices | A long mail hall exposes a dispatch yard | @variants
+tax_collecting_office | Payment counter and records storage read apart from the bank's vault | Receipt-scroll hall | Ledger court | Counter arcade | Compact archive drum
+fire_department | Open apparatus doors face a clear engine apron | Straight engine row | Drill-tower court | Historic hose house | Two-sided station
+community_centers | Shared gathering spaces open onto the neighborhood | Open stage court | Gym-and-garden pair | Workshop crescent | Hall under a canopy
+italian_gardens | Water terraces and clipped planting form an axis | Cascading stair | Amphitheater garden | Mirror pools | Orchard parterre
+courthouses | A tall, symmetric hearing hall caps a ceremonial approach | @variants
+government_buildings | A public assembly chamber crowns a formal approach | Drum chamber | Axial council wings | Courtyard assembly | Steps under a canopy
+large_parks | Open landscape connects several distinct destinations | Serpentine lake | Meadow circuit | Woodland amphitheater | Terraced commons
+preschool | Small sheltered play rooms face a safe central yard | Chalk court | Storybook porch | Loop of play huts | Garden pavilion
+country_schoolhouse | One classroom and an entrance bell sit in open ground | Front bell gable | Schoolyard oak | Split cloakroom porch | Orchard classroom
+elementary_school | Children approach through an unmistakable play court | Classroom fingers | U-shaped playground | Library bridge | Garden quadrants
+middle_school | Linked learning wings define a shared social court | Offset classroom bars | Media-center drum | Raised gallery | Court amphitheater
+high_school | Civic-scale school shows links between sports and classrooms | Gym spine | Science court | Fieldhouse terrace | Assembly block
+trade_school | Training workshops open onto a practical yard | Sawtooth tool bays | Exposed frame court | Crane shed | Demonstration lane
+community_college | Learning pavilions line a public walk | Main-street arcade | Garden quad | Split workshop spine | Lecture bowl
+university | Academic courts connect to a recognizable common | Collegiate quad | Radial lecture gardens | Library axis | Linked research wings
+research_university | Laboratory blocks reveal shared experimental spaces | Observatory axis | Glass research bridge | Sunken lab court | Terraced institutes
+sports_field | A legible playing surface stays open | Oval track | Sunken pitch | Side bleachers | Clubhouse gate
+research_institute | An instrument or test court becomes the central void | Testing ring | Observation tower | Greenhouse wing | Cutaway lab terrace
+public_library | Low reading wings open to a court, gutter, alley or story stage | @variants
+borough_assembly | Assembly seating faces a public speaking threshold | Semicircle seats | Porch meeting hall | Gathered ward pavilions | Split gallery
+civic_records_archive | Dense stacks open onto one legible reading space | Ledger stack | Index drum | Shelved alley | Archive bridge
+city_planning_bureau | An open city model sits under a surveying room | Map-table court | Pencil mast | Terraced zoning strips | Compass rotunda
+public_works_directorate | Workshops and public counter sit on opposite sides of a vehicle court | Garage comb | Equipment crescent | Pipe-yard spine | Oversailing canopy
+national_parliament | National assembly and public precinct form an axis | Circular chamber | Twin debating halls | Ceremonial stair | Open colonnade
+supertree_grove | Tree-like towers shelter connected garden decks | Canopy necklace | Root court | Stepped grove | Twin lookout crowns
+water_treatment_plant | Trace the water from intake to clean outlet | Serpentine beds | Paired settling courts | Radial filter drums | Horseshoe channels
+wells | A small vertical shaft meets an accessible water point | Timber winch | Open pump courtyard | Bucket beam | Spring colonnade
+water_towers | Water tank held clearly above the ground | Braced barrel | Mushroom bowl | Tripod sphere | Twin communicating tanks
+water_places | Moving water defines an urban gathering space | Stepped cascade | Radial splash court | Rill axis | Sunken fountain bowl
+canals | A wet channel remains joined across both borders | Lock terraces | Low footbridge | Towpath landing | Quayside steps
+water_pumping_station | Intake and outlet stay legible on opposite sides | Beam pump | Spiral intake | Paired pump sheds | Elevated discharge gallery
+municipal_reservoir | Shore path outlines stored water and a marked outlet | Arch dam | Sunken ring | Stepped banks | Twin linked basins
+aqueduct | Visible channel perches on open spans | Single high arcade | Double-tier arches | Broad central arch | Cantilevered trough
+desalination_plant | Seawater comes ashore through a chain of processing halls | Intake pier and drum court | Membrane rack spine | Stepped filter galleries | Solar canopy yard
+water_tile | Open water meets visibly different edges | Shallow shoal | Dark pool rim | Reed inlet | Rock shelf
+spring_house | A shelter frames a source and its outflow | Barrel-vault spring | Timber hood | Split trough | Fern grotto
+tidal_sluice | Tide passes between movable gates | Lifting beam | Twin gates | Stepped bypass | Hoist tower
+farms | The working yard touches fields and animal enclosures | Dairy loop | Pig yard | Wheat strips | Pumpkin court
+farm_houses | A farmhouse overlooks its working yard | Porch facing barn | Walled herb court | Split carriage wing | Raised homestead
+fields | Field geometry carries the crop pattern | Long furrows | Patchwork strips | Sunflower wheel | Padded rice terraces
+orchards | Fruit-tree canopies leave picking lanes | Grid of crowns | Curved harvest aisle | Sloping espaliers | Mother-tree court
+groves_of_olives | Silver olive crowns follow stone terraces | Contour terraces | Press court | Narrow grove rows | Solitary ancient tree
+plantations | Paths organize fields around processing yards | Tea contour strips | Shade-grown coffee | Cane wagon lanes | Trellised vine court
+vegetable_farm | Productive beds connect with a packing point | Raised vegetable ribbons | Glass nursery spine | Market-yard beds | Radial allotments
+grain_farm | A harvest path connects field and storage | Elevator spine | Pivot circle | Twin threshing yards | Contour crops
+dairy_farm | Cows move between pasture, parlor and cooling tanks | Herringbone parlor | Round milking yard | Paddock comb | Covered dairy lane
+poultry_farm | Nest sheds open onto several runs | Long laying houses | Radial free-range pens | Orchard poultry yard | Pond-edge coops
+cattle_ranch | Fenced lanes lead to a recognizable stockyard | Fan of sorting pens | Round corral | Creek pasture | Long handling lane
+horse_ranch | Stalls face an open exercise space | Riding ring | U-shaped stable | Paddock lanes | Jumping course
+apiary | Hive courts share flowering flight paths | Honeycomb courts | Orchard hive line | Terraced boxes | Circular meadow
+vineyard | Trellis rows reveal harvest and pressing | Hillside rows | Pergola vineyard | Barrel court | Radiating vines
+rice_farm | Water and earthen banks alternate | Ladder paddies | Contour tiers | Ponds around wheel | Branched irrigation
+greenhouse_farm | Glazed roofs expose plants growing underneath | Victorian ridge house | Hydroponic spine | Sawtooth ranges | Hoop tunnels
+vertical_farm | Planted trays stack vertically in full view | Leaf tower | Spiral trays | Sunlight atrium | Solar terraces
+vegetable_fields | Beds leave access for a gardener and watering lines | Raised boxes | Circular plots | Drainage strips | Small allotment courts
+grain_fields | Ripe grain and harvested sheaves trace an open field | Long swaths | Contour bands | Bale ring | Chequered harvest strips
+orchard_block | Rows of fruit trees leave a picking route | Espalier wall | Cross aisles | Ring orchard | Staggered crowns
+grazing_pasture | Open grazed surfaces are divided for rotation | Radial paddocks | Stream crossing | Long narrow strips | Central shade tree
+livestock_pen | Different animals get different enclosed spaces | Round stock pen | Branched pens | Wallows under shade | Terraced goat yard
+chicken_coop | Small repeated nest houses open onto secure runs | Raised nest row | Canted double coop | Enclosed orchard | Ring of hutches
+feed_silo | Stored grain funnels toward a common loading point | Single hopper | Paired bins | Bank of silos | Grain elevator axle
+irrigation_pond | A bank cut connects stored water and ditches | Crescent pond | Linked settling pools | Broad reed margin | Straight flume outlet
+greenhouse_bay | Tiny glazed units show propagating plants | Lean-to glass | Curved hoop bay | Flat cold frames | Twin-span nursery
+police_precinct | Public entry and neighborhood patrol court share a modest building | Corner desk | Walk-through courtyard | Bicycle arcade | Stepped station
+jails | A compact enclosed yard marks short-stay custody | Ring yard | Paired cell wings | Covered service court | Compact gatehouse
+police_departments | A civic front opens onto a larger operations yard | Dispatch tower | Public counter arcade | Garage quadrangle | Stepped municipal hall
+prisons | Courtyard pattern distinguishes a larger institution | Radial wards | Double courtyard | Terraced garden wards | Perimeter cloister
+military_base | Ceremonial buildings frame a parade square | Open parade axis | Courtyard barracks | Central flag rotunda | Stepped grandstand
+naval_base | Piers open to a working harbor | Finger berths | Crescent basin | Gate quay | Signal yard
+swat_team_hq | A fictional city unit occupies a recognizable briefing and vehicle hall | Garage court | Muster terrace | Overhung canopy | Twin briefing wings
+airforce_base | A broad flight apron meets low buildings | Linear hangars | Crescent terminal | Central wind sock | Stepped viewing deck
+submarine_base | Low curved berths shelter long narrow hulls | Covered basin | Twin ramps | Round quay | Long viewing gallery
+police_heli_pad | Helicopter landing disk meets a civic threshold | Rooftop disk | Ground circle | Raised platform | Split viewing terrace
+medevac_heli_pad | Direct threshold between landing circle and ambulance bay | Roof landing | Courtyard pad | Wing bridge | Garden-side pad
+fire_heli_base | Bright landing apron is paired with a water-service hall | Circular pad | Twin pad terrace | Tank court | Covered equipment bay
+emergency_dispatch | Operators overlook a clearly visible service plaza | Radio drum | Fan of desks | Glazed command floor | Tower and low wing
+k9_police_unit | Kennel bays surround an outdoor exercise yard | Run lanes | Ring course | Shaded dog court | Stepped kennels
+forensic_crime_lab | Daylit laboratories and a public reception wing | Microscope atrium | Paired lab bars | Sample court | Glazed sawtooth roof
+coast_rescue_station | Lookout faces water across a launching slip | Lifeboat ramp | Lookout lantern | Twin slips | Elevated rescue deck
+hazmat_response | Vehicles and wash bays frame a compact response yard | Wash-through lane | Paired apparatus sheds | Covered staging pad | Drum-shaped supply room
+fire_academy | Classroom opens toward a visible practice yard | Stair tower | Mock street court | Engine arcade | Seating terraces
+traffic_precinct | Marked loops and bicycle bays ring a civic counter | Cycle arcade | Traffic garden | Driving loop | Signal mast
+riot_command_center | Municipal assembly and equipment bays share a threshold | Muster court | Briefing hall | Garage spine | Flag plaza
+search_rescue_hq | Equipment and rescue crews meet at a bright assembly point | Rope tower | Gear court | Rescue boat shed | Beacon pavilion
+civil_defense_bunker | Earth berm shelters a clearly marked public refuge | Sunken atrium | Low arched entry | Planted mound | Daylight shafts
+harbor_patrol_pier | A civic lookout oversees small craft berths | Watch lantern | T-head pier | Paired slips | Covered inspection quay
+army_garrison | Barracks face a ceremonial common | Long drill square | Garden courts | Ringed flag plaza | Twin barrack courts
+army_signal_corps | Masts and a signal room overlook an open yard | Mast garden | Wire canopy | Dish court | Signal bridge
+army_logistics_depot | Visible storage aisles meet a transport apron | Sawtooth stores | Rail siding | Open crate courts | Covered service spurs
+army_airborne_school | A training campus centers on recreational equipment | Practice tower | Classroom arc | Canopy pavilion | Open drill lawn
+army_engineer_base | A civic-scale works yard displays bridge models and construction equipment | Assembly shed | Mock-span court | Gantry yard | Terrace workshops
+army_medical_corps | Ward pavilions frame a recovery space | Hospital cross | Garden wards | Covered ambulance lane | Courtyard canteen
+naval_shipyard_base | Large repair infrastructure frames a ship cradle | Twin dock walls | Gantry aisle | Covered hull shed | Stepped quay
+naval_coast_guard_base | Rescue station and working berths line the coast | Lifeboat house | Lookout wedge | Fan pier | Shelter court
+naval_destroyer_dock | Long ceremonial berth faces a shore gate | Straight quay | Visiting gallery | Service finger | Split gangway
+naval_carrier_berth | Broad viewing quay accommodates a large ship silhouette | Long parallel apron | Stepped gangways | Pier bridge | Ring viewing platform
+naval_amphibious_dock | A low ramp defines the land-water transition | Twin beach lanes | Sloping quay | Floating bridge | Terraced slip
+strategic_bomber_wing | Aircraft exhibition silhouettes frame an open apron | Swept-roof hall | Twin hangar arch | Viewing berm | Wing-shaped canopy
+stealth_bomber_hangar | A faceted fictional aircraft shelters under a sharp roof | Folded shell | Low diamond hall | Split wedge | Sunken exhibition court
+fighter_wing_base | Swept forms punctuate a low airfield apron | Paired sheds | Pointed shade sails | Viewing tower | Radial parking
+airlift_cargo_base | Big cargo doors face a freight staging area | Pallet court | High loading canopy | Forked apron | Twin cargo halls
+awacs_radar_base | A broad dish anchors an airfield silhouette | Dish mast | Ring pavilion | Low dish court | Glazed lookout
+drone_recon_base | Small fictional flyers gather around a readable docking surface | Perch tree | Open hangar ring | Pocket landing courts | Balcony rows
+marine_corps_base | Barracks, flag space and water access share a campus | Parade court | Shore gatehouse | Terraced quarters | Open pavilion
+marine_amphib_base | Slips and ramps align a ceremonial shore station | Fan of ramps | Beach crescent | Covered jetty | Basin gate
+marine_aviation_wing | Aircraft halls cluster around a coastal flight apron | Hangar spine | Seaside lookout | Split apron | Canopy ring
+coastal_corvette | A compact long hull has a clearly separated public-facing bridge | Flared bow | Midship lookout | Open stern deck | Split bridge wings
+churches | A congregational hall and gathering forecourt meet at an obvious entrance | Bell gable | Courtyard nave | Low timber chapel | Broad porch
+graveyards | Paths thread between markers and quiet open spaces | Yew-lined avenue | Circular remembrance garden | Hillside terraces | Walled cloister
+christian_churches | Sanctuary axis ties a steeple to its public entrance | Cross plan | Basilica aisle | Bell-tower courtyard | Round baptistry
+monasteries | Protected walks encircle gardens for study | Square cloister | Stepped gardens | Twin courts | Hilltop refectory
+mosques | Prayer hall and courtyard have a legible approach | Arcaded sahn | Domed central hall | Shaded portico | Garden forecourt
+synagogues | The central gathering space and street entry are legible | Gabled prayer hall | Lantern-roof sanctuary | Courtyard wing | Two-story gallery
+temples | Ceremonial paths sequence pavilions and gates | Terraced sanctuary | Courtyard gate | Processional axis | Circular precinct
+lds_temples | Spires and landscaped approaches establish a calm axial profile | Central spire | Tiered terraces | Twin end towers | Formal reflecting court
+bell_tower_chapel | A belfry sits beside a modest sanctuary | Open timber frame | Gate belfry | Twin bells | Hillside spire
+stone_abbey | Masonry cloister links a tall sanctuary and sheltered walks | Square garth | Side chapter house | Terraced court | Ribbed crossing
+zen_shrine | A quiet path ends at a small framed sanctuary | Rock garden threshold | Pavilion over water | Gate sequence | Bamboo courtyard
+meditation_pavilion | Open shelter and garden reveal still space | Circular canopy | Split screens | Floating deck | Sunken seating
+trees | A canopy breaks around visible branches and shade | Forked crown | Leaning trunk | Ring of saplings | Hollow canopy
+plants | A recognizable plant habit creates form at ground level | Rosette | Upright spikes | Trailing mats | Broad fan leaves
+shrubs | A dense low canopy breaks into planted edges | Mounded hedge | Terrace cascade | Wind-shaped clump | Open flowering ring
+bushes | Soft clusters form small habitat niches | Thorny thicket | Berry mounds | Coppiced stools | Winding understory
+pine_trees | Conifer tiers leave daylight under their tips | Spire pine | Wind-bent crown | Twin firs | Open bristlecone
+ponds | A shallow bank frames small open water | Kidney pool | Twin reed pools | Lily cove | Rock-rimmed bowl
+hills | Positive and negative slopes reveal the contour line | Rounded knoll | Twin saddles | Stepped ridge | Split ravine
+rivers | Water follows a clear route through the parcel | Meander | Gravel braid | Shaded bend | Rocky narrows
+sand | Surface contours suggest wind and shore | Ripple rows | Crescent dune | Blowout hollow | Shell fan
+beaches | Shoreline alternates wet edge and usable sand | Pocket cove | Spit beach | Dune-backed shore | Rock pools
+beach_umbrellas | Shade tops mark gathering spaces along a shore | Paired parasols | Cloth sail | Clustered fans | Cabana row
+lakes | An open water center meets a distinctive bank | Island lake | Sheltered bay | Cliff margin | Reed deltas
+wide_rivers | Broad water bends around islands and shoals | Midstream island | Braided reach | Floodplain crescent | Terraced bank
+redwood_trees | Massive straight trunks rise through layered canopy | Cathedral grove | Fallen nurse log | Split giant | Central clearing
+mountains | Summits and valleys form contrasting skyline outlines | Twin peaks | Cirque bowl | Serrated ridge | Solitary top
+canyons | A deep cut shows its route through stepped strata | Slot cut | Horseshoe bend | Twin ravines | Terraced gorge
+deserts | Bare ground alternates between dunes and habitat | Barchan field | Rock garden | Dry wash | Oasis basin
+tubbleweeds | Rounded branching forms leave open space below | Lone rolling bush | Caught at a fence | Cluster in a wash | Windblown drift
+swamps | Rooted islands break a winding open water course | Cypress knees | Tussock channels | Fallen-log bridge | Reed basin
+alligators | A long low body and tail read against its bank | Basking log | Shallow inlet | Nest mound | Half-submerged turn
+shoreline_overlook | The path terminates at an outward-facing coastal viewpoint | Cliff deck | Dune stair | Curved sea wall | Rocky balcony
+tidal_pool_walk | A walk links exposed pools without obscuring them | Stepping stones | Spur boardwalk | Ring path | Parallel tide channels
+large_landmarks | An inhabitable sculptural void anchors a square | Monumental arch | Stepped tower | Ring sculpture | Hollow column
+washington_monument | Protect the tapered obelisk and open approach | Promenade axis | Circular flag plaza | Reflecting terrace | Low landscape steps
+white_house | Central executive residence retains its flanking wings | South lawn approach | Portico arrival | Colonnaded garden | North entry terrace
+smithsonian | Protect the museum's masonry castle profile | Tower garden | Exhibit court | Arched forecourt | Linked gallery garden
+eiffel_tower | A widening lattice base frames four open legs | River approach | Lawn axis | Sunken plaza | Promenade crossing
+the_london_eye | Wheel and its cantilever support frame a clear open disk | Embankment steps | Linear queue | River balcony | Garden entry loop
+the_great_pyramids | Protect the pyramids' stepped triangular skyline | Processional causeway | Satellite pyramid court | Terraced plateau | Sphinx approach
+stonehenge | Trilithons define a ring of sky | Outer earthwork | Avenue alignment | Inner horseshoe | Low observation walk
+moai_statues | Upright faces rise above a continuous ahu | Coastal row | Single framed figure | Grassy ramp | Stepped platform ends
+parthenon | Colonnade and pediments outline an elongated temple | Stepped podium | Processional approach | Side court | Axial overlook
+colosseum | Elliptical walls surround a legible arena | Exposed arena | Sectioned galleries | Entrance court | Arcaded ring
+chichen_itza | Stair flights divide a stepped pyramid | Main stair axis | Sunken forecourt | Terraced plaza | Side ritual court
+great_wall | Crenellated wall follows ridges between towers | Ridge sweep | Switchback stair | Gatehouse crossing | Watchtower saddle
+angkor_wat | Tiered tower clusters rise beyond water and axial courts | Moat causeway | Gallery courts | Lotus pools | Terrace approach
+machu_picchu | Fitted terraces climb between a ridge and stone rooms | Agricultural steps | Saddle axis | Courtyard cluster | Hilltop sanctuary
+colossus_lighthouse | A monumental harbor beacon frames the sea approach | Arch at harbor mouth | Raised lantern pier | Stepped waterfront | Spiral ascent
+civic_observatory | Instruments center on a sky-facing forecourt | Orrery ring | Split observation dome | Meridian axis | Open telescope terrace
+maritime_museum | Exposed hulls and water-facing galleries identify the collection | Keel hall | Dock court | Ship-frame canopy | Pier galleries
+guggenheim_bilbao | Curved metallic galleries open to the riverside | River terrace | Sculptural court | Bridge approach | Sweeping stair piazza
+growers_exchange | Produce passes from growers through a common trading floor | Auction ring | Sawtooth stall row | Covered crosswalk | Terrace exchange
+bakery_coop | Shared ovens open onto a makers' street | Central bake oven | Bread arcade | Flour-mill court | Loaf-shaped hall
+ferry_exchange | Passengers transfer between clearly separated water berths | Parallel platforms | Y-shaped concourse | Central floating island | Pier arcade
+water_reuse_works | A visible watercourse links filtering, storage and reuse | Reed-bed terraces | Rotating clarifier | Ribbon canal | Twin polishing ponds
+open_pit_mine | A descending cut shows the mineral haul route | Spiral cut | Stepped quarry face | Conveyor terrace | Switchback benches
+terraced_glasshouses | Light reaches greenhouses on visibly stepped ground | Ridge greenhouses | Dome petals | Lean-to terraces | Stepped winter garden
+freight_rail_terminal | Onloading faces stay open to the railway | Gantry spine | Container aisles | Fan of freight sheds | Transfer bridge
+district_heat_works | Heat distribution pipes wrap a shared plant | Exchange loop | Tall storage drum | Fan court | Covered manifold alley
+regional_airport | Terminal and aircraft apron frame the runway | Pier concourse | Crescent gates | Control tower court | Split arrival terraces
+canal_boat_lift | A caisson visibly links upper and lower waterways | Paired lift towers | Counterweight gallery | Rotary cradle | Stepped side basin
+maritime_college | Teaching docks meet a sheltered learning courtyard | Ship-frame lecture hall | Training basin | Signal tower court | Lofted workshop bridge
+pumped_storage_station | Separated elevated and low basins expose a return route | Stepped pools | Split terraces | Rimmed upper bowl | Long hillside chute
+flying_car_depot | Overhead platforms connect travelers to ground level | Twin pads | Ring terrace | Stacked sky berths | Fan of landing balconies
+solar_canopy_orchard | Fruit rows share their parcel with sunlight collectors | Petal arrays | Elevated shade rows | Crossed trellis | Orchard crescent
+floodplain_park | Visitors follow a path above a floodable landscape | Rain terraces | Meander walk | Island boardwalks | Stepped amphitheater
+hanging_garden_arcology | Living decks rise around planted voids | Hanging garden shaft | Stepped canyon | Radial balconies | Split garden bridge
+teleportation_depot | Passenger threshold and partner gate are visible from above | Paired portals | Ring plaza | Forked concourse | Sunken gate court
+materials_foundry | Recovered material follows a visible circular route | Sorting ring | Forked casting line | Sculpture yard | Staggered furnace bays
+rainwater_cathedral | Roof catchments direct rain into exposed basins | Funnel nave | Cascade courts | Folded gutters | Cistern cloister
+spaceport | A public-facing launch plaza gives a fictional rocket room to rise | Gantry court | Observatory ring | Rollout avenue | Terraced viewing gallery
+skybridge_university | Lecture halls bridge the main academic walkway | Lecture bridge | Ring of sky halls | Stepped teaching terraces | Split library towers
+ocean_habitat_ring | A sheltered central lagoon organizes floating homes | Complete atoll | Broken crescent | Paired lagoons | Radial floating fingers
+solar_spire_arcology | A solar crown rises above visible inhabited terraces | Twisted solar spine | Garden canyon | Stacked panels | Split solar crown
+christmas_tree | A layered evergreen shelters gifts and people | Conical tiers | Candle spire | Ribbon spiral | Open bough arch
+christmas_snowman | Snow figures gather into an open family scene | Snow arch | Family circle | Sledside pair | Snow-sculpture lane
+santas_sleigh | Carved runners define a sleigh and clear space for its team | @variants
+santas_house | Branching hearth rooms frame a snowy front door | @variants
+elf_cottages | Tiny homes take the shapes of original fanciful hats or boots | @variants
+santas_workshop | Toy-shaped rooms expose an assembly area | Train-shaped hall | Duck-shaped porch | Spinning-top tower | Robot workshop
+reindeer_stable | A sheltered stable opens into a visible animal enclosure | @variants
+gingerbread_bakery | Edible-looking construction frames a bake counter | @variants
+candy_cane_works | A crook or hook forms the roof structure above boiling pans | @variants
+christmas_market | Paths gather seasonal stalls into distinct groupings | @variants
+north_pole_post | A festive delivery counter opens onto a sorting space | Raised mailbox | Folded letter hall | Horn pavilion | Parcel chute tower
+christmas_ice_rink | The ice outline determines where skaters can move | @variants
+nutcracker_guard | A toy soldier becomes an oversized festive figure | Bandstand figure | Archway guard pair | Drum pedestal | Parade plinth
+carolers_bandstand | Singing positions and audience shape a little stage | Ring of singers | Stair choir | Bell alcove | Four-corner stage
+black_santa_grotto | A welcoming winter audience room centers a seated original Santa | @variants
+gift_wrap_hall | An oversized package opens into a wrapping room | @variants
+nativity_stable | A modest shelter frames a gathering around a manger | @variants
+christmas_snow_globe | A transparent dome frames a distinct small scene | Forest globe | Snow-person court | Cottage lane | Candle pavilion
+christmas_carousel | Distinct roofs shelter revolving mounts | @variants
+christmas_bell_tower | Bells hang visibly within a tower outline | @variants
+?climbing_city_hall | A street-level permit desk and public square sit against an inhabitable climbing face | @variants
+?civic_viaduct_exchange | A municipal gallery joins two service wings above an open public passage | @variants
+?levitating_civic_tower | A full story of daylight separates a hovering council block and street-level civic offices | @variants

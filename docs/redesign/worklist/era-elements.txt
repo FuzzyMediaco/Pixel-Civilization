@@ -1,0 +1,71 @@
+# era/id | Site-specific design direction. Remaining tickets combine the element plan with the relevant period approach.
+ancient-china/public_library | Bamboo Slip Archive. Fanned bamboo strips hinge around a binding court and lead to a covered garden walk. | Fanned slip courtyard | Hinged reading walk | Upright slip alleys | Folded garden theater
+ancient-egypt/public_library | House of Unrolled Papyrus. Two rolled ends shelter a reading terrace on tall bundle columns. | Twin papyrus scroll vaults | Open reed-sheet terrace | Papyrus bundle aisles | Folded map garden
+rome-aqueduct/public_library | Vaults of the Record Keepers. Brick vaults and deep scroll niches face a stepped reading court. | Stepped scroll-vault court | Split barrel-rooms | Archive niche alley | Roofed recital terrace
+ancient-greece/public_library | Olive Grove Lyceum. Outdoor reading steps face an olive tree beneath a narrow scroll stoa. | Lyceum listening steps | V-shaped stoa | Scroll cabinet passage | Olive-grove reading circle
+medieval-europe/public_library | Lantern Scriptorium. A tall reading lantern leans over a low copying wing and exterior stair. | Lantern reading loft | Splayed folio roof | Chained-book cloister | Folded manuscript stage
+renaissance-italy/public_library | Printer’s Piazza. A great screw press bridges two loggias above a print court hung with sheets. | Screw-press court | Open folio loggia | Printer’s case alley | Paper-theater piazza
+world-war-ii/public_library | Lending Carriage Hall. Retired reading cars flank a platform and join by a glazed footbridge. | Parallel reading carriages | Splayed platform shelters | Stacked archive coaches | Traveling story wagon
+art-deco/public_library | Fanlight Library. Broad fan rooms spread from a low lobby toward fluted bookends and a clerestory. | Fanlight reading rooms | Twin fluted bookends | Ribbon-stair reading court | Stepped stage pavilion
+future-3027/public_library | Memory Orbit. Reading pods occupy a broken ring supported on three ribs above a planted entrance. | Broken memory orbit | Folded data-leaf terrace | Paired archive ribs | Canopy of story pods
+post-apocalyptic/public_library | Reservoir of Stories. A cutaway cistern reveals curved shelves and a greenhouse deck inside its rim. | Cutaway cistern shelves | Split tank reading deck | Salvaged shelving lane | Greenhouse story garden
+ancient-china/post_offices | A low courier hall runs between a public gate and a walled relay yard. Covered walks carry bamboo message cases to the dispatch porters.
+ancient-egypt/post_offices | Unrolling papyrus shades the counter. A separate linen-canopied yard sorts mud-sealed packets for a canal boat.
+rome-aqueduct/post_offices | Horse relays leave through a brick stable arcade behind a street counter. Keep the packet transfer aisle open.
+ancient-greece/post_offices | A long painted messenger stoa and an uncovered runner’s court flank a dispatch gate to the side.
+medieval-europe/post_offices | A pigeon loft rises at the end of a long timber dispatch shed. Low wings expose messenger carts below its flight slots.
+renaissance-italy/post_offices | A street loggia feeds letter racks and a covered weighing beam above the cart court.
+world-war-ii/post_offices | A sawtooth railway sorting shed and a narrow baggage platform run beside a yard of parcel carts.
+art-deco/post_offices | Streamlined sorting galleries flank an open belt and turn the corner over the parcel van bays.
+future-3027/post_offices | Parallel pneumatic sorting tubes span a low open yard where small postal carriers dock.
+post-apocalyptic/post_offices | Reused carriage bodies form a long sorting lane. A patched pulley bridge carries the day's mail to a bicycle court.
+ancient-china/courthouses | Two ranks of low screening walls frame a centered stair to a high timber judgment hall.
+ancient-egypt/courthouses | Paired pylons enclose a raised judgment dais reached by a broad axial stair. Keep the central front cut deep.
+rome-aqueduct/courthouses | A high basilica crowns a symmetrical tribunal stair. Flanking galleries step down toward listening space.
+ancient-greece/courthouses | Ascending jury benches curve around a raised central seat below a single high pediment.
+medieval-europe/courthouses | A stepped stone stair leads straight under a tall hammer-beam judgment roof; small witness galleries mirror each other.
+renaissance-italy/courthouses | A centered justice loggia rises above a paired horseshoe stair and two lower advocates’ galleries.
+world-war-ii/courthouses | A symmetrical brick hearing chamber caps a high stepped plinth, with a single clerestory lighting the bench.
+art-deco/courthouses | Broad fluted setbacks rise from a front stair to a single sunburst tribunal crown.
+future-3027/courthouses | Twin stair ribbons lift a jury ring around a high, centered daylight chamber.
+post-apocalyptic/courthouses | Salvaged trusses rise symmetrically over a rebuilt hearing hall and a broad stair made from recovered masonry.
+ancient-china/city_offices | A drum tower stands on one side of a public notice court. A one-storey covered clerk’s walk occupies the other.
+ancient-egypt/city_offices | A stepped signal pylon marks one corner of a paved civic court, with open scribes’ loggias across its back.
+rome-aqueduct/city_offices | A tall timekeeping tower and a low magistrate's gallery meet at the edge of a public forum.
+ancient-greece/city_offices | An asymmetrical civic signal tower frames an agora with a low speakers’ platform and a shaded record counter.
+medieval-europe/city_offices | A guild bell tower rises separately from the low timber town offices and market-cross square.
+renaissance-italy/city_offices | A narrow civic clock tower casts across a measured piazza. An open balcony overlooks the speaking steps.
+world-war-ii/city_offices | A municipal clock and notice tower punctuates one corner of a public service square beside brick offices.
+art-deco/city_offices | A fluted signal shaft anchors a low curved council wing. The unbuilt half of the plot stays a public plaza.
+future-3027/city_offices | An asymmetric signal sail shades a civic square. A glazed council balcony faces the ground-level assembly circle.
+post-apocalyptic/city_offices | A repaired water tower now carries the town bell. A public notice deck and low clerk cabins frame the reclaimed square.
+ancient-china/banks | Low strongroom walls surround sealed cash chests. Bronze coin openings mark the compact guarded threshold.
+ancient-egypt/banks | Squat mudbrick treasury drums wrap a recessed weighing door. Keep the counters tight to the guarded core.
+rome-aqueduct/banks | A compact brick counting house has a low vaulted treasury and one heavily framed street entry.
+ancient-greece/banks | A low stone treasury encloses a deep coin-weighing recess and a second, smaller deposit court.
+medieval-europe/banks | A fortified guild strongroom has a stout barred service hatch and squat masonry chest towers.
+renaissance-italy/banks | Thick rusticated walls surround a compact bullion room. A narrow arched counter opens onto the street.
+world-war-ii/banks | Thick bank walls and a steel strongroom project onto a small sheltered deposit forecourt.
+art-deco/banks | A giant horizontal coin drum and short fluted buttresses give the bank a weighted street silhouette.
+future-3027/banks | A low segmented vault closes around a narrow deposit slot beneath a single luminous lintel.
+post-apocalyptic/banks | Repurposed armored tanks form a low strongroom cluster at a small enclosed barter counter.
+ancient-china/farms | Irrigated strips fan from a timber lifting wheel into small fields divided by garden walls.
+ancient-egypt/farms | Nile water drops down a ladder of planted strips. A counterweight beam feeds the exposed head ditch.
+rome-aqueduct/farms | The main ditch leaves a raised brick channel, crosses an open farm court and branches through low plots.
+ancient-greece/farms | Olive rows follow broad contour terraces around an exposed press yard.
+medieval-europe/farms | A quilt of furlongs meets a timber barn and a common threshing green across a footpath.
+renaissance-italy/farms | A measured estate lane connects an open loggia, terraced rows and a small irrigation cascade.
+world-war-ii/farms | An allotment grid fills the gaps around a brick tool shed and an open produce collection platform.
+art-deco/farms | Fan-shaped crop bands radiate from a low streamlined packing shed with a stepped loading apron.
+future-3027/farms | Suspended open racks expose roots over planted aisles. Deliveries dock under a single lifted wing.
+post-apocalyptic/farms | Raised beds and reclaimed greenhouse frames catch rain in mismatched irrigation tanks.
+ancient-china/water_treatment_plant | A timber lifting wheel tips water into exposed stepped filters, then into a long planted outlet.
+ancient-egypt/water_treatment_plant | Filter jars feed paired courts, then branched reed beds and an elevated channel ending at a clean outlet.
+rome-aqueduct/water_treatment_plant | A raised masonry feeder pours into visible settling baths before a gated outlet.
+ancient-greece/water_treatment_plant | Carved open bowls descend across a spring court between two low covered maintenance walks.
+medieval-europe/water_treatment_plant | A working wheel straddles the race beside successive timber-lined settling beds.
+renaissance-italy/water_treatment_plant | A split cascade feeds symmetrical settling courts below a gallery overlooking the clean outlet.
+world-war-ii/water_treatment_plant | An exposed service walkway crosses parallel settling basins next to a low brick pump shed.
+art-deco/water_treatment_plant | A fan of narrow filter beds spreads from a streamlined low pump hall toward an open outlet.
+future-3027/water_treatment_plant | Translucent filter gills hang above a planted basin. The clean return remains visible beneath the support ribs.
+post-apocalyptic/water_treatment_plant | Mismatched gutters feed reclaimed tanks, a reed bed and a visibly separate clean-water spout.
