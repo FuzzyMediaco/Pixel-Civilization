@@ -1,7 +1,6 @@
 import { type Ctx, byLv, person, ring, awning } from "./kit";
 import { cafeTable, umbrella, bulbs, disc, spinner } from "./commerceKit";
 import { beam } from "./sculpturalKit";
-import { override } from "./commerceIcons";
 import { frontage, counter, shopWindow } from "./highStreetParts";
 
 // Pasta served from a bowl under a monumental fork. The ribbon of noodles wraps past the dining tiers.
@@ -192,12 +191,7 @@ function burger(c: Ctx) {
   }
 }
 
-override(
-  "restaurants",
-  (c) => {
-    frontage(c, "path2");
-    [noodle, pie, sushiBoat, burger][c.variant](c);
-  },
-  ["Street Food Stand", "Takeaway Counter", "Sidewalk Kitchen", "Dining Court", "Walk-In Supper Club"],
-  "A counter grows into a full-service destination where the meal becomes the architecture.",
-);
+export function buildRestaurants(c: Ctx) {
+  frontage(c, "path2");
+  [noodle, pie, sushiBoat, burger][c.variant](c);
+}

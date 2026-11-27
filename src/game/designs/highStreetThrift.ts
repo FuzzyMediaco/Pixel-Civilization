@@ -1,6 +1,5 @@
 import { type Ctx, byLv, person, bench } from "./kit";
 import { beam } from "./sculpturalKit";
-import { override } from "./commerceIcons";
 import { bulbs, spinner } from "./commerceKit";
 import { frontage, counter, shopWindow } from "./highStreetParts";
 
@@ -216,12 +215,7 @@ function market(c: Ctx) {
     for (let i = 0; i < 3; i++) person(v, -3 + i * 4, 1, hz - 5, "teal");
   }
 }
-override(
-  "thrift_stores",
-  (c) => {
-    frontage(c, "path2");
-    [quilt, luggage, chair, market][c.variant](c);
-  },
-  ["Yard Sale", "Secondhand Shop", "Curiosity Exchange", "Vintage Courtyard", "Great Flea Bazaar"],
-  "A few finds on a table become a shop, an outdoor exchange and a bazaar for the whole district.",
-);
+export function buildThriftStores(c: Ctx) {
+  frontage(c, "path2");
+  [quilt, luggage, chair, market][c.variant](c);
+}

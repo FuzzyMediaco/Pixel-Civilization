@@ -1,7 +1,6 @@
 import { type Ctx, byLv, person, bench, ring } from "./kit";
 import { band, bulbs, cafeTable, glassFront, palm, spinner } from "./commerceKit";
 import { beam } from "./sculpturalKit";
-import { override } from "./commerceIcons";
 import { frontage, counter, shopWindow } from "./highStreetParts";
 
 function stein(c: Ctx) {
@@ -44,7 +43,10 @@ function stein(c: Ctx) {
       i % 2 ? "cream" : "#f3dcae",
     );
   }
-  if (lv >= 2) shopWindow(c, x - 3, 1, z + r - 1, 6, "woodDark");
+  if (lv === 1) {
+    v.box(x - 1, 2, z + r - 1, x + 2, 4, z + r, "#684631");
+    v.box(x - 1, 3, z + r, x + 2, 4, z + r + 1, "#ffd69a", 0.75);
+  } else shopWindow(c, x - 3, 1, z + r - 1, 6, "woodDark");
   if (lv >= 3) {
     counter(c, hx - 7, 1, 5, "woodDark");
     for (let n = 0; n < 3; n++) beam(v, [hx - 7 + n * 2, 3, 1], [hx - 7 + n * 2, 6, 1], "brass");
@@ -75,6 +77,10 @@ function cocktail(c: Ctx) {
     ring(v, x + 0.5, z + 0.5, y, y + 1, rr, Math.max(0, rr - 1.5), y === rim ? "cream" : "#819eac");
   }
   v.cylinderY(x + 0.5, z + 0.5, rim - 1, rim, r - 1, "#cda989");
+  // Four downlights outline the occupied rim without lighting the entire glass.
+  for (const [dx, dz] of [[r, 0], [-r, 0], [0, r], [0, -r]]) {
+    v.put(x + dx, rim, z + dz, "#e5b9b4", 0.68);
+  }
   const garnish = spinner(c, x, rim, z, "y", 0.22);
   beam(garnish, [-r * 0.45, -1, 0], [r * 0.5, 6, 0], "brass");
   garnish.sphere(r * 0.25, 4, 0, 1 + r * 0.15, 1 + r * 0.14, 1 + r * 0.13, "olive");
@@ -113,7 +119,8 @@ function thatch(c: Ctx, x: number, z: number, r: number, h: number) {
       const px = x + Math.round(side * r * 0.62),
         pz = z + Math.round(end * r * 0.62);
       v.box(px, 1, pz, px + 1, h, pz + 1, "woodDark");
-      v.put(px, 3, pz + 1, "cream");
+      // Amber lanterns on the public posts also respond to the parcel lighting switch.
+      v.put(px, 3, pz + 1, end > 0 ? "#ffd69a" : "cream", end > 0 ? 0.8 : 0);
       v.put(px, 4, pz + 1, "teal");
     }
   for (let k = 0; k < r + 1; k++)
@@ -195,12 +202,7 @@ function terraces(c: Ctx) {
     v.box(x0 + 1, y + 4, z0 + 1, x0 + w - 1, y + 5, z0 + 2, "#bd7888");
   }
 }
-override(
-  "bars",
-  (c) => {
-    frontage(c, "path2");
-    [stein, cocktail, palms, terraces][c.variant](c);
-  },
-  ["Corner Tap", "Neighborhood Lounge", "Courtyard Bar", "Evening Social Club", "Skyline Supper Bar"],
-  "The first drinks counter gains communal seating, an outdoor lounge and a landmark gathering place after dark.",
-);
+export function buildBars(c: Ctx) {
+  frontage(c, "path2");
+  [stein, cocktail, palms, terraces][c.variant](c);
+}

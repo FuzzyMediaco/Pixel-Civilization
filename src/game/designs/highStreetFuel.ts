@@ -1,7 +1,6 @@
 import { type Ctx, byLv, person } from "./kit";
 import { classicCar, glassFront, neon } from "./commerceKit";
 import { beam } from "./sculpturalKit";
-import { override } from "./commerceIcons";
 import { frontage, shopWindow } from "./highStreetParts";
 
 function dispenser(c: Ctx, x: number, z: number, col: string) {
@@ -202,13 +201,8 @@ function retro(c: Ctx) {
     person(v, xx + 7, 1, 9, "teal");
   }
 }
-override(
-  "gas_stations",
-  (c) => {
-    frontage(c, "#747778");
-    for (let z = -c.hz + 2; z < c.hz - 4; z += 6) c.v.box(c.hx - 5, 0, z, c.hx - 4, 1, z + 3, "cream");
-    [googie, oilCan, charging, retro][c.variant](c);
-  },
-  ["Roadside Pump", "Service Island", "Motor Court", "Travel Plaza", "Highway Landmark"],
-  "A single roadside stop grows sheltered pumps, service bays and a skyline marker visible from the highway.",
-);
+export function buildGasStations(c: Ctx) {
+  frontage(c, "#747778");
+  for (let z = -c.hz + 2; z < c.hz - 4; z += 6) c.v.box(c.hx - 5, 0, z, c.hx - 4, 1, z + 3, "cream");
+  [googie, oilCan, charging, retro][c.variant](c);
+}

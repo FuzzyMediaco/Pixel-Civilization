@@ -1,7 +1,6 @@
 import { type Ctx, byLv, person, bench } from "./kit";
 import { spinner } from "./commerceKit";
 import { beam } from "./sculpturalKit";
-import { override } from "./commerceIcons";
 import { counter, frontage, shopWindow } from "./highStreetParts";
 
 function hanger(c: Ctx) {
@@ -222,12 +221,7 @@ function bagBoutique(c: Ctx) {
     person(v, 5, 1, hz - 5, "teal");
   }
 }
-override(
-  "clothing_stores",
-  (c) => {
-    frontage(c, "path");
-    [hanger, tailor, runway, bagBoutique][c.variant](c);
-  },
-  ["Clothes Stand", "Fitting Room", "Neighborhood Atelier", "Fashion Arcade", "House of Fashion"],
-  "A fitting counter gains a working atelier, displays for the street and a room for its own collection.",
-);
+export function buildClothingStores(c: Ctx) {
+  frontage(c, "path");
+  [hanger, tailor, runway, bagBoutique][c.variant](c);
+}
