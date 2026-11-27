@@ -1,0 +1,18 @@
+{
+ "min": 0.12,
+ "ids": [
+  "community_centers",
+  "fire_department",
+  "emergency_dispatch",
+  "riot_command_center",
+  "white_house"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.179,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}

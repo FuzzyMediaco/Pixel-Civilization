@@ -1653,7 +1653,7 @@ export const ELEMENTS: CivElementDef[] = [
     water: -3,
     needsMaintenance: true,
     accentHex: "#df5246",
-    description: "Red brick firehouse with hose tower that prevents and extinguishes fires!",
+    description: "Fire crews work from hose-reel houses, bell stations, open ladder courts and hydrant workshops.",
   },
   {
     id: "community_centers",
@@ -1672,7 +1672,7 @@ export const ELEMENTS: CivElementDef[] = [
     baseSpan: [2, 1],
     maxSpan: [2, 2],
     accentHex: "#47b0a3",
-    description: "Recreation hall, library, and youth courts bringing neighbors together.",
+    description: "Residents meet to perform, cook, swim and trade seeds at neighborhood gathering places.",
   },
   {
     id: "italian_gardens",

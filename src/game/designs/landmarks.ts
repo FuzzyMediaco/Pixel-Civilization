@@ -1,5 +1,6 @@
-import { type Ctx, PixelVox, archway, bench, colonnade, cyl, door, flag, flowerBed, fountain,
-  gable, hip, lamp, lot, pediment, person, ring, speckle, stairs, tree, windows } from "./kit";
+import { buildExecutiveResidence, WHITE_HOUSE_LEVELS } from "./executiveResidence";
+import { type Ctx, PixelVox, archway, bench, colonnade, cyl, flag, flowerBed, fountain,
+  gable, hip, lamp, lot, pediment, person, ring, stairs, tree, windows } from "./kit";
 import { defineDesigns } from "./registry";
 
 type Point = [number, number, number];
@@ -137,77 +138,6 @@ function obelisk(c: Ctx): void {
     }
     v.cone(0, y0 + h, y0 + h + 4, z, tip + 0.3, 0.5, "white");
   }
-}
-
-function whiteHouse(c: Ctx): void {
-  const { v, lv, hx, hz, variant } = c;
-  lot(c, "grass2");
-  const half = Math.min(hx - 3, 5 + lv);
-  const depth = Math.min(3 + lv, hz - 6);
-  const z = -Math.floor(hz * 0.25);
-  const h = lv > 2 ? 11 : 7;
-  const front = z + depth;
-  const roof = c.vpick(["slate", "slateLight", "steelDark", "granite"]);
-  const hall = (x0: number, z0: number, x1: number, z1: number, top: number) => {
-    v.hollowBox(x0, 1, z0, x1, top, z1, "white", "marbleShade");
-    windows(c, x0, 1, z0, x1, top, z1, { col: "glassDark", h: 2, stepV: 4, sill: "marble" });
-    hip(v, x0 - 1, top, z0 - 1, x1 + 1, z1 + 1, roof, "white", 3);
-  };
-  hall(-half, z - depth, half, front, h);
-  if (lv >= 2) for (const side of [-1, 1]) {
-    const x = side * (half + 2);
-    v.box(x - 2, 4, z, x + 3, 5, z + 4, "marble");
-    colonnade(v, x - 1, x + 3, z + 3, 1, 4, "x", 2);
-    if (lv >= 3) {
-      const wing = side * Math.min(hx - 6, half + 6);
-      hall(wing - 4, z - depth + 1, wing + 4, z + 3, lv === 5 ? 8 : 6);
-    }
-  }
-  // Two historic elevations, plus a garden loggia and an inaugural balcony.
-  const portico = Math.min(half - 2, 3 + Math.floor(lv / 2));
-  const round = variant === 0 || variant === 3;
-  if (round) {
-    for (let i = 0; i < 7; i++) {
-      const a = i * Math.PI / 6;
-      const x = Math.round(Math.cos(a) * portico);
-      const zz = front + Math.round(Math.sin(a) * 3);
-      v.box(x, 1, zz, x + 1, h - 1, zz + 1, "marble");
-    }
-    cyl(v, 0, front, h - 1, h, portico + 1, "marble");
-    if (variant === 3) ring(v, 0, front, h, h + 1, portico + 1, portico, "white");
-  } else {
-    colonnade(v, -portico, portico + 1, front + 2, 1, h, "x", 2);
-    if (variant === 1) pediment(v, -portico - 1, portico + 2, h, front - 1, front + 4, "marble", "limestone");
-    else v.box(-portico - 1, h, front - 1, portico + 2, h + 2, front + 4, "marble");
-  }
-  door(v, -1, 1, front - 1);
-  v.box(-2, 0, front, 2, 1, hz, "path");
-  for (const s of [-1, 1]) {
-    v.box(s * (half - 2), h + 1, z - 1, s * (half - 2) + 2, h + 5, z + 1, "marble");
-    if (lv >= 3 || variant === 2) tree(v, s * (hx - 4), 1, hz - 4, variant === 2 ? "blossom" : "oak", 1.2);
-    if (lv >= 4) flowerBed(c, s * (half - 1) - 2, front + 3, s * (half - 1) + 2, hz - 3, 1, ["red", "cream"]);
-  }
-  if (lv >= 3) {
-    // Gravel drive curves around the front lawn to both working wings.
-    const reach = hx - 5, lawnZ = Math.floor((front + hz) / 2);
-    for (let i = 0; i <= reach * 5; i++) {
-      const a = i * Math.PI / (reach * 5);
-      const xx = Math.round(Math.cos(a) * reach);
-      const zz = Math.round(front + Math.sin(a) * Math.max(4, hz - front - 3));
-      v.box(xx - 1, 0, zz, xx + 1, 1, zz + 2, "path2");
-    }
-    if (variant === 0) {
-      bench(v, -half, 1, lawnZ); bench(v, half - 3, 1, lawnZ);
-    } else if (variant === 1) {
-      for (const side of [-1, 1]) flag(v, side * (half + 1), 1, lawnZ, 6, ["blue", "white", "red"]);
-    } else if (variant === 2) {
-      for (const side of [-1, 1]) flowerBed(c, side * (hx - 7) - 2, lawnZ - 2, side * (hx - 7) + 2, lawnZ + 2, 1, ["pink", "white"]);
-    } else {
-      for (const side of [-1, 1]) cyl(v, side * (hx - 7), lawnZ, 1, 3, 2.4, "leafDark");
-    }
-  }
-  if (lv >= 2) flag(v, 0, h + 3, z, 5, ["red", "white", "blue"]);
-  if (lv === 5) fountain(v, 0, 1, Math.floor((hz + front + 2) / 2), 4, "marble");
 }
 
 function smithsonian(c: Ctx): void {
@@ -484,8 +414,8 @@ defineDesigns({
   },
   white_house: {
     footprints: [[2, 1], [2, 2], [3, 2], [3, 3], [4, 3]],
-    levels: ["President’s Residence", "Executive Mansion", "East & West Wings", "Rose Garden Estate", "Presidential Grounds"],
-    growth: "A columned residence sprouts working wings, rose beds and a fountain lawn.", build: whiteHouse,
+    levels: WHITE_HOUSE_LEVELS,
+    growth: "The executive residence adds its great porticoes, working wings and covered walks before opening the formal gardens to the public.", build: buildExecutiveResidence,
   },
   smithsonian: {
     footprints: [[1, 1], [2, 1], [2, 2], [3, 2], [3, 3]],
