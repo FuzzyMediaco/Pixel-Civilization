@@ -29,7 +29,10 @@ function roller(v: PixelVox, x: number, y: number, z0: number, z1: number, r: nu
       v.box(x + dx, y + dy, z0, x + dx + 1, y + dy + 1, z1, d > r - 0.7 ? reed : ivory);
       for (const z of [z0, z1 - 1]) v.put(x + dx, y + dy, z, ink ? cedar : ivory);
     }
-  for (let z = z0 + 3; z < z1 - 1; z += 7) v.put(x, y + r, z, gold);
+  for (let z = z0 + 3; z < z1 - 1; z += 7) {
+    v.put(x, y + r, z, gold);
+    v.put(x + r, y - 1, z, "#dcab6e", 0.35);
+  }
 }
 function reading(v: PixelVox, x: number, z: number, active: boolean) {
   bench(v, x - 1, 1, z, "x", cedar);
@@ -99,7 +102,10 @@ function openSheet(c: Ctx, active: boolean) {
     if (withinLine < 3 && x > x0 + 1)
       for (let z = back + 2; z < z1 - 1; z += 4)
         v.put(x, y, z, withinLine === 2 && (z - back) % 8 === 2 ? red : cedar);
-    if ((x - x0) % 8 === 0) bundle(v, x, 1, back + 1, y);
+    if ((x - x0) % 8 === 0) {
+      bundle(v, x, 1, back + 1, y);
+      v.put(x, y, z1 - 1, "#e3ad69", 0.34);
+    }
   }
   roller(v, x1 - 1, 7 + Math.floor(lv / 2), z0 + (lv >= 3 ? 6 : 2), z1 + 1, 2);
   if (lv >= 2) {
@@ -142,6 +148,7 @@ function reedAisles(c: Ctx, active: boolean) {
       }
     }
     v.box(x - 1, top, z0 - 1, x + 2, top + 1, end + 1, ivory);
+    for (let z = z0 + 2; z < end; z += 7) v.put(x + 1, top, z, "#e2ac6f", 0.32);
   }
   if (lv >= 2) {
     // Shelves between the colonnade piers hold short rolled manuscripts on their sides.
@@ -204,7 +211,10 @@ function mapGarden(c: Ctx, active: boolean) {
               : ivory,
       );
     }
-    if ((x + half) % 9 === 4) bundle(v, x, 1, rear + 1, 7);
+    if ((x + half) % 9 === 4) {
+      bundle(v, x, 1, rear + 1, 7);
+      oil(v, x, 1, rear + depth, active);
+    }
   }
   if (lv >= 2) {
     roller(v, -half + 1, 3, rear + 2, 2, 2);

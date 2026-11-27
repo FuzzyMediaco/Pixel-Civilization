@@ -34,6 +34,7 @@ function skiff(v: PixelVox, x: number, z: number, half: number, active: boolean)
     v.box(x + i, y, z - r, x + i + 1, y + 1, z + r + 1, cedar);
     if (r) for (const side of [-1, 1]) v.put(x + i, y + 1, z + side, reed);
   }
+  v.put(x + half - 1, 3, z, "#f1be78", 0.62);
   if (active && half > 3) attendant(v, x - 1, 2, z, active);
   v.put(x + 1, 3, z, red);
 }
@@ -100,6 +101,7 @@ function loft(v: PixelVox, x: number, z: number, r: number, h: number) {
         v.put(x + dx, y - 1, z + dz + (dz ? 1 : 0), cedar);
       }
   }
+  v.put(x, h - 2, z + r - 1, "#e6b371", 0.56);
   pigeon(v, x - 1, h + 1, z);
 }
 function pigeonYard(c: Ctx, active: boolean) {
@@ -157,6 +159,7 @@ function runnerYard(c: Ctx, active: boolean) {
     v.box(a + w - 3, 1, z, a + w - 2, 4 + Math.floor((w - 3) * 0.52), z + 2, cedar);
     packet(v, a + 2, 1, z + 1);
   }
+  for (let i = 0; i < spans; i++) oil(v, x + i * w + 1, 2, z + 3, active);
   counter(c, x + 3, z + 6, active);
   donkey(v, hx - 5, lv === 1 ? 3 : 0, active);
   if (lv >= 2) {

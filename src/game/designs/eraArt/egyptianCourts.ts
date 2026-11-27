@@ -62,6 +62,8 @@ function scales(v: PixelVox, x: number, y: number, z: number, r: number, active:
 }
 function hearing(c: Ctx, y: number, cz: number, active: boolean) {
   seat(c.v, y + 1, cz - 1, active);
+  for (const side of [-1, 1]) oil(c.v, side * 3, 1, Math.min(c.hz - 2, cz + y + 1), active);
+  if (c.lv >= 3) for (const side of [-1, 1]) oil(c.v, side * 5, 2, cz + 1, active);
   oil(c.v, 2, y + 1, cz, active);
   if (c.lv >= 2) attendant(c.v, -3, 1, c.hz - 3, active, lapis);
 }
