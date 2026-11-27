@@ -4,4 +4,17 @@
  */
 import type { SignatureBuilder } from "../periodArtCatalog";
 
-export const signatures: Record<string, SignatureBuilder> = {};
+import { buildBambooArchive } from "./china/bambooArchive";
+import { buildCourierYard } from "./china/relayYard";
+import { buildJudgmentCourt } from "./china/judgmentCourt";
+
+import { buildDrumOffices } from "./china/drumOffices";
+import { buildCashHouse } from "./china/cashHouses";
+
+export const signatures: Record<string, SignatureBuilder> = {
+  public_library: buildBambooArchive,
+  post_offices: buildCourierYard,
+  courthouses: buildJudgmentCourt,
+  city_offices: buildDrumOffices,
+  banks: buildCashHouse,
+};

@@ -1,0 +1,20 @@
+{
+  "era": "ancient-china",
+  "models": 100,
+  "nightLit": 100,
+  "withinParcel": 100,
+  "maximumVoxels": 5726,
+  "unlit": [],
+  "spill": [],
+  "crossPairs": 800,
+  "worstCross": 0.1701848998459168,
+  "tooClose": [],
+  "officeHeight": [],
+  "budgets": {
+    "public_library": 5726,
+    "post_offices": 1949,
+    "courthouses": 3104,
+    "city_offices": 3413,
+    "banks": 2052
+  }
+}
