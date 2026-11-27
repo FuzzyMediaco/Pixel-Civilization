@@ -171,7 +171,7 @@ function charging(c: Ctx) {
 }
 function retro(c: Ctx) {
   const { v, hx, hz, lv } = c,
-    x = lv >= 3 ? -5 : 0,
+    x = lv >= 3 ? -5 : lv === 1 ? -2 : 0,
     z = lv >= 3 ? -4 : 0,
     w = byLv(c, [2, 3, 4, 5, 6]),
     h = byLv(c, [7, 10, 14, 19, 25]);
@@ -181,7 +181,9 @@ function retro(c: Ctx) {
   const front = z + w;
   v.box(x - w, h - 2, front, x + w + 1, h + 1, front + 1, "#586166");
   for (let dx = -w + 1; dx < w; dx += 2) v.box(x + dx, h - 1, front, x + dx + 1, h + 1, front + 1, "warmGlow", 0.55);
-  v.sphere(x, h + 4, z, Math.max(2, w - 1), Math.max(2, w - 1), Math.max(1, w - 2), "#e7d3a0", 0.35);
+  const globeCenter = h + (lv === 1 ? 7 : 4);
+  if (lv === 1) v.cylinderY(x + 0.5, z + 0.5, h + 1, globeCenter, 1, "chrome");
+  v.sphere(x, globeCenter, z, Math.max(2, w - 1), Math.max(2, w - 1), Math.max(1, w - 2), "#e7d3a0", 0.35);
   v.box(x + Math.floor(w / 2), h - 5, z, x + w + 4, h - 4, z + 2, "charcoal");
   for (let y = 3; y < h - 4; y++) {
     const px = x + w + 3 + Math.round(Math.sin(((y - 3) / (h - 7)) * Math.PI) * 1.2);

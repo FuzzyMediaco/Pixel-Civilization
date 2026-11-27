@@ -1,0 +1,18 @@
+{
+ "min": 0.12,
+ "ids": [
+  "shops",
+  "data_centers",
+  "thrift_stores",
+  "bars",
+  "gas_stations"
+ ],
+ "styles": {
+  "original": {
+   "worstPair": 0.161,
+   "lookalikePairs": [],
+   "closeVariants": [],
+   "flatUpgrades": []
+  }
+ }
+}

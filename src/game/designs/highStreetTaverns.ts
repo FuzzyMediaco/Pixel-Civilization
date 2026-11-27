@@ -78,7 +78,12 @@ function cocktail(c: Ctx) {
   }
   v.cylinderY(x + 0.5, z + 0.5, rim - 1, rim, r - 1, "#cda989");
   // Four downlights outline the occupied rim without lighting the entire glass.
-  for (const [dx, dz] of [[r, 0], [-r, 0], [0, r], [0, -r]]) {
+  for (const [dx, dz] of [
+    [r, 0],
+    [-r, 0],
+    [0, r],
+    [0, -r],
+  ]) {
     v.put(x + dx, rim, z + dz, "#e5b9b4", 0.68);
   }
   const garnish = spinner(c, x, rim, z, "y", 0.22);
@@ -112,6 +117,33 @@ function cocktail(c: Ctx) {
   }
 }
 
+// A high palm mast supports a swept thatch sail above the first drinks counter.
+function streetPalapa(c: Ctx, x: number, z: number) {
+  const { v } = c;
+  const roofY = (dx: number, dz: number) => 8 - Math.round(dx * 0.62) - Math.round(Math.abs(dz) * 0.75);
+  for (const dx of [-2, 2])
+    for (const dz of [-2, 2]) {
+      v.box(x + dx, 1, z + dz, x + dx + 1, roofY(dx, dz) + 1, z + dz + 1, "woodDark");
+      v.put(x + dx, 3, z + dz + 1, dz > 0 ? "#ffd69a" : "cream", dz > 0 ? 0.8 : 0);
+      v.put(x + dx, 4, z + dz + 1, "teal");
+    }
+  for (let dx = -4; dx <= 4; dx++)
+    for (let dz = -3; dz <= 3; dz++) {
+      if (Math.abs(dx) === 4 && Math.abs(dz) > 1) continue;
+      const y = roofY(dx, dz);
+      v.put(x + dx, y, z + dz, dx % 3 === 0 ? "#c39b61" : "#ad8151");
+      if (Math.abs(dz) === 3 && dx % 2 === 0) v.put(x + dx, y - 1, z + dz, "#b28d57");
+    }
+  v.box(x - 4, 1, z, x - 3, 13, z + 1, "oak");
+  for (const [dx, dz] of [
+    [-2, 0],
+    [1, -2],
+    [2, 1],
+    [0, 2],
+  ]) {
+    beam(v, [x - 4, 12, z], [x - 4 + dx, 11, z + dz], "#668950");
+  }
+}
 function thatch(c: Ctx, x: number, z: number, r: number, h: number) {
   const { v } = c;
   for (const side of [-1, 1])
@@ -128,10 +160,14 @@ function thatch(c: Ctx, x: number, z: number, r: number, h: number) {
 }
 function palms(c: Ctx) {
   const { v, hx, hz, lv } = c,
-    x = lv >= 3 ? -5 : 0,
+    x = lv >= 3 ? -5 : lv === 1 ? -2 : 0,
     z = lv >= 4 ? -3 : -1,
     r = byLv(c, [3, 5, 5, 7, 8]);
-  thatch(c, x, z, r, 3 + lv);
+  if (lv === 1) {
+    streetPalapa(c, x, z);
+    cafeTable(c, 4, 4, "woodLight");
+  }
+  else thatch(c, x, z, r, 3 + lv);
   counter(c, x - r + 1, z + 1, Math.min(7, r * 2), "#9b6444");
   if (lv >= 2) {
     palm(v, Math.min(hx - 3, x + r + 1), z - 2, 1, 7 + lv);

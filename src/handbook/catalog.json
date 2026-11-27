@@ -1103,7 +1103,7 @@
     "styles": [
       {
         "index": 0,
-        "name": "Handbag Row"
+        "name": "Camera Lane"
       },
       {
         "index": 1,
@@ -3963,9 +3963,9 @@
       "water": -16,
       "income": 240
     },
-    "description": "Step between the racks, trace a copper bus, look into a spinning cooler or walk beneath fiber-optic arches.",
+    "description": "Step between the racks, follow a cold aisle under its return ducts, look into a spinning cooler or walk beneath fiber-optic arches.",
     "usage": "Put heat-producing equipment next to a compatible consumer to add a pipe across the shared edge.",
-    "growth": "Follow the service aisles between walk-in server racks, pin-legged processors, open cooling fans or arching bundles of fiber.",
+    "growth": "Follow the service aisles between walk-in server racks, paired hot and cold server aisles, open cooling fans or arching bundles of fiber.",
     "maxLevel": 5,
     "levels": [
       {
@@ -4021,7 +4021,7 @@
       },
       {
         "index": 1,
-        "name": "Circuit Court"
+        "name": "Cold Aisle Exchange"
       },
       {
         "index": 2,

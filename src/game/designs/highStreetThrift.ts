@@ -4,8 +4,35 @@ import { bulbs, spinner } from "./commerceKit";
 import { frontage, counter, shopWindow } from "./highStreetParts";
 
 const patchColors = ["#a84754", "#d69f58", "#4e8d83", "#5a6486", "#d7bdaa", "#9c7394"];
+// The first yard sale hangs one quilt between an old fence post and a short rack.
+function yardSaleQuilt(c: Ctx) {
+  const { v } = c;
+  for (const [x, height] of [
+    [-6, 12],
+    [4, 7],
+  ]) {
+    v.box(x, 1, -4, x + 1, height + 1, -3, "oak");
+    v.box(x, height, -4, x + 1, height + 1, -3, "#efd2ab", 0.7);
+  }
+  for (let x = -5; x <= 3; x++) {
+    const t = (x + 6) / 10;
+    const top = Math.round(12 - 5 * t - 2 * Math.sin(Math.PI * t));
+    const z = -4 + Math.round(Math.sin(Math.PI * t));
+    for (let dy = 0; dy < 5; dy++) {
+      const block = Math.floor((x + 5) / 3) + Math.floor(dy / 2) * 2;
+      v.put(x, top - dy, z, dy === 0 ? "#e4c5a5" : patchColors[block % 6]);
+    }
+    if (x % 2 === 0) v.put(x, top - 5, z, "#e4c5a5", x % 4 === 0 ? 0.6 : 0);
+  }
+  // The clothes rail and till leave a walk-through aisle between the displays.
+  for (const postX of [1, 6]) v.box(postX, 1, 3, postX + 1, 6, 4, "woodDark");
+  v.box(1, 5, 3, 7, 6, 4, "brass");
+  for (let i = 0; i < 2; i++) v.box(2 + i * 2, 2, 3, 3 + i * 2, 5, 4, patchColors[2 + i]);
+  counter(c, -6, 3, 4, "tealDark");
+}
 // The roof is a sheet of stitched quilt blocks. Corners lift to show street stalls beneath.
 function quilt(c: Ctx) {
+  if (c.lv === 1) return yardSaleQuilt(c);
   const { v, hx, hz, lv } = c,
     width = byLv(c, [8, 12, 19, 23, 29]),
     depth = byLv(c, [7, 9, 10, 17, 20]);
