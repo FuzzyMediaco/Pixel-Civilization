@@ -1,7 +1,12 @@
-/**
- * Deliberate medieval-europe designs (illustrated-catalog redesign, docs/redesign/ART-BRIEF.md).
- * Each builder owns the element's whole parcel in this era. Names: src/game/eraNames/medieval-europe.ts.
- */
 import type { SignatureBuilder } from "../periodArtCatalog";
+import { courierYard, guildBank } from "./medievalExchange";
+import { assizes, guildOffices } from "./medievalGovernment";
+import { scriptorium } from "./medievalLearning";
 
-export const signatures: Record<string, SignatureBuilder> = {};
+export const signatures: Record<string, SignatureBuilder> = {
+  public_library: scriptorium,
+  post_offices: courierYard,
+  courthouses: assizes,
+  city_offices: guildOffices,
+  banks: guildBank,
+};
