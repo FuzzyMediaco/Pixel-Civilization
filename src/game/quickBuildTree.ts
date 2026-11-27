@@ -1,4 +1,4 @@
-import { SKYLINE_GOVERNMENT_IDS } from "./skylineCatalog";
+import { CIVIC_ADMINISTRATION_IDS, SKYLINE_GOVERNMENT_IDS } from "./skylineCatalog";
 import { CHRISTMAS_GROUPS } from "./christmasCatalog";
 import { readPlayerItem, writePlayerItem } from "./deviceSaves";
 /** Stable paths through Exact Build. The seven original branches retain their layout. */
@@ -363,7 +363,8 @@ export const QUICK_BUILD_TREE: DecisionTreeParent[] = [
           "community_centers",
         ],
       },
-      { id: "cf_government", label: "Government Offices & Assemblies", iconDefId: "borough_assembly", elementIds: SKYLINE_GOVERNMENT_IDS },
+      { id: "cf_government", label: "Government Offices & Assemblies", iconDefId: "borough_assembly", elementIds: SKYLINE_GOVERNMENT_IDS.filter(id => !CIVIC_ADMINISTRATION_IDS.includes(id)) },
+      { id: "cf_administration", label: "Civic Administration", iconDefId: "climbing_city_hall", elementIds: CIVIC_ADMINISTRATION_IDS },
       {
         id: "cf_parks",
         label: "Parks & Gardens",

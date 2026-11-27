@@ -167,7 +167,7 @@ function eraSearch(id: string, era: EraKey) {
   const cached=eraSearchCache.get(key);
   if(cached!==undefined)return cached;
   const periods = era === "original" ? PRODUCTION_ERAS : [era];
-  const aliases=periods.map(period=>eraElementSpec(id,period)?.aliases.join(" ")??"").join(" ");
+  const aliases=[...(ELEMENT_BY_ID[id]?.searchAliases ?? []), ...periods.flatMap(period => eraElementSpec(id,period)?.aliases ?? [])].join(" ");
   eraSearchCache.set(key,aliases);
   return aliases;
 }

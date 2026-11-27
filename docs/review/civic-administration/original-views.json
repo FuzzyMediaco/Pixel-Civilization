@@ -1,0 +1,105 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "fixtureSha256": "1810839a80fd480438cdee5bc891c55a949062a61468f06aa90ce1e41a040f53",
+  "records": [
+    {
+      "view": "district",
+      "camera": {
+        "target": [
+          2,
+          3,
+          -6
+        ],
+        "radius": 123,
+        "theta": 0.21,
+        "phi": 0.78,
+        "fov": 44
+      },
+      "era": "original",
+      "time": 14,
+      "weather": "clear",
+      "stage": 8,
+      "width": 390,
+      "height": 844,
+      "elements": 79,
+      "layoutHash": "0b545dc5204ec463a771ed76b8bc580b8b65492f6ddd3b119b8d00729c555124",
+      "afterElements": 82,
+      "afterLayoutHash": "b9ac356db03d44fa21332ec3e66fa7962265aad9aa4317939080b358f89c56ee"
+    },
+    {
+      "view": "climbing-wall",
+      "camera": {
+        "target": [
+          -14,
+          3,
+          -2
+        ],
+        "radius": 54,
+        "theta": -0.35,
+        "phi": 0.94,
+        "fov": 44
+      },
+      "era": "original",
+      "time": 14,
+      "weather": "clear",
+      "stage": 8,
+      "width": 390,
+      "height": 844,
+      "elements": 79,
+      "layoutHash": "0b545dc5204ec463a771ed76b8bc580b8b65492f6ddd3b119b8d00729c555124",
+      "afterElements": 82,
+      "afterLayoutHash": "b9ac356db03d44fa21332ec3e66fa7962265aad9aa4317939080b358f89c56ee"
+    },
+    {
+      "view": "levitating-tower",
+      "camera": {
+        "target": [
+          0,
+          9,
+          -24
+        ],
+        "radius": 83,
+        "theta": -0.5,
+        "phi": 1.1,
+        "fov": 44
+      },
+      "era": "original",
+      "time": 14,
+      "weather": "clear",
+      "stage": 8,
+      "width": 390,
+      "height": 844,
+      "elements": 79,
+      "layoutHash": "0b545dc5204ec463a771ed76b8bc580b8b65492f6ddd3b119b8d00729c555124",
+      "afterElements": 82,
+      "afterLayoutHash": "b9ac356db03d44fa21332ec3e66fa7962265aad9aa4317939080b358f89c56ee"
+    },
+    {
+      "view": "viaduct",
+      "camera": {
+        "target": [
+          12,
+          4,
+          -2
+        ],
+        "radius": 62,
+        "theta": 0.5,
+        "phi": 1,
+        "fov": 44
+      },
+      "era": "original",
+      "time": 14,
+      "weather": "clear",
+      "stage": 8,
+      "width": 390,
+      "height": 844,
+      "elements": 79,
+      "layoutHash": "0b545dc5204ec463a771ed76b8bc580b8b65492f6ddd3b119b8d00729c555124",
+      "afterElements": 82,
+      "afterLayoutHash": "b9ac356db03d44fa21332ec3e66fa7962265aad9aa4317939080b358f89c56ee"
+    }
+  ]
+}

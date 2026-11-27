@@ -186,6 +186,7 @@ export interface CivElementDef {
   maxSpan?: [number, number];
   accentHex: string;
   description: string;
+  searchAliases?: readonly string[];
 }
 
 export const CATEGORY_META: { id: ElementCategory; label: string }[] = [

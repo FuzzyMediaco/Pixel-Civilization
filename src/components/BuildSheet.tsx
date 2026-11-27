@@ -120,6 +120,7 @@ export function BuildSheet({
           eraElementName(d.id, era).toLowerCase().includes(q) ||
           d.id.toLowerCase().includes(q) ||
           d.description.toLowerCase().includes(q) ||
+          d.searchAliases?.some(alias => alias.toLowerCase().includes(q)) ||
           d.category.includes(q),
       );
     }
